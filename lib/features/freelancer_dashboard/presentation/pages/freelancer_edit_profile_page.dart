@@ -1,0 +1,584 @@
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../app/constants/app_colors.dart';
+import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/profile_avatar_editor.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../domain/entities/freelancer_profile.dart';
+import '../../domain/repositories/freelancer_profile_repository.dart';
+
+class FreelancerEditProfilePage extends StatefulWidget {
+  const FreelancerEditProfilePage({super.key});
+
+  @override
+  State<FreelancerEditProfilePage> createState() =>
+      _FreelancerEditProfilePageState();
+}
+
+class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
+  // Controllers
+  final _bio = TextEditingController();
+  final _hourlyRate = TextEditingController();
+  final _skillsRaw = TextEditingController(); // "skill1, skill2"
+  final _experience = TextEditingController();
+  final _education = TextEditingController();
+  final _languages = TextEditingController();
+
+  // Availability options
+  static const _availabilityOptions = [
+    'available',
+    'part-time',
+    'not-available',
+  ];
+  String _availability = 'available';
+
+  // State
+  bool _loading = true;
+  bool _saving = false;
+  bool _uploadingAvatar = false;
+  bool _uploadingResume = false;
+  FreelancerProfile? _profile;
+  String? _localAvatarPath;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _bio.dispose();
+    _hourlyRate.dispose();
+    _skillsRaw.dispose();
+    _experience.dispose();
+    _education.dispose();
+    _languages.dispose();
+    super.dispose();
+  }
+
+  // ─── Data ──────────────────────────────────────────────────────────────────
+
+  Future<void> _load() async {
+    final res = await sl<FreelancerProfileRepository>().getProfile();
+    if (!mounted) return;
+    res.fold((f) => context.showSnack(f.message), (p) {
+      _profile = p;
+      _bio.text = p.bio;
+      _hourlyRate.text = p.hourlyRate > 0
+          ? p.hourlyRate.toStringAsFixed(0)
+          : '';
+      _skillsRaw.text = p.skills.join(', ');
+      _experience.text = p.experience.join(', ');
+      _education.text = p.education.join(', ');
+      _languages.text = p.languages.join(', ');
+      if (_availabilityOptions.contains(p.availability)) {
+        _availability = p.availability;
+      }
+    });
+    setState(() => _loading = false);
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+
+    final payload = {
+      'bio': _bio.text.trim(),
+      'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0,
+      'skills': _skillsRaw.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'experience': _experience.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'education': _education.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'languages': _languages.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'availability': _availability,
+    };
+
+    final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    res.fold((f) => context.showSnack(f.message), (p) {
+      _profile = p;
+      context.showSnack('Profile updated successfully!');
+      // Refresh AuthBloc so the drawer/profile header updates
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+      Navigator.of(context).pop();
+    });
+  }
+
+  Future<void> _uploadAvatar(String path) async {
+    setState(() => _uploadingAvatar = true);
+    final res = await sl<FreelancerProfileRepository>().uploadAvatar(path);
+    if (!mounted) return;
+    setState(() => _uploadingAvatar = false);
+    res.fold((f) => context.showSnack(f.message), (_) {
+      setState(() => _localAvatarPath = path);
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+      context.showSnack('Avatar updated!');
+    });
+  }
+
+  Future<void> _uploadResume() async {
+    final picked = await FilePicker.platform.pickFiles(
+      allowMultiple: false,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'doc', 'docx'],
+    );
+    final path = picked?.files.single.path;
+    if (path == null) return;
+
+    setState(() => _uploadingResume = true);
+    final res = await sl<FreelancerProfileRepository>().uploadResume(path);
+    if (!mounted) return;
+    setState(() => _uploadingResume = false);
+    res.fold(
+      (f) => context.showSnack(f.message),
+      (_) => context.showSnack('Resume uploaded successfully!'),
+    );
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  int _completionPercent() {
+    final checks = [
+      _bio.text.trim().isNotEmpty,
+      _hourlyRate.text.trim().isNotEmpty,
+      _skillsRaw.text.trim().isNotEmpty,
+      _experience.text.trim().isNotEmpty,
+      _education.text.trim().isNotEmpty,
+      _languages.text.trim().isNotEmpty,
+      (_localAvatarPath ?? _profile?.avatarUrl ?? '').isNotEmpty,
+      (_profile?.resumeUrl ?? '').isNotEmpty,
+    ];
+    final filled = checks.where((c) => c).length;
+    return ((filled / checks.length) * 100).round();
+  }
+
+  // ─── UI ────────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AppScaffold(
+      appBar: AppBar(
+        title: const Text('Edit Profile'),
+        actions: [
+          if (!_saving)
+            TextButton.icon(
+              icon: const Icon(Icons.check_rounded, size: 18),
+              label: const Text('Save'),
+              onPressed: _save,
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: AppSizes.md),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : ListView(
+              padding: const EdgeInsets.all(AppSizes.screenPadding),
+              children: [
+                // ── Completion banner ───────────────────────────────────────
+                _CompletionCard(percent: _completionPercent()),
+                AppSizes.vGapLg,
+
+                // ── Avatar ─────────────────────────────────────────────────
+                _SectionLabel('Profile Photo'),
+                AppSizes.vGapSm,
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    ProfileAvatarEditor(
+                      localPath: _localAvatarPath,
+                      networkUrl: _profile?.avatarUrl,
+                      onPathPicked: _uploadAvatar,
+                      size: 110,
+                    ),
+                    if (_uploadingAvatar)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black38,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                AppSizes.vGapLg,
+
+                // ── Bio ────────────────────────────────────────────────────
+                _SectionLabel('Professional Bio'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _bio,
+                  label: 'Bio',
+                  hint:
+                      'Tell clients about yourself, your expertise, and what makes you unique…',
+                  maxLines: 4,
+                  textInputAction: TextInputAction.newline,
+                ),
+                AppSizes.vGapLg,
+
+                // ── Availability & Rate ─────────────────────────────────────
+                _SectionLabel('Work Preferences'),
+                AppSizes.vGapSm,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        controller: _hourlyRate,
+                        label: 'Hourly Rate (₹)',
+                        hint: 'e.g. 1500',
+                        prefixIcon: Icons.currency_rupee_rounded,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        textInputAction: TextInputAction.next,
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Availability',
+                            style: context.text.labelMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          AppSizes.vGapXs,
+                          AppCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSizes.sm,
+                            ),
+                            child: DropdownButton<String>(
+                              value: _availability,
+                              isExpanded: true,
+                              underline: const SizedBox.shrink(),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'available',
+                                  child: Text('Available'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'part-time',
+                                  child: Text('Part-Time'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'not-available',
+                                  child: Text('Not Available'),
+                                ),
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _availability = v!),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                AppSizes.vGapLg,
+
+                // ── Skills ─────────────────────────────────────────────────
+                _SectionLabel('Skills'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _skillsRaw,
+                  label: 'Skills',
+                  hint: 'Flutter, Python, UI/UX, Node.js…',
+                  maxLines: 2,
+                  textInputAction: TextInputAction.next,
+                  onChanged: (_) => setState(() {}),
+                ),
+                AppSizes.vGapXs,
+                Text(
+                  'Separate skills with commas',
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+                if (_skillsRaw.text.trim().isNotEmpty) ...[
+                  AppSizes.vGapSm,
+                  _ChipsPreview(raw: _skillsRaw.text),
+                ],
+                AppSizes.vGapLg,
+
+                // ── Languages ──────────────────────────────────────────────
+                _SectionLabel('Languages'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _languages,
+                  label: 'Languages',
+                  hint: 'English, Hindi, Tamil…',
+                  textInputAction: TextInputAction.next,
+                ),
+                AppSizes.vGapXs,
+                Text(
+                  'Separate with commas',
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+                AppSizes.vGapLg,
+
+                // ── Experience ─────────────────────────────────────────────
+                _SectionLabel('Experience'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _experience,
+                  label: 'Experience',
+                  hint: 'Senior Dev at TechCorp, Freelance Flutter Dev…',
+                  maxLines: 3,
+                  textInputAction: TextInputAction.next,
+                ),
+                AppSizes.vGapXs,
+                Text(
+                  'Separate entries with commas',
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+                AppSizes.vGapLg,
+
+                // ── Education ──────────────────────────────────────────────
+                _SectionLabel('Education'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _education,
+                  label: 'Education',
+                  hint: 'B.Tech Computer Science - NIT…',
+                  maxLines: 2,
+                  textInputAction: TextInputAction.next,
+                ),
+                AppSizes.vGapXs,
+                Text(
+                  'Separate entries with commas',
+                  style: context.text.labelSmall?.copyWith(
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ),
+                AppSizes.vGapLg,
+
+                // ── Resume ─────────────────────────────────────────────────
+                _SectionLabel('Resume / CV'),
+                AppSizes.vGapSm,
+                AppCard(
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.description_outlined,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      AppSizes.hGapMd,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              (_profile?.resumeUrl?.isNotEmpty == true)
+                                  ? 'Resume uploaded'
+                                  : 'No resume uploaded yet',
+                              style: context.text.bodyMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              'PDF, DOC, DOCX accepted',
+                              style: context.text.labelSmall?.copyWith(
+                                color: colors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      AppSizes.hGapMd,
+                      AppPrimaryButton(
+                        label: _uploadingResume ? 'Uploading…' : 'Upload',
+                        icon: Icons.upload_rounded,
+                        isLoading: _uploadingResume,
+                        onPressed: _uploadingResume ? null : _uploadResume,
+                      ),
+                    ],
+                  ),
+                ),
+                AppSizes.vGapXl,
+
+                // ── Save button ────────────────────────────────────────────
+                AppPrimaryButton(
+                  label: 'Save Profile',
+                  icon: Icons.check_circle_outline_rounded,
+                  isLoading: _saving,
+                  onPressed: _saving ? null : _save,
+                ),
+                AppSizes.vGapLg,
+              ],
+            ),
+    );
+  }
+}
+
+// ── Private helpers ──────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Text(
+    label.toUpperCase(),
+    style: context.text.labelSmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+      letterSpacing: 1.2,
+      fontWeight: FontWeight.w700,
+    ),
+  );
+}
+
+class _CompletionCard extends StatelessWidget {
+  const _CompletionCard({required this.percent});
+  final int percent;
+
+  Color get _color {
+    if (percent >= 80) return AppColors.success;
+    if (percent >= 50) return AppColors.warning;
+    return AppColors.danger;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    return AppCard(
+      color: _color.withValues(alpha: 0.06),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                percent >= 80
+                    ? Icons.verified_rounded
+                    : Icons.info_outline_rounded,
+                color: _color,
+                size: 18,
+              ),
+              AppSizes.hGapSm,
+              Expanded(
+                child: Text(
+                  percent >= 80
+                      ? 'Great! Your profile looks strong.'
+                      : percent >= 50
+                      ? 'Profile is taking shape — keep going!'
+                      : 'Complete your profile to get hired faster.',
+                  style: context.text.bodySmall?.copyWith(
+                    color: _color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Text(
+                '$percent%',
+                style: context.text.titleSmall?.copyWith(
+                  color: _color,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          AppSizes.vGapSm,
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: percent / 100,
+              minHeight: 6,
+              backgroundColor: colors.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation(_color),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ChipsPreview extends StatelessWidget {
+  const _ChipsPreview({required this.raw});
+  final String raw;
+
+  @override
+  Widget build(BuildContext context) {
+    final items = raw
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+    if (items.isEmpty) return const SizedBox.shrink();
+    return Wrap(
+      spacing: AppSizes.xs,
+      runSpacing: AppSizes.xs,
+      children: [
+        for (final item in items)
+          Chip(
+            label: Text(item),
+            labelStyle: context.text.labelSmall?.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
+            visualDensity: VisualDensity.compact,
+          ),
+      ],
+    );
+  }
+}
