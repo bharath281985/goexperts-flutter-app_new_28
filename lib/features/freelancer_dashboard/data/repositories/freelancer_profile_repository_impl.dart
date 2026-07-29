@@ -66,4 +66,18 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
       onProgress: onProgress,
     );
   }
+
+  @override
+  Future<Result<String>> uploadKycDocument({
+    required String filePath,
+    required String documentType,
+    void Function(int sent, int total)? onProgress,
+  }) async {
+    return _uploader.uploadUrl(
+      path: filePath,
+      endpoint: ApiEndpoints.freelancerProfileKyc,
+      fields: {'documentType': documentType},
+      onProgress: onProgress,
+    );
+  }
 }

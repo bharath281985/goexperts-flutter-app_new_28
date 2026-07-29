@@ -38,6 +38,8 @@ import '../../features/meetings/presentation/pages/calendar_page.dart';
 import '../../core/dashboard/analytics_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_subpages.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_edit_profile_page.dart';
+import '../../features/freelancer_dashboard/presentation/pages/freelancer_professional_details_page.dart';
+import '../../features/freelancer_dashboard/presentation/pages/freelancer_verification_page.dart';
 import '../../features/client_dashboard/presentation/pages/client_subpages.dart';
 import '../../features/client_dashboard/presentation/pages/client_blocker_pages.dart';
 import '../../features/investor_dashboard/presentation/pages/investor_subpages.dart';
@@ -271,6 +273,14 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.freelancerEditProfile,
         builder: (_, __) => const FreelancerEditProfilePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerProfessionalDetails,
+        builder: (_, __) => const FreelancerProfessionalDetailsPage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerVerification,
+        builder: (_, __) => const FreelancerVerificationPage(),
       ),
       GoRoute(
         path: Routes.freelancerPortfolioPage,

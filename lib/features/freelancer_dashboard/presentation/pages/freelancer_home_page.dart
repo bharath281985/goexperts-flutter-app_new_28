@@ -156,106 +156,118 @@ class FreelancerHomePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                alignment: WrapAlignment.spaceBetween,
-                children: [
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      _buildBannerButton(
-                        'Apply to matches',
-                        Icons.bolt,
-                        AppColors.primary,
-                        onTap: () => context.push(Routes.freelancerProjects),
-                      ),
-                      _buildBannerButton(
-                        'Withdraw earnings',
-                        Icons.account_balance_wallet_outlined,
-                        AppColors.primaryBlack,
-                        onTap: () => context.push(Routes.wallet),
-                        isDark: true,
-                      ),
-                      _buildBannerButton(
-                        'AI Proposal Writer',
-                        Icons.auto_awesome_outlined,
-                        AppColors.primaryBlack,
-                        onTap: () => context.push(Routes.freelancerProjects),
-                        isDark: true,
-                      ),
-
-                      Builder(
-                        builder: (ctx) => PopupMenuButton<String>(
-                          color: const Color(0xFF1E293B),
-                          elevation: 16,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                            side: BorderSide(
-                              color: AppColors.white.withValues(alpha: 0.1),
-                            ),
-                          ),
-                          position: PopupMenuPosition.over,
-                          offset: const Offset(0, -210),
-                          itemBuilder: (_) => [
-                            PopupMenuItem(
-                              enabled: false,
-                              padding: EdgeInsets.zero,
-                              child: _buildProfileCompletionPopup(ctx, state),
-                            ),
-                          ],
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryBlack.withValues(
-                                alpha: 0.5,
-                              ),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.white.withValues(alpha: 0.1),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.bar_chart_rounded,
-                                  size: 14,
-                                  color: AppColors.white,
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  'Profile Completion',
-                                  style: TextStyle(
-                                    color: AppColors.white,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(width: 4),
-                                Icon(
-                                  Icons.keyboard_arrow_up,
-                                  size: 14,
-                                  color: AppColors.white,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              _buildBannerActions(context, state),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildBannerActions(BuildContext context, DashboardState state) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: _buildBannerButton(
+                'Apply to matches',
+                Icons.bolt,
+                AppColors.primary,
+                onTap: () => context.push(Routes.freelancerProjects),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildBannerButton(
+                'Withdraw earnings',
+                Icons.account_balance_wallet_outlined,
+                AppColors.primaryBlack,
+                onTap: () => context.push(Routes.wallet),
+                isDark: true,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _buildBannerButton(
+                'AI Proposal Writer',
+                Icons.auto_awesome_outlined,
+                AppColors.primaryBlack,
+                onTap: () => context.push(Routes.freelancerProjects),
+                isDark: true,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Builder(
+                builder: (ctx) => PopupMenuButton<String>(
+                  color: const Color(0xFF1E293B),
+                  elevation: 16,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: AppColors.white.withValues(alpha: 0.1),
+                    ),
+                  ),
+                  position: PopupMenuPosition.over,
+                  offset: const Offset(0, -210),
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      enabled: false,
+                      padding: EdgeInsets.zero,
+                      child: _buildProfileCompletionPopup(ctx, state),
+                    ),
+                  ],
+                  child: Container(
+                    height: 44,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlack.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.bar_chart_rounded,
+                          size: 14,
+                          color: AppColors.white,
+                        ),
+                        SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            'Profile Completion',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: AppColors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Icon(
+                          Icons.keyboard_arrow_up,
+                          size: 14,
+                          color: AppColors.white,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
@@ -356,7 +368,8 @@ class FreelancerHomePage extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(24),
@@ -365,16 +378,20 @@ class FreelancerHomePage extends StatelessWidget {
               : null,
         ),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(icon, size: 14, color: AppColors.white),
             const SizedBox(width: 8),
-            Text(
-              text,
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],
@@ -1027,7 +1044,7 @@ class FreelancerHomePage extends StatelessWidget {
     );
   }
 
-  _buildConversationsTab(BuildContext context, DashboardState state) {
+  Widget _buildConversationsTab(BuildContext context, DashboardState state) {
     final upcomingMeetings = _buildActivityCard(
       'Upcoming meetings',
       null, // No subtitle in screenshot

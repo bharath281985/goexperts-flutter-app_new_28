@@ -7,4 +7,8 @@ abstract class FreelancerProfileRepository {
   Future<Result<String>> uploadAvatar(String filePath);
   Future<Result<String>> uploadResume(String filePath);
   Future<Result<String>> uploadCertificate(String filePath);
+  Future<Result<String>> uploadKycDocument({
+    required String filePath,
+    required String documentType,
+  });
 }
