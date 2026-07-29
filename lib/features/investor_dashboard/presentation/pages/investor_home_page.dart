@@ -641,75 +641,119 @@ class InvestorHomePage extends StatelessWidget {
     final unreadMsgs = state.unreadMessagesCount.toString();
     final notifs = state.unreadNotificationsCount.toString();
 
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: context.isMobile ? 2 : (context.isTablet ? 3 : 4),
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 2.2,
-      children: [
-        DashboardMetricCard(
-          title: 'PORTFOLIO VALUE',
-          value: portfolioValue,
-          lineColor: Colors.red,
-        ),
-        DashboardMetricCard(
-          title: 'TOTAL INVESTMENTS',
-          value: totalInvestments,
-          lineColor: AppColors.success,
-        ),
-        DashboardMetricCard(
-          title: 'AVAILABLE CAPITAL',
-          value: balance,
-          lineColor: AppColors.projectPurpleText,
-        ),
-        DashboardMetricCard(
-          title: 'STARTUPS FOLLOWING',
-          value: startupsFollowing,
-          lineColor: AppColors.warning,
-        ),
-        DashboardMetricCard(
-          title: 'PENDING INTERESTS',
-          value: pendingDeals,
-          lineColor: AppColors.danger,
-        ),
-        DashboardMetricCard(
-          title: 'MEETINGS THIS WEEK',
-          value: meetingsCount,
-          lineColor: AppColors.info,
-        ),
-        DashboardMetricCard(
-          title: 'DUE DILIGENCE',
-          value: dueDiligence,
-          lineColor: AppColors.warning,
-        ),
-        DashboardMetricCard(
-          title: 'OFFERS SENT',
-          value: offersSent,
-          lineColor: AppColors.success,
-        ),
-        DashboardMetricCard(
-          title: 'ROI %',
-          value: roip,
-          lineColor: AppColors.success,
-        ),
-        DashboardMetricCard(
-          title: 'UNREAD MESSAGES',
-          value: unreadMsgs,
-          lineColor: Colors.red,
-        ),
-        DashboardMetricCard(
-          title: 'NOTIFICATIONS',
-          value: notifs,
-          lineColor: AppColors.warning,
-        ),
-        DashboardMetricCard(
-          title: 'WALLET BALANCE',
-          value: balance,
-          lineColor: AppColors.info,
-        ),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = context.isMobile
+            ? 2
+            : (context.isTablet ? 3 : 4);
+        const double spacing = 16.0;
+        final double width =
+            (constraints.maxWidth - (crossAxisCount - 1) * spacing) /
+            crossAxisCount;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'PORTFOLIO VALUE',
+                value: portfolioValue,
+                lineColor: Colors.red,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'TOTAL INVESTMENTS',
+                value: totalInvestments,
+                lineColor: AppColors.success,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'AVAILABLE CAPITAL',
+                value: balance,
+                lineColor: AppColors.projectPurpleText,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'STARTUPS FOLLOWING',
+                value: startupsFollowing,
+                lineColor: AppColors.warning,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'PENDING INTERESTS',
+                value: pendingDeals,
+                lineColor: AppColors.danger,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'MEETINGS THIS WEEK',
+                value: meetingsCount,
+                lineColor: AppColors.info,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'DUE DILIGENCE',
+                value: dueDiligence,
+                lineColor: AppColors.warning,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'OFFERS SENT',
+                value: offersSent,
+                lineColor: AppColors.success,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'ROI %',
+                value: roip,
+                lineColor: AppColors.success,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'UNREAD MESSAGES',
+                value: unreadMsgs,
+                lineColor: Colors.red,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'NOTIFICATIONS',
+                value: notifs,
+                lineColor: AppColors.warning,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'WALLET BALANCE',
+                value: balance,
+                lineColor: AppColors.info,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

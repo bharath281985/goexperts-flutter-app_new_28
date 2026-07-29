@@ -250,102 +250,154 @@ class FounderHomePage extends StatelessWidget {
         horizontal: AppSizes.screenPadding + 10,
         vertical: AppSizes.sm,
       ),
-      child: Wrap(
-        spacing: 12,
-        runSpacing: 12,
-        children: [
-          DashboardActionButton(
-            text: 'Edit Startup',
-            icon: Icons.edit_note,
-            color: AppColors.warning,
-            onTap: () => context.push(Routes.founderStartup),
-          ),
-          DashboardActionButton(
-            text: 'Upload Pitch Deck',
-            icon: Icons.upload_file,
-            color: AppColors.projectPurple,
-            onTap: () => context.push(Routes.founderPitchDeck),
-          ),
-          DashboardActionButton(
-            text: 'Invite Team',
-            icon: Icons.person_add,
-            color: AppColors.info,  
-            onTap: () => context.push(Routes.founderTeam),
-          ),
-          DashboardActionButton(
-            text: 'Schedule Meeting',
-            icon: Icons.calendar_month,
-            color: AppColors.success,
-            onTap: () => context.push(Routes.meetings),
-          ),
-          DashboardActionButton(
-            text: 'Request Funding',
-            icon: Icons.attach_money,
-            color: AppColors.primary,
-            onTap: () => context.push(Routes.founderFunding),
-          ),
-          DashboardActionButton(
-            text: 'Export Reports',
-            icon: Icons.download,
-            color: AppColors.projectPurpleText,
-            onTap: () => context.push(Routes.founderAnalytics),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final int columns = context.isDesktop
+              ? 6
+              : (context.isTablet ? 4 : 3);
+          const double spacing = 12.0;
+          final double width =
+              (constraints.maxWidth - (columns - 1) * spacing) / columns;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              DashboardActionButton(
+                text: 'Edit Startup',
+                icon: Icons.edit_note,
+                color: AppColors.warning,
+                onTap: () => context.push(Routes.founderStartup),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Upload Pitch Deck',
+                icon: Icons.upload_file,
+                color: AppColors.projectPurple,
+                onTap: () => context.push(Routes.founderPitchDeck),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Invite Team',
+                icon: Icons.person_add,
+                color: AppColors.info,
+                onTap: () => context.push(Routes.founderTeam),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Schedule Meeting',
+                icon: Icons.calendar_month,
+                color: AppColors.success,
+                onTap: () => context.push(Routes.meetings),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Request Funding',
+                icon: Icons.attach_money,
+                color: AppColors.primary,
+                onTap: () => context.push(Routes.founderFunding),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Export Reports',
+                icon: Icons.download,
+                color: AppColors.projectPurpleText,
+                onTap: () => context.push(Routes.founderAnalytics),
+                width: width,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildMetricsGrid(BuildContext context, DashboardState state) {
-    // Determine number of columns based on screen width
-    final crossAxisCount = context.isDesktop ? 4 : (context.isTablet ? 3 : 2);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = context.isDesktop
+            ? 4
+            : (context.isTablet ? 3 : 2);
+        const double spacing = 16.0; // matching AppSizes.sm
+        final double width =
+            (constraints.maxWidth - (crossAxisCount - 1) * spacing) /
+            crossAxisCount;
 
-    return GridView.count(
-      padding: EdgeInsets.zero,
-      crossAxisCount: crossAxisCount,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppSizes.sm,
-      crossAxisSpacing: AppSizes.sm,
-      childAspectRatio: 2.2, // wide cards
-      children: [
-        _buildMetricCard('STARTUP PROFILE STATUS', 'Active', AppColors.primary),
-        _buildMetricCard(
-          'INVESTOR VIEWS',
-          '${state.profileCompletionPercent}',
-          AppColors.success,
-        ),
-        _buildMetricCard(
-          'INVESTOR INTERESTS',
-          '${state.activeProjectsCount}',
-          AppColors.warning,
-        ),
-        _buildMetricCard('CONTACT REQUESTS', '0', AppColors.info),
-        _buildMetricCard(
-          'PITCH DECK DOWNLOADS',
-          '${state.pendingProposalsCount}',
-          AppColors.primary,
-        ),
-        _buildMetricCard(
-          'UNREAD MESSAGES',
-          '${state.unreadMessagesCount}',
-          AppColors.warning,
-        ),
-        _buildMetricCard(
-          'SCHEDULED MEETINGS',
-          '${state.meetings.length}',
-          AppColors.info,
-        ),
-        _buildMetricCard(
-          'SUBSCRIPTION STATUS',
-          'Free Founder Plan',
-          AppColors.primary,
-        ),
-        _buildMetricCard(
-          'PROFILE STRENGTH SCORE',
-          '${state.profileCompletionPercent}%',
-          AppColors.success,
-        ),
-      ],
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'STARTUP PROFILE STATUS',
+                'Active',
+                AppColors.primary,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'INVESTOR VIEWS',
+                '${state.profileCompletionPercent}',
+                AppColors.success,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'INVESTOR INTERESTS',
+                '${state.activeProjectsCount}',
+                AppColors.warning,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard('CONTACT REQUESTS', '0', AppColors.info),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'PITCH DECK DOWNLOADS',
+                '${state.pendingProposalsCount}',
+                AppColors.primary,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'UNREAD MESSAGES',
+                '${state.unreadMessagesCount}',
+                AppColors.warning,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'SCHEDULED MEETINGS',
+                '${state.meetings.length}',
+                AppColors.info,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'SUBSCRIPTION STATUS',
+                'Free Founder Plan',
+                AppColors.primary,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: _buildMetricCard(
+                'PROFILE STRENGTH SCORE',
+                '${state.profileCompletionPercent}%',
+                AppColors.success,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

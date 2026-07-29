@@ -18,17 +18,21 @@ class AppConfig {
   /// Set to `true` to use in-memory mock data instead of live APIs.
   static const bool useMockData = false;
 
-  static const String baseUrlDev =
-      'https://mobileapi.goexperts.in/api/v1/mobile';
+  static const String baseUrlDev = "https://apiai.goexperts.in/api/v1/mobile";
+
+  // 'https://mobileapi.goexperts.in/api/v1/mobile';
   static const String baseUrlStaging =
-      'https://mobileapi.goexperts.in/api/v1/mobile';
-  static const String baseUrlProd =
-      'https://mobileapi.goexperts.in/api/v1/mobile';
+      "https://apiai.goexperts.in/api/v1/mobile";
+
+  // 'https://mobileapi.goexperts.in/api/v1/mobile';
+  static const String baseUrlProd = "https://apiai.goexperts.in/api/v1/mobile";
+  // 'https://mobileapi.goexperts.in/api/v1/mobile';
 
   /// Public catalog APIs (categories, skills) use the same mobile API host.
   @Deprecated('Use AppConfig.baseUrl — catalog lives on mobileapi')
   static const String publicCatalogBaseUrl =
-      'https://mobileapi.goexperts.in/api/v1/mobile';
+      "https://apiai.goexperts.in/api/v1/mobile";
+  // 'https://mobileapi.goexperts.in/api/v1/mobile';
 
   static String get baseUrl {
     switch (flavor) {
@@ -45,7 +49,8 @@ class AppConfig {
   static const Duration receiveTimeout = Duration(seconds: 20);
 
   static const RealtimeProvider realtimeProvider = RealtimeProvider.socketIo;
-  static const String socketUrl = 'https://mobileapi.goexperts.in:443';
+  static const String socketUrl = "https://apiai.goexperts.in:443";
+  // 'https://mobileapi.goexperts.in:443';
 
   static const int defaultPageSize = 15;
 

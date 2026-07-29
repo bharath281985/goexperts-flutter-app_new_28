@@ -186,67 +186,69 @@ class FreelancerHomePage extends StatelessWidget {
                         onTap: () => context.push(Routes.freelancerProjects),
                         isDark: true,
                       ),
-                   
-                  Builder(
-                    builder: (ctx) => PopupMenuButton<String>(
-                      color: const Color(0xFF1E293B),
-                      elevation: 16,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: AppColors.white.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      position: PopupMenuPosition.over,
-                      offset: const Offset(0, -210),
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          enabled: false,
-                          padding: EdgeInsets.zero,
-                          child: _buildProfileCompletionPopup(ctx, state),
-                        ),
-                      ],
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryBlack.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppColors.white.withValues(alpha: 0.1),
+
+                      Builder(
+                        builder: (ctx) => PopupMenuButton<String>(
+                          color: const Color(0xFF1E293B),
+                          elevation: 16,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            side: BorderSide(
+                              color: AppColors.white.withValues(alpha: 0.1),
+                            ),
                           ),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.bar_chart_rounded,
-                              size: 14,
-                              color: AppColors.white,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Profile Completion',
-                              style: TextStyle(
-                                color: AppColors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_up,
-                              size: 14,
-                              color: AppColors.white,
+                          position: PopupMenuPosition.over,
+                          offset: const Offset(0, -210),
+                          itemBuilder: (_) => [
+                            PopupMenuItem(
+                              enabled: false,
+                              padding: EdgeInsets.zero,
+                              child: _buildProfileCompletionPopup(ctx, state),
                             ),
                           ],
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryBlack.withValues(
+                                alpha: 0.5,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: AppColors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.bar_chart_rounded,
+                                  size: 14,
+                                  color: AppColors.white,
+                                ),
+                                SizedBox(width: 6),
+                                Text(
+                                  'Profile Completion',
+                                  style: TextStyle(
+                                    color: AppColors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(width: 4),
+                                Icon(
+                                  Icons.keyboard_arrow_up,
+                                  size: 14,
+                                  color: AppColors.white,
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                   ],
+                    ],
                   ),
                 ],
               ),
@@ -434,144 +436,186 @@ class FreelancerHomePage extends StatelessWidget {
           style: TextStyle(fontSize: 11, color: AppColors.subtleText),
         ),
         const SizedBox(height: 12),
-        GridView.count(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          crossAxisCount: context.isDesktop ? 6 : (context.isTablet ? 4 : 3),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 1.1,
-          children: [
-            DashboardActionButton(
-              text: 'Apply Project',
-              icon: Icons.assignment_turned_in_outlined,
-              color: AppColors.primary,
-              onTap: () => context.push(Routes.freelancerProjects),
-            ),
-            DashboardActionButton(
-              text: 'Update Profile',
-              icon: Icons.person_outline,
-              color: AppColors.warning,
-              onTap: () => context.push(Routes.freelancerEditProfile),
-            ),
-            DashboardActionButton(
-              text: 'Upload Portfolio',
-              icon: Icons.upload_file_outlined,
-              color: AppColors.projectPurple,
-              onTap: () => context.push(Routes.wallet),
-            ),
-            DashboardActionButton(
-              text: 'Book Meeting',
-              icon: Icons.calendar_today_outlined,
-              color: AppColors.info,
-              onTap: () => context.push(Routes.meetings),
-            ),
-            DashboardActionButton(
-              text: 'Withdraw',
-              icon: Icons.wallet_outlined,
-              color: AppColors.success,
-              onTap: () => context.push(Routes.wallet),
-            ),
-            DashboardActionButton(
-              text: 'AI Proposal',
-              icon: Icons.auto_awesome_outlined,
-              color: AppColors.projectPurpleText,
-              onTap: () => context.push(Routes.freelancerProjects),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final int columns = context.isDesktop
+                ? 6
+                : (context.isTablet ? 4 : 3);
+            const double spacing = 8.0;
+            final double width =
+                (constraints.maxWidth - (columns - 1) * spacing) / columns;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                DashboardActionButton(
+                  text: 'Apply Project',
+                  icon: Icons.assignment_turned_in_outlined,
+                  color: AppColors.primary,
+                  onTap: () => context.push(Routes.freelancerProjects),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Update Profile',
+                  icon: Icons.person_outline,
+                  color: AppColors.warning,
+                  onTap: () => context.push(Routes.freelancerEditProfile),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Upload Portfolio',
+                  icon: Icons.upload_file_outlined,
+                  color: AppColors.projectPurple,
+                  onTap: () => context.push(Routes.wallet),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Book Meeting',
+                  icon: Icons.calendar_today_outlined,
+                  color: AppColors.info,
+                  onTap: () => context.push(Routes.meetings),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Withdraw',
+                  icon: Icons.wallet_outlined,
+                  color: AppColors.success,
+                  onTap: () => context.push(Routes.wallet),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'AI Proposal',
+                  icon: Icons.auto_awesome_outlined,
+                  color: AppColors.projectPurpleText,
+                  onTap: () => context.push(Routes.freelancerProjects),
+                  width: width,
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
   }
 
   Widget _buildMetricsGrid(BuildContext context, DashboardState state) {
-    final crossAxisCount = context.isDesktop ? 4 : (context.isTablet ? 3 : 2);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final crossAxisCount = context.isDesktop
+            ? 4
+            : (context.isTablet ? 3 : 2);
+        const double spacing =
+            16.0; // matching AppSizes.sm is usually 16 or 12, I'll use 16
+        final double width =
+            (constraints.maxWidth - (crossAxisCount - 1) * spacing) /
+            crossAxisCount;
 
-    return GridView.count(
-      padding: EdgeInsets.zero,
-      crossAxisCount: crossAxisCount,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: AppSizes.sm,
-      crossAxisSpacing: AppSizes.sm,
-      childAspectRatio: 2.3,
-      children: [
-        DashboardMetricCard(
-          title: 'TOTAL EARNINGS',
-          value: Formatters.currency(
-            state.monthlyEarnings > 0 ? state.monthlyEarnings : 5373.0,
-          ),
-          lineColor: AppColors.primary,
-          tagLabel: 'Lifetime stats',
-          tagColor: AppColors.info,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'AVAILABLE BALANCE',
-          value: Formatters.currency(state.wallet?.available ?? 26525.0),
-          lineColor: AppColors.success,
-          tagLabel: 'Ready to withdraw',
-          tagColor: AppColors.success,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'PROJECTS WON',
-          value: state.activeProjectsCount == 0
-              ? '0'
-              : '${state.activeProjectsCount}',
-          lineColor: AppColors.info,
-          tagLabel: '1 active now',
-          tagColor: AppColors.info,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'CONTRACTS ACTIVE',
-          value: state.activeProjectsCount > 0
-              ? '${state.activeProjectsCount}'
-              : '1',
-          lineColor: AppColors.warning,
-          tagLabel: 'In delivery',
-          tagColor: AppColors.warning,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'PENDING PROPOSALS',
-          value: '${state.pendingProposalsCount}',
-          lineColor: AppColors.info,
-          tagLabel: state.pendingProposalsCount == 0
-              ? 'No proposals yet'
-              : 'Active proposals',
-          tagColor: AppColors.subtleText,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'TASKS DUE TODAY',
-          value: '0',
-          lineColor: AppColors.primary,
-          tagLabel: 'None urgent',
-          tagColor: AppColors.success,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'MEETINGS TODAY',
-          value: '${state.meetings.length}',
-          lineColor: AppColors.primary,
-          tagLabel: state.meetings.isEmpty
-              ? 'No meetings scheduled'
-              : 'Meetings scheduled',
-          tagColor: AppColors.subtleText,
-          showIcon: false,
-        ),
-        DashboardMetricCard(
-          title: 'AVERAGE RATING',
-          value: '4.26',
-          lineColor: AppColors.success,
-          tagLabel: '4 reviews',
-          tagColor: AppColors.success,
-          showIcon: false,
-        ),
-      ],
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'TOTAL EARNINGS',
+                value: Formatters.currency(
+                  state.monthlyEarnings > 0 ? state.monthlyEarnings : 5373.0,
+                ),
+                lineColor: AppColors.primary,
+                tagLabel: 'Lifetime stats',
+                tagColor: AppColors.info,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'AVAILABLE BALANCE',
+                value: Formatters.currency(state.wallet?.available ?? 26525.0),
+                lineColor: AppColors.success,
+                tagLabel: 'Ready to withdraw',
+                tagColor: AppColors.success,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'PROJECTS WON',
+                value: state.activeProjectsCount == 0
+                    ? '0'
+                    : '${state.activeProjectsCount}',
+                lineColor: AppColors.info,
+                tagLabel: '1 active now',
+                tagColor: AppColors.info,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'CONTRACTS ACTIVE',
+                value: state.activeProjectsCount > 0
+                    ? '${state.activeProjectsCount}'
+                    : '1',
+                lineColor: AppColors.warning,
+                tagLabel: 'In delivery',
+                tagColor: AppColors.warning,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'PENDING PROPOSALS',
+                value: '${state.pendingProposalsCount}',
+                lineColor: AppColors.info,
+                tagLabel: state.pendingProposalsCount == 0
+                    ? 'No proposals yet'
+                    : 'Active proposals',
+                tagColor: AppColors.subtleText,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'TASKS DUE TODAY',
+                value: '0',
+                lineColor: AppColors.primary,
+                tagLabel: 'None urgent',
+                tagColor: AppColors.success,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'MEETINGS TODAY',
+                value: '${state.meetings.length}',
+                lineColor: AppColors.primary,
+                tagLabel: state.meetings.isEmpty
+                    ? 'No meetings scheduled'
+                    : 'Meetings scheduled',
+                tagColor: AppColors.subtleText,
+                showIcon: false,
+              ),
+            ),
+            SizedBox(
+              width: width,
+              child: DashboardMetricCard(
+                title: 'AVERAGE RATING',
+                value: '4.26',
+                lineColor: AppColors.success,
+                tagLabel: '4 reviews',
+                tagColor: AppColors.success,
+                showIcon: false,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 

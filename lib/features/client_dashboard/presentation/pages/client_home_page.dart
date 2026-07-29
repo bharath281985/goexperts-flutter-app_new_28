@@ -57,14 +57,7 @@ class ClientHomePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Quick Actions',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBlack,
-                        ),
-                      ),
+                     
 
                       _buildQuickActions(context),
                       const SizedBox(height: 24),
@@ -402,8 +395,8 @@ class ClientHomePage extends StatelessWidget {
 
   Widget _buildQuickActions(BuildContext context) {
     return Column(
-      children: [
-          const Text(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [const Text(
           'Quick actions',
           style: TextStyle(
             fontSize: 14,
@@ -411,56 +404,70 @@ class ClientHomePage extends StatelessWidget {
             color: AppColors.primaryBlack,
           ),
         ),
+        const SizedBox(height: 8),
         const Text(
           'Jump into the tools you use most',
           style: TextStyle(fontSize: 11, color: AppColors.subtleText),
         ),
-        GridView.count(
-          crossAxisCount: context.isMobile ? 3 : 6,
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(top: 12),
-          physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 12,
-          crossAxisSpacing: 12,
-          childAspectRatio: context.isMobile ? 1.4 : 2.4,
-          children: [
-            DashboardActionButton(
-              text: 'Post Project',
-              icon: Icons.add,
-              color: const Color(0xFFE50A36), // Vibrant red, matching screenshot
-              onTap: () => context.push(Routes.clientCreateProject),
-            ),
-            DashboardActionButton(
-              text: 'Invite Freelancer',
-              icon: Icons.person_add_alt_1,
-              color: const Color(0xFF2563EB), // Blue
-              onTap: () => context.push(Routes.clientFreelancers),
-            ),
-            DashboardActionButton(
-              text: 'Book Consultation',
-              icon: Icons.edit_calendar,
-              color: const Color(0xFF9333EA), // Purple
-              onTap: () => context.push(Routes.meetings),
-            ),
-            DashboardActionButton(
-              text: 'Schedule Meeting',
-              icon: Icons.video_call,
-              color: const Color(0xFF0D9488), // Teal
-              onTap: () => context.push(Routes.meetings),
-            ),
-            DashboardActionButton(
-              text: 'Generate Invoice',
-              icon: Icons.receipt_long,
-              color: const Color(0xFFEA580C), // Orange
-              onTap: () => context.push(Routes.clientPayments),
-            ),
-            DashboardActionButton(
-              text: 'Fund Wallet',
-              icon: Icons.account_balance_wallet,
-              color: const Color(0xFF2563EB), // Blue
-              onTap: () => context.push(Routes.wallet),
-            ),
-          ],
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final int columns = context.isMobile ? 3 : 6;
+            const double spacing = 12.0;
+            final double width =
+                (constraints.maxWidth - (columns - 1) * spacing) / columns;
+
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: [
+                DashboardActionButton(
+                  text: 'Post Project',
+                  icon: Icons.add,
+                  color: const Color(
+                    0xFFE50A36,
+                  ), // Vibrant red, matching screenshot
+                  onTap: () => context.push(Routes.clientCreateProject),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Invite Freelancer',
+                  icon: Icons.person_add_alt_1,
+                  color: const Color(0xFF2563EB), // Blue
+                  onTap: () => context.push(Routes.clientFreelancers),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Book Consultation',
+                  icon: Icons.edit_calendar,
+                  color: const Color(0xFF9333EA), // Purple
+                  onTap: () => context.push(Routes.meetings),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Schedule Meeting',
+                  icon: Icons.video_call,
+                  color: const Color(0xFF0D9488), // Teal
+                  onTap: () => context.push(Routes.meetings),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Generate Invoice',
+                  icon: Icons.receipt_long,
+                  color: const Color(0xFFEA580C), // Orange
+                  onTap: () => context.push(Routes.clientPayments),
+                  width: width,
+                ),
+                DashboardActionButton(
+                  text: 'Fund Wallet',
+                  icon: Icons.account_balance_wallet,
+                  color: const Color(0xFF2563EB), // Blue
+                  onTap: () => context.push(Routes.wallet),
+                  width: width,
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
