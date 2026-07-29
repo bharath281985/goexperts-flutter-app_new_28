@@ -441,7 +441,7 @@ class FreelancerHomePage extends StatelessWidget {
             final int columns = context.isDesktop
                 ? 6
                 : (context.isTablet ? 4 : 3);
-            const double spacing = 8.0;
+            const double spacing = 5.0;
             final double width =
                 (constraints.maxWidth - (columns - 1) * spacing) / columns;
 

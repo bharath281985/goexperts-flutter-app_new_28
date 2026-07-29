@@ -305,7 +305,7 @@ class ApiEndpoints {
   static const founderDashboard = '/founder/dashboard';
   // Founder personal profile uses the startup profile endpoints on the API.
   static const founderProfile = '/founder/profile';
-  static const founderStartup = '/founder/ideas';
+  static const founderStartup = '/founder/startup';
   static const founderFunding = '/founder/funding';
   static String founderFundingById(String id) => '/founder/funding/$id';
   static String founderFundingStatus(String id) =>

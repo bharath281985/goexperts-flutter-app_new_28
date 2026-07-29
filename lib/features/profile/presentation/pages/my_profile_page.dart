@@ -249,12 +249,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         break;
                     }
                   }),
-                  _tile(
-                    context,
-                    Icons.public_rounded,
-                    'View Public Profile',
-                    () => _viewPublic(context, role, user?.id ?? 'me'),
-                  ),
+                  // _tile(
+                  //   context,
+                  //   Icons.public_rounded,
+                  //   'View Public Profile',
+                  //   () => _viewPublic(context, role, user?.id ?? 'me'),
+                  // ),
                   if (role == UserRole.freelancer || role == UserRole.investor)
                     _tile(context, Icons.collections_outlined, 'Portfolio', () {
                       if (role == UserRole.investor) {

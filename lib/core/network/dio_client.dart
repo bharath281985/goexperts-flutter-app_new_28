@@ -103,7 +103,7 @@ class _RefreshInterceptor extends Interceptor {
     final isAuthRoute =
         path.contains('/auth/login') ||
         path.contains('/auth/register') ||
-        path.contains('/auth/refresh')||
+        path.contains('/auth/refresh') ||
         path.contains('/auth/logout');
 
     if (status != 401 || isAuthRoute) {
@@ -207,7 +207,7 @@ class _GlobalErrorInterceptor extends Interceptor {
     final isAuthRoute =
         path.contains('/auth/login') ||
         path.contains('/auth/register') ||
-        path.contains('/auth/refresh')||
+        path.contains('/auth/refresh') ||
         path.contains('/auth/logout');
 
     if (status != null && !isAuthRoute) {

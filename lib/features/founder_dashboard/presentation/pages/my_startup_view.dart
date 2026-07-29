@@ -11,7 +11,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
-import '../../../startup_ideas/presentation/pages/startups_list_view.dart';
+import '../widgets/edit_idea_bottom_sheet.dart';
 import '../../domain/repositories/founder_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_names.dart';
@@ -156,146 +156,159 @@ class _MyStartupViewState extends State<MyStartupView> {
 
     final raised = bidsSum;
 
-    return RefreshIndicator(
-      onRefresh: _load,
-      child: ListView(
-        padding: const EdgeInsets.all(AppSizes.screenPadding),
-        children: [
-          AppCard(
-            child: Row(
-              children: [
-                AppAvatar(name: name, imageUrl: logoUrl, size: 56),
-                AppSizes.hGapMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: context.text.titleMedium),
-                      Text(tagline, style: context.text.bodySmall),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: _editStartup,
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-              ],
-            ),
-          ),
-          AppSizes.vGapLg,
-          AppCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const AppSectionHeader(title: 'Funding'),
-                AppSizes.vGapMd,
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: goal == 0 ? 0 : (raised / goal).clamp(0, 1),
-                    minHeight: 10,
-                    backgroundColor: context.theme.dividerColor,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.success),
-                  ),
-                ),
-                AppSizes.vGapMd,
-                Row(
-                  children: [
-                    Expanded(
-                      child: _stat(
-                        context,
-                        'Raised',
-                        Formatters.compactCurrency(raised),
-                      ),
-                    ),
-                    Expanded(
-                      child: _stat(
-                        context,
-                        'Goal',
-                        Formatters.compactCurrency(goal),
-                      ),
-                    ),
-                    Expanded(
-                      child: _stat(
-                        context,
-                        'Equity',
-                        '${equity.toStringAsFixed(0)}%',
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          AppSizes.vGapLg,
-          const AppSectionHeader(title: 'Startup Assets'),
-          AppSizes.vGapSm,
-          if (_startup['pitchDeck'] != null || _startup['pitchDeckUrl'] != null)
-            _asset(
-              context,
-              Icons.slideshow_outlined,
-              'Pitch Deck',
-              'Available',
-            ),
-          if (_startup['businessPlan'] != null ||
-              _startup['businessPlanUrl'] != null)
-            _asset(
-              context,
-              Icons.description_outlined,
-              'Business Plan',
-              'Available',
-            ),
-          if ((_startup['pitchDeck'] == null &&
-                  _startup['pitchDeckUrl'] == null) &&
-              (_startup['businessPlan'] == null &&
-                  _startup['businessPlanUrl'] == null))
-            const AppCard(child: Text('No assets uploaded yet')),
-          AppSizes.vGapLg,
-          const AppSectionHeader(title: 'Investor Requests'),
-          AppSizes.vGapSm,
-          if (bids.isEmpty)
-            const AppCard(child: Text('No investor requests yet')),
-          for (final r in bids)
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _editStartup,
+        icon: const Icon(Icons.edit_rounded),
+        label: const Text('Update Idea'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: ListView(
+          padding: const EdgeInsets.all(AppSizes.screenPadding),
+          children: [
             AppCard(
-              margin: const EdgeInsets.only(bottom: AppSizes.md),
-              onTap: () async {
-                final id = r['id']?.toString();
-                if (id != null && id.isNotEmpty) {
-                  await context.push('${Routes.proposalDetails}/$id');
-                  _load();
-                }
-              },
               child: Row(
                 children: [
-                  AppAvatar(
-                    name:
-                        r['investorProfile']?['fullName']?.toString() ??
-                        'Investor',
-                    imageUrl: r['investorProfile']?['avatarUrl']?.toString(),
-                    size: 42,
-                  ),
+                  AppAvatar(name: name, imageUrl: logoUrl, size: 56),
                   AppSizes.hGapMd,
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          r['investorProfile']?['fullName']?.toString() ??
-                              'Investor',
-                          style: context.text.titleSmall,
-                        ),
-                        Text(
-                          '${Formatters.compactCurrency(num.tryParse(r['offer']?.toString() ?? '0')?.toDouble() ?? 0)} · ${num.tryParse(r['equity']?.toString() ?? '0')?.toDouble().toStringAsFixed(0)}% equity',
-                          style: context.text.bodySmall,
-                        ),
+                        Text(name, style: context.text.titleMedium),
+                        Text(tagline, style: context.text.bodySmall),
                       ],
                     ),
                   ),
-                  _buildStatusOrActions(r),
+                  IconButton(
+                    onPressed: _editStartup,
+                    icon: const Icon(Icons.edit_outlined),
+                  ),
                 ],
               ),
             ),
-        ],
+            AppSizes.vGapLg,
+            AppCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AppSectionHeader(title: 'Funding'),
+                  AppSizes.vGapMd,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: goal == 0 ? 0 : (raised / goal).clamp(0, 1),
+                      minHeight: 10,
+                      backgroundColor: context.theme.dividerColor,
+                      valueColor: const AlwaysStoppedAnimation(
+                        AppColors.success,
+                      ),
+                    ),
+                  ),
+                  AppSizes.vGapMd,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _stat(
+                          context,
+                          'Raised',
+                          Formatters.compactCurrency(raised),
+                        ),
+                      ),
+                      Expanded(
+                        child: _stat(
+                          context,
+                          'Goal',
+                          Formatters.compactCurrency(goal),
+                        ),
+                      ),
+                      Expanded(
+                        child: _stat(
+                          context,
+                          'Equity',
+                          '${equity.toStringAsFixed(0)}%',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.vGapLg,
+            const AppSectionHeader(title: 'Startup Assets'),
+            AppSizes.vGapSm,
+            if (_startup['pitchDeck'] != null ||
+                _startup['pitchDeckUrl'] != null)
+              _asset(
+                context,
+                Icons.slideshow_outlined,
+                'Pitch Deck',
+                'Available',
+              ),
+            if (_startup['businessPlan'] != null ||
+                _startup['businessPlanUrl'] != null)
+              _asset(
+                context,
+                Icons.description_outlined,
+                'Business Plan',
+                'Available',
+              ),
+            if ((_startup['pitchDeck'] == null &&
+                    _startup['pitchDeckUrl'] == null) &&
+                (_startup['businessPlan'] == null &&
+                    _startup['businessPlanUrl'] == null))
+              const AppCard(child: Text('No assets uploaded yet')),
+            AppSizes.vGapLg,
+            const AppSectionHeader(title: 'Investor Requests'),
+            AppSizes.vGapSm,
+            if (bids.isEmpty)
+              const AppCard(child: Text('No investor requests yet')),
+            for (final r in bids)
+              AppCard(
+                margin: const EdgeInsets.only(bottom: AppSizes.md),
+                onTap: () async {
+                  final id = r['id']?.toString();
+                  if (id != null && id.isNotEmpty) {
+                    await context.push('${Routes.proposalDetails}/$id');
+                    _load();
+                  }
+                },
+                child: Row(
+                  children: [
+                    AppAvatar(
+                      name:
+                          r['investorProfile']?['fullName']?.toString() ??
+                          'Investor',
+                      imageUrl: r['investorProfile']?['avatarUrl']?.toString(),
+                      size: 42,
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            r['investorProfile']?['fullName']?.toString() ??
+                                'Investor',
+                            style: context.text.titleSmall,
+                          ),
+                          Text(
+                            '${Formatters.compactCurrency(num.tryParse(r['offer']?.toString() ?? '0')?.toDouble() ?? 0)} · ${num.tryParse(r['equity']?.toString() ?? '0')?.toDouble().toStringAsFixed(0)}% equity',
+                            style: context.text.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _buildStatusOrActions(r),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

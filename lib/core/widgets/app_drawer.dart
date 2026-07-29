@@ -1264,29 +1264,36 @@ class _DrawerMenuTile extends StatelessWidget {
             ? Border(left: BorderSide(color: colors.primary, width: 3))
             : null,
       ),
-      child: ListTile(
-        dense: dense || founderStyle,
-        minTileHeight: founderStyle ? 44 : null,
-        minLeadingWidth: founderStyle ? 24 : null,
-        horizontalTitleGap: founderStyle ? AppSizes.sm : null,
-        contentPadding:
-            contentPadding ??
-            EdgeInsets.symmetric(
-              horizontal: founderStyle ? AppSizes.md : AppSizes.md,
-            ),
-        leading: Icon(entry.icon, color: fgColor, size: founderStyle ? 19 : 20),
-        title: Text(
-          context.tr(entry.label),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: context.text.bodyMedium?.copyWith(
+      child: Material(
+        color: Colors.transparent,
+        child: ListTile(
+          dense: dense || founderStyle,
+          minTileHeight: founderStyle ? 44 : null,
+          minLeadingWidth: founderStyle ? 24 : null,
+          horizontalTitleGap: founderStyle ? AppSizes.sm : null,
+          contentPadding:
+              contentPadding ??
+              EdgeInsets.symmetric(
+                horizontal: founderStyle ? AppSizes.md : AppSizes.md,
+              ),
+          leading: Icon(
+            entry.icon,
             color: fgColor,
-            fontWeight: fontWeight,
-            fontSize: founderStyle ? 13 : null,
+            size: founderStyle ? 19 : 20,
           ),
+          title: Text(
+            context.tr(entry.label),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: context.text.bodyMedium?.copyWith(
+              color: fgColor,
+              fontWeight: fontWeight,
+              fontSize: founderStyle ? 13 : null,
+            ),
+          ),
+          trailing: _buildBadge(context, colors),
+          onTap: onTap,
         ),
-        trailing: _buildBadge(context, colors),
-        onTap: onTap,
       ),
     );
   }

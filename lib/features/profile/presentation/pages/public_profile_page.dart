@@ -105,7 +105,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     switch (widget.type) {
       case PublicProfileType.freelancer:
         {
-          final fp = raw['freelancerProfile'] as Map? ?? {};
+          final fp = raw['freelancerProfile'] as Map? ?? raw;
           final skillsRaw = fp['skills']?.toString() ?? '';
           final skills = skillsRaw.isNotEmpty
               ? skillsRaw
@@ -152,7 +152,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         }
       case PublicProfileType.company:
         {
-          final cp = raw['clientProfile'] as Map? ?? {};
+          final cp = raw['clientProfile'] as Map? ?? raw;
           final company = cp['company']?.toString() ?? fullName;
           final industry = cp['industry']?.toString() ?? '';
           return ProfileViewData(
@@ -183,7 +183,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         }
       case PublicProfileType.investor:
         {
-          final ip = raw['investorProfile'] as Map? ?? {};
+          final ip = raw['investorProfile'] as Map? ?? raw;
           final firm = ip['firm']?.toString() ?? '';
           final ticketMin = (ip['ticketMin'] as num?)?.toDouble() ?? 0.0;
           final ticketMax = (ip['ticketMax'] as num?)?.toDouble() ?? 0.0;
@@ -195,6 +195,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     .where((s) => s.isNotEmpty)
                     .toList()
               : <String>[];
+          final deals =
+              (ip['deals'] as num?)?.toInt() ??
+              (ip['investmentsCount'] as num?)?.toInt() ??
+              0;
           return ProfileViewData(
             name: fullName,
             headline: firm.isNotEmpty ? firm : 'Investor',
@@ -215,7 +219,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             primaryActionLabel: 'Connect',
             primaryActionIcon: Icons.handshake_outlined,
             stats: {
-              'Firm': firm.isEmpty ? '—' : firm,
+              'Deals': deals > 0 ? '$deals' : '—',
               'Min Ticket': ticketMin > 0
                   ? Formatters.compactCurrency(ticketMin)
                   : '—',

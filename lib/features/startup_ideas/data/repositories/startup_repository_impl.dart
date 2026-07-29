@@ -109,7 +109,7 @@ class StartupRepositoryImpl implements StartupRepository {
   ) async {
     if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
     return _api.put<Startup>(
-      '${ApiEndpoints.founderIdeas}/$id',
+      ApiEndpoints.founderStartup,
       body: data,
       parser: (raw) =>
           Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),

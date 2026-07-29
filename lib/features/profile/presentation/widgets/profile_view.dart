@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
@@ -55,7 +55,6 @@ class ProfileViewData {
   final String email;
 }
 
-/// Rich, reusable public profile layout with a full action set.
 class ProfileView extends StatelessWidget {
   const ProfileView({
     super.key,
@@ -441,13 +440,13 @@ class ProfileView extends StatelessWidget {
         label: 'Voice Call Placeholder',
         icon: Icons.phone_callback_outlined,
         onTap: () =>
-            context.showSnack('Voice calling ${data.name} (WebRTC ready)…'),
+            context.showSnack('Voice calling ${data.name} (WebRTC ready)â€¦'),
       ),
       AppAction(
         label: 'Video Call Placeholder',
         icon: Icons.video_call_outlined,
         onTap: () =>
-            context.showSnack('Video calling ${data.name} (WebRTC ready)…'),
+            context.showSnack('Video calling ${data.name} (WebRTC ready)â€¦'),
       ),
       AppAction(
         label: 'Invite ${data.name}',
@@ -478,24 +477,24 @@ class ProfileView extends StatelessWidget {
         AppAction(
           label: 'Download Resume',
           icon: Icons.download_rounded,
-          onTap: () => context.showSnack('Downloading Resume of ${data.name}…'),
+          onTap: () => context.showSnack('Downloading Resume of ${data.name}â€¦'),
         ),
       if (data.type == PublicProfileType.company)
         AppAction(
           label: 'Download Company Profile',
           icon: Icons.download_rounded,
-          onTap: () => context.showSnack('Downloading Company Profile…'),
+          onTap: () => context.showSnack('Downloading Company Profileâ€¦'),
         ),
       if (data.type == PublicProfileType.founder)
         AppAction(
           label: 'Download Pitch Deck',
           icon: Icons.download_rounded,
-          onTap: () => context.showSnack('Downloading Pitch Deck…'),
+          onTap: () => context.showSnack('Downloading Pitch Deckâ€¦'),
         ),
       AppAction(
         label: 'Download Portfolio',
         icon: Icons.download_rounded,
-        onTap: () => context.showSnack('Downloading Portfolio…'),
+        onTap: () => context.showSnack('Downloading Portfolioâ€¦'),
       ),
       AppAction(
         label: 'Report Profile',

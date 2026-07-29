@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../app/dependency_injection/service_locator.dart';
 import '../../features/client_dashboard/presentation/pages/client_home_page.dart';
 import '../../features/founder_dashboard/presentation/pages/founder_home_page.dart';
+import '../../features/founder_dashboard/presentation/pages/my_startup_view.dart';
 import '../../features/freelancer_dashboard/domain/repositories/freelancer_repository.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_home_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancers_list_view.dart';
@@ -225,14 +226,14 @@ class _RoleShellState extends State<RoleShell> {
             ),
             FounderHomePage(),
           ),
-          _Tab(
+        _Tab(
             AppNavItem(
               label: 'Startup',
               icon: Icons.rocket_launch_outlined,
               activeIcon: Icons.rocket_launch_rounded,
             ),
-            StartupsListView(isFounderOverride: true),
-            title: 'My Startup Ideas',
+            MyStartupView(),
+            title: 'My Startup',
           ),
           _Tab(
             AppNavItem(
