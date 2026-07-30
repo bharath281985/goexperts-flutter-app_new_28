@@ -477,7 +477,8 @@ class ProfileView extends StatelessWidget {
         AppAction(
           label: 'Download Resume',
           icon: Icons.download_rounded,
-          onTap: () => context.showSnack('Downloading Resume of ${data.name}â€¦'),
+          onTap: () =>
+              context.showSnack('Downloading Resume of ${data.name}â€¦'),
         ),
       if (data.type == PublicProfileType.company)
         AppAction(

@@ -502,6 +502,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                         _followCategory,
                         widget.id,
                       );
+                      setState(() {
+                        _future = _loadAll();
+                      });
                     } else {
                       context.showSnack(
                         '${profile.primaryActionLabel} · ${profile.name}',
@@ -517,10 +520,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       '${Routes.chat}/${widget.id}?name=$nameEncoded&avatarUrl=$avatarEncoded',
                     );
                   },
-                  onFollow: () => FollowManager.instance.toggleFollow(
-                    _followCategory,
-                    widget.id,
-                  ),
+                  onFollow: () async {
+                    // Update follow locally
+                    FollowManager.instance.toggleFollow(
+                      _followCategory,
+                      widget.id,
+                    );
+                    setState(() {
+                      _future = _loadAll();
+                    });
+                  },
                   onBookmark: () async {
                     if (widget.type == PublicProfileType.investor) {
                       final repo = sl<InvestorRepository>();
@@ -534,6 +543,9 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             _bookmarkCategory,
                             widget.id,
                           );
+                          setState(() {
+                            _future = _loadAll();
+                          });
                         },
                       );
                     } else if (widget.type == PublicProfileType.founder) {
@@ -555,12 +567,36 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                             _bookmarkCategory,
                             widget.id,
                           );
+                          setState(() {
+                            _future = _loadAll();
+                          });
                         },
                       );
                     } else {
-                      BookmarkManager.instance.toggle(
-                        _bookmarkCategory,
-                        widget.id,
+                      // fallback for others, we can assume API might be favorites or similar but for now we follow the toggle.
+                      // Depending on what API exists for freelancer etc., we could add here.
+                      // For now, toggle and refresh:
+                      final api = sl<ApiClientHelper>();
+                      final post = await api.postAction(
+                        '${ApiEndpoints.favorites}/${widget.id}',
+                      );
+                      final res = post.isSuccess
+                          ? post
+                          : await api.deleteAction(
+                              '${ApiEndpoints.favorites}/${widget.id}',
+                            );
+
+                      res.fold(
+                        (f) => context.showSnack(f.message, isError: true),
+                        (success) {
+                          BookmarkManager.instance.toggle(
+                            _bookmarkCategory,
+                            widget.id,
+                          );
+                          setState(() {
+                            _future = _loadAll();
+                          });
+                        },
                       );
                     }
                   },

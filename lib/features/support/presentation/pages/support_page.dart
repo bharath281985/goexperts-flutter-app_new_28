@@ -76,7 +76,8 @@ class _SupportPageState extends State<SupportPage> {
   }
 
   Future<void> _viewTicket(Map<String, dynamic> ticketInfo) async {
-    final ticketId = ticketInfo['id']?.toString() ?? '';
+    final ticketId =
+        ticketInfo['id']?.toString() ?? ticketInfo['_id']?.toString() ?? '';
     if (ticketId.isEmpty) return;
 
     await showModalBottomSheet(
@@ -586,7 +587,10 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
   }
 
   Future<void> _loadTicket() async {
-    final ticketId = widget.ticketInfo['id']?.toString() ?? '';
+    final ticketId =
+        widget.ticketInfo['id']?.toString() ??
+        widget.ticketInfo['_id']?.toString() ??
+        '';
     final res = await sl<ApiClientHelper>().getEnvelope<Map<String, dynamic>>(
       ApiEndpoints.supportTicket(ticketId),
       parser: (e) => (e.data as Map?)?.cast<String, dynamic>() ?? {},
@@ -623,170 +627,313 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
     final messages = (msgsStr is List)
         ? msgsStr.cast<Map<String, dynamic>>()
         : <Map<String, dynamic>>[];
-    final title = _ticketDetails?['subject']?.toString() ?? 'Ticket Details';
-    final ticketId = widget.ticketInfo['id']?.toString() ?? '';
+    final title =
+        _ticketDetails?['subject']?.toString() ??
+        widget.ticketInfo['subject']?.toString() ??
+        'Ticket Details';
+    final ticketId =
+        widget.ticketInfo['id']?.toString() ??
+        widget.ticketInfo['_id']?.toString() ??
+        '';
 
-    return Padding(
-      padding: EdgeInsets.only(
-        bottom: MediaQuery.of(context).viewInsets.bottom,
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    // Status color
+    Color statusColor = Colors.green;
+    if (status.toLowerCase() == 'open') statusColor = Colors.orange;
+    if (status.toLowerCase() == 'closed') statusColor = Colors.grey;
+
+    return Container(
+      constraints: BoxConstraints(
+        maxHeight: screenHeight * (bottomInset > 0 ? 0.95 : 0.85),
       ),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        padding: const EdgeInsets.all(AppSizes.lg),
-        decoration: BoxDecoration(
-          color: Theme.of(context).scaffoldBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: _isLoading
-            ? const SizedBox(
-                height: 100,
-                child: Center(child: CircularProgressIndicator()),
-              )
-            : SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.titleLarge),
-                    AppSizes.vGapMd,
-                    Text('Status: $status'),
-                    Text('Category: $categoryStr'),
-                    Text('Priority: $priorityStr'),
-                    AppSizes.vGapLg,
-                    if (messages.isNotEmpty) ...[
-                      const Text(
-                        'Messages:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      AppSizes.vGapSm,
-                      for (var m in messages)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8.0),
-                          child: Container(
-                            padding: const EdgeInsets.all(8.0),
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withAlpha(25),
-                              borderRadius: BorderRadius.circular(8),
+      margin: EdgeInsets.only(bottom: bottomInset),
+      padding: const EdgeInsets.all(AppSizes.lg),
+      decoration: BoxDecoration(
+        color: Theme.of(context).scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: _isLoading
+          ? const SizedBox(
+              height: 100,
+              child: Center(child: CircularProgressIndicator()),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(fontWeight: FontWeight.bold),
+                        ),
+                        AppSizes.vGapMd,
+                        Wrap(
+                          spacing: AppSizes.sm,
+                          runSpacing: AppSizes.sm,
+                          children: [
+                            Chip(
+                              label: Text(
+                                'Status: ${status.toUpperCase()}',
+                                style: TextStyle(
+                                  color: statusColor,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              backgroundColor: statusColor.withOpacity(0.1),
+                              side: BorderSide.none,
+                              padding: EdgeInsets.zero,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  m['createdAt']?.toString() ?? '',
-                                  style: const TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.grey,
+                            Chip(
+                              label: Text(
+                                categoryStr,
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              backgroundColor: Colors.blue.withOpacity(0.1),
+                              side: BorderSide.none,
+                              padding: EdgeInsets.zero,
+                            ),
+                            Chip(
+                              label: Text(
+                                'Priority: $priorityStr',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              backgroundColor: Colors.red.withOpacity(0.1),
+                              side: BorderSide.none,
+                              padding: EdgeInsets.zero,
+                            ),
+                          ],
+                        ),
+                        AppSizes.vGapLg,
+                        if (messages.isNotEmpty) ...[
+                          const Text(
+                            'Conversation History',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          AppSizes.vGapSm,
+                          for (var m in messages)
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).cardColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Theme.of(context).dividerColor,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.02),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    m['createdAt']?.toString() ?? 'Just now',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.grey.shade500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    m['message']?.toString() ?? '',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          AppSizes.vGapLg,
+                        ],
+                        if (!isClosed) ...[
+                          const Text(
+                            'Leave a Reply',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          AppSizes.vGapSm,
+                          AppTextField(
+                            controller: _replyCtrl,
+                            hint: 'Type your reply here...',
+                            maxLines: 4,
+                          ),
+                          AppSizes.vGapLg,
+                        ],
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            if (!_sending && !isClosed) ...[
+                              TextButton(
+                                onPressed: () async {
+                                  setState(() => _sending = true);
+                                  final res = await sl<ApiClientHelper>()
+                                      .patchAction(
+                                        ApiEndpoints.supportTicketClose(
+                                          ticketId,
+                                        ),
+                                      );
+                                  if (!mounted) return;
+                                  res.fold(
+                                    (f) {
+                                      context.showSnack(f.message);
+                                      setState(() => _sending = false);
+                                    },
+                                    (_) {
+                                      context.showSnack(
+                                        'Ticket successfully closed',
+                                      );
+                                      Navigator.pop(context);
+                                      widget.onReload();
+                                    },
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                Text(m['message']?.toString() ?? ''),
-                              ],
-                            ),
-                          ),
-                        ),
-                      AppSizes.vGapLg,
-                    ],
-                    if (!isClosed) ...[
-                      const Text(
-                        'Reply',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      AppSizes.vGapSm,
-                      AppTextField(
-                        controller: _replyCtrl,
-                        hint: 'Type your reply...',
-                        maxLines: 3,
-                      ),
-                      AppSizes.vGapLg,
-                    ],
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (!_sending)
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: const Text('Close'),
-                          ),
-                        if (!isClosed) ...[
-                          AppSizes.hGapMd,
-                          TextButton(
-                            onPressed: _sending
-                                ? null
-                                : () async {
-                                    setState(() => _sending = true);
-                                    final res = await sl<ApiClientHelper>()
-                                        .patchAction(
-                                          ApiEndpoints.supportTicketClose(
-                                            ticketId,
-                                          ),
-                                        );
-                                    if (!mounted) return;
-                                    res.fold(
-                                      (f) {
-                                        context.showSnack(f.message);
-                                        setState(() => _sending = false);
-                                      },
-                                      (_) {
-                                        context.showSnack('Ticket closed');
-                                        Navigator.pop(context);
-                                        widget.onReload();
-                                      },
-                                    );
-                                  },
-                            child: const Text(
-                              'Close Ticket',
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ),
-                          AppSizes.hGapMd,
-                          ElevatedButton(
-                            onPressed: _sending
-                                ? null
-                                : () async {
-                                    if (_replyCtrl.text.trim().isEmpty) return;
-                                    setState(() => _sending = true);
-                                    final res = await sl<ApiClientHelper>()
-                                        .postAction(
-                                          ApiEndpoints.supportTicketReply(
-                                            ticketId,
-                                          ),
-                                          body: {
-                                            'message': _replyCtrl.text.trim(),
-                                          },
-                                        );
-                                    if (!mounted) return;
-                                    res.fold(
-                                      (f) {
-                                        context.showSnack(f.message);
-                                        setState(() => _sending = false);
-                                      },
-                                      (_) {
-                                        context.showSnack('Reply sent');
-                                        Navigator.pop(context);
-                                        widget.onReload();
-                                      },
-                                    );
-                                  },
-                            child: _sending
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
+                                child: const Text(
+                                  'Close Ticket',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                              AppSizes.hGapMd,
+                            ],
+                            if (!isClosed)
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  onPressed: _sending
+                                      ? null
+                                      : () async {
+                                          if (_replyCtrl.text.trim().isEmpty)
+                                            return;
+                                          setState(() => _sending = true);
+                                          final res = await sl<ApiClientHelper>()
+                                              .postAction(
+                                                ApiEndpoints.supportTicketReply(
+                                                  ticketId,
+                                                ),
+                                                body: {
+                                                  'message': _replyCtrl.text
+                                                      .trim(),
+                                                },
+                                              );
+                                          if (!mounted) return;
+                                          res.fold(
+                                            (f) {
+                                              context.showSnack(f.message);
+                                              setState(() => _sending = false);
+                                            },
+                                            (_) {
+                                              context.showSnack(
+                                                'Reply sent successfully',
+                                              );
+                                              Navigator.pop(context);
+                                              widget.onReload();
+                                            },
+                                          );
+                                        },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
                                     ),
-                                  )
-                                : const Text('Send'),
-                          ),
-                        ],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                  icon: _sending
+                                      ? const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.send_rounded,
+                                          size: 18,
+                                        ),
+                                  label: const Text(
+                                    'Send Reply',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (isClosed)
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'Close Preview',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        SizedBox(height: bottomInset > 0 ? 0 : AppSizes.lg),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-      ),
+              ],
+            ),
     );
   }
 }

@@ -626,7 +626,7 @@ class InvestorHomePage extends StatelessWidget {
 
   Widget _buildGridCards(BuildContext context, DashboardState state) {
     final portfolioValue =
-        '\$${Formatters.compactCurrency(state.investorDeployedRaw)}';
+        '${Formatters.compactCurrency(state.investorDeployedRaw)}';
     final balance = state.investorWalletBalance;
 
     final totalInvestments = state.investorTotalInvestments;

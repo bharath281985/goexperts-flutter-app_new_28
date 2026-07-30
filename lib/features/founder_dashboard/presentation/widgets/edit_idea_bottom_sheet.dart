@@ -9,6 +9,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
+
 class EditIdeaBottomSheet extends StatefulWidget {
   const EditIdeaBottomSheet({required this.startup, super.key});
 
@@ -21,6 +22,8 @@ class EditIdeaBottomSheet extends StatefulWidget {
 class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
+  late final TextEditingController _fullNameController;
+  late final TextEditingController _bioController;
   late final TextEditingController _industryController;
   late final TextEditingController _categoryController;
   late final TextEditingController _fundingController;
@@ -43,6 +46,10 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.startup.name);
+    _fullNameController = TextEditingController(
+      text: widget.startup.founderName,
+    );
+    _bioController = TextEditingController(text: widget.startup.tagline);
     _industryController = TextEditingController(text: widget.startup.industry);
     _categoryController = TextEditingController(
       text: widget.startup.tags.isNotEmpty
@@ -65,6 +72,8 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _fullNameController.dispose();
+    _bioController.dispose();
     _industryController.dispose();
     _categoryController.dispose();
     _fundingController.dispose();
@@ -419,11 +428,22 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                     ),
                     const SizedBox(height: 12),
                     AppTextField(
+                      controller: _fullNameController,
+                      label: 'Full Name',
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 12),
+                    AppTextField(
+                      controller: _bioController,
+                      label: 'Bio',
+                      readOnly: true,
+                    ),
+                    const SizedBox(height: 12),
+                    AppTextField(
                       controller: _nameController,
                       label: 'Startup Name',
                       hint: 'e.g. HealthBridge AI',
-                      validator: (v) =>
-                          v?.trim().isEmpty == true ? 'Required' : null,
+                      readOnly: true,
                     ),
                     const SizedBox(height: 12),
                     AppTextField(
@@ -448,33 +468,24 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                         labelText: 'Stage',
                         border: OutlineInputBorder(),
                       ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'Idea Stage',
-                          child: Text('Idea Stage'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Prototype',
-                          child: Text('Prototype'),
-                        ),
-                        DropdownMenuItem(value: 'MVP', child: Text('MVP')),
-                        DropdownMenuItem(
-                          value: 'Early Revenue',
-                          child: Text('Early Revenue'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Early Traction',
-                          child: Text('Early Traction'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Growth',
-                          child: Text('Growth'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'Expansion',
-                          child: Text('Expansion'),
-                        ),
-                      ],
+                      items:
+                          {
+                                'Idea Stage',
+                                'Prototype',
+                                'MVP',
+                                'Early Revenue',
+                                'Early Traction',
+                                'Growth',
+                                'Scaling',
+                                'Expansion',
+                                if (_stage != null && _stage!.isNotEmpty)
+                                  _stage!,
+                              }
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
+                              .toList(),
                       onChanged: (val) => setState(() => _stage = val),
                       validator: (v) => v == null ? 'Required' : null,
                     ),
@@ -595,7 +606,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                     'coverUrl': coverUrl ?? '',
                                     'pitchDeck': pitchDiskUrl ?? '',
                                     'businessPlan': businessPlanUrl ?? '',
-                                    'startup': _nameController.text.trim(),
+                                    'startupName': _nameController.text.trim(),
                                     'industry': _industryController.text.trim(),
                                     'category': _categoryController.text.trim(),
                                     'stage': _stage,
