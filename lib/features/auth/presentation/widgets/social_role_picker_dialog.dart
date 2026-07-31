@@ -12,7 +12,9 @@ Future<UserRole?> showSocialRolePicker(BuildContext context) {
     context: context,
     isScrollControlled: true,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLg)),
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(AppSizes.radiusLg),
+      ),
     ),
     builder: (ctx) {
       UserRole? selected;
@@ -20,7 +22,12 @@ Future<UserRole?> showSocialRolePicker(BuildContext context) {
         builder: (context, setState) {
           return SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(AppSizes.xl, AppSizes.lg, AppSizes.xl, AppSizes.xl),
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.xl,
+                AppSizes.lg,
+                AppSizes.xl,
+                AppSizes.xl,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -37,16 +44,27 @@ Future<UserRole?> showSocialRolePicker(BuildContext context) {
                       padding: const EdgeInsets.only(bottom: AppSizes.sm),
                       child: ListTile(
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
+                          ),
                           side: BorderSide(
-                            color: selected == role ? AppColors.primary : context.theme.dividerColor,
+                            color: selected == role
+                                ? AppColors.primary
+                                : context.theme.dividerColor,
                           ),
                         ),
                         leading: Icon(role.icon, color: AppColors.primary),
                         title: Text(role.label),
-                        subtitle: Text(role.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        subtitle: Text(
+                          role.description,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                         trailing: selected == role
-                            ? const Icon(Icons.check_circle_rounded, color: AppColors.primary)
+                            ? const Icon(
+                                Icons.check_circle_rounded,
+                                color: AppColors.primary,
+                              )
                             : null,
                         onTap: () => setState(() => selected = role),
                       ),
@@ -54,7 +72,9 @@ Future<UserRole?> showSocialRolePicker(BuildContext context) {
                   AppSizes.vGapMd,
                   AppPrimaryButton(
                     label: 'Continue',
-                    onPressed: selected == null ? null : () => Navigator.of(ctx).pop(selected),
+                    onPressed: selected == null
+                        ? null
+                        : () => Navigator.of(ctx).pop(selected),
                   ),
                 ],
               ),

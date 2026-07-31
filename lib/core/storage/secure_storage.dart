@@ -3,11 +3,14 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 /// Encrypted token and session storage.
 class SecureStorage {
   SecureStorage([FlutterSecureStorage? storage])
-      : _storage = storage ??
-            const FlutterSecureStorage(
-              aOptions: AndroidOptions(encryptedSharedPreferences: true),
-              iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
-            );
+    : _storage =
+          storage ??
+          const FlutterSecureStorage(
+            aOptions: AndroidOptions(encryptedSharedPreferences: true),
+            iOptions: IOSOptions(
+              accessibility: KeychainAccessibility.first_unlock,
+            ),
+          );
 
   final FlutterSecureStorage _storage;
 
@@ -16,7 +19,8 @@ class SecureStorage {
   static const kUserId = 'user_id';
   static const kRole = 'user_role';
 
-  Future<void> write(String key, String value) => _storage.write(key: key, value: value);
+  Future<void> write(String key, String value) =>
+      _storage.write(key: key, value: value);
 
   Future<String?> read(String key) => _storage.read(key: key);
 
@@ -48,6 +52,5 @@ class SecureStorage {
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
-  }) =>
-      saveSession(accessToken: accessToken, refreshToken: refreshToken);
+  }) => saveSession(accessToken: accessToken, refreshToken: refreshToken);
 }

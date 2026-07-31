@@ -16,10 +16,7 @@ class DeviceInfoHelper {
 
   Future<Map<String, dynamic>> authPayload() async {
     final device = await devicePayload();
-    return {
-      ...device,
-      'fcmToken': device['fcmToken'] ?? '',
-    };
+    return {...device, 'fcmToken': device['fcmToken'] ?? ''};
   }
 
   Future<Map<String, dynamic>> devicePayload() async {

@@ -53,7 +53,7 @@ class AppStartupCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _TitleBlock(startup: startup),
-                 
+
                   _CategoryChips(startup: startup),
                   AppSizes.vGapXl,
                   _FundingProgress(startup: startup),

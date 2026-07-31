@@ -101,7 +101,10 @@ class ProjectHeader extends StatelessWidget {
           IconButton(
             tooltip: 'Edit',
             onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined, color: AppColors.projectPurple),
+            icon: const Icon(
+              Icons.edit_outlined,
+              color: AppColors.projectPurple,
+            ),
           )
         else
           BookmarkButton(isSaved: project.isSaved, onPressed: onSave),

@@ -43,25 +43,25 @@ class Company extends Equatable {
   final String pan;
 
   Company copyWith({bool? isFollowing, bool? isSaved}) => Company(
-        id: id,
-        name: name,
-        industry: industry,
-        location: location,
-        ownerName: ownerName,
-        logoUrl: logoUrl,
-        coverUrl: coverUrl,
-        description: description,
-        website: website,
-        teamSize: teamSize,
-        isVerified: isVerified,
-        projectsPosted: projectsPosted,
-        hiresCount: hiresCount,
-        rating: rating,
-        isFollowing: isFollowing ?? this.isFollowing,
-        isSaved: isSaved ?? this.isSaved,
-        gst: gst,
-        pan: pan,
-      );
+    id: id,
+    name: name,
+    industry: industry,
+    location: location,
+    ownerName: ownerName,
+    logoUrl: logoUrl,
+    coverUrl: coverUrl,
+    description: description,
+    website: website,
+    teamSize: teamSize,
+    isVerified: isVerified,
+    projectsPosted: projectsPosted,
+    hiresCount: hiresCount,
+    rating: rating,
+    isFollowing: isFollowing ?? this.isFollowing,
+    isSaved: isSaved ?? this.isSaved,
+    gst: gst,
+    pan: pan,
+  );
 
   @override
   List<Object?> get props => [id, isFollowing, isSaved];

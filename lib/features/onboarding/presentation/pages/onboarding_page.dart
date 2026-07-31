@@ -35,7 +35,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (_page == AppStrings.onboarding.length - 1) {
       _finish();
     } else {
-      _controller.nextPage(duration: const Duration(milliseconds: 320), curve: Curves.easeOut);
+      _controller.nextPage(
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.easeOut,
+      );
     }
   }
 
@@ -66,16 +69,24 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           height: 180,
                           decoration: BoxDecoration(
                             gradient: AppColors.primaryGradient,
-                            borderRadius: BorderRadius.circular(AppSizes.radiusXl * 2),
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.radiusXl * 2,
+                            ),
                           ),
                           child: Icon(_icons[i], size: 84, color: Colors.white),
                         ),
                         AppSizes.vGapXxl,
-                        Text(slides[i]['title']!,
-                            style: context.text.displaySmall, textAlign: TextAlign.center),
+                        Text(
+                          slides[i]['title']!,
+                          style: context.text.displaySmall,
+                          textAlign: TextAlign.center,
+                        ),
                         AppSizes.vGapMd,
-                        Text(slides[i]['subtitle']!,
-                            style: context.text.bodyMedium, textAlign: TextAlign.center),
+                        Text(
+                          slides[i]['subtitle']!,
+                          style: context.text.bodyMedium,
+                          textAlign: TextAlign.center,
+                        ),
                       ],
                     ),
                   );
@@ -92,7 +103,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     width: i == _page ? 22 : 8,
                     height: 8,
                     decoration: BoxDecoration(
-                      color: i == _page ? AppColors.primary : context.theme.dividerColor,
+                      color: i == _page
+                          ? AppColors.primary
+                          : context.theme.dividerColor,
                       borderRadius: BorderRadius.circular(999),
                     ),
                   ),

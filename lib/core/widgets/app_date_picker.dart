@@ -47,13 +47,18 @@ class AppDatePicker extends StatelessWidget {
           onTap: () => _pick(context),
           child: InputDecorator(
             decoration: const InputDecoration(
-              prefixIcon: Icon(Icons.calendar_today_rounded, size: AppSizes.iconSm),
+              prefixIcon: Icon(
+                Icons.calendar_today_rounded,
+                size: AppSizes.iconSm,
+              ),
             ),
             child: Text(
               value != null ? Formatters.date(value!) : hint,
               style: value != null
                   ? context.text.bodyMedium
-                  : context.text.bodyMedium?.copyWith(color: context.text.bodySmall?.color),
+                  : context.text.bodyMedium?.copyWith(
+                      color: context.text.bodySmall?.color,
+                    ),
             ),
           ),
         ),

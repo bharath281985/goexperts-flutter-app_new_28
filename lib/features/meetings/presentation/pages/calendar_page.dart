@@ -18,20 +18,20 @@ class _CalEvent {
   final String? subtitle;
 
   Color get color => switch (kind) {
-        _CalKind.meeting => AppColors.primary,
-        _CalKind.task => AppColors.info,
-        _CalKind.deadline => AppColors.danger,
-        _CalKind.payment => AppColors.success,
-        _CalKind.interview => AppColors.warning,
-      };
+    _CalKind.meeting => AppColors.primary,
+    _CalKind.task => AppColors.info,
+    _CalKind.deadline => AppColors.danger,
+    _CalKind.payment => AppColors.success,
+    _CalKind.interview => AppColors.warning,
+  };
 
   IconData get icon => switch (kind) {
-        _CalKind.meeting => Icons.videocam_outlined,
-        _CalKind.task => Icons.check_circle_outline_rounded,
-        _CalKind.deadline => Icons.flag_outlined,
-        _CalKind.payment => Icons.payments_outlined,
-        _CalKind.interview => Icons.record_voice_over_outlined,
-      };
+    _CalKind.meeting => Icons.videocam_outlined,
+    _CalKind.task => Icons.check_circle_outline_rounded,
+    _CalKind.deadline => Icons.flag_outlined,
+    _CalKind.payment => Icons.payments_outlined,
+    _CalKind.interview => Icons.record_voice_over_outlined,
+  };
 }
 
 /// Full calendar with Day / Week / Month views aggregating meetings, tasks,
@@ -61,27 +61,66 @@ class _CalendarPageState extends State<CalendarPage> {
   List<_CalEvent> _seedEvents() {
     final now = DateTime.now();
     return [
-      for (final m in MockData.meetings) _CalEvent(m.title, m.startTime, _CalKind.meeting, subtitle: 'with ${m.withName}'),
-      _CalEvent('Submit fintech milestone', now.add(const Duration(days: 1, hours: 3)), _CalKind.deadline, subtitle: 'PayNova'),
-      _CalEvent('Design QA task', now.add(const Duration(hours: 5)), _CalKind.task),
-      _CalEvent('Payment due · INV-2045', now.add(const Duration(days: 2)), _CalKind.payment, subtitle: '₹1,90,000'),
-      _CalEvent('Interview · Backend Engineer', now.add(const Duration(days: 3, hours: 2)), _CalKind.interview),
-      _CalEvent('Weekly standup', now.add(const Duration(days: 5, hours: 1)), _CalKind.meeting),
+      for (final m in MockData.meetings)
+        _CalEvent(
+          m.title,
+          m.startTime,
+          _CalKind.meeting,
+          subtitle: 'with ${m.withName}',
+        ),
+      _CalEvent(
+        'Submit fintech milestone',
+        now.add(const Duration(days: 1, hours: 3)),
+        _CalKind.deadline,
+        subtitle: 'PayNova',
+      ),
+      _CalEvent(
+        'Design QA task',
+        now.add(const Duration(hours: 5)),
+        _CalKind.task,
+      ),
+      _CalEvent(
+        'Payment due · INV-2045',
+        now.add(const Duration(days: 2)),
+        _CalKind.payment,
+        subtitle: '₹1,90,000',
+      ),
+      _CalEvent(
+        'Interview · Backend Engineer',
+        now.add(const Duration(days: 3, hours: 2)),
+        _CalKind.interview,
+      ),
+      _CalEvent(
+        'Weekly standup',
+        now.add(const Duration(days: 5, hours: 1)),
+        _CalKind.meeting,
+      ),
     ];
   }
 
-  bool _sameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   List<_CalEvent> get _visibleEvents {
     switch (_view) {
       case 0:
-        return _events.where((e) => _sameDay(e.time, _selected)).toList()..sort((a, b) => a.time.compareTo(b.time));
+        return _events.where((e) => _sameDay(e.time, _selected)).toList()
+          ..sort((a, b) => a.time.compareTo(b.time));
       case 1:
         final start = _selected.subtract(Duration(days: _selected.weekday - 1));
         final end = start.add(const Duration(days: 7));
-        return _events.where((e) => e.time.isAfter(start) && e.time.isBefore(end)).toList()..sort((a, b) => a.time.compareTo(b.time));
+        return _events
+            .where((e) => e.time.isAfter(start) && e.time.isBefore(end))
+            .toList()
+          ..sort((a, b) => a.time.compareTo(b.time));
       default:
-        return _events.where((e) => e.time.year == _focused.year && e.time.month == _focused.month).toList()
+        return _events
+            .where(
+              (e) =>
+                  e.time.year == _focused.year &&
+                  e.time.month == _focused.month,
+            )
+            .toList()
           ..sort((a, b) => a.time.compareTo(b.time));
     }
   }
@@ -91,7 +130,13 @@ class _CalendarPageState extends State<CalendarPage> {
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Calendar'),
-        actions: [IconButton(onPressed: () => context.showSnack('Sync with Google / Outlook / Apple'), icon: const Icon(Icons.sync_rounded))],
+        actions: [
+          IconButton(
+            onPressed: () =>
+                context.showSnack('Sync with Google / Outlook / Apple'),
+            icon: const Icon(Icons.sync_rounded),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.showSnack('New event'),
@@ -117,15 +162,19 @@ class _CalendarPageState extends State<CalendarPage> {
             _view == 0
                 ? Formatters.date(_selected)
                 : _view == 1
-                    ? 'This week'
-                    : Formatters.monthYear(_focused),
+                ? 'This week'
+                : Formatters.monthYear(_focused),
             style: context.text.titleMedium,
           ),
           AppSizes.vGapMd,
           if (_visibleEvents.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: AppSizes.xxl),
-              child: AppEmptyState(title: 'No events', message: 'Nothing scheduled for this period.', icon: Icons.event_available_outlined),
+              child: AppEmptyState(
+                title: 'No events',
+                message: 'Nothing scheduled for this period.',
+                icon: Icons.event_available_outlined,
+              ),
             )
           else
             for (final e in _visibleEvents) _eventTile(context, e),
@@ -163,13 +212,24 @@ class _CalendarPageState extends State<CalendarPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text('$day', style: TextStyle(color: isSelected ? Colors.white : context.text.bodyMedium?.color, fontWeight: FontWeight.w600)),
+                Text(
+                  '$day',
+                  style: TextStyle(
+                    color: isSelected
+                        ? Colors.white
+                        : context.text.bodyMedium?.color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 if (hasEvents)
                   Container(
                     width: 5,
                     height: 5,
                     margin: const EdgeInsets.only(top: 2),
-                    decoration: BoxDecoration(color: isSelected ? Colors.white : AppColors.primary, shape: BoxShape.circle),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white : AppColors.primary,
+                      shape: BoxShape.circle,
+                    ),
                   ),
               ],
             ),
@@ -183,9 +243,26 @@ class _CalendarPageState extends State<CalendarPage> {
         children: [
           Row(
             children: [
-              IconButton(onPressed: () => setState(() => _focused = DateTime(_focused.year, _focused.month - 1)), icon: const Icon(Icons.chevron_left_rounded)),
-              Expanded(child: Center(child: Text(Formatters.monthYear(_focused), style: context.text.titleSmall))),
-              IconButton(onPressed: () => setState(() => _focused = DateTime(_focused.year, _focused.month + 1)), icon: const Icon(Icons.chevron_right_rounded)),
+              IconButton(
+                onPressed: () => setState(
+                  () => _focused = DateTime(_focused.year, _focused.month - 1),
+                ),
+                icon: const Icon(Icons.chevron_left_rounded),
+              ),
+              Expanded(
+                child: Center(
+                  child: Text(
+                    Formatters.monthYear(_focused),
+                    style: context.text.titleSmall,
+                  ),
+                ),
+              ),
+              IconButton(
+                onPressed: () => setState(
+                  () => _focused = DateTime(_focused.year, _focused.month + 1),
+                ),
+                icon: const Icon(Icons.chevron_right_rounded),
+              ),
             ],
           ),
           GridView.count(
@@ -209,7 +286,10 @@ class _CalendarPageState extends State<CalendarPage> {
         children: [
           Container(
             padding: const EdgeInsets.all(AppSizes.sm),
-            decoration: BoxDecoration(color: e.color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(AppSizes.radiusSm)),
+            decoration: BoxDecoration(
+              color: e.color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            ),
             child: Icon(e.icon, color: e.color, size: 18),
           ),
           AppSizes.hGapMd,
@@ -217,7 +297,12 @@ class _CalendarPageState extends State<CalendarPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(e.title, style: context.text.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text(
+                  e.title,
+                  style: context.text.titleSmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
                 Text(e.subtitle ?? e.kind.name, style: context.text.labelSmall),
               ],
             ),

@@ -226,7 +226,7 @@ class _RoleShellState extends State<RoleShell> {
             ),
             FounderHomePage(),
           ),
-        _Tab(
+          _Tab(
             AppNavItem(
               label: 'Startup',
               icon: Icons.rocket_launch_outlined,
@@ -282,7 +282,7 @@ class _RoleShellState extends State<RoleShell> {
   }
 
   void _selectTab(List<_Tab> tabs, int index) {
-    if (index == 0) {
+    if (index == 0 && _index == index) {
       _cubit.refresh();
     }
     setState(() {

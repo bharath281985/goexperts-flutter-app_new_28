@@ -41,14 +41,24 @@ class DetailHeroBanner extends StatelessWidget {
             child: Icon(icon, color: Colors.white, size: 26),
           ),
           AppSizes.vGapMd,
-          Text(title, style: context.text.headlineSmall?.copyWith(color: Colors.white)),
+          Text(
+            title,
+            style: context.text.headlineSmall?.copyWith(color: Colors.white),
+          ),
           if (subtitle != null) ...[
             const SizedBox(height: 2),
-            Text(subtitle!, style: context.text.bodyMedium?.copyWith(color: Colors.white70)),
+            Text(
+              subtitle!,
+              style: context.text.bodyMedium?.copyWith(color: Colors.white70),
+            ),
           ],
           if (chips.isNotEmpty) ...[
             AppSizes.vGapMd,
-            Wrap(spacing: AppSizes.sm, runSpacing: AppSizes.sm, children: chips),
+            Wrap(
+              spacing: AppSizes.sm,
+              runSpacing: AppSizes.sm,
+              children: chips,
+            ),
           ],
         ],
       ),
@@ -75,7 +85,14 @@ class DetailStatChip extends StatelessWidget {
         children: [
           Icon(icon, size: 14, color: Colors.white),
           const SizedBox(width: 4),
-          Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ],
       ),
     );
@@ -84,7 +101,13 @@ class DetailStatChip extends StatelessWidget {
 
 /// A compact metric card (icon + value + label).
 class DetailMetric extends StatelessWidget {
-  const DetailMetric({super.key, required this.icon, required this.label, required this.value, this.color = AppColors.primary});
+  const DetailMetric({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.color = AppColors.primary,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -99,7 +122,12 @@ class DetailMetric extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: color),
           AppSizes.vGapSm,
-          Text(value, style: context.text.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
+          Text(
+            value,
+            style: context.text.titleSmall,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
           Text(label, style: context.text.labelSmall),
         ],
       ),
@@ -120,12 +148,22 @@ class DetailChips extends StatelessWidget {
       children: [
         for (final i in items)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 6),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.md,
+              vertical: 6,
+            ),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(AppSizes.radiusPill),
             ),
-            child: Text(i, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
+            child: Text(
+              i,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 12,
+              ),
+            ),
           ),
       ],
     );
@@ -153,12 +191,19 @@ class DetailTimeline extends StatelessWidget {
                       height: 12,
                       margin: const EdgeInsets.only(top: 4),
                       decoration: BoxDecoration(
-                        color: events[i].done ? AppColors.success : AppColors.primary,
+                        color: events[i].done
+                            ? AppColors.success
+                            : AppColors.primary,
                         shape: BoxShape.circle,
                       ),
                     ),
                     if (i != events.length - 1)
-                      Expanded(child: Container(width: 2, color: context.theme.dividerColor)),
+                      Expanded(
+                        child: Container(
+                          width: 2,
+                          color: context.theme.dividerColor,
+                        ),
+                      ),
                   ],
                 ),
                 AppSizes.hGapMd,
@@ -170,7 +215,10 @@ class DetailTimeline extends StatelessWidget {
                       children: [
                         Text(events[i].title, style: context.text.titleSmall),
                         if (events[i].subtitle != null)
-                          Text(events[i].subtitle!, style: context.text.bodySmall),
+                          Text(
+                            events[i].subtitle!,
+                            style: context.text.bodySmall,
+                          ),
                       ],
                     ),
                   ),

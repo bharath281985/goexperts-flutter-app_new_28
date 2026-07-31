@@ -29,11 +29,19 @@ class ApiExceptionHandler {
   static Failure mapException(Object error) {
     if (error is DioException) return mapDioError(error);
     if (error is ServerException) {
-      return ServerFailure(error.message, code: error.code, errorCode: error.errorCode);
+      return ServerFailure(
+        error.message,
+        code: error.code,
+        errorCode: error.errorCode,
+      );
     }
     if (error is NetworkException) return NetworkFailure(error.message);
     if (error is AuthException) {
-      return AuthFailure(error.message, code: error.code, errorCode: error.errorCode);
+      return AuthFailure(
+        error.message,
+        code: error.code,
+        errorCode: error.errorCode,
+      );
     }
     return UnknownFailure(error.toString());
   }
@@ -61,7 +69,10 @@ class ApiExceptionHandler {
         );
       }
     }
-    final message = AppErrorMessages.forStatus(status, serverMessage: serverMessage);
+    final message = AppErrorMessages.forStatus(
+      status,
+      serverMessage: serverMessage,
+    );
 
     if (status == 403) return ServerFailure(message, code: status);
     if (status == 404) return NotFoundFailure(message);

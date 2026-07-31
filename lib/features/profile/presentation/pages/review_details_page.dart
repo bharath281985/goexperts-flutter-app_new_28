@@ -22,10 +22,20 @@ class ReviewDetailsPage extends StatelessWidget {
     return DetailView<Review>(
       title: 'Review',
       fetcher: () => sl<ReviewRepository>().getReview(id),
-      actions: detailActions(context, shareTitle: 'this review', shareLink: '${Routes.reviewDetails}/$id', reportType: 'review', bookmarkable: false),
+      actions: detailActions(
+        context,
+        shareTitle: 'this review',
+        shareLink: '${Routes.reviewDetails}/$id',
+        reportType: 'review',
+        bookmarkable: false,
+      ),
       bottomBar: (context, r) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
-        child: AppSecondaryButton(label: 'Reply', icon: Icons.reply_rounded, onPressed: () => context.showSnack('Reply composer')),
+        child: AppSecondaryButton(
+          label: 'Reply',
+          icon: Icons.reply_rounded,
+          onPressed: () => context.showSnack('Reply composer'),
+        ),
       ),
       builder: (context, r) => ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -36,14 +46,21 @@ class ReviewDetailsPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    AppAvatar(name: r.authorName, imageUrl: r.authorAvatar, size: 48),
+                    AppAvatar(
+                      name: r.authorName,
+                      imageUrl: r.authorAvatar,
+                      size: 48,
+                    ),
                     AppSizes.hGapMd,
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(r.authorName, style: context.text.titleSmall),
-                          Text(Formatters.date(r.createdAt), style: context.text.labelSmall),
+                          Text(
+                            Formatters.date(r.createdAt),
+                            style: context.text.labelSmall,
+                          ),
                         ],
                       ),
                     ),
@@ -56,7 +73,9 @@ class ReviewDetailsPage extends StatelessWidget {
                       Icon(
                         i < r.rating.floor()
                             ? Icons.star_rounded
-                            : (i < r.rating ? Icons.star_half_rounded : Icons.star_outline_rounded),
+                            : (i < r.rating
+                                  ? Icons.star_half_rounded
+                                  : Icons.star_outline_rounded),
                         color: AppColors.warning,
                         size: 22,
                       ),
@@ -82,7 +101,12 @@ class ReviewDetailsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Reply', style: context.text.labelMedium?.copyWith(color: AppColors.primary)),
+                    Text(
+                      'Reply',
+                      style: context.text.labelMedium?.copyWith(
+                        color: AppColors.primary,
+                      ),
+                    ),
                     AppSizes.vGapXs,
                     Text(r.reply!, style: context.text.bodyMedium),
                   ],

@@ -9,9 +9,13 @@ sealed class Result<T> {
   bool get isFailure => this is Err<T>;
 
   T? get valueOrNull => this is Success<T> ? (this as Success<T>).value : null;
-  Failure? get failureOrNull => this is Err<T> ? (this as Err<T>).failure : null;
+  Failure? get failureOrNull =>
+      this is Err<T> ? (this as Err<T>).failure : null;
 
-  R fold<R>(R Function(Failure failure) onFailure, R Function(T value) onSuccess) {
+  R fold<R>(
+    R Function(Failure failure) onFailure,
+    R Function(T value) onSuccess,
+  ) {
     final self = this;
     if (self is Success<T>) return onSuccess(self.value);
     return onFailure((self as Err<T>).failure);

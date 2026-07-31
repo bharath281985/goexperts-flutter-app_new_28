@@ -40,23 +40,23 @@ class Proposal extends Equatable {
   final List<String> attachments;
 
   Proposal copyWith({EntityStatus? status}) => Proposal(
-        id: id,
-        projectId: projectId,
-        projectTitle: projectTitle,
-        clientId: clientId,
-        clientName: clientName,
-        freelancerId: freelancerId,
-        freelancerName: freelancerName,
-        freelancerAvatar: freelancerAvatar,
-        bidAmount: bidAmount,
-        isHourly: isHourly,
-        coverLetter: coverLetter,
-        status: status ?? this.status,
-        submittedAt: submittedAt,
-        deliveryDays: deliveryDays,
-        freelancerRating: freelancerRating,
-        attachments: attachments,
-      );
+    id: id,
+    projectId: projectId,
+    projectTitle: projectTitle,
+    clientId: clientId,
+    clientName: clientName,
+    freelancerId: freelancerId,
+    freelancerName: freelancerName,
+    freelancerAvatar: freelancerAvatar,
+    bidAmount: bidAmount,
+    isHourly: isHourly,
+    coverLetter: coverLetter,
+    status: status ?? this.status,
+    submittedAt: submittedAt,
+    deliveryDays: deliveryDays,
+    freelancerRating: freelancerRating,
+    attachments: attachments,
+  );
 
   @override
   List<Object?> get props => [id, projectId, status, freelancerId, clientId];

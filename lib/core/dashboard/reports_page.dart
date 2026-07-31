@@ -24,22 +24,62 @@ class RoleReportsPage extends StatelessWidget {
     switch (role) {
       case UserRole.client:
         return const [
-          _Report('Hiring funnel report', 'Applications → hires · last 30 days', Icons.filter_alt_outlined),
-          _Report('Spending summary', 'Project spend by category', Icons.pie_chart_outline_rounded),
-          _Report('Freelancer performance', 'Ratings & delivery times', Icons.groups_outlined),
-          _Report('Department performance', 'Cross-team throughput', Icons.apartment_outlined),
+          _Report(
+            'Hiring funnel report',
+            'Applications → hires · last 30 days',
+            Icons.filter_alt_outlined,
+          ),
+          _Report(
+            'Spending summary',
+            'Project spend by category',
+            Icons.pie_chart_outline_rounded,
+          ),
+          _Report(
+            'Freelancer performance',
+            'Ratings & delivery times',
+            Icons.groups_outlined,
+          ),
+          _Report(
+            'Department performance',
+            'Cross-team throughput',
+            Icons.apartment_outlined,
+          ),
         ];
       case UserRole.investor:
         return const [
-          _Report('Portfolio performance', 'ROI & valuation changes', Icons.trending_up_rounded),
-          _Report('Deal pipeline report', 'Stage-by-stage breakdown', Icons.handshake_outlined),
-          _Report('Due diligence summary', 'Open items across deals', Icons.fact_check_outlined),
-          _Report('Capital deployed', 'Investments by industry', Icons.account_balance_outlined),
+          _Report(
+            'Portfolio performance',
+            'ROI & valuation changes',
+            Icons.trending_up_rounded,
+          ),
+          _Report(
+            'Deal pipeline report',
+            'Stage-by-stage breakdown',
+            Icons.handshake_outlined,
+          ),
+          _Report(
+            'Due diligence summary',
+            'Open items across deals',
+            Icons.fact_check_outlined,
+          ),
+          _Report(
+            'Capital deployed',
+            'Investments by industry',
+            Icons.account_balance_outlined,
+          ),
         ];
       default:
         return const [
-          _Report('Activity report', 'Your recent activity', Icons.insights_outlined),
-          _Report('Earnings report', 'Income & payouts', Icons.payments_outlined),
+          _Report(
+            'Activity report',
+            'Your recent activity',
+            Icons.insights_outlined,
+          ),
+          _Report(
+            'Earnings report',
+            'Income & payouts',
+            Icons.payments_outlined,
+          ),
         ];
     }
   }
@@ -60,7 +100,10 @@ class RoleReportsPage extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(AppSizes.md),
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(AppSizes.radiusMd)),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  ),
                   child: Icon(r.icon, color: AppColors.primary),
                 ),
                 AppSizes.hGapMd,
@@ -73,7 +116,10 @@ class RoleReportsPage extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton(onPressed: () => context.showSnack('Downloading ${r.title}'), icon: const Icon(Icons.download_rounded)),
+                IconButton(
+                  onPressed: () => context.showSnack('Downloading ${r.title}'),
+                  icon: const Icon(Icons.download_rounded),
+                ),
               ],
             ),
           );

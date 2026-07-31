@@ -84,9 +84,8 @@ class ProposalRepositoryImpl implements ProposalRepository {
         'coverLetter': coverLetter,
         if (deliveryDays != null) 'deliveryTime': deliveryDays,
       },
-      parser: (envelope) => _proposalFromJson(
-        Map<String, dynamic>.from(envelope.data as Map),
-      ),
+      parser: (envelope) =>
+          _proposalFromJson(Map<String, dynamic>.from(envelope.data as Map)),
     );
   }
 
@@ -132,15 +131,16 @@ class ProposalRepositoryImpl implements ProposalRepository {
           json['projectTitle'] as String? ??
           json['project_title'] as String? ??
           'Project',
-      clientId: json['clientId']?.toString() ??
+      clientId:
+          json['clientId']?.toString() ??
           json['client_id']?.toString() ??
           (json['project'] is Map
               ? (json['project'] as Map)['client']?.toString()
               : null),
       clientName:
           json['clientName'] as String? ?? json['client_name'] as String?,
-      freelancerId: json['freelancerId']?.toString() ??
-          json['freelancer_id']?.toString(),
+      freelancerId:
+          json['freelancerId']?.toString() ?? json['freelancer_id']?.toString(),
       freelancerName:
           json['freelancerName'] as String? ??
           json['freelancer_name'] as String? ??

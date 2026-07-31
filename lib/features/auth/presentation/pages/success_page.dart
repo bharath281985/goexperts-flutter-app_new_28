@@ -28,7 +28,8 @@ class SuccessPage extends StatefulWidget {
   State<SuccessPage> createState() => _SuccessPageState();
 }
 
-class _SuccessPageState extends State<SuccessPage> with SingleTickerProviderStateMixin {
+class _SuccessPageState extends State<SuccessPage>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(milliseconds: 700),
@@ -53,7 +54,10 @@ class _SuccessPageState extends State<SuccessPage> with SingleTickerProviderStat
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 ScaleTransition(
-                  scale: CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+                  scale: CurvedAnimation(
+                    parent: _controller,
+                    curve: Curves.easeOutBack,
+                  ),
                   child: Container(
                     width: 110,
                     height: 110,
@@ -61,19 +65,32 @@ class _SuccessPageState extends State<SuccessPage> with SingleTickerProviderStat
                       color: AppColors.success.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.check_circle_rounded, color: AppColors.success, size: 68),
+                    child: const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.success,
+                      size: 68,
+                    ),
                   ),
                 ),
                 AppSizes.vGapXl,
-                Text(a.title, style: context.text.headlineSmall, textAlign: TextAlign.center),
+                Text(
+                  a.title,
+                  style: context.text.headlineSmall,
+                  textAlign: TextAlign.center,
+                ),
                 AppSizes.vGapSm,
-                Text(a.message, style: context.text.bodyMedium, textAlign: TextAlign.center),
+                Text(
+                  a.message,
+                  style: context.text.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
                 AppSizes.vGapXxl,
                 SizedBox(
                   width: double.infinity,
                   child: AppPrimaryButton(
                     label: a.buttonLabel,
-                    onPressed: a.onContinue ?? () => Navigator.of(context).maybePop(),
+                    onPressed:
+                        a.onContinue ?? () => Navigator.of(context).maybePop(),
                   ),
                 ),
               ],

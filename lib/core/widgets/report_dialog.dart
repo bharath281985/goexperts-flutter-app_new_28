@@ -14,13 +14,19 @@ class ReportSheet extends StatefulWidget {
   final String targetType;
   final String? targetName;
 
-  static Future<bool> show(BuildContext context, {required String targetType, String? targetName}) async {
+  static Future<bool> show(
+    BuildContext context, {
+    required String targetType,
+    String? targetName,
+  }) async {
     final result = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
         child: ReportSheet(targetType: targetType, targetName: targetName),
       ),
     );
@@ -32,7 +38,14 @@ class ReportSheet extends StatefulWidget {
 }
 
 class _ReportSheetState extends State<ReportSheet> {
-  static const _reasons = ['Spam', 'Fraud', 'Fake profile', 'Abuse', 'Inappropriate content', 'Other'];
+  static const _reasons = [
+    'Spam',
+    'Fraud',
+    'Fake profile',
+    'Abuse',
+    'Inappropriate content',
+    'Other',
+  ];
   String? _reason;
   final _details = TextEditingController();
   String? _attachment;
@@ -47,7 +60,12 @@ class _ReportSheetState extends State<ReportSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(AppSizes.lg, 0, AppSizes.lg, AppSizes.lg),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.lg,
+          0,
+          AppSizes.lg,
+          AppSizes.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +75,10 @@ class _ReportSheetState extends State<ReportSheet> {
                 const Icon(Icons.flag_outlined, color: AppColors.danger),
                 AppSizes.hGapSm,
                 Expanded(
-                  child: Text('Report ${widget.targetType}', style: context.text.titleLarge),
+                  child: Text(
+                    'Report ${widget.targetType}',
+                    style: context.text.titleLarge,
+                  ),
                 ),
               ],
             ),
@@ -79,10 +100,18 @@ class _ReportSheetState extends State<ReportSheet> {
                     onSelected: (_) => setState(() => _reason = r),
                     selectedColor: AppColors.danger.withValues(alpha: 0.12),
                     labelStyle: TextStyle(
-                      color: _reason == r ? AppColors.danger : context.text.bodyMedium?.color,
-                      fontWeight: _reason == r ? FontWeight.w600 : FontWeight.w400,
+                      color: _reason == r
+                          ? AppColors.danger
+                          : context.text.bodyMedium?.color,
+                      fontWeight: _reason == r
+                          ? FontWeight.w600
+                          : FontWeight.w400,
                     ),
-                    side: BorderSide(color: _reason == r ? AppColors.danger : context.theme.dividerColor),
+                    side: BorderSide(
+                      color: _reason == r
+                          ? AppColors.danger
+                          : context.theme.dividerColor,
+                    ),
                   ),
               ],
             ),
@@ -98,7 +127,8 @@ class _ReportSheetState extends State<ReportSheet> {
               label: 'Add evidence (optional)',
               hint: 'Screenshot or document',
               fileName: _attachment,
-              onTap: () => setState(() => _attachment = 'evidence_screenshot.png'),
+              onTap: () =>
+                  setState(() => _attachment = 'evidence_screenshot.png'),
             ),
             AppSizes.vGapXl,
             AppPrimaryButton(
@@ -108,7 +138,9 @@ class _ReportSheetState extends State<ReportSheet> {
                   ? null
                   : () {
                       Navigator.of(context).pop(true);
-                      context.showSnack('Report submitted. Our team will review it.');
+                      context.showSnack(
+                        'Report submitted. Our team will review it.',
+                      );
                     },
             ),
           ],

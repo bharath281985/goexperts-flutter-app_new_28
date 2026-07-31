@@ -11,7 +11,12 @@ import '../../domain/repositories/review_repository.dart';
 /// Reusable review-submission bottom sheet (freelancer, client, startup,
 /// investor, service, project reviews). Rating + comment + media + reply-ready.
 class ReviewFormSheet extends StatefulWidget {
-  const ReviewFormSheet({super.key, required this.targetType, this.targetName, this.targetId});
+  const ReviewFormSheet({
+    super.key,
+    required this.targetType,
+    this.targetName,
+    this.targetId,
+  });
 
   final String targetType;
   final String? targetName;
@@ -28,8 +33,14 @@ class ReviewFormSheet extends StatefulWidget {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (_) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-        child: ReviewFormSheet(targetType: targetType, targetName: targetName, targetId: targetId),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ReviewFormSheet(
+          targetType: targetType,
+          targetName: targetName,
+          targetId: targetId,
+        ),
       ),
     );
     return result ?? false;
@@ -73,12 +84,20 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(AppSizes.lg, 0, AppSizes.lg, AppSizes.lg),
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.lg,
+          0,
+          AppSizes.lg,
+          AppSizes.lg,
+        ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Review ${widget.targetName ?? widget.targetType}', style: context.text.titleLarge),
+            Text(
+              'Review ${widget.targetName ?? widget.targetType}',
+              style: context.text.titleLarge,
+            ),
             AppSizes.vGapLg,
             Center(
               child: Row(
@@ -88,7 +107,9 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
                     IconButton(
                       onPressed: () => setState(() => _rating = i.toDouble()),
                       icon: Icon(
-                        i <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                        i <= _rating
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
                         color: AppColors.warning,
                         size: 36,
                       ),
@@ -118,7 +139,11 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
               onTap: () => setState(() => _media = 'review_photo.jpg'),
             ),
             AppSizes.vGapXl,
-            AppPrimaryButton(label: 'Submit Review', isLoading: _submitting, onPressed: _submit),
+            AppPrimaryButton(
+              label: 'Submit Review',
+              isLoading: _submitting,
+              onPressed: _submit,
+            ),
           ],
         ),
       ),
@@ -126,10 +151,10 @@ class _ReviewFormSheetState extends State<ReviewFormSheet> {
   }
 
   String _ratingLabel(double r) => switch (r.toInt()) {
-        1 => 'Poor',
-        2 => 'Fair',
-        3 => 'Good',
-        4 => 'Very good',
-        _ => 'Excellent',
-      };
+    1 => 'Poor',
+    2 => 'Fair',
+    3 => 'Good',
+    4 => 'Very good',
+    _ => 'Excellent',
+  };
 }

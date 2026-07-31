@@ -24,14 +24,33 @@ class OpportunityDetailsPage extends StatelessWidget {
     return DetailView<InvestmentOpportunity>(
       title: 'Investment Opportunity',
       fetcher: () => sl<CatalogRepository>().getOpportunity(id),
-      actions: detailActions(context, shareTitle: 'this opportunity', shareLink: '${Routes.opportunityDetails}/$id', reportType: 'startup'),
+      actions: detailActions(
+        context,
+        shareTitle: 'this opportunity',
+        shareLink: '${Routes.opportunityDetails}/$id',
+        reportType: 'startup',
+      ),
       bottomBar: (context, o) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
         child: Row(
           children: [
-            Expanded(child: AppSecondaryButton(label: 'Express Interest', icon: Icons.favorite_border_rounded, onPressed: () => context.showSnack('Interest expressed'))),
+            Expanded(
+              child: AppSecondaryButton(
+                label: 'Express Interest',
+                icon: Icons.favorite_border_rounded,
+                onPressed: () => context.showSnack('Interest expressed'),
+              ),
+            ),
             AppSizes.hGapMd,
-            Expanded(flex: 2, child: AppPrimaryButton(label: 'Invest', icon: Icons.trending_up_rounded, onPressed: () => context.push('${Routes.apply}?type=Investment'))),
+            Expanded(
+              flex: 2,
+              child: AppPrimaryButton(
+                label: 'Invest',
+                icon: Icons.trending_up_rounded,
+                onPressed: () =>
+                    context.push('${Routes.apply}?type=Investment'),
+              ),
+            ),
           ],
         ),
       ),
@@ -43,8 +62,15 @@ class OpportunityDetailsPage extends StatelessWidget {
             title: o.startupName,
             subtitle: '${o.industry} · ${o.stage}',
             chips: [
-              DetailStatChip(icon: Icons.percent_rounded, label: '${o.equityOffered.toStringAsFixed(0)}% equity'),
-              if (o.deadline != null) DetailStatChip(icon: Icons.timer_outlined, label: 'Closes ${Formatters.date(o.deadline!)}'),
+              DetailStatChip(
+                icon: Icons.percent_rounded,
+                label: '${o.equityOffered.toStringAsFixed(0)}% equity',
+              ),
+              if (o.deadline != null)
+                DetailStatChip(
+                  icon: Icons.timer_outlined,
+                  label: 'Closes ${Formatters.date(o.deadline!)}',
+                ),
             ],
           ),
           AppSizes.vGapLg,
@@ -55,8 +81,14 @@ class OpportunityDetailsPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('${Formatters.compactCurrency(o.raisedSoFar)} raised', style: context.text.titleSmall),
-                    Text('of ${Formatters.compactCurrency(o.amountSought)}', style: context.text.bodySmall),
+                    Text(
+                      '${Formatters.compactCurrency(o.raisedSoFar)} raised',
+                      style: context.text.titleSmall,
+                    ),
+                    Text(
+                      'of ${Formatters.compactCurrency(o.amountSought)}',
+                      style: context.text.bodySmall,
+                    ),
                   ],
                 ),
                 AppSizes.vGapSm,
@@ -75,12 +107,27 @@ class OpportunityDetailsPage extends StatelessWidget {
           AppSizes.vGapLg,
           Row(
             children: [
-              Expanded(child: DetailMetric(icon: Icons.savings_outlined, label: 'Min Ticket', value: Formatters.compactCurrency(o.minTicket))),
-              Expanded(child: DetailMetric(icon: Icons.assessment_outlined, label: 'Valuation', value: Formatters.compactCurrency(o.valuation))),
+              Expanded(
+                child: DetailMetric(
+                  icon: Icons.savings_outlined,
+                  label: 'Min Ticket',
+                  value: Formatters.compactCurrency(o.minTicket),
+                ),
+              ),
+              Expanded(
+                child: DetailMetric(
+                  icon: Icons.assessment_outlined,
+                  label: 'Valuation',
+                  value: Formatters.compactCurrency(o.valuation),
+                ),
+              ),
             ],
           ),
           AppSizes.vGapLg,
-          DetailSection(title: 'Overview', child: Text(o.summary, style: context.text.bodyMedium)),
+          DetailSection(
+            title: 'Overview',
+            child: Text(o.summary, style: context.text.bodyMedium),
+          ),
           if (o.highlights.isNotEmpty) ...[
             AppSizes.vGapLg,
             DetailSection(
@@ -90,11 +137,19 @@ class OpportunityDetailsPage extends StatelessWidget {
                   for (final h in o.highlights)
                     Padding(
                       padding: const EdgeInsets.only(bottom: AppSizes.sm),
-                      child: Row(children: [
-                        const Icon(Icons.check_circle_rounded, size: 18, color: AppColors.success),
-                        AppSizes.hGapSm,
-                        Expanded(child: Text(h, style: context.text.bodyMedium)),
-                      ]),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            size: 18,
+                            color: AppColors.success,
+                          ),
+                          AppSizes.hGapSm,
+                          Expanded(
+                            child: Text(h, style: context.text.bodyMedium),
+                          ),
+                        ],
+                      ),
                     ),
                 ],
               ),
@@ -105,9 +160,23 @@ class OpportunityDetailsPage extends StatelessWidget {
             title: 'Documents',
             child: Column(
               children: [
-                _doc(context, 'Pitch Deck.pdf', () => context.push('${Routes.pitchDeckDetails}/s1')),
-                _doc(context, 'Business Plan.pdf', () => context.push('${Routes.businessPlanDetails}/s1')),
-                _doc(context, 'Financials.xlsx', () => context.push('${Routes.documentViewer}?type=Excel&name=Financials.xlsx')),
+                _doc(
+                  context,
+                  'Pitch Deck.pdf',
+                  () => context.push('${Routes.pitchDeckDetails}/s1'),
+                ),
+                _doc(
+                  context,
+                  'Business Plan.pdf',
+                  () => context.push('${Routes.businessPlanDetails}/s1'),
+                ),
+                _doc(
+                  context,
+                  'Financials.xlsx',
+                  () => context.push(
+                    '${Routes.documentViewer}?type=Excel&name=Financials.xlsx',
+                  ),
+                ),
               ],
             ),
           ),
@@ -118,14 +187,20 @@ class OpportunityDetailsPage extends StatelessWidget {
   }
 
   Widget _doc(BuildContext context, String name, VoidCallback onTap) => AppCard(
-        margin: const EdgeInsets.only(bottom: AppSizes.sm),
-        padding: const EdgeInsets.all(AppSizes.md),
-        onTap: onTap,
-        child: Row(children: [
-          const Icon(Icons.description_outlined, size: 18, color: AppColors.primary),
-          AppSizes.hGapMd,
-          Expanded(child: Text(name, style: context.text.bodyMedium)),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.mutedText),
-        ]),
-      );
+    margin: const EdgeInsets.only(bottom: AppSizes.sm),
+    padding: const EdgeInsets.all(AppSizes.md),
+    onTap: onTap,
+    child: Row(
+      children: [
+        const Icon(
+          Icons.description_outlined,
+          size: 18,
+          color: AppColors.primary,
+        ),
+        AppSizes.hGapMd,
+        Expanded(child: Text(name, style: context.text.bodyMedium)),
+        const Icon(Icons.chevron_right_rounded, color: AppColors.mutedText),
+      ],
+    ),
+  );
 }

@@ -166,7 +166,9 @@ class _LocationSearchSheetState extends State<LocationSearchSheet> {
               AppSizes.vGapSm,
               Text(
                 _error!,
-                style: context.text.bodySmall?.copyWith(color: AppColors.danger),
+                style: context.text.bodySmall?.copyWith(
+                  color: AppColors.danger,
+                ),
               ),
             ],
             AppSizes.vGapSm,

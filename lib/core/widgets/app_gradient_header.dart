@@ -30,8 +30,11 @@ class AppGradientHeader extends StatelessWidget {
       padding: padding.add(EdgeInsets.only(top: topInset)),
       decoration: BoxDecoration(
         gradient: AppColors.primaryGradient,
-        borderRadius: borderRadius ??
-            const BorderRadius.vertical(bottom: Radius.circular(AppSizes.radiusXl)),
+        borderRadius:
+            borderRadius ??
+            const BorderRadius.vertical(
+              bottom: Radius.circular(AppSizes.radiusXl),
+            ),
       ),
       child: child,
     );

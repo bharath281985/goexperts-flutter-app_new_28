@@ -40,7 +40,11 @@ class AppBottomNavigation extends StatelessWidget {
         color: context.theme.cardColor,
         border: Border(top: BorderSide(color: context.theme.dividerColor)),
         boxShadow: const [
-          BoxShadow(color: AppColors.shadow, blurRadius: 16, offset: Offset(0, -2)),
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 16,
+            offset: Offset(0, -2),
+          ),
         ],
       ),
       child: SafeArea(
@@ -65,7 +69,11 @@ class AppBottomNavigation extends StatelessWidget {
 }
 
 class _NavCell extends StatelessWidget {
-  const _NavCell({required this.item, required this.selected, required this.onTap});
+  const _NavCell({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
 
   final AppNavItem item;
   final bool selected;
@@ -82,9 +90,15 @@ class _NavCell extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Badge(
-              isLabelVisible: item.badgeText != null ? item.badgeText!.isNotEmpty : item.badgeCount > 0,
+              isLabelVisible: item.badgeText != null
+                  ? item.badgeText!.isNotEmpty
+                  : item.badgeCount > 0,
               label: Text(item.badgeText ?? '${item.badgeCount}'),
-              child: Icon(selected ? item.activeIcon : item.icon, color: color, size: 24),
+              child: Icon(
+                selected ? item.activeIcon : item.icon,
+                color: color,
+                size: 24,
+              ),
             ),
             const SizedBox(height: 3),
             Text(

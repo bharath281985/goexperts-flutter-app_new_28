@@ -22,14 +22,31 @@ class CertificateDetailsPage extends StatelessWidget {
     return DetailView<Certificate>(
       title: 'Certificate',
       fetcher: () => sl<CatalogRepository>().getCertificate(id),
-      actions: detailActions(context, shareTitle: 'this certificate', shareLink: '${Routes.certificateDetails}/$id', reportType: 'certificate'),
+      actions: detailActions(
+        context,
+        shareTitle: 'this certificate',
+        shareLink: '${Routes.certificateDetails}/$id',
+        reportType: 'certificate',
+      ),
       bottomBar: (context, c) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
         child: Row(
           children: [
-            Expanded(child: AppSecondaryButton(label: 'Verify', icon: Icons.verified_outlined, onPressed: () => context.showSnack('Opening verification…'))),
+            Expanded(
+              child: AppSecondaryButton(
+                label: 'Verify',
+                icon: Icons.verified_outlined,
+                onPressed: () => context.showSnack('Opening verification…'),
+              ),
+            ),
             AppSizes.hGapMd,
-            Expanded(child: AppPrimaryButton(label: 'Download', icon: Icons.download_rounded, onPressed: () => context.showSnack('Downloading certificate'))),
+            Expanded(
+              child: AppPrimaryButton(
+                label: 'Download',
+                icon: Icons.download_rounded,
+                onPressed: () => context.showSnack('Downloading certificate'),
+              ),
+            ),
           ],
         ),
       ),
@@ -40,7 +57,12 @@ class CertificateDetailsPage extends StatelessWidget {
             icon: Icons.workspace_premium_outlined,
             title: c.title,
             subtitle: 'Issued by ${c.issuer}',
-            chips: [DetailStatChip(icon: Icons.event_outlined, label: Formatters.date(c.issuedAt))],
+            chips: [
+              DetailStatChip(
+                icon: Icons.event_outlined,
+                label: Formatters.date(c.issuedAt),
+              ),
+            ],
           ),
           AppSizes.vGapLg,
           DetailSection(
@@ -65,7 +87,10 @@ class CertificateDetailsPage extends StatelessWidget {
           ),
           if (c.skills.isNotEmpty) ...[
             AppSizes.vGapLg,
-            DetailSection(title: 'Skills', child: DetailChips(items: c.skills)),
+            DetailSection(
+              title: 'Skills',
+              child: DetailChips(items: c.skills),
+            ),
           ],
           const SizedBox(height: 90),
         ],
@@ -74,10 +99,16 @@ class CertificateDetailsPage extends StatelessWidget {
   }
 
   Widget _row(BuildContext context, String label, String value) => Row(
-        children: [
-          Text(label, style: context.text.labelMedium),
-          const Spacer(),
-          Flexible(child: Text(value, style: context.text.bodyMedium, textAlign: TextAlign.right)),
-        ],
-      );
+    children: [
+      Text(label, style: context.text.labelMedium),
+      const Spacer(),
+      Flexible(
+        child: Text(
+          value,
+          style: context.text.bodyMedium,
+          textAlign: TextAlign.right,
+        ),
+      ),
+    ],
+  );
 }

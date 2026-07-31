@@ -24,7 +24,8 @@ List<Widget> detailActions(
     IconButton(
       tooltip: 'Share',
       icon: const Icon(Icons.share_outlined),
-      onPressed: () => ShareSheet.show(context, title: shareTitle, link: shareLink),
+      onPressed: () =>
+          ShareSheet.show(context, title: shareTitle, link: shareLink),
     ),
     IconButton(
       tooltip: 'More',
@@ -40,13 +41,18 @@ List<Widget> detailActions(
           AppAction(
             label: 'Share',
             icon: Icons.share_outlined,
-            onTap: () => ShareSheet.show(context, title: shareTitle, link: shareLink),
+            onTap: () =>
+                ShareSheet.show(context, title: shareTitle, link: shareLink),
           ),
           AppAction(
             label: 'Report',
             icon: Icons.flag_outlined,
             isDestructive: true,
-            onTap: () => ReportSheet.show(context, targetType: reportType, targetName: reportName),
+            onTap: () => ReportSheet.show(
+              context,
+              targetType: reportType,
+              targetName: reportName,
+            ),
           ),
         ],
       ),

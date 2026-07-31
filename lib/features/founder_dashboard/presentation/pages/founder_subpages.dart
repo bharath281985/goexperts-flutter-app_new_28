@@ -18,9 +18,18 @@ class FounderPitchDeckEditorPage extends StatelessWidget {
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Pitch Deck Editor'),
-        actions: [TextButton(onPressed: () => context.push('${Routes.pitchDeckDetails}/s1'), child: const Text('Preview'))],
+        actions: [
+          TextButton(
+            onPressed: () => context.push('${Routes.pitchDeckDetails}/s1'),
+            child: const Text('Preview'),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => context.showSnack('Add slide'), icon: const Icon(Icons.add_rounded), label: const Text('Slide')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.showSnack('Add slide'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Slide'),
+      ),
       body: ReorderableListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         onReorderItem: (a, b) => context.showSnack('Reordered slides'),
@@ -29,16 +38,48 @@ class FounderPitchDeckEditorPage extends StatelessWidget {
             AppCard(
               key: ValueKey('slide_$i'),
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
-              child: Row(children: [
-                CircleAvatar(radius: 14, backgroundColor: AppColors.primary.withValues(alpha: 0.12), child: Text('${i + 1}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w700, fontSize: 12))),
-                AppSizes.hGapMd,
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(deck.slides[i].title, style: context.text.titleSmall),
-                  Text(deck.slides[i].subtitle, style: context.text.labelSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-                ])),
-                IconButton(onPressed: () => context.showSnack('Edit slide'), icon: const Icon(Icons.edit_outlined, size: 18)),
-                const Icon(Icons.drag_handle_rounded, color: AppColors.mutedText),
-              ]),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 14,
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+                    child: Text(
+                      '${i + 1}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  AppSizes.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          deck.slides[i].title,
+                          style: context.text.titleSmall,
+                        ),
+                        Text(
+                          deck.slides[i].subtitle,
+                          style: context.text.labelSmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => context.showSnack('Edit slide'),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                  ),
+                  const Icon(
+                    Icons.drag_handle_rounded,
+                    color: AppColors.mutedText,
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -54,9 +95,18 @@ class FounderBusinessPlanEditorPage extends StatelessWidget {
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Business Plan Editor'),
-        actions: [TextButton(onPressed: () => context.push('${Routes.businessPlanDetails}/s1'), child: const Text('Preview'))],
+        actions: [
+          TextButton(
+            onPressed: () => context.push('${Routes.businessPlanDetails}/s1'),
+            child: const Text('Preview'),
+          ),
+        ],
       ),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => context.showSnack('Add section'), icon: const Icon(Icons.add_rounded), label: const Text('Section')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.showSnack('Add section'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Section'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
@@ -64,15 +114,31 @@ class FounderBusinessPlanEditorPage extends StatelessWidget {
             AppCard(
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
               onTap: () => context.showSnack('Edit ${s.title}'),
-              child: Row(children: [
-                const Icon(Icons.subject_rounded, color: AppColors.primary),
-                AppSizes.hGapMd,
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(s.title, style: context.text.titleSmall),
-                  Text(s.content, style: context.text.labelSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
-                ])),
-                const Icon(Icons.edit_outlined, size: 18, color: AppColors.mutedText),
-              ]),
+              child: Row(
+                children: [
+                  const Icon(Icons.subject_rounded, color: AppColors.primary),
+                  AppSizes.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(s.title, style: context.text.titleSmall),
+                        Text(
+                          s.content,
+                          style: context.text.labelSmall,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.edit_outlined,
+                    size: 18,
+                    color: AppColors.mutedText,
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -91,21 +157,36 @@ class FounderTeamPage extends StatelessWidget {
       ('Sara Khan', 'Head of Marketing'),
     ];
     return AppScaffold(
-      appBar: AppBar(title: const Text('Team'), actions: [IconButton(onPressed: () => context.showSnack('Add member'), icon: const Icon(Icons.person_add_alt_1_outlined))]),
+      appBar: AppBar(
+        title: const Text('Team'),
+        actions: [
+          IconButton(
+            onPressed: () => context.showSnack('Add member'),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
           for (final (name, role) in team)
             AppCard(
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
-              child: Row(children: [
-                AppAvatar(name: name, size: 44),
-                AppSizes.hGapMd,
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(name, style: context.text.titleSmall),
-                  Text(role, style: context.text.labelSmall),
-                ])),
-              ]),
+              child: Row(
+                children: [
+                  AppAvatar(name: name, size: 44),
+                  AppSizes.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: context.text.titleSmall),
+                        Text(role, style: context.text.labelSmall),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -124,20 +205,37 @@ class FounderHiringPage extends StatelessWidget {
     ];
     return AppScaffold(
       appBar: AppBar(title: const Text('Hiring')),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => context.showSnack('Post a role'), icon: const Icon(Icons.add_rounded), label: const Text('Post Role')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.showSnack('Post a role'),
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('Post Role'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
           for (final (title, applicants, status) in roles)
             AppCard(
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
-              child: Row(children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(title, style: context.text.titleSmall),
-                  Text(applicants, style: context.text.labelSmall),
-                ])),
-                AppStatusChip(label: status, dense: true, color: status == 'Open' ? AppColors.success : AppColors.mutedText),
-              ]),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(title, style: context.text.titleSmall),
+                        Text(applicants, style: context.text.labelSmall),
+                      ],
+                    ),
+                  ),
+                  AppStatusChip(
+                    label: status,
+                    dense: true,
+                    color: status == 'Open'
+                        ? AppColors.success
+                        : AppColors.mutedText,
+                  ),
+                ],
+              ),
             ),
         ],
       ),
@@ -151,7 +249,11 @@ class FounderMediaGalleryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(title: const Text('Media Gallery')),
-      floatingActionButton: FloatingActionButton.extended(onPressed: () => context.showSnack('Upload media'), icon: const Icon(Icons.upload_rounded), label: const Text('Upload')),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => context.showSnack('Upload media'),
+        icon: const Icon(Icons.upload_rounded),
+        label: const Text('Upload'),
+      ),
       body: GridView.builder(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -164,14 +266,24 @@ class FounderMediaGalleryPage extends StatelessWidget {
           final isVideo = i % 3 == 0;
           return InkWell(
             borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-            onTap: () => context.push('${Routes.documentViewer}?type=${isVideo ? 'Video' : 'Image'}&name=media_$i'),
+            onTap: () => context.push(
+              '${Routes.documentViewer}?type=${isVideo ? 'Video' : 'Image'}&name=media_$i',
+            ),
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.06),
                 borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                 border: Border.all(color: context.theme.dividerColor),
               ),
-              child: Center(child: Icon(isVideo ? Icons.play_circle_outline_rounded : Icons.image_outlined, size: 40, color: AppColors.primary)),
+              child: Center(
+                child: Icon(
+                  isVideo
+                      ? Icons.play_circle_outline_rounded
+                      : Icons.image_outlined,
+                  size: 40,
+                  color: AppColors.primary,
+                ),
+              ),
             ),
           );
         },

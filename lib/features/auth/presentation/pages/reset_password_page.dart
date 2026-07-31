@@ -68,7 +68,11 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
               validator: (v) => Validators.confirmPassword(v, _password.text),
             ),
             AppSizes.vGapXl,
-            AppPrimaryButton(label: 'Update Password', isLoading: _loading, onPressed: _submit),
+            AppPrimaryButton(
+              label: 'Update Password',
+              isLoading: _loading,
+              onPressed: _submit,
+            ),
           ],
         ),
       ),

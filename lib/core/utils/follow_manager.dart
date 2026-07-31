@@ -51,7 +51,8 @@ class FollowManager extends ChangeNotifier {
       if (category == categoryCompanies) return ['co1'];
       if (category == categoryInvestors) return ['i1'];
       if (category == categoryTechnologies) return ['tech_flutter'];
-      if (category == categoryCommunities) return ['comm_flutter_devs', 'comm_investors_club'];
+      if (category == categoryCommunities)
+        return ['comm_flutter_devs', 'comm_investors_club'];
     }
     return list;
   }
@@ -78,7 +79,7 @@ class FollowManager extends ChangeNotifier {
       categoryTechnologies,
       categoryServices,
       categoryTopics,
-      categoryCommunities
+      categoryCommunities,
     ]) {
       total += getFollowing(cat).length;
     }

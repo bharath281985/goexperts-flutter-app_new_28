@@ -37,11 +37,17 @@ class AppFileUpload extends StatelessWidget {
                 color: AppColors.primary,
               ),
               AppSizes.vGapSm,
-              Text(hasFile ? fileName! : label,
-                  style: context.text.titleSmall, textAlign: TextAlign.center),
+              Text(
+                hasFile ? fileName! : label,
+                style: context.text.titleSmall,
+                textAlign: TextAlign.center,
+              ),
               const SizedBox(height: 2),
-              Text(hasFile ? 'Tap to replace' : hint,
-                  style: context.text.bodySmall, textAlign: TextAlign.center),
+              Text(
+                hasFile ? 'Tap to replace' : hint,
+                style: context.text.bodySmall,
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),
@@ -91,5 +97,6 @@ class _DashedPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _DashedPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _DashedPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

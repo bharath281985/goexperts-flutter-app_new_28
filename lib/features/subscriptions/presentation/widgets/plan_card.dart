@@ -47,15 +47,31 @@ class PlanCard extends StatelessWidget {
                   AppSizes.hGapSm,
                   if (plan.isPopular)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.sm,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.radiusPill,
+                        ),
                       ),
-                      child: const Text('POPULAR', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700)),
+                      child: const Text(
+                        'POPULAR',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
                   const Spacer(),
-                  if (selected) const Icon(Icons.check_circle_rounded, color: AppColors.primary),
+                  if (selected)
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      color: AppColors.primary,
+                    ),
                 ],
               ),
               const SizedBox(height: 2),
@@ -65,8 +81,12 @@ class PlanCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.baseline,
                 textBaseline: TextBaseline.alphabetic,
                 children: [
-                  Text(price == 0 ? 'Free' : Formatters.currency(price), style: context.text.displaySmall),
-                  if (price != 0) Text(yearly ? '/yr' : '/mo', style: context.text.bodySmall),
+                  Text(
+                    price == 0 ? 'Free' : Formatters.currency(price),
+                    style: context.text.displaySmall,
+                  ),
+                  if (price != 0)
+                    Text(yearly ? '/yr' : '/mo', style: context.text.bodySmall),
                 ],
               ),
               AppSizes.vGapMd,
@@ -75,7 +95,11 @@ class PlanCard extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: AppSizes.sm),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_outline_rounded, size: 16, color: AppColors.success),
+                      const Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 16,
+                        color: AppColors.success,
+                      ),
                       AppSizes.hGapSm,
                       Expanded(child: Text(f, style: context.text.bodySmall)),
                     ],

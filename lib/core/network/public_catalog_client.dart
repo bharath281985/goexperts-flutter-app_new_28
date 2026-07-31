@@ -63,9 +63,7 @@ class PublicCatalogClient {
     T Function(Map<String, dynamic> json) itemParser,
   ) {
     if (json['success'] == false) {
-      return Err(
-        ServerFailure(json['message'] as String? ?? 'Request failed'),
-      );
+      return Err(ServerFailure(json['message'] as String? ?? 'Request failed'));
     }
 
     final rawList = json['data'] ?? json['rows'];

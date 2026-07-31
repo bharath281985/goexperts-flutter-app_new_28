@@ -69,7 +69,12 @@ class BookmarkManager extends ChangeNotifier {
   List<String> getCollections() {
     final list = _storage.getStringList(_keyCollections);
     if (list.isEmpty) {
-      return ['My Favorites', 'Tech Stack', 'High Budget Projects', 'Starred Startups'];
+      return [
+        'My Favorites',
+        'Tech Stack',
+        'High Budget Projects',
+        'Starred Startups',
+      ];
     }
     return list;
   }
@@ -107,7 +112,11 @@ class BookmarkManager extends ChangeNotifier {
   List<String> getSavedSearches() {
     final list = _storage.getStringList(_keySavedSearches);
     if (list.isEmpty) {
-      return ['Flutter Remote Developer', 'AI/ML Startups', 'FinTech Pitch Decks'];
+      return [
+        'Flutter Remote Developer',
+        'AI/ML Startups',
+        'FinTech Pitch Decks',
+      ];
     }
     return list;
   }
@@ -144,13 +153,16 @@ class BookmarkManager extends ChangeNotifier {
           'name': 'Early Stage AgriTech',
           'industry': 'AgriTech',
           'stage': 'Early Revenue',
-        }
+        },
       ];
     }
     return raw.map((e) => jsonDecode(e) as Map<String, dynamic>).toList();
   }
 
-  Future<void> addSavedFilter(String name, Map<String, dynamic> filterData) async {
+  Future<void> addSavedFilter(
+    String name,
+    Map<String, dynamic> filterData,
+  ) async {
     final list = getSavedFilters();
     final item = {'name': name, ...filterData};
     list.add(item);

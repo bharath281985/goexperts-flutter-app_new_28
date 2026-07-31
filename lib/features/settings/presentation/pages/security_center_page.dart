@@ -31,14 +31,24 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
             color: AppColors.success.withValues(alpha: 0.08),
             child: Row(
               children: [
-                const Icon(Icons.shield_rounded, color: AppColors.success, size: 30),
+                const Icon(
+                  Icons.shield_rounded,
+                  color: AppColors.success,
+                  size: 30,
+                ),
                 AppSizes.hGapMd,
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Your account is secure', style: context.text.titleSmall),
-                      Text('Security score: 85/100', style: context.text.bodySmall),
+                      Text(
+                        'Your account is secure',
+                        style: context.text.titleSmall,
+                      ),
+                      Text(
+                        'Security score: 85/100',
+                        style: context.text.bodySmall,
+                      ),
                     ],
                   ),
                 ),
@@ -70,7 +80,11 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
                   leadingIcon: Icons.lock_outline_rounded,
                   onTap: () => context.push(Routes.changePassword),
                 ),
-                AppListTile(title: 'Recovery Codes', leadingIcon: Icons.key_outlined, onTap: () {}),
+                AppListTile(
+                  title: 'Recovery Codes',
+                  leadingIcon: Icons.key_outlined,
+                  onTap: () {},
+                ),
               ],
             ),
           ),
@@ -85,38 +99,66 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
     );
   }
 
-  Widget _session(BuildContext context, String device, String meta, bool current) => AppCard(
-        margin: const EdgeInsets.only(bottom: AppSizes.md),
-        child: Row(
-          children: [
-            Icon(device.contains('iPhone') || device.contains('Android') || device.contains('Pixel')
-                ? Icons.smartphone_rounded
-                : Icons.laptop_mac_rounded),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _session(
+    BuildContext context,
+    String device,
+    String meta,
+    bool current,
+  ) => AppCard(
+    margin: const EdgeInsets.only(bottom: AppSizes.md),
+    child: Row(
+      children: [
+        Icon(
+          device.contains('iPhone') ||
+                  device.contains('Android') ||
+                  device.contains('Pixel')
+              ? Icons.smartphone_rounded
+              : Icons.laptop_mac_rounded,
+        ),
+        AppSizes.hGapMd,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Text(device, style: context.text.titleSmall),
-                      if (current) ...[
-                        AppSizes.hGapSm,
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(color: AppColors.success.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(999)),
-                          child: const Text('Current', style: TextStyle(color: AppColors.success, fontSize: 10, fontWeight: FontWeight.w700)),
+                  Text(device, style: context.text.titleSmall),
+                  if (current) ...[
+                    AppSizes.hGapSm,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.success.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: const Text(
+                        'Current',
+                        style: TextStyle(
+                          color: AppColors.success,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
                         ),
-                      ],
-                    ],
-                  ),
-                  Text(meta, style: context.text.labelSmall),
+                      ),
+                    ),
+                  ],
                 ],
               ),
-            ),
-            if (!current)
-              TextButton(onPressed: () => context.showSnack('Session revoked'), child: const Text('Revoke', style: TextStyle(color: AppColors.danger))),
-          ],
+              Text(meta, style: context.text.labelSmall),
+            ],
+          ),
         ),
-      );
+        if (!current)
+          TextButton(
+            onPressed: () => context.showSnack('Session revoked'),
+            child: const Text(
+              'Revoke',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+      ],
+    ),
+  );
 }

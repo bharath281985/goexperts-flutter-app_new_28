@@ -7,11 +7,7 @@ export 'firebase_push_notification_service.dart';
 
 /// Registers FCM token with backend after login/register/refresh.
 class DeviceTokenRegistrationService {
-  DeviceTokenRegistrationService(
-    this._api,
-    this._deviceInfo,
-    this._push,
-  );
+  DeviceTokenRegistrationService(this._api, this._deviceInfo, this._push);
 
   final ApiClientHelper _api;
   final DeviceInfoHelper _deviceInfo;
@@ -24,10 +20,7 @@ class DeviceTokenRegistrationService {
     final device = await _deviceInfo.devicePayload();
     await _api.postAction(
       ApiEndpoints.appDeviceToken,
-      body: {
-        'fcmToken': token,
-        ...device,
-      },
+      body: {'fcmToken': token, ...device},
     );
   }
 

@@ -20,32 +20,72 @@ class CategoryDetailsPage extends StatelessWidget {
     return DetailView<CategoryItem>(
       title: 'Category',
       fetcher: () => sl<CatalogRepository>().getCategory(id),
-      actions: detailActions(context, shareTitle: 'this category', shareLink: '${Routes.categoryDetails}/$id', reportType: 'category'),
+      actions: detailActions(
+        context,
+        shareTitle: 'this category',
+        shareLink: '${Routes.categoryDetails}/$id',
+        reportType: 'category',
+      ),
       bottomBar: (context, c) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
-        child: AppPrimaryButton(label: 'Explore ${c.name}', icon: Icons.explore_outlined, onPressed: () => context.showSnack('Exploring ${c.name}')),
+        child: AppPrimaryButton(
+          label: 'Explore ${c.name}',
+          icon: Icons.explore_outlined,
+          onPressed: () => context.showSnack('Exploring ${c.name}'),
+        ),
       ),
       builder: (context, c) => ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
-          DetailHeroBanner(icon: Icons.category_outlined, title: c.name, subtitle: '${c.projectsCount} live projects'),
+          DetailHeroBanner(
+            icon: Icons.category_outlined,
+            title: c.name,
+            subtitle: '${c.projectsCount} live projects',
+          ),
           AppSizes.vGapLg,
           Row(
             children: [
-              Expanded(child: DetailMetric(icon: Icons.work_outline_rounded, label: 'Projects', value: '${c.projectsCount}')),
-              Expanded(child: DetailMetric(icon: Icons.groups_outlined, label: 'Talent', value: '${c.freelancersCount}')),
-              Expanded(child: DetailMetric(icon: Icons.payments_outlined, label: 'Avg Budget', value: Formatters.compactCurrency(c.avgBudget))),
+              Expanded(
+                child: DetailMetric(
+                  icon: Icons.work_outline_rounded,
+                  label: 'Projects',
+                  value: '${c.projectsCount}',
+                ),
+              ),
+              Expanded(
+                child: DetailMetric(
+                  icon: Icons.groups_outlined,
+                  label: 'Talent',
+                  value: '${c.freelancersCount}',
+                ),
+              ),
+              Expanded(
+                child: DetailMetric(
+                  icon: Icons.payments_outlined,
+                  label: 'Avg Budget',
+                  value: Formatters.compactCurrency(c.avgBudget),
+                ),
+              ),
             ],
           ),
           AppSizes.vGapLg,
-          DetailSection(title: 'Overview', child: Text(c.description, style: context.text.bodyMedium)),
+          DetailSection(
+            title: 'Overview',
+            child: Text(c.description, style: context.text.bodyMedium),
+          ),
           if (c.subcategories.isNotEmpty) ...[
             AppSizes.vGapLg,
-            DetailSection(title: 'Subcategories', child: DetailChips(items: c.subcategories)),
+            DetailSection(
+              title: 'Subcategories',
+              child: DetailChips(items: c.subcategories),
+            ),
           ],
           if (c.trendingSkills.isNotEmpty) ...[
             AppSizes.vGapLg,
-            DetailSection(title: 'Trending Skills', child: DetailChips(items: c.trendingSkills)),
+            DetailSection(
+              title: 'Trending Skills',
+              child: DetailChips(items: c.trendingSkills),
+            ),
           ],
           const SizedBox(height: 90),
         ],

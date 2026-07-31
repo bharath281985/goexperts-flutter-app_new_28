@@ -1,11 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class SkillOption extends Equatable {
-  const SkillOption({
-    required this.id,
-    required this.name,
-    this.categoryId,
-  });
+  const SkillOption({required this.id, required this.name, this.categoryId});
 
   final String id;
   final String name;

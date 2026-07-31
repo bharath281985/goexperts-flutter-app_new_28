@@ -49,7 +49,8 @@ class TaskComment extends Equatable {
       id: json['id']?.toString() ?? '',
       text: json['comment'] as String? ?? json['text'] as String? ?? '',
       createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
       author: json['author'] as String? ?? json['userId']?.toString() ?? 'User',
     );
   }
@@ -67,7 +68,10 @@ class TaskAttachment extends Equatable {
   factory TaskAttachment.fromApiJson(Map<String, dynamic> json) {
     return TaskAttachment(
       id: json['id']?.toString() ?? '',
-      name: json['name'] as String? ?? json['fileName'] as String? ?? 'Attachment',
+      name:
+          json['name'] as String? ??
+          json['fileName'] as String? ??
+          'Attachment',
       url: json['url'] as String?,
     );
   }
@@ -93,7 +97,8 @@ class TaskTimeLog extends Equatable {
       id: json['id']?.toString() ?? '',
       hours: json['hours']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
-      notes: json['taskDesc'] as String? ?? json['description'] as String? ?? '',
+      notes:
+          json['taskDesc'] as String? ?? json['description'] as String? ?? '',
     );
   }
 

@@ -41,23 +41,28 @@ class DetailView<T> extends StatelessWidget {
         builder: (context, state) {
           return AppScaffold(
             appBar: AppBar(title: Text(title), actions: actions),
-            bottomNavigationBar: state.status == ViewStatus.success && bottomBar != null
+            bottomNavigationBar:
+                state.status == ViewStatus.success && bottomBar != null
                 ? SafeArea(child: bottomBar!(context, state.item as T))
                 : null,
             body: switch (state.status) {
-              ViewStatus.loading => const AppLoadingShimmer(itemCount: 5, height: 96),
+              ViewStatus.loading => const AppLoadingShimmer(
+                itemCount: 5,
+                height: 96,
+              ),
               ViewStatus.failure => AppErrorState(
-                  message: state.errorMessage,
-                  onRetry: () => context.read<DetailCubit<T>>().load(),
-                ),
+                message: state.errorMessage,
+                onRetry: () => context.read<DetailCubit<T>>().load(),
+              ),
               ViewStatus.empty => AppEmptyState(
-                  title: emptyTitle,
-                  message: emptyMessage,
-                  icon: emptyIcon,
-                ),
-              _ => state.item == null
-                  ? const AppLoadingShimmer(itemCount: 5, height: 96)
-                  : builder(context, state.item as T),
+                title: emptyTitle,
+                message: emptyMessage,
+                icon: emptyIcon,
+              ),
+              _ =>
+                state.item == null
+                    ? const AppLoadingShimmer(itemCount: 5, height: 96)
+                    : builder(context, state.item as T),
             },
           );
         },
@@ -68,7 +73,12 @@ class DetailView<T> extends StatelessWidget {
 
 /// Small helper widgets shared by detail pages to keep them consistent.
 class DetailSection extends StatelessWidget {
-  const DetailSection({super.key, required this.title, required this.child, this.trailing});
+  const DetailSection({
+    super.key,
+    required this.title,
+    required this.child,
+    this.trailing,
+  });
   final String title;
   final Widget child;
   final Widget? trailing;
@@ -80,7 +90,12 @@ class DetailSection extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
             if (trailing case final t?) t,
           ],
         ),

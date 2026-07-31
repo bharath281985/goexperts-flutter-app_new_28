@@ -33,11 +33,13 @@ class AppUpdateService {
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     final maintenanceData = maintenance.valueOrNull ?? const {};
-    if (maintenanceData['enabled'] == true || maintenanceData['isActive'] == true) {
+    if (maintenanceData['enabled'] == true ||
+        maintenanceData['isActive'] == true) {
       return AppUpdateCheck(
         action: AppUpdateAction.maintenance,
         title: maintenanceData['title']?.toString() ?? 'Under Maintenance',
-        message: maintenanceData['message']?.toString() ??
+        message:
+            maintenanceData['message']?.toString() ??
             'We are performing scheduled maintenance. Please try again later.',
       );
     }
@@ -47,15 +49,19 @@ class AppUpdateService {
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     final versionData = versionRes.valueOrNull;
-    if (versionData == null) return const AppUpdateCheck(action: AppUpdateAction.none);
+    if (versionData == null)
+      return const AppUpdateCheck(action: AppUpdateAction.none);
 
     final packageInfo = await PackageInfo.fromPlatform();
     final current = packageInfo.version;
-    final minRequired = versionData['minVersion']?.toString() ??
+    final minRequired =
+        versionData['minVersion']?.toString() ??
         versionData['minimumVersion']?.toString();
-    final latest = versionData['latestVersion']?.toString() ??
+    final latest =
+        versionData['latestVersion']?.toString() ??
         versionData['version']?.toString();
-    final storeUrl = versionData['storeUrl']?.toString() ??
+    final storeUrl =
+        versionData['storeUrl']?.toString() ??
         versionData['androidUrl']?.toString() ??
         versionData['iosUrl']?.toString();
 
@@ -63,7 +69,8 @@ class AppUpdateService {
       return AppUpdateCheck(
         action: AppUpdateAction.forceUpdate,
         title: 'Update Required',
-        message: versionData['forceMessage']?.toString() ??
+        message:
+            versionData['forceMessage']?.toString() ??
             'A new version ($minRequired) is required to continue.',
         storeUrl: storeUrl,
       );
@@ -73,7 +80,8 @@ class AppUpdateService {
       return AppUpdateCheck(
         action: AppUpdateAction.softUpdate,
         title: 'Update Available',
-        message: versionData['softMessage']?.toString() ??
+        message:
+            versionData['softMessage']?.toString() ??
             'Version $latest is available. Update for the best experience.',
         storeUrl: storeUrl,
       );

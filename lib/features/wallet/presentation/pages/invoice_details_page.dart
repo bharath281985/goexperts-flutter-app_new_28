@@ -23,14 +23,35 @@ class InvoiceDetailsPage extends StatelessWidget {
     return DetailView<Invoice>(
       title: 'Invoice',
       fetcher: () => sl<WalletRepository>().getInvoice(id),
-      actions: detailActions(context, shareTitle: 'this invoice', shareLink: '${Routes.invoiceDetails}/$id', reportType: 'invoice', bookmarkable: false),
+      actions: detailActions(
+        context,
+        shareTitle: 'this invoice',
+        shareLink: '${Routes.invoiceDetails}/$id',
+        reportType: 'invoice',
+        bookmarkable: false,
+      ),
       bottomBar: (context, inv) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
         child: Row(
           children: [
-            Expanded(child: AppSecondaryButton(label: 'Download', icon: Icons.download_rounded, onPressed: () => context.showSnack('Downloading PDF'))),
+            Expanded(
+              child: AppSecondaryButton(
+                label: 'Download',
+                icon: Icons.download_rounded,
+                onPressed: () => context.showSnack('Downloading PDF'),
+              ),
+            ),
             AppSizes.hGapMd,
-            Expanded(flex: 2, child: AppPrimaryButton(label: inv.status == 'Paid' ? 'View Receipt' : 'Pay Now', icon: Icons.payments_outlined, onPressed: () => context.showSnack(inv.status == 'Paid' ? 'Opening receipt' : 'Opening payment'))),
+            Expanded(
+              flex: 2,
+              child: AppPrimaryButton(
+                label: inv.status == 'Paid' ? 'View Receipt' : 'Pay Now',
+                icon: Icons.payments_outlined,
+                onPressed: () => context.showSnack(
+                  inv.status == 'Paid' ? 'Opening receipt' : 'Opening payment',
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -47,7 +68,12 @@ class InvoiceDetailsPage extends StatelessWidget {
           AppCard(
             child: Column(
               children: [
-                _row(context, 'Amount', Formatters.currency(inv.amount), emphasize: true),
+                _row(
+                  context,
+                  'Amount',
+                  Formatters.currency(inv.amount),
+                  emphasize: true,
+                ),
                 const Divider(height: AppSizes.lg),
                 _row(context, 'Billed to', inv.party),
                 const Divider(height: AppSizes.lg),
@@ -67,11 +93,18 @@ class InvoiceDetailsPage extends StatelessWidget {
                   const Divider(height: AppSizes.lg),
                   _lineItem(context, 'Platform fee', inv.amount * 0.1),
                   const Divider(height: AppSizes.lg),
-                  Row(children: [
-                    Text('Total', style: context.text.titleSmall),
-                    const Spacer(),
-                    Text(Formatters.currency(inv.amount), style: context.text.titleMedium?.copyWith(color: AppColors.primary)),
-                  ]),
+                  Row(
+                    children: [
+                      Text('Total', style: context.text.titleSmall),
+                      const Spacer(),
+                      Text(
+                        Formatters.currency(inv.amount),
+                        style: context.text.titleMedium?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -82,18 +115,28 @@ class InvoiceDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _row(BuildContext context, String label, String value, {bool emphasize = false}) => Row(
-        children: [
-          Text(label, style: context.text.labelMedium),
-          const Spacer(),
-          Text(value, style: emphasize ? context.text.titleMedium?.copyWith(color: AppColors.primary) : context.text.bodyMedium),
-        ],
-      );
+  Widget _row(
+    BuildContext context,
+    String label,
+    String value, {
+    bool emphasize = false,
+  }) => Row(
+    children: [
+      Text(label, style: context.text.labelMedium),
+      const Spacer(),
+      Text(
+        value,
+        style: emphasize
+            ? context.text.titleMedium?.copyWith(color: AppColors.primary)
+            : context.text.bodyMedium,
+      ),
+    ],
+  );
 
   Widget _lineItem(BuildContext context, String label, double amount) => Row(
-        children: [
-          Expanded(child: Text(label, style: context.text.bodyMedium)),
-          Text(Formatters.currency(amount), style: context.text.bodyMedium),
-        ],
-      );
+    children: [
+      Expanded(child: Text(label, style: context.text.bodyMedium)),
+      Text(Formatters.currency(amount), style: context.text.bodyMedium),
+    ],
+  );
 }

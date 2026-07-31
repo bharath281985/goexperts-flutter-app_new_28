@@ -25,8 +25,10 @@ class AppDocument extends Equatable {
       name: json['name'] as String? ?? json['title'] as String? ?? 'Document',
       category: json['category'] as String? ?? 'other',
       createdAt:
-          DateTime.tryParse(json['createdAt'] as String? ?? '') ?? DateTime.now(),
-      sizeBytes: (json['sizeBytes'] as num?)?.toInt() ??
+          DateTime.tryParse(json['createdAt'] as String? ?? '') ??
+          DateTime.now(),
+      sizeBytes:
+          (json['sizeBytes'] as num?)?.toInt() ??
           (json['size'] as num?)?.toInt() ??
           0,
       url: json['url'] as String? ?? json['previewUrl'] as String?,

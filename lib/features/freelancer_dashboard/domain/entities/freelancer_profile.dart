@@ -29,7 +29,11 @@ class FreelancerProfile extends Equatable {
         return raw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
       }
       if (raw is String && raw.isNotEmpty) {
-        return raw.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        return raw
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
       }
       return const [];
     }
@@ -39,12 +43,14 @@ class FreelancerProfile extends Equatable {
       experience: toStrings(json['experience']),
       education: toStrings(json['education']),
       languages: toStrings(json['languages']),
-      hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ??
+      hourlyRate:
+          (json['hourlyRate'] as num?)?.toDouble() ??
           (json['hourly_rate'] as num?)?.toDouble() ??
           0,
       bio: json['bio'] as String? ?? '',
       availability: json['availability'] as String? ?? '',
-      avatarUrl: (json['user'] as Map?)?['avatarUrl'] as String? ??
+      avatarUrl:
+          (json['user'] as Map?)?['avatarUrl'] as String? ??
           json['avatarUrl'] as String?,
       resumeUrl: json['resume'] as String? ?? json['resumeUrl'] as String?,
     );
@@ -52,14 +58,14 @@ class FreelancerProfile extends Equatable {
 
   @override
   List<Object?> get props => [
-        skills,
-        experience,
-        education,
-        languages,
-        hourlyRate,
-        bio,
-        availability,
-        avatarUrl,
-        resumeUrl,
-      ];
+    skills,
+    experience,
+    education,
+    languages,
+    hourlyRate,
+    bio,
+    availability,
+    avatarUrl,
+    resumeUrl,
+  ];
 }

@@ -57,8 +57,6 @@ class ClientHomePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                     
-
                       _buildQuickActions(context),
                       const SizedBox(height: 24),
                       _buildMetricsGrid(context, state),
@@ -396,7 +394,8 @@ class ClientHomePage extends StatelessWidget {
   Widget _buildQuickActions(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [const Text(
+      children: [
+        const Text(
           'Quick actions',
           style: TextStyle(
             fontSize: 14,
@@ -511,7 +510,10 @@ class ClientHomePage extends StatelessWidget {
               ),
               SizedBox(
                 width: width,
-                child: _spendCard('WALLET BALANCE', '₹15,583'),
+                child: _spendCard(
+                  'WALLET BALANCE',
+                  Formatters.compactCurrency(state.wallet?.available ?? 0),
+                ),
               ),
             ],
           );
@@ -545,7 +547,12 @@ class ClientHomePage extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(child: _spendCard('WALLET BALANCE', '₹15,583')),
+        Expanded(
+          child: _spendCard(
+            'WALLET BALANCE',
+            Formatters.compactCurrency(state.wallet?.available ?? 0),
+          ),
+        ),
       ],
     );
   }

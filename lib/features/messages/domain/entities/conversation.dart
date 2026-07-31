@@ -29,7 +29,13 @@ class Conversation extends Equatable {
   final String role;
 
   @override
-  List<Object?> get props => [id, unreadCount, isPinned, isMuted, lastMessageAt];
+  List<Object?> get props => [
+    id,
+    unreadCount,
+    isPinned,
+    isMuted,
+    lastMessageAt,
+  ];
 }
 
 enum MessageType { text, image, video, document, voice, location }

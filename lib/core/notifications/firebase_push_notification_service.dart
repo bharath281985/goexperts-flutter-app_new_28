@@ -34,7 +34,9 @@ class FirebasePushNotificationService implements PushNotificationService {
         final payload = response.payload;
         if (payload != null && payload.isNotEmpty) {
           try {
-            _onOpened?.call(Map<String, dynamic>.from(jsonDecode(payload) as Map));
+            _onOpened?.call(
+              Map<String, dynamic>.from(jsonDecode(payload) as Map),
+            );
           } catch (_) {}
         }
       },
@@ -71,12 +73,16 @@ class FirebasePushNotificationService implements PushNotificationService {
   Future<String?> getToken() => _messaging.getToken();
 
   @override
-  void setOnMessageOpenedHandler(void Function(Map<String, dynamic> data) handler) {
+  void setOnMessageOpenedHandler(
+    void Function(Map<String, dynamic> data) handler,
+  ) {
     _onOpened = handler;
   }
 
   @override
-  void setOnForegroundMessage(void Function(Map<String, dynamic> data) handler) {
+  void setOnForegroundMessage(
+    void Function(Map<String, dynamic> data) handler,
+  ) {
     _onForeground = handler;
   }
 

@@ -21,10 +21,19 @@ class BusinessPlanPage extends StatelessWidget {
     return DetailView<BusinessPlan>(
       title: 'Business Plan',
       fetcher: () => sl<CatalogRepository>().getBusinessPlan(startupId),
-      actions: detailActions(context, shareTitle: 'this business plan', shareLink: '${Routes.businessPlanDetails}/$startupId', reportType: 'startup'),
+      actions: detailActions(
+        context,
+        shareTitle: 'this business plan',
+        shareLink: '${Routes.businessPlanDetails}/$startupId',
+        reportType: 'startup',
+      ),
       bottomBar: (context, b) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
-        child: AppPrimaryButton(label: 'Download PDF', icon: Icons.download_rounded, onPressed: () => context.showSnack('Downloading business plan')),
+        child: AppPrimaryButton(
+          label: 'Download PDF',
+          icon: Icons.download_rounded,
+          onPressed: () => context.showSnack('Downloading business plan'),
+        ),
       ),
       builder: (context, b) => ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),

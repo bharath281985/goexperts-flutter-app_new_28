@@ -44,9 +44,8 @@ class ClientProposalRemoteDatasource {
   Future<Proposal> getProposal(String id) async {
     final result = await _api.get<Proposal>(
       ApiEndpoints.clientProposal(id),
-      parser: (data) => ClientProposalModel.fromJson(
-        Map<String, dynamic>.from(data as Map),
-      ),
+      parser: (data) =>
+          ClientProposalModel.fromJson(Map<String, dynamic>.from(data as Map)),
     );
     return result.fold((f) => throw Exception(f.message), (data) => data);
   }

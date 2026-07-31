@@ -3,7 +3,9 @@ import '../../../../core/utils/result.dart';
 import '../entities/app_notification.dart';
 
 abstract class NotificationRepository {
-  Future<Result<Paginated<AppNotification>>> getNotifications(QueryParams params);
+  Future<Result<Paginated<AppNotification>>> getNotifications(
+    QueryParams params,
+  );
   Future<Result<int>> unreadCount();
   Future<Result<bool>> markAllRead();
   Future<Result<bool>> markRead(String id);

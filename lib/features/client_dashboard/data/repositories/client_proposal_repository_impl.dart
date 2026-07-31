@@ -53,28 +53,20 @@ class ClientProposalRepositoryImpl implements ClientProposalRepository {
   }
 
   @override
-  Future<Result<Proposal>> shortlist(String id) => _action(
-        id,
-        () => _remote.shortlist(id),
-      );
+  Future<Result<Proposal>> shortlist(String id) =>
+      _action(id, () => _remote.shortlist(id));
 
   @override
-  Future<Result<Proposal>> reject(String id) => _action(
-        id,
-        () => _remote.reject(id),
-      );
+  Future<Result<Proposal>> reject(String id) =>
+      _action(id, () => _remote.reject(id));
 
   @override
-  Future<Result<Proposal>> moveToInterview(String id) => _action(
-        id,
-        () => _remote.moveToInterview(id),
-      );
+  Future<Result<Proposal>> moveToInterview(String id) =>
+      _action(id, () => _remote.moveToInterview(id));
 
   @override
-  Future<Result<Proposal>> accept(String id) => _action(
-        id,
-        () => _remote.accept(id),
-      );
+  Future<Result<Proposal>> accept(String id) =>
+      _action(id, () => _remote.accept(id));
 
   @override
   Future<Result<bool>> sendMessage(String id, String message) async {

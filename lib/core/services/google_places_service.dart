@@ -4,10 +4,7 @@ import '../../app/config/app_config.dart';
 import '../../app/config/google_maps_config.dart';
 
 class PlacePrediction {
-  const PlacePrediction({
-    required this.placeId,
-    required this.description,
-  });
+  const PlacePrediction({required this.placeId, required this.description});
 
   final String placeId;
   final String description;
@@ -62,7 +59,9 @@ class GooglePlacesService {
               description: item['description']?.toString() ?? '',
             ),
           )
-          .where((item) => item.placeId.isNotEmpty && item.description.isNotEmpty)
+          .where(
+            (item) => item.placeId.isNotEmpty && item.description.isNotEmpty,
+          )
           .toList();
     } catch (_) {
       return [];
@@ -99,8 +98,7 @@ class GooglePlacesService {
 
       return SelectedPlace(
         placeId: placeId,
-        formattedAddress:
-            result['formatted_address']?.toString() ?? '',
+        formattedAddress: result['formatted_address']?.toString() ?? '',
         latitude: lat is num ? lat.toDouble() : double.tryParse('$lat'),
         longitude: lng is num ? lng.toDouble() : double.tryParse('$lng'),
       );

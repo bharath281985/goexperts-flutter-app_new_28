@@ -21,17 +21,32 @@ class AppPaymentCard extends StatelessWidget {
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
       leading: Container(
         padding: const EdgeInsets.all(AppSizes.md),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.12),
+          shape: BoxShape.circle,
+        ),
         child: Icon(_icon(), color: color, size: AppSizes.iconSm),
       ),
-      title: Text(transaction.title, style: context.text.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text('${Formatters.date(transaction.date)} · ${transaction.reference}', style: context.text.labelSmall),
+      title: Text(
+        transaction.title,
+        style: context.text.titleSmall,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
+      subtitle: Text(
+        '${Formatters.date(transaction.date)} · ${transaction.reference}',
+        style: context.text.labelSmall,
+      ),
       trailing: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text('${isCredit ? '+' : '-'}${Formatters.compactCurrency(transaction.amount)}',
-              style: context.text.titleSmall?.copyWith(color: isCredit ? AppColors.success : AppColors.darkText)),
+          Text(
+            '${isCredit ? '+' : '-'}${Formatters.compactCurrency(transaction.amount)}',
+            style: context.text.titleSmall?.copyWith(
+              color: isCredit ? AppColors.success : AppColors.darkText,
+            ),
+          ),
           Text(
             _capitalize(transaction.direction),
             style: context.text.labelSmall?.copyWith(

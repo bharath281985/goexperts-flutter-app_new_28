@@ -75,9 +75,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
     return _api.putEnvelope<Project>(
       ApiEndpoints.clientProject(id),
       body: data,
-      parser: (envelope) => Project.fromApiJson(
-        Map<String, dynamic>.from(envelope.data as Map),
-      ),
+      parser: (envelope) =>
+          Project.fromApiJson(Map<String, dynamic>.from(envelope.data as Map)),
     );
   }
 

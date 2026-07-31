@@ -5,11 +5,7 @@ import '../extensions/context_extensions.dart';
 
 /// Horizontal progress stepper used by multi-step wizards.
 class AppStepper extends StatelessWidget {
-  const AppStepper({
-    super.key,
-    required this.steps,
-    required this.currentStep,
-  });
+  const AppStepper({super.key, required this.steps, required this.currentStep});
 
   final List<String> steps;
   final int currentStep;
@@ -64,7 +60,9 @@ class _Dot extends StatelessWidget {
         color: (done || active) ? AppColors.primary : context.theme.cardColor,
         shape: BoxShape.circle,
         border: Border.all(
-          color: (done || active) ? AppColors.primary : context.theme.dividerColor,
+          color: (done || active)
+              ? AppColors.primary
+              : context.theme.dividerColor,
         ),
       ),
       child: Center(
@@ -73,7 +71,9 @@ class _Dot extends StatelessWidget {
             : Text(
                 '${index + 1}',
                 style: TextStyle(
-                  color: active ? AppColors.white : context.text.bodySmall?.color,
+                  color: active
+                      ? AppColors.white
+                      : context.text.bodySmall?.color,
                   fontWeight: FontWeight.w700,
                   fontSize: 13,
                 ),

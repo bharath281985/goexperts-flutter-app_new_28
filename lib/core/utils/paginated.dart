@@ -38,13 +38,13 @@ class QueryParams extends Equatable {
   }
 
   Map<String, dynamic> toQuery() => {
-        'page': page,
-        'page_size': pageSize,
-        if (search != null && search!.isNotEmpty) 'q': search,
-        if (sortBy != null) 'sort_by': sortBy,
-        'order': ascending ? 'asc' : 'desc',
-        ...filters,
-      };
+    'page': page,
+    'page_size': pageSize,
+    if (search != null && search!.isNotEmpty) 'q': search,
+    if (sortBy != null) 'sort_by': sortBy,
+    'order': ascending ? 'asc' : 'desc',
+    ...filters,
+  };
 
   /// Query map aligned with backend (`page`, `limit`, `search`).
   Map<String, dynamic> toApiQuery() {
@@ -77,9 +77,15 @@ class QueryParams extends Equatable {
     return query;
   }
 
-
   @override
-  List<Object?> get props => [page, pageSize, search, sortBy, ascending, filters];
+  List<Object?> get props => [
+    page,
+    pageSize,
+    search,
+    sortBy,
+    ascending,
+    filters,
+  ];
 }
 
 /// A page of results with metadata for infinite scroll / pagination.
@@ -99,11 +105,11 @@ class Paginated<T> extends Equatable {
   bool get hasMore => page < totalPages;
 
   Paginated<T> copyWithMore(List<T> more) => Paginated(
-        items: [...items, ...more],
-        page: page,
-        totalPages: totalPages,
-        totalItems: totalItems,
-      );
+    items: [...items, ...more],
+    page: page,
+    totalPages: totalPages,
+    totalItems: totalItems,
+  );
 
   @override
   List<Object?> get props => [items, page, totalPages, totalItems];

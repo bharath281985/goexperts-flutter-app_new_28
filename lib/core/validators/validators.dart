@@ -58,5 +58,4 @@ class Validators {
     if (!v!.isValidUrl) return 'Enter a valid URL';
     return null;
   }
-
 }

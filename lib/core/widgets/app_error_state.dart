@@ -31,13 +31,25 @@ class AppErrorState extends StatelessWidget {
                 color: AppColors.danger.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.cloud_off_rounded, size: 44, color: AppColors.danger),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                size: 44,
+                color: AppColors.danger,
+              ),
             ),
             AppSizes.vGapLg,
-            Text(title, style: context.text.titleMedium, textAlign: TextAlign.center),
+            Text(
+              title,
+              style: context.text.titleMedium,
+              textAlign: TextAlign.center,
+            ),
             if (message != null) ...[
               AppSizes.vGapSm,
-              Text(message!, style: context.text.bodySmall, textAlign: TextAlign.center),
+              Text(
+                message!,
+                style: context.text.bodySmall,
+                textAlign: TextAlign.center,
+              ),
             ],
             if (onRetry != null) ...[
               AppSizes.vGapLg,

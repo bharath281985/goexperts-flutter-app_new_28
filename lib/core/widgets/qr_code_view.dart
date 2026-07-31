@@ -41,7 +41,8 @@ class _QrPainter extends CustomPainter {
 
     bool filled(int x, int y) {
       // Finder patterns in three corners.
-      bool inFinder(int fx, int fy) => x >= fx && x < fx + 7 && y >= fy && y < fy + 7;
+      bool inFinder(int fx, int fy) =>
+          x >= fx && x < fx + 7 && y >= fy && y < fy + 7;
       if (inFinder(0, 0) || inFinder(cells - 7, 0) || inFinder(0, cells - 7)) {
         final lx = x % 7 == 0 || (x - (x ~/ 7) * 7) == 6;
         final within = (x % 7 >= 2 && x % 7 <= 4 && y % 7 >= 2 && y % 7 <= 4);
@@ -60,5 +61,6 @@ class _QrPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _QrPainter oldDelegate) => oldDelegate.data != data;
+  bool shouldRepaint(covariant _QrPainter oldDelegate) =>
+      oldDelegate.data != data;
 }

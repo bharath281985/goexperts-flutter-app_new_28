@@ -45,7 +45,8 @@ class AuthState extends Equatable {
 
   bool get hasRole => user?.role != null;
   bool get isProfileComplete => user?.isProfileComplete ?? false;
-  bool get hasSubscription => subscriptionStatus == SubscriptionGateStatus.active;
+  bool get hasSubscription =>
+      subscriptionStatus == SubscriptionGateStatus.active;
   bool get needsSubscription => !hasSubscription;
 
   AuthState copyWith({
@@ -66,23 +67,26 @@ class AuthState extends Equatable {
       user: user ?? this.user,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      pendingSignup: clearPendingSignup ? null : (pendingSignup ?? this.pendingSignup),
+      pendingSignup: clearPendingSignup
+          ? null
+          : (pendingSignup ?? this.pendingSignup),
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
       subscriptionPlanId: subscriptionPlanId ?? this.subscriptionPlanId,
-      successMessage:
-          clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        user,
-        isSubmitting,
-        errorMessage,
-        pendingSignup,
-        subscriptionStatus,
-        subscriptionPlanId,
-        successMessage,
-      ];
+    status,
+    user,
+    isSubmitting,
+    errorMessage,
+    pendingSignup,
+    subscriptionStatus,
+    subscriptionPlanId,
+    successMessage,
+  ];
 }

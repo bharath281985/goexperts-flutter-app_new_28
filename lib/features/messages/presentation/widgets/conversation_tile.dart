@@ -25,24 +25,53 @@ class ConversationTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       onLongPress: onLongPress,
-      contentPadding: const EdgeInsets.symmetric(horizontal: AppSizes.xs, vertical: 2),
-      leading: AppAvatar(name: c.name, imageUrl: c.avatarUrl, size: 50, showOnline: true, isOnline: c.isOnline),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.xs,
+        vertical: 2,
+      ),
+      leading: AppAvatar(
+        name: c.name,
+        imageUrl: c.avatarUrl,
+        size: 50,
+        showOnline: true,
+        isOnline: c.isOnline,
+      ),
       title: Row(
         children: [
-          Expanded(child: Text(c.name, style: context.text.titleSmall, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          if (c.isPinned) const Icon(Icons.push_pin_rounded, size: 13, color: AppColors.mutedText),
+          Expanded(
+            child: Text(
+              c.name,
+              style: context.text.titleSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (c.isPinned)
+            const Icon(
+              Icons.push_pin_rounded,
+              size: 13,
+              color: AppColors.mutedText,
+            ),
           const SizedBox(width: 4),
-          Text(Formatters.relative(c.lastMessageAt), style: context.text.labelSmall),
+          Text(
+            Formatters.relative(c.lastMessageAt),
+            style: context.text.labelSmall,
+          ),
         ],
       ),
       subtitle: Padding(
         padding: const EdgeInsets.only(top: 3),
         child: Row(
           children: [
-            if (c.isMuted) const Padding(
-              padding: EdgeInsets.only(right: 4),
-              child: Icon(Icons.volume_off_rounded, size: 13, color: AppColors.mutedText),
-            ),
+            if (c.isMuted)
+              const Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: Icon(
+                  Icons.volume_off_rounded,
+                  size: 13,
+                  color: AppColors.mutedText,
+                ),
+              ),
             Expanded(
               child: Text(
                 c.isTyping ? 'typing…' : c.lastMessage,
@@ -58,11 +87,20 @@ class ConversationTile extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.only(left: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
                 constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                child: Text('${c.unreadCount}',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                child: Text(
+                  '${c.unreadCount}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
           ],
         ),

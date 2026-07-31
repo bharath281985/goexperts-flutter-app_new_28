@@ -32,9 +32,8 @@ class PortfolioItem extends Equatable {
       title: json['title'] as String? ?? 'Portfolio item',
       description: json['description'] as String? ?? '',
       projectUrl: json['projectUrl'] as String? ?? json['url'] as String?,
-      technologies: (json['technologies'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
+      technologies:
+          (json['technologies'] as List?)?.map((e) => e.toString()).toList() ??
           const [],
       role: json['role'] as String? ?? '',
       category: json['category'] as String? ?? '',

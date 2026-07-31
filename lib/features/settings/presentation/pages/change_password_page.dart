@@ -41,13 +41,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     );
     if (!mounted) return;
     setState(() => _loading = false);
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (message) {
-        context.showSnack(message);
-        context.pop();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (message) {
+      context.showSnack(message);
+      context.pop();
+    });
   }
 
   @override
@@ -70,8 +67,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               hint: 'Old password',
               prefixIcon: Icons.lock_outline_rounded,
               obscure: true,
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Current password is required' : null,
+              validator: (v) => (v == null || v.isEmpty)
+                  ? 'Current password is required'
+                  : null,
             ),
             AppSizes.vGapLg,
             AppTextField(

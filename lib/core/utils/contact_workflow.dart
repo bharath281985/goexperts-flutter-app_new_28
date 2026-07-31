@@ -22,7 +22,9 @@ class ContactWorkflow {
   }
 
   static Future<void> email(BuildContext context, String emailAddress) async {
-    final uri = Uri.parse('mailto:$emailAddress?subject=Go%20Experts%20Inquiry');
+    final uri = Uri.parse(
+      'mailto:$emailAddress?subject=Go%20Experts%20Inquiry',
+    );
     final supported = await canLaunchUrl(uri);
     if (!context.mounted) return;
     if (supported) {
@@ -32,9 +34,15 @@ class ContactWorkflow {
     }
   }
 
-  static Future<void> whatsapp(BuildContext context, String phone, [String message = 'Hi']) async {
+  static Future<void> whatsapp(
+    BuildContext context,
+    String phone, [
+    String message = 'Hi',
+  ]) async {
     final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
-    final uri = Uri.parse('https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}');
+    final uri = Uri.parse(
+      'https://wa.me/$cleanPhone?text=${Uri.encodeComponent(message)}',
+    );
     final supported = await canLaunchUrl(uri);
     if (!context.mounted) return;
     if (supported) {
@@ -68,7 +76,9 @@ class ContactWorkflow {
   }
 
   static void invest(BuildContext context, String name) {
-    context.push('${Routes.apply}?type=Investment&name=${Uri.encodeComponent(name)}');
+    context.push(
+      '${Routes.apply}?type=Investment&name=${Uri.encodeComponent(name)}',
+    );
   }
 
   static void expressInterest(BuildContext context, String name) {
@@ -76,11 +86,18 @@ class ContactWorkflow {
   }
 
   static void requestCallback(BuildContext context, String name) {
-    context.showSnack('Callback requested from $name. You will be notified shortly.');
+    context.showSnack(
+      'Callback requested from $name. You will be notified shortly.',
+    );
   }
 
   /// Shows the standard contact options action sheet.
-  static void showContactOptions(BuildContext context, {required String name, required String phone, required String emailAddress}) {
+  static void showContactOptions(
+    BuildContext context, {
+    required String name,
+    required String phone,
+    required String emailAddress,
+  }) {
     AppActionSheet.show(
       context,
       title: 'Contact $name',

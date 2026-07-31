@@ -43,7 +43,8 @@ class Formatters {
     return DateFormat('dd MMM yyyy').format(local).toUpperCase();
   }
 
-  static String dateTime(DateTime dt) => DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+  static String dateTime(DateTime dt) =>
+      DateFormat('dd MMM yyyy, hh:mm a').format(dt);
 
   static String time(DateTime dt) => DateFormat('hh:mm a').format(dt);
 
@@ -66,6 +67,7 @@ class Formatters {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
     if (parts.length == 1) return parts.first.substring(0, 1).toUpperCase();
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1)).toUpperCase();
+    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
+        .toUpperCase();
   }
 }

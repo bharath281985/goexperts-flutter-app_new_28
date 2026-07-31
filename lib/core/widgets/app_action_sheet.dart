@@ -37,7 +37,11 @@ class AppActionSheet {
               if (title != null)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
-                      AppSizes.lg, 0, AppSizes.lg, AppSizes.sm),
+                    AppSizes.lg,
+                    0,
+                    AppSizes.lg,
+                    AppSizes.sm,
+                  ),
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text(title, style: ctx.text.titleMedium),

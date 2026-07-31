@@ -44,19 +44,21 @@ class ClientProposalState extends Equatable {
       actionInFlight: actionInFlight,
       actionProposalId: actionProposalId,
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
-      successMessage: clearSuccess ? null : (successMessage ?? this.successMessage),
+      successMessage: clearSuccess
+          ? null
+          : (successMessage ?? this.successMessage),
     );
   }
 
   @override
   List<Object?> get props => [
-        status,
-        proposals,
-        page,
-        selectedProposal,
-        actionInFlight,
-        actionProposalId,
-        errorMessage,
-        successMessage,
-      ];
+    status,
+    proposals,
+    page,
+    selectedProposal,
+    actionInFlight,
+    actionProposalId,
+    errorMessage,
+    successMessage,
+  ];
 }

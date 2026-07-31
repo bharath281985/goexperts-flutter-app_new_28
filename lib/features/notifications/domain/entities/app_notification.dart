@@ -88,13 +88,13 @@ class AppNotification extends Equatable {
   final bool isRead;
 
   AppNotification copyWith({bool? isRead}) => AppNotification(
-        id: id,
-        title: title,
-        body: body,
-        category: category,
-        createdAt: createdAt,
-        isRead: isRead ?? this.isRead,
-      );
+    id: id,
+    title: title,
+    body: body,
+    category: category,
+    createdAt: createdAt,
+    isRead: isRead ?? this.isRead,
+  );
 
   @override
   List<Object?> get props => [id, isRead];

@@ -94,13 +94,10 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     if (!ok || !mounted) return;
     final res = await sl<ProjectRepository>().deleteProject(widget.id);
     if (!mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (_) {
-        context.showSnack('Project deleted');
-        context.pop();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
+      context.showSnack('Project deleted');
+      context.pop();
+    });
   }
 
   Future<void> _updateStatus(Project project) async {
@@ -119,10 +116,8 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      builder: (ctx) => _ProjectStatusSheet(
-        options: options,
-        initialValue: current,
-      ),
+      builder: (ctx) =>
+          _ProjectStatusSheet(options: options, initialValue: current),
     );
     if (selected == null || !mounted) return;
     final res = await sl<ProjectRepository>().updateProjectStatus(
@@ -130,22 +125,19 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
       selected,
     );
     if (!mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (_) {
-        final label = options
-            .firstWhere(
-              (option) => option.value == selected,
-              orElse: () => _ProjectStatusOption(
-                value: selected,
-                label: selected.replaceAll('_', ' '),
-              ),
-            )
-            .label;
-        context.showSnack('Status updated to $label');
-        _reload();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
+      final label = options
+          .firstWhere(
+            (option) => option.value == selected,
+            orElse: () => _ProjectStatusOption(
+              value: selected,
+              label: selected.replaceAll('_', ' '),
+            ),
+          )
+          .label;
+      context.showSnack('Status updated to $label');
+      _reload();
+    });
   }
 
   Future<void> _shareProject(Project project) async {
@@ -172,17 +164,14 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
       projectId: project.id,
     );
     if (!mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final convId = msg.conversationId;
-        if (convId.isEmpty) {
-          context.push(Routes.messages);
-          return;
-        }
-        context.push('${Routes.chat}/$convId');
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final convId = msg.conversationId;
+      if (convId.isEmpty) {
+        context.push(Routes.messages);
+        return;
+      }
+      context.push('${Routes.chat}/$convId');
+    });
   }
 
   @override
@@ -237,11 +226,11 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
               body: snapshot.connectionState == ConnectionState.waiting
                   ? const AppLoadingShimmer(itemCount: 4, height: 120)
                   : project == null
-                      ? AppErrorState(
-                          message: snapshot.data?.error,
-                          onRetry: _reload,
-                        )
-                      : _content(context, project),
+                  ? AppErrorState(
+                      message: snapshot.data?.error,
+                      onRetry: _reload,
+                    )
+                  : _content(context, project),
               bottomNavigationBar: project == null
                   ? null
                   : SafeArea(
@@ -297,10 +286,10 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                                       onPressed: project.isApplied
                                           ? null
                                           : () => context.push(
-                                                '${Routes.apply}?type=Project'
-                                                '&projectId=${Uri.encodeComponent(project.id)}'
-                                                '&name=${Uri.encodeComponent(project.title)}',
-                                              ),
+                                              '${Routes.apply}?type=Project'
+                                              '&projectId=${Uri.encodeComponent(project.id)}'
+                                              '&name=${Uri.encodeComponent(project.title)}',
+                                            ),
                                     ),
                                   ),
                                 ],
@@ -464,7 +453,10 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
               child: Row(
                 children: [
-                  const Icon(Icons.attach_file_rounded, color: AppColors.primary),
+                  const Icon(
+                    Icons.attach_file_rounded,
+                    color: AppColors.primary,
+                  ),
                   AppSizes.hGapMd,
                   Expanded(
                     child: Text(
@@ -565,40 +557,39 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     IconData icon,
     String label,
     String value,
-  ) =>
-      AppCard(
-        margin: const EdgeInsets.all(AppSizes.xs),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 18, color: AppColors.primary),
-            AppSizes.vGapSm,
-            Text(
-              value,
-              style: context.text.titleSmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            Text(label, style: context.text.labelSmall),
-          ],
+  ) => AppCard(
+    margin: const EdgeInsets.all(AppSizes.xs),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.primary),
+        AppSizes.vGapSm,
+        Text(
+          value,
+          style: context.text.titleSmall,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
         ),
-      );
+        Text(label, style: context.text.labelSmall),
+      ],
+    ),
+  );
 
   Widget _chip(BuildContext context, String s) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-        ),
-        child: Text(
-          s,
-          style: const TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-        ),
-      );
+    padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 6),
+    decoration: BoxDecoration(
+      color: AppColors.primary.withValues(alpha: 0.08),
+      borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+    ),
+    child: Text(
+      s,
+      style: const TextStyle(
+        color: AppColors.primary,
+        fontWeight: FontWeight.w600,
+        fontSize: 12,
+      ),
+    ),
+  );
 }
 
 class ResultLike {

@@ -30,7 +30,12 @@ class ContractDetailsPage extends StatelessWidget {
     return DetailView<Contract>(
       title: 'Contract',
       fetcher: () => sl<ProjectRepository>().getContract(id),
-      actions: detailActions(context, shareTitle: 'this contract', shareLink: '${Routes.contractDetails}/$id', reportType: 'contract'),
+      actions: detailActions(
+        context,
+        shareTitle: 'this contract',
+        shareLink: '${Routes.contractDetails}/$id',
+        reportType: 'contract',
+      ),
       bottomBar: (context, c) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
         child: role == UserRole.client
@@ -39,30 +44,56 @@ class ContractDetailsPage extends StatelessWidget {
                   Expanded(
                     child: AppSecondaryButton(
                       label: 'Cancel',
-                      onPressed: () => _contractAction(context, ApiEndpoints.clientContractCancel(c.id), 'Contract cancelled'),
+                      onPressed: () => _contractAction(
+                        context,
+                        ApiEndpoints.clientContractCancel(c.id),
+                        'Contract cancelled',
+                      ),
                     ),
                   ),
                   AppSizes.hGapMd,
                   Expanded(
                     child: AppSecondaryButton(
                       label: 'Activate',
-                      onPressed: () => _contractAction(context, ApiEndpoints.clientContractActivate(c.id), 'Contract activated'),
+                      onPressed: () => _contractAction(
+                        context,
+                        ApiEndpoints.clientContractActivate(c.id),
+                        'Contract activated',
+                      ),
                     ),
                   ),
                   AppSizes.hGapMd,
                   Expanded(
                     child: AppPrimaryButton(
                       label: 'Complete',
-                      onPressed: () => _contractAction(context, ApiEndpoints.clientContractComplete(c.id), 'Contract completed'),
+                      onPressed: () => _contractAction(
+                        context,
+                        ApiEndpoints.clientContractComplete(c.id),
+                        'Contract completed',
+                      ),
                     ),
                   ),
                 ],
               )
             : Row(
                 children: [
-                  Expanded(child: AppSecondaryButton(label: 'Message', icon: Icons.chat_bubble_outline_rounded, onPressed: () => context.showSnack('Opening chat…'))),
+                  Expanded(
+                    child: AppSecondaryButton(
+                      label: 'Message',
+                      icon: Icons.chat_bubble_outline_rounded,
+                      onPressed: () => context.showSnack('Opening chat…'),
+                    ),
+                  ),
                   AppSizes.hGapMd,
-                  Expanded(flex: 2, child: AppPrimaryButton(label: 'View Milestones', icon: Icons.flag_outlined, onPressed: () => context.showSnack('Scroll to milestones'))),
+                  Expanded(
+                    flex: 2,
+                    child: AppPrimaryButton(
+                      label: 'View Milestones',
+                      icon: Icons.flag_outlined,
+                      onPressed: () =>
+                          context.showSnack('Scroll to milestones'),
+                    ),
+                  ),
                 ],
               ),
       ),
@@ -73,7 +104,12 @@ class ContractDetailsPage extends StatelessWidget {
             icon: Icons.assignment_turned_in_outlined,
             title: c.projectTitle,
             subtitle: 'with ${c.counterpartyName}',
-            chips: [DetailStatChip(icon: Icons.payments_outlined, label: Formatters.compactCurrency(c.amount))],
+            chips: [
+              DetailStatChip(
+                icon: Icons.payments_outlined,
+                label: Formatters.compactCurrency(c.amount),
+              ),
+            ],
           ),
           AppSizes.vGapLg,
           AppCard(
@@ -82,7 +118,9 @@ class ContractDetailsPage extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text('Progress', style: context.text.titleSmall)),
+                    Expanded(
+                      child: Text('Progress', style: context.text.titleSmall),
+                    ),
                     AppStatusChip.status(c.status, dense: true),
                   ],
                 ),
@@ -97,7 +135,10 @@ class ContractDetailsPage extends StatelessWidget {
                   ),
                 ),
                 AppSizes.vGapSm,
-                Text('${(c.progress * 100).toStringAsFixed(0)}% complete · Started ${Formatters.date(c.startDate)}', style: context.text.labelSmall),
+                Text(
+                  '${(c.progress * 100).toStringAsFixed(0)}% complete · Started ${Formatters.date(c.startDate)}',
+                  style: context.text.labelSmall,
+                ),
               ],
             ),
           ),
@@ -109,7 +150,8 @@ class ContractDetailsPage extends StatelessWidget {
                 for (final m in c.milestones)
                   TimelineEvent(
                     m.title,
-                    subtitle: '${Formatters.compactCurrency(m.amount)} · ${m.status.label} · due ${Formatters.date(m.dueDate)}',
+                    subtitle:
+                        '${Formatters.compactCurrency(m.amount)} · ${m.status.label} · due ${Formatters.date(m.dueDate)}',
                     done: m.status == EntityStatus.completed,
                   ),
               ],
@@ -121,9 +163,16 @@ class ContractDetailsPage extends StatelessWidget {
     );
   }
 
-  Future<void> _contractAction(BuildContext context, String endpoint, String msg) async {
+  Future<void> _contractAction(
+    BuildContext context,
+    String endpoint,
+    String msg,
+  ) async {
     final res = await sl<ApiClientHelper>().patchAction(endpoint);
     if (!context.mounted) return;
-    res.fold((f) => context.showSnack(f.message), (_) => context.showSnack(msg));
+    res.fold(
+      (f) => context.showSnack(f.message),
+      (_) => context.showSnack(msg),
+    );
   }
 }

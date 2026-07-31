@@ -634,7 +634,7 @@ class InvestorHomePage extends StatelessWidget {
     final dealsClosed = state.investorDealsClosed;
 
     final startupsFollowing = state.investorStartupsFollowing;
-    const offersSent = '4';
+    const offersSent = '0';
     const dueDiligence = '0';
     final roip = '$dealsClosed closed';
     final meetingsCount = state.meetings.length.toString();

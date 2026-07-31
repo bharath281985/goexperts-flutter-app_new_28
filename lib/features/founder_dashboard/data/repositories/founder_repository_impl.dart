@@ -38,7 +38,9 @@ class FounderRepositoryImpl implements FounderRepository {
   }
 
   @override
-  Future<Result<Paginated<InvestorRequest>>> getInvestorRequests(QueryParams params) async {
+  Future<Result<Paginated<InvestorRequest>>> getInvestorRequests(
+    QueryParams params,
+  ) async {
     if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
     return _api.getEnvelope<Paginated<InvestorRequest>>(
       ApiEndpoints.founderInvestorRequests,
@@ -81,30 +83,37 @@ class FounderRepositoryImpl implements FounderRepository {
   }
 
   Founder _founderFromJson(Map<String, dynamic> json) => Founder(
-        id: json['id']?.toString() ?? '',
-        name: json['name'] as String? ?? 'Founder',
-        founderType: json['founderType'] as String? ?? 'Founder',
-        location: json['location'] as String? ?? 'N/A',
-        avatarUrl: json['avatarUrl'] as String?,
-        coverUrl: json['coverUrl'] as String?,
-        bio: json['bio'] as String? ?? '',
-        experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
-        skills: (json['skills'] as List?)?.map((e) => e.toString()).toList() ?? const [],
-        linkedIn: json['linkedIn'] as String?,
-        startupName: json['startupName'] as String? ?? '',
-        isVerified: json['isVerified'] as bool? ?? false,
-        isFollowing: json['isFollowing'] as bool? ?? false,
-        followers: (json['followers'] as num?)?.toInt() ?? 0,
-      );
+    id: json['id']?.toString() ?? '',
+    name: json['name'] as String? ?? 'Founder',
+    founderType: json['founderType'] as String? ?? 'Founder',
+    location: json['location'] as String? ?? 'N/A',
+    avatarUrl: json['avatarUrl'] as String?,
+    coverUrl: json['coverUrl'] as String?,
+    bio: json['bio'] as String? ?? '',
+    experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
+    skills:
+        (json['skills'] as List?)?.map((e) => e.toString()).toList() ??
+        const [],
+    linkedIn: json['linkedIn'] as String?,
+    startupName: json['startupName'] as String? ?? '',
+    isVerified: json['isVerified'] as bool? ?? false,
+    isFollowing: json['isFollowing'] as bool? ?? false,
+    followers: (json['followers'] as num?)?.toInt() ?? 0,
+  );
 
-  InvestorRequest _requestFromJson(Map<String, dynamic> json) => InvestorRequest(
+  InvestorRequest _requestFromJson(Map<String, dynamic> json) =>
+      InvestorRequest(
         id: json['id']?.toString() ?? '',
         investorName: json['investorName'] as String? ?? 'Investor',
         investorAvatar: json['investorAvatar'] as String?,
         amount: (json['amount'] as num?)?.toDouble() ?? 0,
         equity: (json['equity'] as num?)?.toDouble() ?? 0,
-        status: EntityStatus.fromString(json['status']?.toString() ?? 'pending'),
-        createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+        status: EntityStatus.fromString(
+          json['status']?.toString() ?? 'pending',
+        ),
+        createdAt:
+            DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+            DateTime.now(),
         message: json['message'] as String? ?? '',
       );
 

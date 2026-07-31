@@ -208,24 +208,25 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
     final billingCycle = yearly ? 'yearly' : 'monthly';
 
     Future<Result<String>> attempt(String id) async {
-      final res = await _api.postEnvelope<({String message, Map<String, dynamic> data})>(
-        _upgradePath(role),
-        body: {'planId': id, 'billingCycle': billingCycle},
-        parser: (envelope) {
-          final raw = envelope.data;
-          final data = raw is Map<String, dynamic>
-              ? raw
-              : raw is Map
+      final res = await _api
+          .postEnvelope<({String message, Map<String, dynamic> data})>(
+            _upgradePath(role),
+            body: {'planId': id, 'billingCycle': billingCycle},
+            parser: (envelope) {
+              final raw = envelope.data;
+              final data = raw is Map<String, dynamic>
+                  ? raw
+                  : raw is Map
                   ? Map<String, dynamic>.from(raw)
                   : <String, dynamic>{};
-          return (
-            message: envelope.message?.isNotEmpty == true
-                ? envelope.message!
-                : 'Starter plan activated successfully',
-            data: data,
+              return (
+                message: envelope.message?.isNotEmpty == true
+                    ? envelope.message!
+                    : 'Starter plan activated successfully',
+                data: data,
+              );
+            },
           );
-        },
-      );
       return res.fold(Err.new, (parsed) {
         if (parsed.data['requiresPayment'] == true) {
           return const Err(
@@ -286,9 +287,8 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       tagline: json['tagline'] as String? ?? '',
       duration: json['duration']?.toString() ?? '',
       limits: _map(json['limits']),
-      isPopular: json['isPopular'] as bool? ??
-          json['popular'] as bool? ??
-          false,
+      isPopular:
+          json['isPopular'] as bool? ?? json['popular'] as bool? ?? false,
     );
   }
 

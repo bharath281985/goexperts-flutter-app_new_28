@@ -48,7 +48,8 @@ class DocumentRepositoryImpl implements DocumentRepository {
   Future<Result<AppDocument>> getDocument(String id) {
     return _api.get<AppDocument>(
       ApiEndpoints.fileById(id),
-      parser: (raw) => AppDocument.fromApiJson(Map<String, dynamic>.from(raw as Map)),
+      parser: (raw) =>
+          AppDocument.fromApiJson(Map<String, dynamic>.from(raw as Map)),
     );
   }
 
@@ -58,7 +59,10 @@ class DocumentRepositoryImpl implements DocumentRepository {
       ApiEndpoints.filePreview(id),
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
-    return res.fold((f) => Err(f), (json) => Success(json['url']?.toString() ?? ''));
+    return res.fold(
+      (f) => Err(f),
+      (json) => Success(json['url']?.toString() ?? ''),
+    );
   }
 
   @override
@@ -67,7 +71,10 @@ class DocumentRepositoryImpl implements DocumentRepository {
       ApiEndpoints.fileDownload(id),
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
-    return res.fold((f) => Err(f), (json) => Success(json['url']?.toString() ?? ''));
+    return res.fold(
+      (f) => Err(f),
+      (json) => Success(json['url']?.toString() ?? ''),
+    );
   }
 
   @override

@@ -23,7 +23,8 @@ class _InvitationsPageState extends State<InvitationsPage> {
   static const _filters = ['All', 'Pending', 'Accepted', 'Rejected', 'Expired'];
   String _filter = 'All';
 
-  bool _matches(AppInvitation i) => _filter == 'All' || i.status.label == _filter;
+  bool _matches(AppInvitation i) =>
+      _filter == 'All' || i.status.label == _filter;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,12 @@ class _InvitationsPageState extends State<InvitationsPage> {
       child: AppScaffold(
         appBar: AppBar(
           title: const Text('Invitations'),
-          bottom: const TabBar(tabs: [Tab(text: 'Sent'), Tab(text: 'Received')]),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Sent'),
+              Tab(text: 'Received'),
+            ],
+          ),
         ),
         body: Column(
           children: [
@@ -40,7 +46,10 @@ class _InvitationsPageState extends State<InvitationsPage> {
               height: 52,
               child: ListView(
                 scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: AppSizes.screenPadding, vertical: AppSizes.sm),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSizes.screenPadding,
+                  vertical: AppSizes.sm,
+                ),
                 children: [
                   for (final f in _filters)
                     Padding(
@@ -57,8 +66,14 @@ class _InvitationsPageState extends State<InvitationsPage> {
             Expanded(
               child: TabBarView(
                 children: [
-                  _list(MockData.invitationsSent.where(_matches).toList(), sent: true),
-                  _list(MockData.invitationsReceived.where(_matches).toList(), sent: false),
+                  _list(
+                    MockData.invitationsSent.where(_matches).toList(),
+                    sent: true,
+                  ),
+                  _list(
+                    MockData.invitationsReceived.where(_matches).toList(),
+                    sent: false,
+                  ),
                 ],
               ),
             ),
@@ -70,7 +85,10 @@ class _InvitationsPageState extends State<InvitationsPage> {
 
   Widget _list(List<AppInvitation> items, {required bool sent}) {
     if (items.isEmpty) {
-      return const AppEmptyState(title: 'No invitations', icon: Icons.mail_outline_rounded);
+      return const AppEmptyState(
+        title: 'No invitations',
+        icon: Icons.mail_outline_rounded,
+      );
     }
     return ListView.separated(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -94,7 +112,10 @@ class _InvitationsPageState extends State<InvitationsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(inv.name, style: context.text.titleSmall),
-                    Text('${inv.type} · ${inv.context}', style: context.text.labelSmall),
+                    Text(
+                      '${inv.type} · ${inv.context}',
+                      style: context.text.labelSmall,
+                    ),
                   ],
                 ),
               ),
@@ -104,17 +125,35 @@ class _InvitationsPageState extends State<InvitationsPage> {
           AppSizes.vGapSm,
           Row(
             children: [
-              Text(Formatters.relative(inv.createdAt), style: context.text.labelSmall),
+              Text(
+                Formatters.relative(inv.createdAt),
+                style: context.text.labelSmall,
+              ),
               const Spacer(),
               if (inv.status == EntityStatus.pending) ...[
                 if (sent)
-                  TextButton(onPressed: () => context.showSnack('Invitation withdrawn'), child: const Text('Withdraw'))
+                  TextButton(
+                    onPressed: () => context.showSnack('Invitation withdrawn'),
+                    child: const Text('Withdraw'),
+                  )
                 else ...[
-                  TextButton(onPressed: () => context.showSnack('Declined'), child: const Text('Decline', style: TextStyle(color: AppColors.danger))),
-                  TextButton(onPressed: () => context.showSnack('Accepted'), child: const Text('Accept')),
+                  TextButton(
+                    onPressed: () => context.showSnack('Declined'),
+                    child: const Text(
+                      'Decline',
+                      style: TextStyle(color: AppColors.danger),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => context.showSnack('Accepted'),
+                    child: const Text('Accept'),
+                  ),
                 ],
               ] else if (inv.status == EntityStatus.expired && sent)
-                TextButton(onPressed: () => context.showSnack('Invitation resent'), child: const Text('Resend')),
+                TextButton(
+                  onPressed: () => context.showSnack('Invitation resent'),
+                  child: const Text('Resend'),
+                ),
             ],
           ),
         ],

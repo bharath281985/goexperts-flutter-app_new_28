@@ -14,10 +14,7 @@ class AppTheme {
       primary: AppColors.primary,
       brightness: Brightness.light,
       surface: AppColors.card,
-    ).copyWith(
-      error: AppColors.danger,
-      surfaceContainerLowest: AppColors.card,
-    );
+    ).copyWith(error: AppColors.danger, surfaceContainerLowest: AppColors.card);
 
     return _base(
       colorScheme: colorScheme,
@@ -60,7 +57,8 @@ class AppTheme {
   }) {
     final textTheme = AppTextStyles.textTheme(primaryText, secondaryText);
 
-    OutlineInputBorder buildBorder(Color c, [double w = 1]) => OutlineInputBorder(
+    OutlineInputBorder buildBorder(Color c, [double w = 1]) =>
+        OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMd),
           borderSide: BorderSide(color: c, width: w),
         );
@@ -154,7 +152,9 @@ class AppTheme {
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: card,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusXl)),
+          borderRadius: BorderRadius.vertical(
+            top: Radius.circular(AppSizes.radiusXl),
+          ),
         ),
       ),
       dialogTheme: DialogThemeData(
@@ -169,7 +169,9 @@ class AppTheme {
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.primaryBlack,
-        contentTextStyle: textTheme.bodyMedium?.copyWith(color: AppColors.white),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: AppColors.white,
+        ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.radiusMd),
         ),

@@ -113,16 +113,14 @@ class _ConversationsListViewState extends State<ConversationsListView> {
           isDestructive: true,
           onTap: () async {
             final res = await _repo.deleteConversation(c.id);
-            res.fold(
-              (f) => context.showSnack(f.message, isError: true),
-              (_) {
-                setState(() {
-                  _items = _items.where((e) => e.id != c.id).toList();
-                  _status =
-                      _items.isEmpty ? ViewStatus.empty : ViewStatus.success;
-                });
-              },
-            );
+            res.fold((f) => context.showSnack(f.message, isError: true), (_) {
+              setState(() {
+                _items = _items.where((e) => e.id != c.id).toList();
+                _status = _items.isEmpty
+                    ? ViewStatus.empty
+                    : ViewStatus.success;
+              });
+            });
           },
         ),
       ],
@@ -157,7 +155,10 @@ class _ConversationsListViewState extends State<ConversationsListView> {
       return const AppLoadingShimmer(itemCount: 8, height: 72);
     }
     if (_status == ViewStatus.failure && items.isEmpty) {
-      return AppErrorState(message: _error, onRetry: () => _refresh(showLoading: true));
+      return AppErrorState(
+        message: _error,
+        onRetry: () => _refresh(showLoading: true),
+      );
     }
     if (_status == ViewStatus.empty || items.isEmpty) {
       return RefreshIndicator(

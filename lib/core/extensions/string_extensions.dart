@@ -7,10 +7,12 @@ extension StringX on String {
   bool get isValidEmail =>
       RegExp(r'^[\w.\-+]+@([\w\-]+\.)+[\w\-]{2,}$').hasMatch(trim());
 
-  bool get isValidPhone => RegExp(r'^[+]?[0-9]{7,15}$').hasMatch(replaceAll(' ', ''));
+  bool get isValidPhone =>
+      RegExp(r'^[+]?[0-9]{7,15}$').hasMatch(replaceAll(' ', ''));
 
-  bool get isValidUrl =>
-      RegExp(r'^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/\S*)?$').hasMatch(trim());
+  bool get isValidUrl => RegExp(
+    r'^(https?:\/\/)?([\w\-]+\.)+[\w\-]{2,}(\/\S*)?$',
+  ).hasMatch(trim());
 
   String truncate(int max) => length <= max ? this : '${substring(0, max)}…';
 }

@@ -8,7 +8,7 @@ abstract class NetworkInfo {
 
 class NetworkInfoImpl implements NetworkInfo {
   NetworkInfoImpl([Connectivity? connectivity])
-      : _connectivity = connectivity ?? Connectivity();
+    : _connectivity = connectivity ?? Connectivity();
 
   final Connectivity _connectivity;
 

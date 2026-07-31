@@ -64,8 +64,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '817575811603',
     projectId: 'goexperts-a979c',
     storageBucket: 'goexperts-a979c.firebasestorage.app',
-    androidClientId: '817575811603-m2jfe6l1lunbiunjvmlrilj7p6ig25kt.apps.googleusercontent.com',
-    iosClientId: '817575811603-7pgbim1pbp6ps0h89594hnh9kouj2jgc.apps.googleusercontent.com',
+    androidClientId:
+        '817575811603-m2jfe6l1lunbiunjvmlrilj7p6ig25kt.apps.googleusercontent.com',
+    iosClientId:
+        '817575811603-7pgbim1pbp6ps0h89594hnh9kouj2jgc.apps.googleusercontent.com',
     iosBundleId: 'com.doorstephub.goexperts',
   );
 
@@ -75,8 +77,10 @@ class DefaultFirebaseOptions {
     messagingSenderId: '817575811603',
     projectId: 'goexperts-a979c',
     storageBucket: 'goexperts-a979c.firebasestorage.app',
-    androidClientId: '817575811603-m2jfe6l1lunbiunjvmlrilj7p6ig25kt.apps.googleusercontent.com',
-    iosClientId: '817575811603-7pgbim1pbp6ps0h89594hnh9kouj2jgc.apps.googleusercontent.com',
+    androidClientId:
+        '817575811603-m2jfe6l1lunbiunjvmlrilj7p6ig25kt.apps.googleusercontent.com',
+    iosClientId:
+        '817575811603-7pgbim1pbp6ps0h89594hnh9kouj2jgc.apps.googleusercontent.com',
     iosBundleId: 'com.doorstephub.goexperts',
   );
 

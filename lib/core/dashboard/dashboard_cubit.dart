@@ -105,44 +105,35 @@ class DashboardState extends Equatable {
   String get investorName {
     final profile = investorData['profile'] as Map? ?? {};
     return profile['firstName']?.toString() ??
+        profile['fullName']?.toString() ??
         profile['name']?.toString() ??
         'Investor';
   }
 
-  String get investorPendingDeals => _getKpi('pending', '0');
-  String get investorDealsClosed => _getKpi('deals', '0');
-  String get investorTotalInvestments => _getKpi('total', '0');
-
-  String _getKpi(String key, String fallback) {
-    final kpis = investorData['kpis'] as List? ?? [];
-    try {
-      final item = kpis.firstWhere(
-        (e) => (e as Map)['key'] == key,
-        orElse: () => null,
-      );
-      if (item != null) return (item as Map)['value']?.toString() ?? fallback;
-    } catch (_) {}
-    return fallback;
-  }
+  String get investorPendingDeals =>
+      (investorData['pendingInvestments'] ?? 0).toString();
+  String get investorDealsClosed =>
+      (investorData['closedInvestments'] ?? 0).toString();
+  String get investorTotalInvestments =>
+      (investorData['totalInvestments'] ?? 0).toString();
 
   double get investorDeployedRaw {
-    final val = investorData['totalDeployed'];
+    final val = investorData['portfolioValue'] ?? 0.0;
     if (val is num) return val.toDouble();
     return 0.0;
   }
 
   String get investorWalletBalance {
-    final balanceObj = investorData['wallet']?['balance'] ?? 0.0;
-    return '₹${balanceObj is num ? balanceObj.toStringAsFixed(0) : '0'}';
+    final balanceObj = investorData['walletBalance'] ?? 0.0;
+    return '${balanceObj is num ? balanceObj.toStringAsFixed(0) : '0'}';
   }
 
   List<Map<dynamic, dynamic>> get investorRecentMessages {
-    final msgs = investorData['messages'] as List? ?? [];
-    return msgs.map((e) => e as Map<dynamic, dynamic>).toList();
+    return [];
   }
 
   String get investorStartupsFollowing =>
-      (investorData['startups'] as List?)?.length.toString() ?? '9';
+      (investorData['watchlistCount'] ?? 0).toString();
 
   @override
   List<Object?> get props => [
@@ -276,20 +267,19 @@ class DashboardCubit extends Cubit<DashboardState> {
         );
         dash.fold((_) {}, (data) {
           final activeProjects = (data['activeProjects'] as num?)?.toInt() ?? 0;
-          final applications = (data['applications'] as num?)?.toInt() ?? 0;
-          final hiredFreelancers =
-              (data['hiredFreelancers'] as num?)?.toInt() ?? 0;
-          final monthlySpend = (data['monthlySpend'] as num?)?.toDouble() ?? 0;
+          final applications = (data['pendingProposals'] as num?)?.toInt() ?? 0;
+          final completion = (data['profileCompletion'] as num?)?.toInt() ?? 0;
+          final totalSpend = (data['totalSpend'] as num?)?.toDouble() ?? 0;
           final spendChart =
-              (data['charts']?['spend'] as List?)
+              (data['charts']?['spendTrend'] as List?)
                   ?.map((e) => (e as num?)?.toDouble() ?? 0)
                   .toList() ??
               const <double>[];
           next = next.copyWith(
             activeProjectsCount: activeProjects,
             pendingProposalsCount: applications,
-            profileCompletionPercent: hiredFreelancers,
-            monthlyEarnings: monthlySpend,
+            profileCompletionPercent: completion,
+            monthlyEarnings: totalSpend,
             earningsChart: spendChart,
             unreadNotificationsCount:
                 (data['unreadNotifications'] as num?)?.toInt() ?? 0,
@@ -306,115 +296,70 @@ class DashboardCubit extends Cubit<DashboardState> {
         dash.fold((_) {}, (data) {
           final summaryData = data['data'] ?? data;
           final portfolioValue =
-              (summaryData['totalDeployed'] as num?)?.toDouble() ?? 0;
+              (summaryData['portfolioValue'] as num?)?.toDouble() ?? 0;
           final profileCompletion =
               (summaryData['profileCompletion'] as num?)?.toInt() ?? 0;
           final activeInvestments =
               (summaryData['activeInvestments'] as num?)?.toInt() ?? 0;
-          final watchlist = (summaryData['totalDeals'] as num?)?.toInt() ?? 0;
+          final pendingInvestments =
+              (summaryData['pendingInvestments'] as num?)?.toInt() ?? 0;
 
-          final chartList =
-              (summaryData['charts']?['pipeline'] ??
-                      summaryData['charts']?['portfolioGrowth'] ??
-                      summaryData['charts']?['monthlyInvestments'])
-                  as List?;
+          final chartList = summaryData['charts']?['portfolioGrowth'] as List?;
           final chart =
               chartList?.map((e) => (e as num?)?.toDouble() ?? 0).toList() ??
               const <double>[];
 
           final recommendedList =
-              (summaryData['recommendations'] as Map?)?['startupIdeas']
-                  as List? ??
-              summaryData['recommendedStartups'] as List? ??
-              summaryData['startups'] as List?;
+              summaryData['recommendedStartups'] as List? ?? [];
 
-          List<Startup>? startupsList;
-          if (recommendedList != null) {
-            startupsList = recommendedList.map((item) {
-              final json = Map<String, dynamic>.from(item as Map);
-              final profile = Map<String, dynamic>.from(
-                (json['founderDetails'] ??
-                        json['founderProfile'] ??
-                        json['founder_profile'] ??
-                        {})
-                    as Map,
-              );
+          List<Startup> startupsList = recommendedList.map((item) {
+            final json = Map<String, dynamic>.from(item as Map);
+            final founder = Map<String, dynamic>.from(
+              json['founder'] as Map? ?? {},
+            );
 
-              final city =
-                  profile['city'] as String? ?? json['city'] as String?;
-              final country =
-                  profile['country'] as String? ?? json['country'] as String?;
-              String location = 'N/A';
-              if (city != null && country != null) {
-                location = '$city, $country';
-              } else if (city != null) {
-                location = city;
-              } else if (country != null) {
-                location = country;
-              }
+            final city = founder['city'] as String?;
+            final country = founder['country'] as String?;
+            String location = 'N/A';
+            if (city != null && country != null) {
+              location = '$city, $country';
+            } else if (city != null) {
+              location = city;
+            } else if (country != null) {
+              location = country;
+            }
 
-              // Retrieve fields falling back to the top level
-              final bio =
-                  profile['bio'] as String? ?? json['bio'] as String? ?? '';
-              final avatar =
-                  profile['avatarUrl'] as String? ??
-                  json['logo'] as String? ??
-                  json['avatarUrl'] as String?;
-
-              final name =
-                  json['startup'] as String? ??
-                  profile['startupName'] as String? ??
-                  json['fullName'] as String? ??
-                  'Startup';
-              final industry =
-                  json['category'] as String? ??
-                  profile['founderIndustry'] as String? ??
-                  profile['industry'] as String? ??
-                  'General';
-              final stage =
-                  json['stage'] as String? ??
-                  profile['founderStage'] as String? ??
-                  profile['stage'] as String? ??
-                  'MVP';
-              final funding =
-                  (json['funding'] as num? ?? profile['raised'] as num?)
-                      ?.toDouble() ??
-                  0;
-              final equity = (json['equity'] as num?)?.toDouble() ?? 0;
-              final founderName =
-                  profile['fullName'] as String? ??
-                  json['fullName'] as String? ??
-                  'Founder';
-
-              return Startup(
-                id: json['id']?.toString() ?? '',
-                founderId: profile['id']?.toString() ?? json['id']?.toString(),
-                name: name,
-                tagline: bio,
-                industry: industry,
-                stage: stage,
-                founderName: founderName,
-                fundingRequired: funding,
-                equityOffered: equity,
-                location: location,
-                logoUrl: json['logo'] as String? ?? avatar,
-                founderAvatar: avatar,
-                fundingRaised: (profile['raised'] as num?)?.toDouble() ?? 0,
-                isVerified:
-                    profile['isVerified'] as bool? ??
-                    json['isVerified'] as bool? ??
-                    false,
-              );
-            }).toList();
-          }
+            return Startup(
+              id: json['id']?.toString() ?? '',
+              founderId:
+                  json['founderId']?.toString() ??
+                  founder['id']?.toString() ??
+                  '',
+              name: json['startup']?.toString() ?? 'Startup',
+              tagline: founder['bio']?.toString() ?? '',
+              industry: json['industry']?.toString() ?? 'General',
+              stage: json['stage']?.toString() ?? 'MVP',
+              founderName: founder['fullName']?.toString() ?? 'Founder',
+              fundingRequired: (json['funding'] as num?)?.toDouble() ?? 0,
+              equityOffered: (json['equity'] as num?)?.toDouble() ?? 0,
+              location: location,
+              logoUrl:
+                  json['logo']?.toString() ??
+                  founder['avatarUrl']?.toString() ??
+                  '',
+              founderAvatar: founder['avatarUrl']?.toString() ?? '',
+              fundingRaised: (founder['raised'] as num?)?.toDouble() ?? 0,
+              isVerified: true,
+            );
+          }).toList();
 
           next = next.copyWith(
             monthlyEarnings: portfolioValue,
             activeProjectsCount: activeInvestments,
-            pendingProposalsCount: watchlist,
+            pendingProposalsCount: pendingInvestments,
             profileCompletionPercent: profileCompletion,
             earningsChart: chart,
-            startups: startupsList ?? next.startups,
+            startups: startupsList,
             unreadNotificationsCount:
                 (summaryData['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount:
@@ -433,19 +378,12 @@ class DashboardCubit extends Cubit<DashboardState> {
           final investorInterests =
               (data['investorInterests'] as num?)?.toInt() ?? 0;
           final pitchViews = (data['pitchDeckViews'] as num?)?.toInt() ?? 0;
-          final startupViews =
-              (data['profileViews'] as num?)?.toInt() ??
-              (data['startupViews'] as num?)?.toInt() ??
-              0;
-          final meetings =
-              (data['pendingMeetings'] as num?)?.toInt() ??
-              (data['meetingsCount'] as num?)?.toInt() ??
-              0;
+          final startupViews = (data['profileViews'] as num?)?.toInt() ?? 0;
+          final meetings = (data['pendingMeetings'] as num?)?.toInt() ?? 0;
           final raised = (data['fundingRaised'] as num?)?.toDouble() ?? 0;
           final goal = (data['fundingGoal'] as num?)?.toDouble() ?? 0;
           final fundingChart =
-              (data['charts']?['funding'] as List? ??
-                      data['charts']?['fundingProgress'] as List?)
+              (data['charts']?['fundingProgress'] as List?)
                   ?.map((e) => (e as num?)?.toDouble() ?? 0)
                   .toList() ??
               const <double>[];
@@ -455,9 +393,8 @@ class DashboardCubit extends Cubit<DashboardState> {
           List<Investor>? investorsList;
           if (recommendedList != null) {
             investorsList = recommendedList.map((item) {
-              return Investor.fromApiJson(
-                Map<String, dynamic>.from(item as Map),
-              );
+              final nested = (item as Map)['investorProfile'] as Map? ?? item;
+              return Investor.fromApiJson(Map<String, dynamic>.from(nested));
             }).toList();
           }
 
@@ -469,10 +406,10 @@ class DashboardCubit extends Cubit<DashboardState> {
             fundingGoal: goal,
             topSkills: ['$meetings'],
             earningsChart: fundingChart,
+            investors: investorsList ?? next.investors,
             unreadNotificationsCount:
                 (data['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount: (data['unreadMessages'] as num?)?.toInt() ?? 0,
-            investors: investorsList ?? next.investors,
           );
         });
       }

@@ -21,10 +21,19 @@ class PitchDeckPage extends StatelessWidget {
     return DetailView<PitchDeck>(
       title: 'Pitch Deck',
       fetcher: () => sl<CatalogRepository>().getPitchDeck(startupId),
-      actions: detailActions(context, shareTitle: 'this pitch deck', shareLink: '${Routes.pitchDeckDetails}/$startupId', reportType: 'startup'),
+      actions: detailActions(
+        context,
+        shareTitle: 'this pitch deck',
+        shareLink: '${Routes.pitchDeckDetails}/$startupId',
+        reportType: 'startup',
+      ),
       bottomBar: (context, d) => Padding(
         padding: const EdgeInsets.all(AppSizes.lg),
-        child: AppPrimaryButton(label: 'Download Deck', icon: Icons.download_rounded, onPressed: () => context.showSnack('Downloading pitch deck')),
+        child: AppPrimaryButton(
+          label: 'Download Deck',
+          icon: Icons.download_rounded,
+          onPressed: () => context.showSnack('Downloading pitch deck'),
+        ),
       ),
       builder: (context, d) => ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
@@ -33,7 +42,12 @@ class PitchDeckPage extends StatelessWidget {
             icon: Icons.slideshow_outlined,
             title: '${d.startupName} Pitch Deck',
             subtitle: 'Updated ${Formatters.relative(d.updatedAt)}',
-            chips: [DetailStatChip(icon: Icons.visibility_outlined, label: '${d.views} views')],
+            chips: [
+              DetailStatChip(
+                icon: Icons.visibility_outlined,
+                label: '${d.views} views',
+              ),
+            ],
           ),
           AppSizes.vGapLg,
           Text('${d.slides.length} slides', style: context.text.titleMedium),
@@ -63,11 +77,27 @@ class PitchDeckPage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('${i + 1}', style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w800)),
+                      Text(
+                        '${i + 1}',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const Spacer(),
-                      Text(slide.title, style: context.text.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(
+                        slide.title,
+                        style: context.text.titleSmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                       const SizedBox(height: 2),
-                      Text(slide.subtitle, style: context.text.labelSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      Text(
+                        slide.subtitle,
+                        style: context.text.labelSmall,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),

@@ -70,7 +70,7 @@ class FounderHomePage extends StatelessWidget {
 
   Widget _buildHeroBanner(BuildContext context, DashboardState state) {
     final raised = state.monthlyEarnings;
-    final goal = state.fundingGoal > 0 ? state.fundingGoal : 20000000.0;
+    final goal = state.fundingGoal > 0 ? state.fundingGoal : 0.0;
     final pitchViews = state.pendingProposalsCount;
     final meetings = state.meetings.length;
 

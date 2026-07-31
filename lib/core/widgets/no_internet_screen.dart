@@ -20,7 +20,11 @@ class NoInternetScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.wifi_off_rounded, size: 72, color: AppColors.warning.withValues(alpha: 0.9)),
+                Icon(
+                  Icons.wifi_off_rounded,
+                  size: 72,
+                  color: AppColors.warning.withValues(alpha: 0.9),
+                ),
                 AppSizes.vGapLg,
                 Text(
                   'No Internet Connection',

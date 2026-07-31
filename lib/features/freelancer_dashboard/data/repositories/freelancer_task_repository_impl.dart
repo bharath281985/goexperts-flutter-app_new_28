@@ -55,7 +55,9 @@ class FreelancerTaskRepositoryImpl implements FreelancerTaskRepository {
       (json) => Success(
         (json['comments'] as List?)
                 ?.whereType<Map>()
-                .map((e) => TaskComment.fromApiJson(Map<String, dynamic>.from(e)))
+                .map(
+                  (e) => TaskComment.fromApiJson(Map<String, dynamic>.from(e)),
+                )
                 .toList() ??
             const [],
       ),
@@ -73,7 +75,10 @@ class FreelancerTaskRepositoryImpl implements FreelancerTaskRepository {
       (json) => Success(
         (json['attachments'] as List?)
                 ?.whereType<Map>()
-                .map((e) => TaskAttachment.fromApiJson(Map<String, dynamic>.from(e)))
+                .map(
+                  (e) =>
+                      TaskAttachment.fromApiJson(Map<String, dynamic>.from(e)),
+                )
                 .toList() ??
             const [],
       ),
@@ -85,10 +90,8 @@ class FreelancerTaskRepositoryImpl implements FreelancerTaskRepository {
     // Prefer dedicated endpoint if available.
     final dedicated = await _api.getEnvelope<List<TaskTimeLog>>(
       '${ApiEndpoints.freelancerTask(taskId)}/time-logs',
-      parser: (envelope) => ApiResponse.parseList(
-        envelope.data,
-        TaskTimeLog.fromApiJson,
-      ),
+      parser: (envelope) =>
+          ApiResponse.parseList(envelope.data, TaskTimeLog.fromApiJson),
     );
     if (dedicated.isSuccess) return Success(dedicated.valueOrNull ?? const []);
 
@@ -101,7 +104,9 @@ class FreelancerTaskRepositoryImpl implements FreelancerTaskRepository {
       (json) => Success(
         (json['timeLogs'] as List?)
                 ?.whereType<Map>()
-                .map((e) => TaskTimeLog.fromApiJson(Map<String, dynamic>.from(e)))
+                .map(
+                  (e) => TaskTimeLog.fromApiJson(Map<String, dynamic>.from(e)),
+                )
                 .toList() ??
             const [],
       ),

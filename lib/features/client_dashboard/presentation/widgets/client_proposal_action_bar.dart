@@ -110,9 +110,8 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                       ClientProposalAction.interview,
                       proposal.id,
                     ),
-                    onPressed: () => bloc.add(
-                      ClientProposalInterviewRequested(proposal.id),
-                    ),
+                    onPressed: () =>
+                        bloc.add(ClientProposalInterviewRequested(proposal.id)),
                   ),
                 ],
                 if (status == EntityStatus.shortlisted ||
@@ -152,7 +151,8 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                           onPressed: () => _confirm(
                             context,
                             title: 'Accept proposal?',
-                            message: 'You can create a contract after accepting.',
+                            message:
+                                'You can create a contract after accepting.',
                             confirmLabel: 'Accept',
                             onConfirm: () => bloc.add(
                               ClientProposalAcceptRequested(proposal.id),
@@ -167,8 +167,9 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                   AppPrimaryButton(
                     label: 'View Contract',
                     icon: Icons.description_outlined,
-                    onPressed: () =>
-                        context.push('${Routes.contractDetails}/${proposal.id}'),
+                    onPressed: () => context.push(
+                      '${Routes.contractDetails}/${proposal.id}',
+                    ),
                   ),
                 AppSizes.vGapSm,
                 AppSecondaryButton(
@@ -213,16 +214,13 @@ class _ClientProposalActionBarBody extends StatelessWidget {
       projectId: proposal.projectId,
     );
     if (!context.mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final convId = msg.conversationId;
-        if (convId.isEmpty) {
-          context.push(Routes.messages);
-          return;
-        }
-        context.push('${Routes.chat}/$convId');
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final convId = msg.conversationId;
+      if (convId.isEmpty) {
+        context.push(Routes.messages);
+        return;
+      }
+      context.push('${Routes.chat}/$convId');
+    });
   }
 }

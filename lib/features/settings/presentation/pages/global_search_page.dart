@@ -31,11 +31,13 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
     final api = sl<ApiClientHelper>();
     final recent = await api.getEnvelope<List<String>>(
       ApiEndpoints.discoveryRecentlyViewed,
-      parser: (e) => (e.data as List?)?.map((x) => x.toString()).toList() ?? const [],
+      parser: (e) =>
+          (e.data as List?)?.map((x) => x.toString()).toList() ?? const [],
     );
     final rec = await api.getEnvelope<List<String>>(
       ApiEndpoints.discoveryRecommendations,
-      parser: (e) => (e.data as List?)?.map((x) => x.toString()).toList() ?? const [],
+      parser: (e) =>
+          (e.data as List?)?.map((x) => x.toString()).toList() ?? const [],
     );
     if (!mounted) return;
     _recent = recent.valueOrNull?.isNotEmpty == true
@@ -58,11 +60,12 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
             autofocus: true,
             hint: 'Search everything…',
             onSubmitted: (v) async {
-              final res = await sl<ApiClientHelper>().getEnvelope<List<dynamic>>(
-                ApiEndpoints.search,
-                query: {'q': v},
-                parser: (e) => (e.data as List?) ?? const [],
-              );
+              final res = await sl<ApiClientHelper>()
+                  .getEnvelope<List<dynamic>>(
+                    ApiEndpoints.search,
+                    query: {'q': v},
+                    parser: (e) => (e.data as List?) ?? const [],
+                  );
               if (!context.mounted) return;
               res.fold(
                 (f) => context.showSnack(f.message),
@@ -75,47 +78,67 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-        padding: const EdgeInsets.all(AppSizes.screenPadding),
-        children: [
-          Row(
-            children: [
-              Expanded(child: _quick(context, Icons.mic_none_rounded, 'Voice Search')),
-              AppSizes.hGapMd,
-              Expanded(child: _quick(context, Icons.auto_awesome_outlined, 'AI Search')),
-            ],
-          ),
-          AppSizes.vGapLg,
-          const AppSectionHeader(title: 'Recent Searches'),
-          AppSizes.vGapSm,
-          for (final r in _recent)
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.history_rounded, color: AppColors.mutedText),
-              title: Text(r),
-              trailing: const Icon(Icons.north_west_rounded, size: 16),
-              onTap: () => context.showSnack('Searching "$r"'),
-            ),
-          AppSizes.vGapLg,
-          const AppSectionHeader(title: 'Trending'),
-          AppSizes.vGapSm,
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.sm,
-            children: [
-              for (final t in _trending)
-                ActionChip(
-                  avatar: const Icon(Icons.trending_up_rounded, size: 16, color: AppColors.primary),
-                  label: Text(t),
-                  onPressed: () => context.showSnack('Searching "$t"'),
+              padding: const EdgeInsets.all(AppSizes.screenPadding),
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _quick(
+                        context,
+                        Icons.mic_none_rounded,
+                        'Voice Search',
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: _quick(
+                        context,
+                        Icons.auto_awesome_outlined,
+                        'AI Search',
+                      ),
+                    ),
+                  ],
                 ),
-            ],
-          ),
-        ],
-      ),
+                AppSizes.vGapLg,
+                const AppSectionHeader(title: 'Recent Searches'),
+                AppSizes.vGapSm,
+                for (final r in _recent)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(
+                      Icons.history_rounded,
+                      color: AppColors.mutedText,
+                    ),
+                    title: Text(r),
+                    trailing: const Icon(Icons.north_west_rounded, size: 16),
+                    onTap: () => context.showSnack('Searching "$r"'),
+                  ),
+                AppSizes.vGapLg,
+                const AppSectionHeader(title: 'Trending'),
+                AppSizes.vGapSm,
+                Wrap(
+                  spacing: AppSizes.sm,
+                  runSpacing: AppSizes.sm,
+                  children: [
+                    for (final t in _trending)
+                      ActionChip(
+                        avatar: const Icon(
+                          Icons.trending_up_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                        label: Text(t),
+                        onPressed: () => context.showSnack('Searching "$t"'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
     );
   }
 
-  Widget _quick(BuildContext context, IconData icon, String label) => OutlinedButton.icon(
+  Widget _quick(BuildContext context, IconData icon, String label) =>
+      OutlinedButton.icon(
         onPressed: () => context.showSnack('$label (coming soon)'),
         icon: Icon(icon, size: 18),
         label: Text(label),

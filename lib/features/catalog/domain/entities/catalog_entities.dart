@@ -31,18 +31,18 @@ class ServiceItem extends Equatable {
   final List<String> deliverables;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'category': category,
-        'description': description,
-        'price_from': priceFrom,
-        'delivery_days': deliveryDays,
-        'rating': rating,
-        'orders_count': ordersCount,
-        'provider_name': providerName,
-        'tags': tags,
-        'deliverables': deliverables,
-      };
+    'id': id,
+    'name': name,
+    'category': category,
+    'description': description,
+    'price_from': priceFrom,
+    'delivery_days': deliveryDays,
+    'rating': rating,
+    'orders_count': ordersCount,
+    'provider_name': providerName,
+    'tags': tags,
+    'deliverables': deliverables,
+  };
 
   @override
   List<Object?> get props => [id];
@@ -75,15 +75,15 @@ class Technology extends Equatable {
   final List<String> resources;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'category': category,
-        'description': description,
-        'popularity': popularity,
-        'projects_count': projectsCount,
-        'freelancers_count': freelancersCount,
-        'related_skills': relatedSkills,
-      };
+    'id': id,
+    'name': name,
+    'category': category,
+    'description': description,
+    'popularity': popularity,
+    'projects_count': projectsCount,
+    'freelancers_count': freelancersCount,
+    'related_skills': relatedSkills,
+  };
 
   @override
   List<Object?> get props => [id];
@@ -112,15 +112,15 @@ class CategoryItem extends Equatable {
   final List<String> trendingSkills;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'description': description,
-        'projects_count': projectsCount,
-        'freelancers_count': freelancersCount,
-        'avg_budget': avgBudget,
-        'subcategories': subcategories,
-        'trending_skills': trendingSkills,
-      };
+    'id': id,
+    'name': name,
+    'description': description,
+    'projects_count': projectsCount,
+    'freelancers_count': freelancersCount,
+    'avg_budget': avgBudget,
+    'subcategories': subcategories,
+    'trending_skills': trendingSkills,
+  };
 
   @override
   List<Object?> get props => [id];
@@ -149,14 +149,14 @@ class Certificate extends Equatable {
   final DateTime? expiresAt;
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'issuer': issuer,
-        'issued_at': issuedAt.toIso8601String(),
-        'credential_id': credentialId,
-        'url': url,
-        'skills': skills,
-      };
+    'id': id,
+    'title': title,
+    'issuer': issuer,
+    'issued_at': issuedAt.toIso8601String(),
+    'credential_id': credentialId,
+    'url': url,
+    'skills': skills,
+  };
 
   @override
   List<Object?> get props => [id];
@@ -196,21 +196,22 @@ class InvestmentOpportunity extends Equatable {
   final DateTime? deadline;
   final double raisedSoFar;
 
-  double get progress => amountSought == 0 ? 0 : (raisedSoFar / amountSought).clamp(0, 1);
+  double get progress =>
+      amountSought == 0 ? 0 : (raisedSoFar / amountSought).clamp(0, 1);
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'startup_name': startupName,
-        'industry': industry,
-        'stage': stage,
-        'amount_sought': amountSought,
-        'equity_offered': equityOffered,
-        'min_ticket': minTicket,
-        'valuation': valuation,
-        'summary': summary,
-        'highlights': highlights,
-        'raised_so_far': raisedSoFar,
-      };
+    'id': id,
+    'startup_name': startupName,
+    'industry': industry,
+    'stage': stage,
+    'amount_sought': amountSought,
+    'equity_offered': equityOffered,
+    'min_ticket': minTicket,
+    'valuation': valuation,
+    'summary': summary,
+    'highlights': highlights,
+    'raised_so_far': raisedSoFar,
+  };
 
   @override
   List<Object?> get props => [id];

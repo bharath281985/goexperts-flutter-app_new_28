@@ -17,7 +17,9 @@ abstract class CatalogRepository {
   Future<Result<Paginated<Certificate>>> getCertificates(QueryParams params);
   Future<Result<Certificate>> getCertificate(String id);
 
-  Future<Result<Paginated<InvestmentOpportunity>>> getOpportunities(QueryParams params);
+  Future<Result<Paginated<InvestmentOpportunity>>> getOpportunities(
+    QueryParams params,
+  );
   Future<Result<InvestmentOpportunity>> getOpportunity(String id);
 
   Future<Result<BusinessPlan>> getBusinessPlan(String startupId);

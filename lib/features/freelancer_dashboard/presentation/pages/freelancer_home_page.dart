@@ -134,7 +134,7 @@ class FreelancerHomePage extends StatelessWidget {
                     const TextSpan(text: 'and '),
                     TextSpan(
                       text:
-                          '₹${Formatters.compact(state.wallet?.available ?? 26525.0)} ',
+                          '₹${Formatters.compact(state.wallet?.available ?? 0)} ',
                       style: const TextStyle(color: Color(0xFFFBBF24)),
                     ),
                     const TextSpan(text: 'ready to withdraw.'),
@@ -536,9 +536,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'TOTAL EARNINGS',
-                value: Formatters.currency(
-                  state.monthlyEarnings > 0 ? state.monthlyEarnings : 5373.0,
-                ),
+                value: Formatters.currency(state.monthlyEarnings),
                 lineColor: AppColors.primary,
                 tagLabel: 'Lifetime stats',
                 tagColor: AppColors.info,
@@ -549,7 +547,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'AVAILABLE BALANCE',
-                value: Formatters.currency(state.wallet?.available ?? 26525.0),
+                value: Formatters.currency(state.wallet?.available ?? 0),
                 lineColor: AppColors.success,
                 tagLabel: 'Ready to withdraw',
                 tagColor: AppColors.success,
@@ -573,9 +571,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'CONTRACTS ACTIVE',
-                value: state.activeProjectsCount > 0
-                    ? '${state.activeProjectsCount}'
-                    : '1',
+                value: '${state.activeProjectsCount}',
                 lineColor: AppColors.warning,
                 tagLabel: 'In delivery',
                 tagColor: AppColors.warning,
