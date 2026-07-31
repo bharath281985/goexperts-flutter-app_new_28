@@ -24,6 +24,11 @@ class ApiEndpoints {
   static const publicHome = '/public/home';
   static const publicCategories = '/public/categories';
   static const publicIndustries = '/public/industries';
+  static const publicBusinessTypes = '/public/business-types';
+  static const publicCountries = '/public/countries';
+  static const publicFounderTypes = '/public/founder-types';
+  static const publicStartupStages = '/public/startup-stages';
+  static const publicInvestorTypes = '/public/investor-types';
   static const publicSkills = '/public/skills';
   static const publicFreelancers = '/public/freelancers';
   static const publicClients = '/public/clients';

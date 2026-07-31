@@ -121,6 +121,14 @@ class _SignupPageState extends State<SignupPage> {
   bool _isEmailVerified = false;
   bool _isSendingOtp = false;
   bool _isVerifyingOtp = false;
+  List<String> _industryOptions = _categories;
+  List<String> _businessTypeOptions = _businessTypes;
+  List<_CountryOption> _countryOptions = const [];
+  List<String> _founderTypeOptions = _founderTypes;
+  List<String> _startupStageOptions = _startupStages;
+  List<String> _investorTypeOptions = _investorTypes;
+  final List<String> _stagePreferenceOptions = _stagePreferences;
+  final List<String> _targetIndustryOptions = _targetIndustries;
 
   static const _categories = [
     'Agriculture',
@@ -418,6 +426,12 @@ class _SignupPageState extends State<SignupPage> {
   int get _progressPercent => (((_step + 1) / _steps.length) * 100).round();
 
   @override
+  void initState() {
+    super.initState();
+    _loadPublicSignupOptions();
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _email.dispose();
@@ -484,6 +498,99 @@ class _SignupPageState extends State<SignupPage> {
       );
     });
     _formKey.currentState?.validate();
+  }
+
+  void _setCountryOption(_CountryOption country) {
+    setState(() {
+      _country.text = country.name;
+      _countryName = country.name;
+      if (country.code.isNotEmpty) _countryIsoCode = country.code;
+      if (country.phoneCode.isNotEmpty) _countryCode = country.phoneCode;
+      _phone.text = PhoneValidation.trimToRequiredLength(
+        _phone.text,
+        _countryIsoCode,
+      );
+    });
+    _formKey.currentState?.validate();
+  }
+
+  Future<void> _loadPublicSignupOptions() async {
+    await Future.wait([
+      _loadPublicStringOptions(
+        ApiEndpoints.publicIndustries,
+        (item) => item['name']?.toString(),
+        (items) => _industryOptions = items,
+      ),
+      _loadPublicStringOptions(
+        ApiEndpoints.publicBusinessTypes,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _businessTypeOptions = items,
+      ),
+      _loadCountries(),
+      _loadPublicStringOptions(
+        ApiEndpoints.publicFounderTypes,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _founderTypeOptions = items,
+      ),
+      _loadPublicStringOptions(
+        ApiEndpoints.publicStartupStages,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _startupStageOptions = items,
+      ),
+      _loadPublicStringOptions(
+        ApiEndpoints.publicInvestorTypes,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _investorTypeOptions = items,
+      ),
+    ]);
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _loadPublicStringOptions(
+    String endpoint,
+    String? Function(Map<String, dynamic>) labelOf,
+    ValueChanged<List<String>> apply,
+  ) async {
+    try {
+      final res = await Dio().get('${AppConfig.baseUrl}$endpoint');
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final items = raw
+          .whereType<Map>()
+          .where((item) => item['status'] == null || item['status'] == 'active')
+          .map((item) => labelOf(Map<String, dynamic>.from(item))?.trim())
+          .whereType<String>()
+          .where((item) => item.isNotEmpty)
+          .toSet()
+          .toList();
+      if (items.isNotEmpty) apply(items);
+    } catch (_) {
+      // Keep local fallback options.
+    }
+  }
+
+  Future<void> _loadCountries() async {
+    try {
+      final res = await Dio().get(
+        '${AppConfig.baseUrl}${ApiEndpoints.publicCountries}',
+      );
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final countries = raw
+          .whereType<Map>()
+          .map(
+            (item) => _CountryOption.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .where((item) => item.allowRegistration && item.name.isNotEmpty)
+          .toList();
+      if (countries.isNotEmpty) _countryOptions = countries;
+    } catch (_) {
+      // Keep Google location fallback for country selection.
+    }
   }
 
   String? _validatePhone(String? value) => PhoneValidation.validateMobile(
@@ -858,10 +965,12 @@ class _SignupPageState extends State<SignupPage> {
             password: _password,
             confirm: _confirm,
             country: _country,
+            countryOptions: _countryOptions,
             stateLocation: _stateLocation,
             city: _city,
             countryIsoCode: _countryIsoCode,
             onCountryChanged: _setCountryCode,
+            onCountrySelected: _setCountryOption,
             onCountryPlaceSelected: (place) =>
                 _keepPlaceNameOnly(_country, place),
             onStatePlaceSelected: (place) =>
@@ -882,11 +991,14 @@ class _SignupPageState extends State<SignupPage> {
             password: _password,
             confirm: _confirm,
             founderType: _founderType,
+            founderTypeOptions: _founderTypeOptions,
             country: _country,
+            countryOptions: _countryOptions,
             stateLocation: _stateLocation,
             city: _city,
             countryIsoCode: _countryIsoCode,
             onCountryChanged: _setCountryCode,
+            onCountrySelected: _setCountryOption,
             onFounderTypeChanged: (value) =>
                 setState(() => _founderType = value),
             onCountryPlaceSelected: (place) =>
@@ -910,10 +1022,12 @@ class _SignupPageState extends State<SignupPage> {
             confirm: _confirm,
             businessName: _businessName,
             country: _country,
+            countryOptions: _countryOptions,
             stateLocation: _stateLocation,
             city: _city,
             countryIsoCode: _countryIsoCode,
             onCountryChanged: _setCountryCode,
+            onCountrySelected: _setCountryOption,
             onCountryPlaceSelected: (place) =>
                 _keepPlaceNameOnly(_country, place),
             onStatePlaceSelected: (place) =>
@@ -933,10 +1047,12 @@ class _SignupPageState extends State<SignupPage> {
           password: _password,
           confirm: _confirm,
           country: _country,
+          countryOptions: _countryOptions,
           stateLocation: _stateLocation,
           city: _city,
           countryIsoCode: _countryIsoCode,
           onCountryChanged: _setCountryCode,
+          onCountrySelected: _setCountryOption,
           onCountryPlaceSelected: (place) =>
               _keepPlaceNameOnly(_country, place),
           onStatePlaceSelected: (place) =>
@@ -950,7 +1066,7 @@ class _SignupPageState extends State<SignupPage> {
       case 'Category':
         return _CategoryStep(
           category: _category,
-          categories: _categories,
+          categories: _industryOptions,
           onChanged: (value) => setState(() => _category = value),
         );
       case 'Skills & Experience':
@@ -977,6 +1093,8 @@ class _SignupPageState extends State<SignupPage> {
             stagePreference: _stagePreference,
             investmentMode: _investmentMode,
             targetIndustry: _targetIndustry,
+            stageOptions: _stagePreferenceOptions,
+            industryOptions: _targetIndustryOptions,
             onPickProfilePhoto: _openProfilePhotoPicker,
             onStageChanged: (value) => setState(() => _stagePreference = value),
             onModeChanged: (value) => setState(() => _investmentMode = value),
@@ -1043,7 +1161,7 @@ class _SignupPageState extends State<SignupPage> {
       case 'Business type':
         return _ClientBusinessTypeStep(
           value: _businessType,
-          items: _businessTypes,
+          items: _businessTypeOptions,
           onChanged: (value) => setState(() => _businessType = value),
         );
       case 'Services & Requirements':
@@ -1105,13 +1223,14 @@ class _SignupPageState extends State<SignupPage> {
       case 'Investor type':
         return _ClientBusinessTypeStep(
           value: _investorType,
-          items: _investorTypes,
+          items: _investorTypeOptions,
           onChanged: (value) => setState(() => _investorType = value),
         );
       case 'Startup Details':
         return _FounderStartupDetailsStep(
           startupName: _startupName,
           startupStage: _startupStage,
+          startupStageOptions: _startupStageOptions,
           shortPitch: _shortPitch,
           longDescription: _longDescription,
           problemStatement: _problemStatement,
@@ -1553,10 +1672,12 @@ class _AccountStep extends StatelessWidget {
     required this.password,
     required this.confirm,
     required this.country,
+    required this.countryOptions,
     required this.stateLocation,
     required this.city,
     required this.countryIsoCode,
     required this.onCountryChanged,
+    required this.onCountrySelected,
     required this.onCountryPlaceSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
@@ -1571,10 +1692,12 @@ class _AccountStep extends StatelessWidget {
   final TextEditingController password;
   final TextEditingController confirm;
   final TextEditingController country;
+  final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
   final TextEditingController city;
   final String countryIsoCode;
   final ValueChanged<CountryCode> onCountryChanged;
+  final ValueChanged<_CountryOption> onCountrySelected;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
@@ -1669,11 +1792,13 @@ class _AccountStep extends StatelessWidget {
               validator: (v) => Validators.confirmPassword(v, password.text),
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _CountrySelectionField(
               controller: country,
+              countries: countryOptions,
               label: 'Country',
               hint: 'Search and select country',
               validator: (v) => Validators.required(v, field: 'Country'),
+              onCountrySelected: onCountrySelected,
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -1708,10 +1833,12 @@ class _BasicRoleAccountStep extends StatelessWidget {
     required this.password,
     required this.confirm,
     required this.country,
+    required this.countryOptions,
     required this.stateLocation,
     required this.city,
     required this.countryIsoCode,
     required this.onCountryChanged,
+    required this.onCountrySelected,
     required this.onCountryPlaceSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
@@ -1726,10 +1853,12 @@ class _BasicRoleAccountStep extends StatelessWidget {
   final TextEditingController password;
   final TextEditingController confirm;
   final TextEditingController country;
+  final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
   final TextEditingController city;
   final String countryIsoCode;
   final ValueChanged<CountryCode> onCountryChanged;
+  final ValueChanged<_CountryOption> onCountrySelected;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
@@ -1775,11 +1904,13 @@ class _BasicRoleAccountStep extends StatelessWidget {
               validator: (v) => Validators.confirmPassword(v, password.text),
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _CountrySelectionField(
               controller: country,
+              countries: countryOptions,
               label: 'Country',
               hint: 'Search and select country',
               validator: (v) => Validators.required(v, field: 'Country'),
+              onCountrySelected: onCountrySelected,
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -1821,11 +1952,14 @@ class _FounderAccountStep extends StatelessWidget {
     required this.password,
     required this.confirm,
     required this.founderType,
+    required this.founderTypeOptions,
     required this.country,
+    required this.countryOptions,
     required this.stateLocation,
     required this.city,
     required this.countryIsoCode,
     required this.onCountryChanged,
+    required this.onCountrySelected,
     required this.onFounderTypeChanged,
     required this.onCountryPlaceSelected,
     required this.onStatePlaceSelected,
@@ -1841,11 +1975,14 @@ class _FounderAccountStep extends StatelessWidget {
   final TextEditingController password;
   final TextEditingController confirm;
   final String? founderType;
+  final List<String> founderTypeOptions;
   final TextEditingController country;
+  final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
   final TextEditingController city;
   final String countryIsoCode;
   final ValueChanged<CountryCode> onCountryChanged;
+  final ValueChanged<_CountryOption> onCountrySelected;
   final ValueChanged<String?> onFounderTypeChanged;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
@@ -1892,11 +2029,13 @@ class _FounderAccountStep extends StatelessWidget {
               validator: (v) => Validators.confirmPassword(v, password.text),
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _CountrySelectionField(
               controller: country,
+              countries: countryOptions,
               label: 'Country',
               hint: 'Search and select country',
               validator: (v) => Validators.required(v, field: 'Country'),
+              onCountrySelected: onCountrySelected,
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -1927,7 +2066,7 @@ class _FounderAccountStep extends StatelessWidget {
               label: 'Founder Type',
               hint: 'Select founder type',
               value: founderType,
-              items: _SignupPageState._founderTypes,
+              items: founderTypeOptions,
               itemLabel: (item) => item,
               onChanged: onFounderTypeChanged,
             ),
@@ -2060,10 +2199,12 @@ class _ClientAccountStep extends StatelessWidget {
     required this.confirm,
     required this.businessName,
     required this.country,
+    required this.countryOptions,
     required this.stateLocation,
     required this.city,
     required this.countryIsoCode,
     required this.onCountryChanged,
+    required this.onCountrySelected,
     required this.onCountryPlaceSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
@@ -2079,10 +2220,12 @@ class _ClientAccountStep extends StatelessWidget {
   final TextEditingController confirm;
   final TextEditingController businessName;
   final TextEditingController country;
+  final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
   final TextEditingController city;
   final String countryIsoCode;
   final ValueChanged<CountryCode> onCountryChanged;
+  final ValueChanged<_CountryOption> onCountrySelected;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
@@ -2135,11 +2278,13 @@ class _ClientAccountStep extends StatelessWidget {
               validator: (v) => Validators.required(v, field: 'Business name'),
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _CountrySelectionField(
               controller: country,
+              countries: countryOptions,
               label: 'Country',
               hint: 'Search and select country',
               validator: (v) => Validators.required(v, field: 'Country'),
+              onCountrySelected: onCountrySelected,
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -3309,6 +3454,8 @@ class _InvestorProfileStep extends StatelessWidget {
     required this.stagePreference,
     required this.investmentMode,
     required this.targetIndustry,
+    required this.stageOptions,
+    required this.industryOptions,
     required this.onPickProfilePhoto,
     required this.onStageChanged,
     required this.onModeChanged,
@@ -3326,6 +3473,8 @@ class _InvestorProfileStep extends StatelessWidget {
   final String? stagePreference;
   final String? investmentMode;
   final String? targetIndustry;
+  final List<String> stageOptions;
+  final List<String> industryOptions;
   final VoidCallback onPickProfilePhoto;
   final ValueChanged<String> onStageChanged;
   final ValueChanged<String> onModeChanged;
@@ -3396,7 +3545,7 @@ class _InvestorProfileStep extends StatelessWidget {
           AppSizes.vGapLg,
           _CompactRadioGroup(
             title: 'Stage Preference',
-            options: _SignupPageState._stagePreferences,
+            options: stageOptions,
             value: stagePreference,
             onChanged: onStageChanged,
           ),
@@ -3410,7 +3559,7 @@ class _InvestorProfileStep extends StatelessWidget {
           AppSizes.vGapLg,
           _CompactRadioGroup(
             title: 'Target Industries / Categories',
-            options: _SignupPageState._targetIndustries,
+            options: industryOptions,
             value: targetIndustry,
             onChanged: onIndustryChanged,
           ),
@@ -3513,6 +3662,7 @@ class _FounderStartupDetailsStep extends StatelessWidget {
   const _FounderStartupDetailsStep({
     required this.startupName,
     required this.startupStage,
+    required this.startupStageOptions,
     required this.shortPitch,
     required this.longDescription,
     required this.problemStatement,
@@ -3530,6 +3680,7 @@ class _FounderStartupDetailsStep extends StatelessWidget {
 
   final TextEditingController startupName;
   final String? startupStage;
+  final List<String> startupStageOptions;
   final TextEditingController shortPitch;
   final TextEditingController longDescription;
   final TextEditingController problemStatement;
@@ -3560,7 +3711,7 @@ class _FounderStartupDetailsStep extends StatelessWidget {
             label: 'Startup Stage',
             hint: 'Select stage',
             value: startupStage,
-            items: _SignupPageState._startupStages,
+            items: startupStageOptions,
             itemLabel: (item) => item,
             onChanged: onStageChanged,
           ),
@@ -4125,6 +4276,95 @@ class _CountryCodeButton extends StatelessWidget {
           const Icon(Icons.arrow_drop_down, size: AppSizes.iconSm),
         ],
       ),
+    );
+  }
+}
+
+class _CountrySelectionField extends StatelessWidget {
+  const _CountrySelectionField({
+    required this.controller,
+    required this.countries,
+    required this.label,
+    required this.hint,
+    required this.validator,
+    required this.onCountrySelected,
+    required this.onPlaceSelected,
+  });
+
+  final TextEditingController controller;
+  final List<_CountryOption> countries;
+  final String label;
+  final String hint;
+  final String? Function(String?) validator;
+  final ValueChanged<_CountryOption> onCountrySelected;
+  final ValueChanged<SelectedPlace> onPlaceSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (countries.isEmpty) {
+      return AppLocationField(
+        controller: controller,
+        label: label,
+        hint: hint,
+        validator: validator,
+        onPlaceSelected: onPlaceSelected,
+      );
+    }
+
+    _CountryOption? selected;
+    for (final country in countries) {
+      if (country.name == controller.text) {
+        selected = country;
+        break;
+      }
+    }
+
+    return AppDropdown<_CountryOption>(
+      label: label,
+      hint: hint,
+      value: selected,
+      items: countries,
+      itemLabel: (item) => item.displayName,
+      validator: (value) => validator(value?.name),
+      onChanged: (value) {
+        if (value == null) return;
+        onCountrySelected(value);
+      },
+    );
+  }
+}
+
+class _CountryOption {
+  const _CountryOption({
+    required this.name,
+    required this.code,
+    required this.phoneCode,
+    required this.flag,
+    required this.allowRegistration,
+  });
+
+  final String name;
+  final String code;
+  final String phoneCode;
+  final String flag;
+  final bool allowRegistration;
+
+  String get displayName {
+    final parts = [
+      if (flag.isNotEmpty) flag,
+      name,
+      if (phoneCode.isNotEmpty) phoneCode,
+    ];
+    return parts.join(' ');
+  }
+
+  factory _CountryOption.fromJson(Map<String, dynamic> json) {
+    return _CountryOption(
+      name: json['name']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+      phoneCode: json['phoneCode']?.toString() ?? '',
+      flag: json['flag']?.toString() ?? '',
+      allowRegistration: json['allowRegistration'] != false,
     );
   }
 }

@@ -310,9 +310,21 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry('Portfolio', Icons.perm_media_outlined),
             DrawerEntry('Resume', Icons.description_outlined),
             DrawerEntry('Skills', Icons.psychology_outlined),
-            DrawerEntry('Experience', Icons.timeline_outlined),
-            DrawerEntry('Education', Icons.school_outlined),
-            DrawerEntry('Certificates', Icons.workspace_premium_outlined),
+            DrawerEntry(
+              'Experience',
+              Icons.timeline_outlined,
+              route: Routes.freelancerExperience,
+            ),
+            DrawerEntry(
+              'Education',
+              Icons.school_outlined,
+              route: Routes.freelancerEducation,
+            ),
+            DrawerEntry(
+              'Certificates',
+              Icons.workspace_premium_outlined,
+              route: Routes.freelancerCertificates,
+            ),
           ]),
           const DrawerSection('Work', [
             DrawerEntry(
