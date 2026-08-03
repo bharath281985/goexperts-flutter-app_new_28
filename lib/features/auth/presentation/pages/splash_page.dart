@@ -39,8 +39,7 @@ class _SplashPageState extends State<SplashPage> {
       setState(() => _isVideoReady = true);
       await _videoController.play();
       _startBootTimer();
-    } catch (error) {
-      debugPrint('Splash video failed to initialize: $error');
+    } catch (_) {
       _startBootTimer();
     }
   }
@@ -82,9 +81,7 @@ class _SplashPageState extends State<SplashPage> {
           }
         }),
       ]).timeout(const Duration(seconds: 5));
-    } catch (e) {
-      debugPrint('Config pre-flight APIs timed out or failed: $e');
-    }
+    } catch (_) {}
 
     if (!mounted) return;
     context.read<AuthBloc>().add(const AuthCheckRequested());

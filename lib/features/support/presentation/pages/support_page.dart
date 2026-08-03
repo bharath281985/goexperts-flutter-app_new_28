@@ -396,7 +396,7 @@ class _CreateTicketSheetState extends State<_CreateTicketSheet> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: category,
+                      initialValue: category,
                       isExpanded: true,
                       icon: const Icon(
                         Icons.arrow_drop_down,
@@ -442,7 +442,7 @@ class _CreateTicketSheetState extends State<_CreateTicketSheet> {
                     ),
                     const SizedBox(height: 8),
                     DropdownButtonFormField<String>(
-                      value: priority,
+                      initialValue: priority,
                       isExpanded: true,
                       icon: const Icon(
                         Icons.arrow_drop_down,
@@ -697,7 +697,7 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
-                              backgroundColor: statusColor.withOpacity(0.1),
+                              backgroundColor: statusColor.withAlpha(30),
                               side: BorderSide.none,
                               padding: EdgeInsets.zero,
                             ),
@@ -709,7 +709,7 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              backgroundColor: Colors.blue.withOpacity(0.1),
+                              backgroundColor: Colors.blue.withAlpha(30),
                               side: BorderSide.none,
                               padding: EdgeInsets.zero,
                             ),
@@ -721,7 +721,7 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              backgroundColor: Colors.red.withOpacity(0.1),
+                              backgroundColor: Colors.red.withAlpha(30),
                               side: BorderSide.none,
                               padding: EdgeInsets.zero,
                             ),
@@ -749,7 +749,7 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                 ),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.black.withOpacity(0.02),
+                                    color: Colors.black.withAlpha(30),
                                     blurRadius: 4,
                                     offset: const Offset(0, 2),
                                   ),
@@ -843,8 +843,9 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                   onPressed: _sending
                                       ? null
                                       : () async {
-                                          if (_replyCtrl.text.trim().isEmpty)
+                                          if (_replyCtrl.text.trim().isEmpty) {
                                             return;
+                                          }
                                           setState(() => _sending = true);
                                           final res = await sl<ApiClientHelper>()
                                               .postAction(

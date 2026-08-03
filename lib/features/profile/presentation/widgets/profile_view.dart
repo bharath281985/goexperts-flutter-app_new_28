@@ -206,8 +206,8 @@ class ProfileView extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            AppColors.black.withOpacity(0.0),
-            AppColors.black.withOpacity(0.6),
+            AppColors.black.withAlpha(30),
+            AppColors.black.withAlpha(150),
           ],
         ),
       ),

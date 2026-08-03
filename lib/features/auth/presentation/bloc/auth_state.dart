@@ -8,6 +8,7 @@ class SignupDraft extends Equatable {
     required this.phone,
     required this.countryCode,
     required this.password,
+    this.signupData = const {},
   });
 
   final String fullName;
@@ -15,9 +16,17 @@ class SignupDraft extends Equatable {
   final String phone;
   final String countryCode;
   final String password;
+  final Map<String, dynamic> signupData;
 
   @override
-  List<Object?> get props => [fullName, email, phone, countryCode, password];
+  List<Object?> get props => [
+    fullName,
+    email,
+    phone,
+    countryCode,
+    password,
+    signupData,
+  ];
 }
 
 enum AuthStatus { unknown, unauthenticated, authenticated }

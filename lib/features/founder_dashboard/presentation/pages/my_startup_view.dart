@@ -640,8 +640,9 @@ class _MyStartupViewState extends State<MyStartupView> {
           return;
         }
       }
-      if (context.mounted)
+      if (context.mounted) {
         context.showSnack('Unable to open $title', isError: true);
+      }
     },
     child: Row(
       children: [

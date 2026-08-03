@@ -29,6 +29,14 @@ class ApiEndpoints {
   static const publicFounderTypes = '/public/founder-types';
   static const publicStartupStages = '/public/startup-stages';
   static const publicInvestorTypes = '/public/investor-types';
+  static const publicRootInvestorTypes = '/investor-types';
+  static const publicMobileStartupStages = '/startup-stages';
+  static const publicMobileCategories = '/categories';
+  static const publicInvestmentModes = '/investment-modes';
+  static const publicInvestorGoals = '/investor-goals';
+  static const publicMobileTicketSizes = '/ticket-sizes';
+  static const publicMobileTeamSizes = '/team-sizes';
+  static const publicTeamSizes = '/public/team-sizes';
   static const publicSkills = '/public/skills';
   static const publicFreelancers = '/public/freelancers';
   static const publicClients = '/public/clients';
@@ -40,6 +48,10 @@ class ApiEndpoints {
   static const publicFaqs = '/public/faqs';
   static const publicTestimonials = '/public/testimonials';
   static const publicSearch = '/public/search';
+
+  static const publicClientGoals = '/client-goals';
+  static const publicExpansionGoals = '/expansion-goals';
+  static const publicStates = '/states';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';
   static String publicClient(String id) => '/public/clients/$id';

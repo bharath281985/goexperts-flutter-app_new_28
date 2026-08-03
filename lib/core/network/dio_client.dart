@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
 import '../../app/config/app_config.dart';
 import '../auth/session_handler.dart';
@@ -26,7 +28,19 @@ class DioClient {
       _RefreshInterceptor(_dio, _secureStorage, _sessionHandler),
     );
     _dio.interceptors.add(_GlobalErrorInterceptor());
-    _dio.interceptors.add(_LoggingInterceptor());
+    if (kDebugMode) {
+      _dio.interceptors.add(
+        PrettyDioLogger(
+          requestHeader: false,
+          requestBody: false,
+          responseBody: false,
+          responseHeader: false,
+          error: true,
+          compact: true,
+          maxWidth: 100,
+        ),
+      );
+    }
   }
 
   final SecureStorage _secureStorage;
@@ -63,6 +77,15 @@ String? _codeFromResponse(Response<dynamic>? response) {
 bool _isSessionExpiredCode(String? code) =>
     code != null && _sessionExpiredCodes.contains(code);
 
+Map<String, dynamic>? _payloadFromResponse(Response<dynamic> response) {
+  final body = response.data;
+  if (body is! Map) return null;
+  final map = Map<String, dynamic>.from(body);
+  final data = map['data'];
+  if (data is Map) return Map<String, dynamic>.from(data);
+  return map;
+}
+
 class _AuthInterceptor extends Interceptor {
   _AuthInterceptor(this._storage);
   final SecureStorage _storage;
@@ -73,9 +96,6 @@ class _AuthInterceptor extends Interceptor {
     RequestInterceptorHandler handler,
   ) async {
     final token = await _storage.accessToken;
-    print(
-      'DEBUG: API Hit - Request: ${options.method} ${options.path} - Token: $token',
-    );
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
     }
@@ -135,7 +155,7 @@ class _RefreshInterceptor extends Interceptor {
         data: {'refreshToken': refreshToken},
       );
 
-      final data = response.data?['data'] as Map<String, dynamic>?;
+      final data = _payloadFromResponse(response);
       final newAccess = data?['accessToken'] as String?;
       final newRefresh = data?['refreshToken'] as String?;
 
@@ -243,42 +263,6 @@ class _GlobalErrorInterceptor extends Interceptor {
       );
     }
 
-    handler.next(err);
-  }
-}
-
-class _LoggingInterceptor extends Interceptor {
-  @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print("--- Dio Request Log Start ---");
-    print("URI: ${options.uri}");
-    print("Method: ${options.method}");
-    print("Headers: ${options.headers}");
-    print("Query Parameters: ${options.queryParameters}");
-    print("Request Body: ${options.data}");
-    print("--- Dio Request Log End ---");
-    handler.next(options);
-  }
-
-  @override
-  void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print("--- Dio Response Log Start ---");
-    print("URI: ${response.requestOptions.uri}");
-    print("Status Code: ${response.statusCode}");
-    print("Response Headers: ${response.headers.map}");
-    print("Response Body: ${response.data}");
-    print("--- Dio Response Log End ---");
-    handler.next(response);
-  }
-
-  @override
-  void onError(DioException err, ErrorInterceptorHandler handler) {
-    print("--- Dio Error Log Start ---");
-    print("URI: ${err.requestOptions.uri}");
-    print("Message: ${err.message}");
-    print("Status Code: ${err.response?.statusCode}");
-    print("Response Body: ${err.response?.data}");
-    print("--- Dio Error Log End ---");
     handler.next(err);
   }
 }

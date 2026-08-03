@@ -34,6 +34,11 @@ class AppConfig {
       "https://apiai.goexperts.in/api/v1/mobile";
   // 'https://mobileapi.goexperts.in/api/v1/mobile';
 
+  static const String publicBaseUrl = "https://apiai.goexperts.in/api/public";
+  static const String mobilePublicBaseUrl =
+      "https://apiai.goexperts.in/api/mobile/public";
+  static const String authBaseUrl = "https://apiai.goexperts.in/api";
+
   static String get baseUrl {
     switch (flavor) {
       case AppFlavor.dev:

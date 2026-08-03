@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
@@ -15,21 +17,19 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../catalog/domain/entities/catalog_entities.dart';
+import '../../../catalog/domain/repositories/catalog_repository.dart';
+import '../../../founder_dashboard/domain/entities/founder.dart';
 import '../../../freelancer_dashboard/domain/entities/freelancer.dart';
 import '../../../freelancer_dashboard/domain/repositories/freelancer_repository.dart';
 import '../../../freelancer_dashboard/presentation/widgets/freelancer_card.dart';
 import '../../../investor_dashboard/domain/entities/investor.dart';
-import '../../../../core/network/api_client_helper.dart';
 import '../../../projects/domain/entities/project.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../../../startup_ideas/presentation/widgets/startup_card.dart';
-import '../../../catalog/domain/entities/catalog_entities.dart';
-import '../../../catalog/domain/repositories/catalog_repository.dart';
-import '../../../founder_dashboard/domain/entities/founder.dart';
-import '../../../founder_dashboard/domain/repositories/founder_repository.dart';
 
 class BookmarksPage extends StatelessWidget {
   const BookmarksPage({super.key});

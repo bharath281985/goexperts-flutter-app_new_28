@@ -125,6 +125,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           phone: event.phone,
           countryCode: event.countryCode,
           password: event.password,
+          signupData: event.signupData,
         ),
         clearError: true,
       ),
@@ -164,6 +165,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         countryCode: draft.countryCode,
         password: draft.password,
         role: event.role,
+        signupData: draft.signupData,
       );
       if (result.isFailure) {
         emit(

@@ -262,7 +262,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
                 )
               else if (widget.preselectedParticipantId == null)
                 DropdownButtonFormField<String>(
-                  value: _selectedParticipantId,
+                  initialValue: _selectedParticipantId,
                   decoration: InputDecoration(
                     labelText: _isFounder
                         ? 'Select Investor'
@@ -325,7 +325,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<bool>(
-                value: _isVideo,
+                initialValue: _isVideo,
                 decoration: const InputDecoration(
                   labelText: 'Meeting Mode',
                   border: OutlineInputBorder(),

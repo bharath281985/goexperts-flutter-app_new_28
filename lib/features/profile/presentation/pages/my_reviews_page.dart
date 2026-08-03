@@ -168,10 +168,10 @@ class _MyReviewsPageState extends State<MyReviewsPage> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.04),
+                      color: AppColors.primary.withAlpha(30),
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withAlpha(50),
                       ),
                     ),
                     child: Column(

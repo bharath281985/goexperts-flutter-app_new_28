@@ -122,8 +122,9 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
       try {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } catch (e) {
-        if (mounted)
+        if (mounted) {
           context.showSnack('Could not launch meeting link', isError: true);
+        }
       }
     } else {
       if (mounted) context.showSnack('Invalid meeting link', isError: true);

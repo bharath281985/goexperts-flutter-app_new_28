@@ -18,7 +18,7 @@ class AuthRemoteDatasource {
     required String password,
   }) async {
     final device = await _deviceInfo.authPayload();
-    final result = await _api.post<Map<String, dynamic>>(
+    final result = await _api.postPayload<Map<String, dynamic>>(
       ApiEndpoints.login,
       body: {'email': email, 'password': password, ...device},
       parser: (data) => Map<String, dynamic>.from(data as Map),
@@ -36,9 +36,10 @@ class AuthRemoteDatasource {
     required UserRole role,
     required String phone,
     required String countryCode,
+    Map<String, dynamic> signupData = const {},
   }) async {
     final device = await _deviceInfo.authPayload();
-    final result = await _api.post<Map<String, dynamic>>(
+    final result = await _api.postPayload<Map<String, dynamic>>(
       ApiEndpoints.register,
       body: {
         'fullName': fullName,
@@ -47,6 +48,7 @@ class AuthRemoteDatasource {
         'role': role.apiValue,
         'phone': phone,
         'countryCode': countryCode,
+        ...signupData,
         ...device,
       },
       parser: (data) => Map<String, dynamic>.from(data as Map),
@@ -218,7 +220,7 @@ class AuthRemoteDatasource {
       if (fullName != null) 'fullName': fullName,
       ...device,
     };
-    final result = await _api.post<Map<String, dynamic>>(
+    final result = await _api.postPayload<Map<String, dynamic>>(
       endpoint,
       body: body,
       parser: (data) => Map<String, dynamic>.from(data as Map),

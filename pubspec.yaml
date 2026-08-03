@@ -64,6 +64,7 @@ dependencies:
   sign_in_with_apple: ^7.0.1
   country_code_picker: ^3.4.1
   phone_numbers_parser: ^9.0.24
+  pretty_dio_logger: ^1.4.0
 
 dev_dependencies:
   flutter_test:

@@ -463,7 +463,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<String>(
-                      value: _stage,
+                      initialValue: _stage,
                       decoration: const InputDecoration(
                         labelText: 'Stage',
                         border: OutlineInputBorder(),
@@ -512,8 +512,9 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                             keyboardType: TextInputType.number,
                             validator: (v) {
                               final eq = double.tryParse(v ?? '');
-                              if (eq == null || eq < 0 || eq > 100)
+                              if (eq == null || eq < 0 || eq > 100) {
                                 return 'Invalid';
+                              }
                               return null;
                             },
                           ),
@@ -543,8 +544,9 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                           onPressed: _loading
                               ? null
                               : () async {
-                                  if (!_formKey.currentState!.validate())
+                                  if (!_formKey.currentState!.validate()) {
                                     return;
+                                  }
                                   setState(() => _loading = true);
 
                                   String? logoUrl = _networkLogoUrl;

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../errors/exceptions.dart';
 import '../errors/failures.dart';
 import '../utils/result.dart';
 import 'api_exception_handler.dart';
@@ -13,6 +14,27 @@ class ApiClientHelper {
   final DioClient _dioClient;
 
   Dio get _dio => _dioClient.raw;
+
+  Map<String, dynamic> _responseMap(dynamic data) {
+    if (data is Map<String, dynamic>) return data;
+    if (data is Map) return Map<String, dynamic>.from(data);
+    throw ServerException('Invalid response format.');
+  }
+
+  /// Supports endpoints whose successful payload may be either a standard
+  /// `{ success, data }` envelope or a raw top-level JSON object.
+  ///
+  /// Use this only for endpoints with that contract. Regular APIs should use
+  /// [get], [post], [put], or the envelope helpers.
+  dynamic _payloadFromMap(Map<String, dynamic> body) {
+    final success = body['success'];
+    if (success is bool) {
+      final envelope = ApiResponse.parse(body, null);
+      ApiExceptionHandler.ensureSuccess(envelope);
+      return envelope.data ?? body;
+    }
+    return body;
+  }
 
   Future<Result<T>> get<T>(
     String path, {
@@ -67,6 +89,23 @@ class ApiClientHelper {
         return const Err(NotFoundFailure('No data returned.'));
       }
       return Success(envelope.data as T);
+    } catch (e) {
+      return Err(ApiExceptionHandler.mapException(e));
+    }
+  }
+
+  /// POST endpoint returning a business payload either in `data` or as the
+  /// top-level response body. This keeps [ApiResponse] strict and makes the
+  /// non-envelope contract explicit at call sites.
+  Future<Result<T>> postPayload<T>(
+    String path, {
+    Map<String, dynamic>? body,
+    required T Function(dynamic data) parser,
+  }) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(path, data: body);
+      final payload = _payloadFromMap(_responseMap(response.data));
+      return Success(parser(payload));
     } catch (e) {
       return Err(ApiExceptionHandler.mapException(e));
     }

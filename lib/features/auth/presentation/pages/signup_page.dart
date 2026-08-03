@@ -24,6 +24,8 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/services/google_places_service.dart';
 import '../bloc/auth_bloc.dart';
 
+enum _PortfolioMediaType { cover, video, caseStudy, screenshot }
+
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
 
@@ -48,8 +50,24 @@ class _SignupPageState extends State<SignupPage> {
   final _github = TextEditingController();
   final _portfolioUrl = TextEditingController();
   final _hourlyRate = TextEditingController();
-  final _certifications = TextEditingController();
   final _education = TextEditingController();
+  final _portfolioTitle = TextEditingController();
+  final _portfolioClient = TextEditingController();
+  final _portfolioIndustry = TextEditingController();
+  final _portfolioTechStack = TextEditingController();
+  final _portfolioDuration = TextEditingController();
+  final _portfolioRole = TextEditingController();
+  final _portfolioGithub = TextEditingController();
+  final _portfolioLiveUrl = TextEditingController();
+  final _portfolioOverview = TextEditingController();
+  final _educationInstitution = TextEditingController();
+  final _educationQualification = TextEditingController();
+  final _educationSpecialization = TextEditingController();
+  final _educationYear = TextEditingController();
+  final _certificateName = TextEditingController();
+  final _certificateIssuer = TextEditingController();
+  final _certificateIssueDate = TextEditingController();
+  final _certificateUrl = TextEditingController();
   final _businessName = TextEditingController();
   final _businessDescription = TextEditingController();
   final _website = TextEditingController();
@@ -91,278 +109,76 @@ class _SignupPageState extends State<SignupPage> {
   String _countryCode = '+91';
   String _countryIsoCode = 'IN';
   String _countryName = 'India';
-  String? _category;
-  String _plan = 'Freelancer Annual';
+  _PublicOption? _selectedIndustry;
+  _PublicOption? _categoryOption;
+  _PublicOption? _founderProfileCategory;
+  _PublicOption? _founderTaxonomyCategory;
+  _PublicOption? _portfolioIndustryOption;
+  _PublicOption? _portfolioCategoryOption;
+  String _plan = '';
   String? _businessType;
   String? _teamSize;
-  String? _primaryService;
-  String? _primarySubService;
-  String? _clientProjectCategory;
-  String? _clientProjectSubcategory;
+  String? _portfolioStatus = 'Draft';
+  String? _portfolioTeamSize;
+  _PublicOption? _clientProjectCategory;
   String? _remoteType;
   String? _urgency;
-  String? _lookingForGoal;
-  String? _expansionGoal;
+  final List<String> _lookingForGoals = [];
+  final List<String> _expansionGoals = [];
   String? _investorType;
-  String? _stagePreference;
-  String? _investmentMode;
-  String? _targetIndustry;
-  String? _investorIntent;
+  String? _ticketSize;
+  final List<String> _stagePreferencesSelected = [];
+  final List<String> _investmentModesSelected = [];
+  final List<String> _targetIndustriesSelected = [];
+  final List<String> _investorGoals = [];
   String? _founderType;
   String? _startupStage;
-  String? _founderCategory;
   String? _founderSubCategory;
-  String? _founderGoal;
+  final List<String> _founderGoalsSelected = [];
   String? _profilePhotoName;
   ImageProvider? _profilePhotoPreview;
-  String? _portfolioDocName;
+  String? _portfolioCoverName;
+  String? _portfolioVideoName;
+  String? _portfolioCaseStudyName;
+  String? _portfolioScreenshotName;
+  String? _startupDocumentName;
+  String? _educationDocumentName;
+  String? _certificateDocumentName;
   String? _verificationDocName;
   bool _agree = false;
   bool _isEmailVerified = false;
   bool _isSendingOtp = false;
   bool _isVerifyingOtp = false;
-  List<String> _industryOptions = _categories;
-  List<String> _businessTypeOptions = _businessTypes;
+  bool _isLoadingCategories = false;
+  bool _isLoadingSkills = false;
+  List<_PublicOption> _industryPublicOptions = const [];
+  List<_PublicOption> _categoryPublicOptions = const [];
+  List<_PublicOption> _founderCategoryOptions = const [];
+  List<_PublicOption> _skillPublicOptions = const [];
+  List<String> _businessTypeOptions = const [];
   List<_CountryOption> _countryOptions = const [];
-  List<String> _founderTypeOptions = _founderTypes;
-  List<String> _startupStageOptions = _startupStages;
-  List<String> _investorTypeOptions = _investorTypes;
-  final List<String> _stagePreferenceOptions = _stagePreferences;
-  final List<String> _targetIndustryOptions = _targetIndustries;
+  List<_StateOption> _stateOptions = const [];
+  List<String> _founderTypeOptions = const [];
+  List<String> _startupStageOptions = const [];
+  List<String> _investorTypeOptions = const [];
+  List<String> _investmentModeOptions = const [];
+  List<_TicketOption> _ticketSizeOptions = const [];
+  List<String> _teamSizeOptions = const [];
+  List<String> _clientGoalOptions = const [];
+  List<String> _expansionGoalOptions = const [];
+  List<String> _investorGoalOptions = const [];
+  List<String> _stagePreferenceOptions = const [];
+  List<String> _targetIndustryOptions = const [];
+  final Map<String, String> _optionIdsByLabel = {};
 
-  static const _categories = [
-    'Agriculture',
-    'Design & Creative',
-    'Development & IT',
-    'Finance & Accounting',
-    'Marketing',
-    'Writing & Translation',
-  ];
-  static const _skillSuggestions = [
-    'AWS Services',
-    'TypeScript',
-    'Django',
-    'DevOps',
-    'Data Science',
-    'Go Lang',
-    'PostgreSQL',
-    'MongoDB',
-    'Blockchain',
-    'React',
-    'UI/UX Design',
-    'GraphQL',
-    'Laravel',
-    'Flutter',
-    'Machine Learning',
-    'Node.js',
-    'Angular',
-    'Python',
-    'Docker',
-    'Swift',
-    'Kubernetes',
-    'Vue.js',
-    'Redis',
-    'Kotlin',
-    'Terraform',
-  ];
-  static const _plans = [
-    _PlanOption('Freelancer Annual', '₹5,999/yr'),
-    _PlanOption('Freelancer Pro', '₹799/mo'),
-    _PlanOption('Freelancer Starter', '₹299/mo'),
-    _PlanOption('Freelancer Elite', '₹1,499/mo'),
-  ];
-  static const _businessTypes = [
-    'Individual Client',
-    'Small Business',
-    'Startup',
-    'Agency',
-    'Enterprise',
-    'Shop Owner',
-    'Service Provider',
-    'Manufacturer',
-    'Franchise Owner',
-  ];
-  static const _teamSizes = ['1-10', '11-50', '51-200', '201-500', '500+'];
-  static const Map<String, List<String>> _clientProjectCategories = {
-    'Website & App Development': [
-      'Business Website',
-      'E-commerce Website',
-      'Custom Website',
-      'Mobile App',
-      'iOS App',
-      'Android App',
-      'Hybrid App',
-      'Landing Page',
-    ],
-    'Design & Branding': [
-      'Logo Design',
-      'Brand Identity',
-      'UI/UX Design',
-      'Graphic Design',
-      'Packaging Design',
-      'Social Media Creatives',
-    ],
-    'Digital Marketing': [
-      'SEO',
-      'Social Media Marketing',
-      'Google Ads',
-      'Meta Ads',
-      'Email Marketing',
-      'Influencer Marketing',
-    ],
-    'Business & Finance': [
-      'Business Plan',
-      'Financial Modeling',
-      'Accounting',
-      'Tax Consulting',
-      'Legal Documentation',
-      'Market Research',
-    ],
-    'Technology Services': [
-      'Cloud Services',
-      'DevOps',
-      'Cybersecurity',
-      'AI / ML',
-      'Data Analytics',
-      'ERP / CRM',
-    ],
-    'Content & Media': [
-      'Blog Writing',
-      'Website Content',
-      'Technical Writing',
-      'Video Editing',
-      'Promotional Videos',
-      'Explainer Videos',
-    ],
-  };
-  static const _lookingForOptions = [
-    'Hire Freelancer',
-    'Post a Project',
-    'Hire Agency',
-    'Get Business Consultation',
-    'Build Website / App',
-    'Marketing Support',
-    'Design Services',
-    'Long-Term Team',
-    'One-Time Service',
-    'Monthly Maintenance',
-  ];
-  static const _expansionOptions = [
-    'Find Distributors',
-    'Find Suppliers',
-    'Find Business Partners',
-    'Seek Investors',
-    'Open Franchise',
-    'Cross-border Expansion',
-  ];
   static const _remoteTypes = ['Remote', 'On-site', 'Hybrid'];
   static const _urgencies = [
     'High (Immediate)',
     'Medium (Within a month)',
     'Low (Flexible)',
   ];
-  static const _investorTypes = [
-    'Angel',
-    'Individual',
-    'Family office',
-    'VC',
-    'Corporate',
-    'PE',
-    'Incubator/Accelerator',
-    'NRI Investor',
-  ];
-  static const _stagePreferences = [
-    'Idea',
-    'MVP',
-    'Seed',
-    'Early Revenue',
-    'Growth',
-    'Pre-IPO',
-  ];
-  static const _investmentModes = [
-    'Equity',
-    'Debt',
-    'Convertible Note',
-    'SAFE',
-    'Partnership/JV',
-    'Grants',
-  ];
-  static const _targetIndustries = [
-    'Technology Startups',
-    'AI & SaaS',
-    'E-commerce',
-    'Fintech',
-    'HealthTech',
-    'EdTech',
-    'Real Estate',
-    'Manufacturing',
-    'Food & Beverage',
-    'Local Services',
-    'Franchise Business',
-    'Green Energy',
-    'Logistics',
-    'Agriculture',
-    'Retail Business',
-  ];
-  static const _investorIntents = [
-    'Invest in Startups',
-    'Discover Business Ideas',
-    'Fund Existing Businesses',
-    'Partner with Founders',
-    'Mentor Startups',
-    'Buy Equity Stake',
-    'Explore Franchise Opportunities',
-  ];
-  static const _founderTypes = [
-    'Idea Creator',
-    'Solo Founder',
-    'Co-Founder',
-    'Startup Team',
-    'Existing Business Founder',
-    'Student Founder',
-    'Tech Founder',
-    'Non-Tech Founder',
-  ];
-  static const _startupStages = [
-    'Idea Stage',
-    'Prototype',
-    'MVP Ready',
-    'Launched',
-    'Revenue Generating',
-    'Scaling',
-    'Looking for Funding',
-  ];
-  static const _founderCategories = [
-    'Technology',
-    'E-commerce',
-    'Services',
-    'Fintech',
-    'Education',
-    'Healthcare',
-    'Real Estate',
-    'Food & Beverage',
-  ];
-  static const _founderSubCategories = [
-    'SaaS',
-    'AI Tools',
-    'Mobile App',
-    'Web Platform',
-    'Marketplace',
-    'Cloud Software',
-    'Cybersecurity',
-    'Automation',
-  ];
-  static const _founderGoals = [
-    'Looking for Investor',
-    'Looking for Co-Founder',
-    'Looking for Mentor',
-    'Looking for Developer',
-    'Looking for Marketing Support',
-    'Looking for Business Partner',
-    'Looking for Clients',
-    'Looking for Franchise Partners',
-    'Looking for Funding + Tech Support',
-  ];
+  static const List<_PlanOption> _plans = [];
+  static const List<String> _founderGoals = [];
 
   List<String> get _steps {
     if (_role == null) return const ['Role'];
@@ -386,7 +202,6 @@ class _SignupPageState extends State<SignupPage> {
         'Business type',
         'Profile',
         'Services & Requirements',
-        'Business Details',
         'Looking For',
         'Projects',
         'Expansion',
@@ -407,6 +222,7 @@ class _SignupPageState extends State<SignupPage> {
     if (_role == UserRole.founder) {
       return const [
         'Account',
+        'Founder type',
         'Profile',
         'Startup Details',
         'Taxonomy',
@@ -448,8 +264,24 @@ class _SignupPageState extends State<SignupPage> {
     _github.dispose();
     _portfolioUrl.dispose();
     _hourlyRate.dispose();
-    _certifications.dispose();
     _education.dispose();
+    _portfolioTitle.dispose();
+    _portfolioClient.dispose();
+    _portfolioIndustry.dispose();
+    _portfolioTechStack.dispose();
+    _portfolioDuration.dispose();
+    _portfolioRole.dispose();
+    _portfolioGithub.dispose();
+    _portfolioLiveUrl.dispose();
+    _portfolioOverview.dispose();
+    _educationInstitution.dispose();
+    _educationQualification.dispose();
+    _educationSpecialization.dispose();
+    _educationYear.dispose();
+    _certificateName.dispose();
+    _certificateIssuer.dispose();
+    _certificateIssueDate.dispose();
+    _certificateUrl.dispose();
     _businessName.dispose();
     _businessDescription.dispose();
     _website.dispose();
@@ -492,12 +324,15 @@ class _SignupPageState extends State<SignupPage> {
       _countryCode = countryCode.dialCode ?? '+91';
       _countryIsoCode = countryCode.code ?? 'IN';
       _countryName = countryCode.name ?? 'India';
+      _stateLocation.clear();
+      _stateOptions = const [];
       _phone.text = PhoneValidation.trimToRequiredLength(
         _phone.text,
         _countryIsoCode,
       );
     });
     _formKey.currentState?.validate();
+    _loadStates(_countryIsoCode);
   }
 
   void _setCountryOption(_CountryOption country) {
@@ -506,45 +341,122 @@ class _SignupPageState extends State<SignupPage> {
       _countryName = country.name;
       if (country.code.isNotEmpty) _countryIsoCode = country.code;
       if (country.phoneCode.isNotEmpty) _countryCode = country.phoneCode;
+      _stateLocation.clear();
+      _stateOptions = const [];
       _phone.text = PhoneValidation.trimToRequiredLength(
         _phone.text,
         _countryIsoCode,
       );
     });
     _formKey.currentState?.validate();
+    _loadStates(_countryIsoCode);
   }
 
   Future<void> _loadPublicSignupOptions() async {
     await Future.wait([
-      _loadPublicStringOptions(
-        ApiEndpoints.publicIndustries,
-        (item) => item['name']?.toString(),
-        (items) => _industryOptions = items,
-      ),
+      _loadIndustries(),
       _loadPublicStringOptions(
         ApiEndpoints.publicBusinessTypes,
         (item) => item['value']?.toString() ?? item['label']?.toString(),
         (items) => _businessTypeOptions = items,
       ),
       _loadCountries(),
+      _loadStates(_countryIsoCode),
       _loadPublicStringOptions(
         ApiEndpoints.publicFounderTypes,
         (item) => item['value']?.toString() ?? item['label']?.toString(),
         (items) => _founderTypeOptions = items,
       ),
-      _loadPublicStringOptions(
-        ApiEndpoints.publicStartupStages,
-        (item) => item['value']?.toString() ?? item['label']?.toString(),
-        (items) => _startupStageOptions = items,
+      _loadPublicMobileStringOptions(
+        ApiEndpoints.publicMobileStartupStages,
+        (item) => item['label']?.toString() ?? item['value']?.toString(),
+        (items) {
+          _startupStageOptions = items;
+          _stagePreferenceOptions = items;
+        },
       ),
-      _loadPublicStringOptions(
-        ApiEndpoints.publicInvestorTypes,
+      _loadPublicRootStringOptions(
+        ApiEndpoints.publicRootInvestorTypes,
         (item) => item['value']?.toString() ?? item['label']?.toString(),
         (items) => _investorTypeOptions = items,
+      ),
+      _loadPublicRootStringOptions(
+        ApiEndpoints.publicInvestmentModes,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _investmentModeOptions = items,
+      ),
+      _loadPublicRootStringOptions(
+        ApiEndpoints.publicInvestorGoals,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _investorGoalOptions = items,
+      ),
+      _loadPublicMobileTicketSizes(),
+      _loadPublicMobileStringOptions(
+        ApiEndpoints.publicMobileCategories,
+        (item) =>
+            item['label']?.toString() ??
+            item['name']?.toString() ??
+            item['value']?.toString(),
+        (items) => _targetIndustryOptions = items,
+      ),
+      _loadPublicMobileCategories(),
+      _loadPublicMobileStringOptions(
+        ApiEndpoints.publicMobileTeamSizes,
+        (item) => item['label']?.toString() ?? item['value']?.toString(),
+        (items) => _teamSizeOptions = items,
+      ),
+      _loadPublicRootStringOptions(
+        ApiEndpoints.publicClientGoals,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _clientGoalOptions = items,
+      ),
+      _loadPublicRootStringOptions(
+        ApiEndpoints.publicExpansionGoals,
+        (item) => item['value']?.toString() ?? item['label']?.toString(),
+        (items) => _expansionGoalOptions = items,
       ),
     ]);
     if (mounted) setState(() {});
   }
+
+  Future<void> _loadIndustries() async {
+    try {
+      final res = await Dio().get(
+        '${AppConfig.baseUrl}${ApiEndpoints.publicIndustries}',
+      );
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final items = raw
+          .whereType<Map>()
+          .where((item) => item['status'] == null || item['status'] == 'active')
+          .map(
+            (item) => _PublicOption.fromJson(
+              Map<String, dynamic>.from(item),
+              labelKeys: const ['name', 'label', 'value'],
+            ),
+          )
+          .where((item) => item.id.isNotEmpty && item.label.isNotEmpty)
+          .toList();
+      if (items.isEmpty) return;
+      for (final item in items) {
+        _rememberOptionId(id: item.id, label: item.label);
+      }
+      _industryPublicOptions = items;
+    } catch (_) {
+      // Keep local fallback options.
+    }
+  }
+
+  void _rememberOptionId({required String id, required String label}) {
+    final cleanId = id.trim();
+    final cleanLabel = label.trim();
+    if (cleanId.isEmpty || cleanLabel.isEmpty) return;
+    _optionIdsByLabel[cleanLabel] = cleanId;
+  }
+
+  String _idForOption(String value) => _optionIdsByLabel[value] ?? value;
 
   Future<void> _loadPublicStringOptions(
     String endpoint,
@@ -557,15 +469,129 @@ class _SignupPageState extends State<SignupPage> {
           ? (res.data as Map<String, dynamic>)['data']
           : null;
       if (raw is! List) return;
+      final items = <String>[];
+      for (final rawItem in raw.whereType<Map>()) {
+        if (rawItem['status'] != null && rawItem['status'] != 'active') {
+          continue;
+        }
+        final item = Map<String, dynamic>.from(rawItem);
+        final label = labelOf(item)?.trim();
+        if (label == null || label.isEmpty) continue;
+        _rememberOptionId(id: item['id']?.toString() ?? label, label: label);
+        if (!items.contains(label)) items.add(label);
+      }
+      if (items.isNotEmpty) apply(items);
+    } catch (_) {
+      // Keep local fallback options.
+    }
+  }
+
+  Future<void> _loadPublicMobileStringOptions(
+    String endpoint,
+    String? Function(Map<String, dynamic>) labelOf,
+    ValueChanged<List<String>> apply,
+  ) async {
+    try {
+      final res = await Dio().get('${AppConfig.mobilePublicBaseUrl}$endpoint');
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final items = <String>[];
+      for (final rawItem in raw.whereType<Map>()) {
+        if (rawItem['status'] != null && rawItem['status'] != 'active') {
+          continue;
+        }
+        final item = Map<String, dynamic>.from(rawItem);
+        final label = labelOf(item)?.trim();
+        if (label == null || label.isEmpty) continue;
+        _rememberOptionId(id: item['id']?.toString() ?? label, label: label);
+        if (!items.contains(label)) items.add(label);
+      }
+      if (items.isNotEmpty) apply(items);
+    } catch (_) {
+      // Keep local fallback options.
+    }
+  }
+
+  Future<void> _loadPublicRootStringOptions(
+    String endpoint,
+    String? Function(Map<String, dynamic>) labelOf,
+    ValueChanged<List<String>> apply,
+  ) async {
+    try {
+      final res = await Dio().get('${AppConfig.publicBaseUrl}$endpoint');
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final items = <String>[];
+      for (final rawItem in raw.whereType<Map>()) {
+        if (rawItem['status'] != null && rawItem['status'] != 'active') {
+          continue;
+        }
+        final item = Map<String, dynamic>.from(rawItem);
+        final label = labelOf(item)?.trim();
+        if (label == null || label.isEmpty) continue;
+        _rememberOptionId(id: item['id']?.toString() ?? label, label: label);
+        if (!items.contains(label)) items.add(label);
+      }
+      if (items.isNotEmpty) apply(items);
+    } catch (_) {
+      // Keep local fallback options.
+    }
+  }
+
+  Future<void> _loadPublicMobileTicketSizes() async {
+    try {
+      final res = await Dio().get(
+        '${AppConfig.mobilePublicBaseUrl}${ApiEndpoints.publicMobileTicketSizes}',
+      );
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
       final items = raw
           .whereType<Map>()
           .where((item) => item['status'] == null || item['status'] == 'active')
-          .map((item) => labelOf(Map<String, dynamic>.from(item))?.trim())
-          .whereType<String>()
-          .where((item) => item.isNotEmpty)
-          .toSet()
+          .map(
+            (item) => _TicketOption.fromJson(Map<String, dynamic>.from(item)),
+          )
+          .where((item) => item.label.isNotEmpty)
           .toList();
-      if (items.isNotEmpty) apply(items);
+      for (final item in items) {
+        _rememberOptionId(id: item.id, label: item.label);
+      }
+      if (items.isNotEmpty) _ticketSizeOptions = items;
+    } catch (_) {
+      // Keep manual ticket fields if API is unavailable.
+    }
+  }
+
+  Future<void> _loadPublicMobileCategories() async {
+    try {
+      final res = await Dio().get(
+        '${AppConfig.mobilePublicBaseUrl}${ApiEndpoints.publicMobileCategories}',
+      );
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final items = raw
+          .whereType<Map>()
+          .where((item) => item['status'] == null || item['status'] == 'active')
+          .map(
+            (item) => _PublicOption.fromJson(
+              Map<String, dynamic>.from(item),
+              labelKeys: const ['label', 'name', 'value'],
+            ),
+          )
+          .where((item) => item.id.isNotEmpty && item.label.isNotEmpty)
+          .toList();
+      for (final item in items) {
+        _rememberOptionId(id: item.id, label: item.label);
+      }
+      if (items.isNotEmpty) _founderCategoryOptions = items;
     } catch (_) {
       // Keep local fallback options.
     }
@@ -593,6 +619,181 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  Future<void> _loadStates(String countryCode) async {
+    try {
+      final res = await Dio().get(
+        '${AppConfig.publicBaseUrl}${ApiEndpoints.publicStates}',
+        queryParameters: {'countryCode': countryCode},
+      );
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final states = raw
+          .whereType<Map>()
+          .map((item) => _StateOption.fromJson(Map<String, dynamic>.from(item)))
+          .where((item) => item.name.isNotEmpty)
+          .toList();
+      if (!mounted) return;
+      setState(() => _stateOptions = states);
+    } catch (_) {
+      // Keep Google location fallback for state selection.
+    }
+  }
+
+  void _setStateOption(_StateOption state) {
+    setState(() => _stateLocation.text = state.name);
+    _formKey.currentState?.validate();
+  }
+
+  Future<List<_PublicOption>> _loadPublicOptions(
+    String endpoint, {
+    Map<String, dynamic>? query,
+  }) async {
+    final res = await Dio().get(
+      '${AppConfig.baseUrl}$endpoint',
+      queryParameters: query,
+    );
+    final raw = res.data is Map<String, dynamic>
+        ? (res.data as Map<String, dynamic>)['data']
+        : null;
+    if (raw is! List) return const [];
+    final items = raw
+        .whereType<Map>()
+        .where((item) => item['status'] == null || item['status'] == 'active')
+        .map(
+          (item) => _PublicOption.fromJson(
+            Map<String, dynamic>.from(item),
+            labelKeys: const ['name', 'label', 'value'],
+          ),
+        )
+        .where((item) => item.id.isNotEmpty && item.label.isNotEmpty)
+        .toList();
+    for (final item in items) {
+      _rememberOptionId(id: item.id, label: item.label);
+    }
+    return items;
+  }
+
+  Future<void> _loadCategoriesForIndustry(_PublicOption industry) async {
+    setState(() => _isLoadingCategories = true);
+    try {
+      final items = await _loadPublicOptions(
+        ApiEndpoints.publicCategories,
+        query: {
+          'industryId': industry.id,
+          'page': 1,
+          'limit': 50,
+          'pageSize': 50,
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _categoryPublicOptions = items;
+        _isLoadingCategories = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingCategories = false);
+    }
+  }
+
+  Future<void> _loadSkillsForCategory(_PublicOption category) async {
+    setState(() => _isLoadingSkills = true);
+    try {
+      final items = await _loadPublicOptions(
+        ApiEndpoints.publicSkills,
+        query: {
+          'categoryId': category.id,
+          'page': 1,
+          'limit': 50,
+          'pageSize': 50,
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _skillPublicOptions = items;
+        _isLoadingSkills = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingSkills = false);
+    }
+  }
+
+  void _onIndustryChanged(_PublicOption? value) {
+    setState(() {
+      _selectedIndustry = value;
+      _categoryOption = null;
+      _clientProjectCategory = null;
+      _categoryPublicOptions = const [];
+      _skillPublicOptions = const [];
+      _skills.clear();
+      _projectPreferredSkills.clear();
+      _industry.text = value?.label ?? '';
+    });
+    if (value != null) _loadCategoriesForIndustry(value);
+  }
+
+  void _onCategoryChanged(_PublicOption? value) {
+    setState(() {
+      _categoryOption = value;
+      _skillPublicOptions = const [];
+      _skills.clear();
+      if (_clientProjectCategory?.id == value?.id) {
+        _clientProjectCategory = null;
+        _projectPreferredSkills.clear();
+      }
+    });
+    if (value != null) _loadSkillsForCategory(value);
+  }
+
+  void _onClientProjectCategoryChanged(_PublicOption? value) {
+    setState(() {
+      _clientProjectCategory = value;
+      _skillPublicOptions = const [];
+      _projectPreferredSkills.clear();
+    });
+    if (value != null) _loadSkillsForCategory(value);
+  }
+
+  void _onFounderProfileCategoryChanged(_PublicOption? value) {
+    setState(() {
+      _founderProfileCategory = value;
+      _skillPublicOptions = const [];
+      _skills.clear();
+    });
+    if (value != null) _loadSkillsForCategory(value);
+  }
+
+  void _onFounderTaxonomyCategoryChanged(_PublicOption? value) {
+    setState(() {
+      _founderTaxonomyCategory = value;
+      _founderSubCategory = null;
+      _skillPublicOptions = const [];
+    });
+    if (value != null) _loadSkillsForCategory(value);
+  }
+
+  void _onPortfolioIndustryChanged(_PublicOption? value) {
+    setState(() {
+      _portfolioIndustryOption = value;
+      _portfolioCategoryOption = null;
+      _categoryPublicOptions = const [];
+      _skillPublicOptions = const [];
+      _portfolioIndustry.text = value?.label ?? '';
+      _portfolioTechStack.clear();
+    });
+    if (value != null) _loadCategoriesForIndustry(value);
+  }
+
+  void _onPortfolioCategoryChanged(_PublicOption? value) {
+    setState(() {
+      _portfolioCategoryOption = value;
+      _skillPublicOptions = const [];
+      _portfolioTechStack.clear();
+    });
+    if (value != null) _loadSkillsForCategory(value);
+  }
+
   String? _validatePhone(String? value) => PhoneValidation.validateMobile(
     value: value,
     countryIsoCode: _countryIsoCode,
@@ -608,7 +809,7 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => _isSendingOtp = true);
     try {
       final res = await Dio().post(
-        '${AppConfig.baseUrl}${ApiEndpoints.sendEmailVerification}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.sendOtp}',
         data: {'email': email},
       );
       if (!mounted) return;
@@ -646,7 +847,7 @@ class _SignupPageState extends State<SignupPage> {
     setState(() => _isVerifyingOtp = true);
     try {
       final res = await Dio().post(
-        '${AppConfig.baseUrl}${ApiEndpoints.verifyEmailVerification}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.verifyOtp}',
         data: {'email': email, 'otp': otp},
       );
       if (!mounted) return;
@@ -685,16 +886,16 @@ class _SignupPageState extends State<SignupPage> {
       case 'Account':
         return _formKey.currentState?.validate() ?? false;
       case 'Category':
-        if (_category == null || _category!.trim().isEmpty) {
+        if (_selectedIndustry == null && _effectiveIndustryOptions.isNotEmpty) {
+          context.showSnack('Please choose an industry', isError: true);
+          return false;
+        }
+        if (_categoryPublicOptions.isNotEmpty && _categoryOption == null) {
           context.showSnack('Please choose a category', isError: true);
           return false;
         }
         return true;
       case 'Skills & Experience':
-        if (_skills.text.trim().isEmpty) {
-          context.showSnack('Please enter top skills', isError: true);
-          return false;
-        }
         if (_experience.text.trim().isEmpty) {
           context.showSnack('Please enter years of experience', isError: true);
           return false;
@@ -706,44 +907,223 @@ class _SignupPageState extends State<SignupPage> {
           return false;
         }
         return true;
+      case 'Profile':
+        if (_role == UserRole.client) {
+          if (_businessName.text.trim().isEmpty) {
+            context.showSnack('Please enter company name', isError: true);
+            return false;
+          }
+          if (_businessDescription.text.trim().isEmpty) {
+            context.showSnack(
+              'Please enter company description',
+              isError: true,
+            );
+            return false;
+          }
+          if (_selectedIndustry == null) {
+            context.showSnack('Please choose industry', isError: true);
+            return false;
+          }
+          if (_teamSize == null || _teamSize!.trim().isEmpty) {
+            context.showSnack('Please choose team size', isError: true);
+            return false;
+          }
+        }
+        if (_role == UserRole.investor) {
+          if (_investorCompanyFund.text.trim().isEmpty) {
+            context.showSnack('Please enter company name', isError: true);
+            return false;
+          }
+          if (_ticketSize == null) {
+            context.showSnack('Please choose ticket size', isError: true);
+            return false;
+          }
+          if (_stagePreferencesSelected.isEmpty) {
+            context.showSnack('Please choose stage preference', isError: true);
+            return false;
+          }
+          if (_investmentModesSelected.isEmpty) {
+            context.showSnack('Please choose investment mode', isError: true);
+            return false;
+          }
+          if (_targetIndustriesSelected.isEmpty) {
+            context.showSnack('Please choose categories', isError: true);
+            return false;
+          }
+        }
+        if (_role == UserRole.founder) {
+          if (_bio.text.trim().isEmpty) {
+            context.showSnack('Please enter bio', isError: true);
+            return false;
+          }
+          if (_founderProfileCategory == null) {
+            context.showSnack('Please choose category', isError: true);
+            return false;
+          }
+          if (_experience.text.trim().isEmpty) {
+            context.showSnack('Please enter experience', isError: true);
+            return false;
+          }
+          if (_teamSize == null || _teamSize!.trim().isEmpty) {
+            context.showSnack('Please choose team size', isError: true);
+            return false;
+          }
+        }
+        return true;
       case 'Business type':
         if (_businessType == null || _businessType!.trim().isEmpty) {
           context.showSnack('Please choose business type', isError: true);
           return false;
         }
         return true;
-      case 'Services & Requirements':
-        if (_primaryService == null || _primaryService!.trim().isEmpty) {
-          context.showSnack('Please choose primary service', isError: true);
+      case 'Investor type':
+        if (_investorType == null || _investorType!.trim().isEmpty) {
+          context.showSnack('Please choose investor type', isError: true);
           return false;
         }
-        if (_primarySubService == null || _primarySubService!.trim().isEmpty) {
-          context.showSnack('Please choose sub-service', isError: true);
+        return true;
+      case 'Founder type':
+        if (_founderType == null || _founderType!.trim().isEmpty) {
+          context.showSnack('Please choose founder type', isError: true);
+          return false;
+        }
+        return true;
+      case 'Startup Details':
+        if (_startupName.text.trim().isEmpty) {
+          context.showSnack('Please enter startup name', isError: true);
+          return false;
+        }
+        if (_startupStage == null || _startupStage!.trim().isEmpty) {
+          context.showSnack('Please choose startup stage', isError: true);
+          return false;
+        }
+        if (_shortPitch.text.trim().isEmpty) {
+          context.showSnack('Please enter pitch', isError: true);
+          return false;
+        }
+        if (_longDescription.text.trim().isEmpty) {
+          context.showSnack('Please enter description', isError: true);
+          return false;
+        }
+        if (_problemStatement.text.trim().isEmpty) {
+          context.showSnack('Please enter problem statement', isError: true);
+          return false;
+        }
+        if (_solution.text.trim().isEmpty) {
+          context.showSnack('Please enter solution', isError: true);
+          return false;
+        }
+        if (_targetCustomers.text.trim().isEmpty) {
+          context.showSnack('Please enter target customers', isError: true);
+          return false;
+        }
+        if (_startupDocumentName == null) {
+          context.showSnack('Please upload startup file', isError: true);
+          return false;
+        }
+        return true;
+      case 'Badges':
+        if (_educationInstitution.text.trim().isEmpty ||
+            _educationQualification.text.trim().isEmpty ||
+            _educationSpecialization.text.trim().isEmpty ||
+            _educationYear.text.trim().isEmpty) {
+          context.showSnack(
+            'Please complete all education fields',
+            isError: true,
+          );
+          return false;
+        }
+        if (_educationDocumentName == null) {
+          context.showSnack('Please upload education file', isError: true);
+          return false;
+        }
+        return true;
+      case 'Taxonomy':
+        if (_role == UserRole.founder && _founderTaxonomyCategory == null) {
+          context.showSnack('Please choose primary category', isError: true);
+          return false;
+        }
+        return true;
+      case 'Services & Requirements':
+        if (_selectedIndustry == null && _effectiveIndustryOptions.isNotEmpty) {
+          context.showSnack(
+            'Please choose an industry in Profile',
+            isError: true,
+          );
+          return false;
+        }
+        if (_categoryPublicOptions.isNotEmpty && _categoryOption == null) {
+          context.showSnack('Please choose category', isError: true);
           return false;
         }
         return true;
       case 'Looking For':
-        if (_lookingForGoal == null || _lookingForGoal!.trim().isEmpty) {
-          context.showSnack('Please choose your goal', isError: true);
+        if (_lookingForGoals.isEmpty) {
+          context.showSnack('Please choose at least one goal', isError: true);
           return false;
         }
         return true;
       case 'Expansion':
-        if (_expansionGoal == null || _expansionGoal!.trim().isEmpty) {
-          context.showSnack('Please choose expansion goal', isError: true);
+        if (_expansionGoals.isEmpty) {
+          context.showSnack(
+            'Please choose at least one expansion goal',
+            isError: true,
+          );
+          return false;
+        }
+        return true;
+      case 'Goals':
+        if (_role == UserRole.investor && _investorGoals.isEmpty) {
+          context.showSnack('Please choose at least one goal', isError: true);
+          return false;
+        }
+        if (_role == UserRole.founder && _founderGoalsSelected.isEmpty) {
+          context.showSnack('Please choose at least one goal', isError: true);
+          return false;
+        }
+        return true;
+      case 'Projects':
+        final hasTitle = _projectTitle.text.trim().isNotEmpty;
+        if (!hasTitle) return true;
+        if (_projectDescription.text.trim().isEmpty) {
+          context.showSnack('Please enter project description', isError: true);
+          return false;
+        }
+        if (_clientProjectCategory == null) {
+          context.showSnack('Please choose project category', isError: true);
+          return false;
+        }
+        if (_projectSelectedSkills.isEmpty) {
+          context.showSnack('Please choose project skills', isError: true);
+          return false;
+        }
+        if (_projectBudget.text.trim().isEmpty) {
+          context.showSnack('Please enter project budget', isError: true);
+          return false;
+        }
+        if (_projectTimeline.text.trim().isEmpty) {
+          context.showSnack('Please enter project timeline', isError: true);
           return false;
         }
         return true;
       case 'Verification':
-        if (_role == UserRole.investor || _role == UserRole.founder) {
-          if (!_isEmailVerified) {
-            context.showSnack(
-              'Please verify your email address',
-              isError: true,
-            );
-            return false;
-          }
-          return true;
+        final phoneError = _validatePhone(_phone.text);
+        if (phoneError != null) {
+          context.showSnack(phoneError, isError: true);
+          return false;
+        }
+        final passwordError = Validators.password(_password.text);
+        if (passwordError != null) {
+          context.showSnack(passwordError, isError: true);
+          return false;
+        }
+        final confirmError = Validators.confirmPassword(
+          _confirm.text,
+          _password.text,
+        );
+        if (confirmError != null) {
+          context.showSnack(confirmError, isError: true);
+          return false;
         }
         if (!_isEmailVerified) {
           context.showSnack('Please verify your email address', isError: true);
@@ -781,6 +1161,220 @@ class _SignupPageState extends State<SignupPage> {
     }
   }
 
+  String? _selectedCountryId() {
+    for (final country in _countryOptions) {
+      if (country.name == _country.text.trim()) return country.id;
+    }
+    return null;
+  }
+
+  String? _selectedStateId() {
+    for (final state in _stateOptions) {
+      if (state.name == _stateLocation.text.trim()) return state.id;
+    }
+    return null;
+  }
+
+  List<String> _idsForOptions(List<String> values) =>
+      values.map(_idForOption).where((item) => item.isNotEmpty).toList();
+
+  void _putIfNotEmpty(Map<String, dynamic> data, String key, Object? value) {
+    if (value == null) return;
+    if (value is String && value.trim().isEmpty) return;
+    if (value is Iterable && value.isEmpty) return;
+    data[key] = value;
+  }
+
+  Map<String, dynamic> _baseSignupPayload() {
+    final data = <String, dynamic>{};
+    _putIfNotEmpty(data, 'countryId', _selectedCountryId());
+    _putIfNotEmpty(data, 'stateId', _selectedStateId());
+    _putIfNotEmpty(data, 'city', _city.text.trim());
+    data['verification'] = {
+      'emailVerified': _isEmailVerified,
+      'aadhaar': _aadhaar.text.trim(),
+      'pan': _pan.text.trim().toUpperCase(),
+      'document': _verificationDocName,
+      'acceptedTerms': _agree,
+    };
+    return data;
+  }
+
+  Map<String, dynamic> _roleSignupPayload() {
+    final data = _baseSignupPayload();
+    switch (_role) {
+      case UserRole.freelancer:
+        _putIfNotEmpty(data, 'industryId', _selectedIndustry?.id);
+        _putIfNotEmpty(data, 'categoryId', _categoryOption?.id);
+        _putIfNotEmpty(data, 'skills', _idsForOptions(_selectedSkills));
+        _putIfNotEmpty(data, 'experienceYears', _experience.text.trim());
+        _putIfNotEmpty(data, 'bio', _bio.text.trim());
+        _putIfNotEmpty(data, 'linkedinUrl', _linkedin.text.trim());
+        _putIfNotEmpty(data, 'githubUrl', _github.text.trim());
+        _putIfNotEmpty(data, 'portfolioUrl', _portfolioUrl.text.trim());
+        _putIfNotEmpty(data, 'hourlyRate', _hourlyRate.text.trim());
+        data['portfolio'] = {
+          'title': _portfolioTitle.text.trim(),
+          'industryId': _portfolioIndustryOption?.id,
+          'categoryId': _portfolioCategoryOption?.id,
+          'skills': _idsForOptions(_portfolioSelectedSkills),
+          'status': _portfolioStatus,
+          'client': _portfolioClient.text.trim(),
+          'duration': _portfolioDuration.text.trim(),
+          'teamSizeId': _portfolioTeamSize == null
+              ? null
+              : _idForOption(_portfolioTeamSize!),
+          'role': _portfolioRole.text.trim(),
+          'githubUrl': _portfolioGithub.text.trim(),
+          'liveUrl': _portfolioLiveUrl.text.trim(),
+          'overview': _portfolioOverview.text.trim(),
+          'coverImage': _portfolioCoverName,
+          'videoDemo': _portfolioVideoName,
+          'caseStudy': _portfolioCaseStudyName,
+          'screenshot': _portfolioScreenshotName,
+        };
+        data['education'] = {
+          'institution': _educationInstitution.text.trim(),
+          'qualification': _educationQualification.text.trim(),
+          'specialization': _educationSpecialization.text.trim(),
+          'year': _educationYear.text.trim(),
+          'document': _educationDocumentName,
+        };
+        data['certificate'] = {
+          'name': _certificateName.text.trim(),
+          'issuer': _certificateIssuer.text.trim(),
+          'issueDate': _certificateIssueDate.text.trim(),
+          'url': _certificateUrl.text.trim(),
+          'document': _certificateDocumentName,
+        };
+        break;
+      case UserRole.client:
+        _putIfNotEmpty(
+          data,
+          'businessTypeId',
+          _businessType == null ? null : _idForOption(_businessType!),
+        );
+        _putIfNotEmpty(data, 'businessName', _businessName.text.trim());
+        _putIfNotEmpty(
+          data,
+          'businessDescription',
+          _businessDescription.text.trim(),
+        );
+        _putIfNotEmpty(data, 'website', _website.text.trim());
+        _putIfNotEmpty(data, 'industryId', _selectedIndustry?.id);
+        _putIfNotEmpty(
+          data,
+          'teamSizeId',
+          _teamSize == null ? null : _idForOption(_teamSize!),
+        );
+        _putIfNotEmpty(data, 'gstNumber', _gstNumber.text.trim());
+        _putIfNotEmpty(
+          data,
+          'annualRequirement',
+          _annualRequirement.text.trim(),
+        );
+        _putIfNotEmpty(data, 'serviceLocation', _serviceLocation.text.trim());
+        _putIfNotEmpty(data, 'categoryId', _categoryOption?.id);
+        _putIfNotEmpty(data, 'skills', _idsForOptions(_selectedSkills));
+        _putIfNotEmpty(data, 'clientGoals', _idsForOptions(_lookingForGoals));
+        data['project'] = {
+          'title': _projectTitle.text.trim(),
+          'description': _projectDescription.text.trim(),
+          'categoryId': _clientProjectCategory?.id,
+          'skills': _idsForOptions(_projectSelectedSkills),
+          'budget': _projectBudget.text.trim(),
+          'timeline': _projectTimeline.text.trim(),
+          'locationPreference': _projectLocationPreference.text.trim(),
+          'remoteType': _remoteType,
+          'urgency': _urgency,
+        };
+        _putIfNotEmpty(data, 'expansionGoals', _idsForOptions(_expansionGoals));
+        break;
+      case UserRole.investor:
+        _putIfNotEmpty(
+          data,
+          'investorTypeId',
+          _investorType == null ? null : _idForOption(_investorType!),
+        );
+        _putIfNotEmpty(
+          data,
+          'companyFundName',
+          _investorCompanyFund.text.trim(),
+        );
+        _putIfNotEmpty(data, 'linkedinUrl', _linkedin.text.trim());
+        _putIfNotEmpty(data, 'website', _website.text.trim());
+        _putIfNotEmpty(data, 'bio', _bio.text.trim());
+        _putIfNotEmpty(data, 'ticketSizeId', _ticketSize);
+        _putIfNotEmpty(data, 'minTicket', _minTicket.text.trim());
+        _putIfNotEmpty(data, 'maxTicket', _maxTicket.text.trim());
+        _putIfNotEmpty(
+          data,
+          'stagePreferences',
+          _idsForOptions(_stagePreferencesSelected),
+        );
+        _putIfNotEmpty(
+          data,
+          'investmentModes',
+          _idsForOptions(_investmentModesSelected),
+        );
+        _putIfNotEmpty(
+          data,
+          'categories',
+          _idsForOptions(_targetIndustriesSelected),
+        );
+        _putIfNotEmpty(data, 'goals', _idsForOptions(_investorGoals));
+        break;
+      case UserRole.founder:
+        _putIfNotEmpty(
+          data,
+          'founderTypeId',
+          _founderType == null ? null : _idForOption(_founderType!),
+        );
+        _putIfNotEmpty(data, 'bio', _bio.text.trim());
+        _putIfNotEmpty(data, 'profileCategoryId', _founderProfileCategory?.id);
+        _putIfNotEmpty(data, 'skills', _idsForOptions(_selectedSkills));
+        _putIfNotEmpty(data, 'experienceYears', _experience.text.trim());
+        _putIfNotEmpty(data, 'education', _education.text.trim());
+        _putIfNotEmpty(data, 'linkedinUrl', _linkedin.text.trim());
+        _putIfNotEmpty(data, 'portfolioUrl', _portfolioUrl.text.trim());
+        _putIfNotEmpty(
+          data,
+          'teamSizeId',
+          _teamSize == null ? null : _idForOption(_teamSize!),
+        );
+        data['startup'] = {
+          'name': _startupName.text.trim(),
+          'stageId': _startupStage == null
+              ? null
+              : _idForOption(_startupStage!),
+          'shortPitch': _shortPitch.text.trim(),
+          'longDescription': _longDescription.text.trim(),
+          'problemStatement': _problemStatement.text.trim(),
+          'solution': _solution.text.trim(),
+          'targetCustomers': _targetCustomers.text.trim(),
+          'marketSize': _marketSize.text.trim(),
+          'businessModel': _businessModel.text.trim(),
+          'revenueModel': _revenueModel.text.trim(),
+          'currentProgress': _currentProgress.text.trim(),
+          'fundingRequired': _fundingRequired.text.trim(),
+          'equityOffered': _equityOffered.text.trim(),
+          'pitchDeck': _startupDocumentName,
+          'demoLink': _demoLink.text.trim(),
+        };
+        data['taxonomy'] = {
+          'primaryCategoryId': _founderTaxonomyCategory?.id,
+          'skills': _founderSubCategory == null
+              ? const <String>[]
+              : [_idForOption(_founderSubCategory!)],
+        };
+        _putIfNotEmpty(data, 'goals', _idsForOptions(_founderGoalsSelected));
+        break;
+      case null:
+        break;
+    }
+    return data;
+  }
+
   void _submit(AuthState state) {
     if (state.isSubmitting || _role == null) return;
     context.read<AuthBloc>().add(
@@ -790,6 +1384,7 @@ class _SignupPageState extends State<SignupPage> {
         phone: _phone.text.trim(),
         countryCode: _countryCode,
         password: _password.text,
+        signupData: _roleSignupPayload(),
       ),
     );
     context.read<AuthBloc>().add(AuthRoleSelected(_role!));
@@ -837,39 +1432,82 @@ class _SignupPageState extends State<SignupPage> {
     });
   }
 
-  Future<void> _pickPortfolioDocument() async {
+  Future<void> _pickPortfolioMedia(_PortfolioMediaType type) async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const [
-        'pdf',
-        'doc',
-        'docx',
-        'xls',
-        'xlsx',
-        'ppt',
-        'pptx',
-      ],
+      allowedExtensions: switch (type) {
+        _PortfolioMediaType.cover => const ['jpg', 'jpeg', 'png', 'webp'],
+        _PortfolioMediaType.video => const ['mp4', 'mov'],
+        _PortfolioMediaType.caseStudy => const ['pdf'],
+        _PortfolioMediaType.screenshot => const ['jpg', 'jpeg', 'png', 'webp'],
+      },
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
-    setState(() => _portfolioDocName = file.name);
+    setState(() {
+      switch (type) {
+        case _PortfolioMediaType.cover:
+          _portfolioCoverName = file.name;
+        case _PortfolioMediaType.video:
+          _portfolioVideoName = file.name;
+        case _PortfolioMediaType.caseStudy:
+          _portfolioCaseStudyName = file.name;
+        case _PortfolioMediaType.screenshot:
+          _portfolioScreenshotName = file.name;
+      }
+    });
+  }
+
+  Future<void> _pickEducationDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
+    );
+    final file = result?.files.single;
+    if (file == null || !mounted) return;
+    setState(() => _educationDocumentName = file.name);
+  }
+
+  Future<void> _pickCertificateDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf'],
+    );
+    final file = result?.files.single;
+    if (file == null || !mounted) return;
+    setState(() => _certificateDocumentName = file.name);
+  }
+
+  Future<void> _pickStartupDocument() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+    );
+    final file = result?.files.single;
+    if (file == null || !mounted) return;
+    setState(() => _startupDocumentName = file.name);
+  }
+
+  Future<void> _pickCertificateIssueDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: now,
+      firstDate: DateTime(1950),
+      lastDate: now,
+    );
+    if (picked == null || !mounted) return;
+    final month = picked.month.toString().padLeft(2, '0');
+    final day = picked.day.toString().padLeft(2, '0');
+    setState(() {
+      _certificateIssueDate.text = '${picked.year}-$month-$day';
+    });
   }
 
   Future<void> _pickVerificationDocument() async {
     final result = await FilePicker.platform.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const [
-        'jpg',
-        'jpeg',
-        'png',
-        'pdf',
-        'doc',
-        'docx',
-        'xls',
-        'xlsx',
-        'ppt',
-        'pptx',
-      ],
+      allowedExtensions: const ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
@@ -961,25 +1599,21 @@ class _SignupPageState extends State<SignupPage> {
             formKey: _formKey,
             name: _name,
             email: _email,
-            phone: _phone,
-            password: _password,
-            confirm: _confirm,
             country: _country,
             countryOptions: _countryOptions,
             stateLocation: _stateLocation,
+            stateOptions: _stateOptions,
             city: _city,
-            countryIsoCode: _countryIsoCode,
-            onCountryChanged: _setCountryCode,
             onCountrySelected: _setCountryOption,
             onCountryPlaceSelected: (place) =>
                 _keepPlaceNameOnly(_country, place),
+            onStateSelected: _setStateOption,
             onStatePlaceSelected: (place) =>
                 _keepPlaceNameOnly(_stateLocation, place),
             onCityPlaceSelected: (place) => _keepPlaceNameOnly(_city, place),
             onEmailChanged: (_) {
               if (_isEmailVerified) setState(() => _isEmailVerified = false);
             },
-            validatePhone: _validatePhone,
           );
         }
         if (_role == UserRole.founder) {
@@ -987,29 +1621,21 @@ class _SignupPageState extends State<SignupPage> {
             formKey: _formKey,
             name: _name,
             email: _email,
-            phone: _phone,
-            password: _password,
-            confirm: _confirm,
-            founderType: _founderType,
-            founderTypeOptions: _founderTypeOptions,
             country: _country,
             countryOptions: _countryOptions,
             stateLocation: _stateLocation,
+            stateOptions: _stateOptions,
             city: _city,
-            countryIsoCode: _countryIsoCode,
-            onCountryChanged: _setCountryCode,
             onCountrySelected: _setCountryOption,
-            onFounderTypeChanged: (value) =>
-                setState(() => _founderType = value),
             onCountryPlaceSelected: (place) =>
                 _keepPlaceNameOnly(_country, place),
+            onStateSelected: _setStateOption,
             onStatePlaceSelected: (place) =>
                 _keepPlaceNameOnly(_stateLocation, place),
             onCityPlaceSelected: (place) => _keepPlaceNameOnly(_city, place),
             onEmailChanged: (_) {
               if (_isEmailVerified) setState(() => _isEmailVerified = false);
             },
-            validatePhone: _validatePhone,
           );
         }
         if (_role == UserRole.client) {
@@ -1017,57 +1643,52 @@ class _SignupPageState extends State<SignupPage> {
             formKey: _formKey,
             name: _name,
             email: _email,
-            phone: _phone,
-            password: _password,
-            confirm: _confirm,
-            businessName: _businessName,
             country: _country,
             countryOptions: _countryOptions,
             stateLocation: _stateLocation,
+            stateOptions: _stateOptions,
             city: _city,
-            countryIsoCode: _countryIsoCode,
-            onCountryChanged: _setCountryCode,
             onCountrySelected: _setCountryOption,
             onCountryPlaceSelected: (place) =>
                 _keepPlaceNameOnly(_country, place),
+            onStateSelected: _setStateOption,
             onStatePlaceSelected: (place) =>
                 _keepPlaceNameOnly(_stateLocation, place),
             onCityPlaceSelected: (place) => _keepPlaceNameOnly(_city, place),
             onEmailChanged: (_) {
               if (_isEmailVerified) setState(() => _isEmailVerified = false);
             },
-            validatePhone: _validatePhone,
           );
         }
         return _AccountStep(
           formKey: _formKey,
           name: _name,
           email: _email,
-          phone: _phone,
-          password: _password,
-          confirm: _confirm,
           country: _country,
           countryOptions: _countryOptions,
           stateLocation: _stateLocation,
+          stateOptions: _stateOptions,
           city: _city,
-          countryIsoCode: _countryIsoCode,
-          onCountryChanged: _setCountryCode,
           onCountrySelected: _setCountryOption,
           onCountryPlaceSelected: (place) =>
               _keepPlaceNameOnly(_country, place),
+          onStateSelected: _setStateOption,
           onStatePlaceSelected: (place) =>
               _keepPlaceNameOnly(_stateLocation, place),
           onCityPlaceSelected: (place) => _keepPlaceNameOnly(_city, place),
           onEmailChanged: (_) {
             if (_isEmailVerified) setState(() => _isEmailVerified = false);
           },
-          validatePhone: _validatePhone,
         );
       case 'Category':
         return _CategoryStep(
-          category: _category,
-          categories: _industryOptions,
-          onChanged: (value) => setState(() => _category = value),
+          industry: _selectedIndustry,
+          category: _categoryOption,
+          industries: _effectiveIndustryOptions,
+          categories: _categoryPublicOptions,
+          isLoadingCategories: _isLoadingCategories,
+          onIndustryChanged: _onIndustryChanged,
+          onCategoryChanged: _onCategoryChanged,
         );
       case 'Skills & Experience':
         return _SkillsStep(
@@ -1075,6 +1696,8 @@ class _SignupPageState extends State<SignupPage> {
           experience: _experience,
           bio: _bio,
           selectedSkills: _selectedSkills,
+          skillOptions: _effectiveSkillOptions,
+          isLoadingSkills: _isLoadingSkills,
           onSkillSelected: _addSkill,
           onSkillRemoved: _removeSkill,
           onManualSkillsChanged: (_) => setState(() {}),
@@ -1088,18 +1711,37 @@ class _SignupPageState extends State<SignupPage> {
             linkedin: _linkedin,
             website: _website,
             bio: _bio,
-            minTicket: _minTicket,
-            maxTicket: _maxTicket,
-            stagePreference: _stagePreference,
-            investmentMode: _investmentMode,
-            targetIndustry: _targetIndustry,
+            ticketSize: _ticketSize,
+            ticketOptions: _ticketSizeOptions,
+            stagePreferences: _stagePreferencesSelected,
+            investmentModes: _investmentModesSelected,
+            targetIndustries: _targetIndustriesSelected,
             stageOptions: _stagePreferenceOptions,
+            investmentModeOptions: _investmentModeOptions,
             industryOptions: _targetIndustryOptions,
             onPickProfilePhoto: _openProfilePhotoPicker,
-            onStageChanged: (value) => setState(() => _stagePreference = value),
-            onModeChanged: (value) => setState(() => _investmentMode = value),
+            onTicketChanged: (value) {
+              _TicketOption? ticket;
+              for (final option in _ticketSizeOptions) {
+                if (option.id == value) {
+                  ticket = option;
+                  break;
+                }
+              }
+              setState(() {
+                _ticketSize = value;
+                if (ticket != null) {
+                  _minTicket.text = ticket.min?.toString() ?? '';
+                  _maxTicket.text = ticket.max?.toString() ?? '';
+                }
+              });
+            },
+            onStageChanged: (value) =>
+                _toggleSelection(_stagePreferencesSelected, value),
+            onModeChanged: (value) =>
+                _toggleSelection(_investmentModesSelected, value),
             onIndustryChanged: (value) =>
-                setState(() => _targetIndustry = value),
+                _toggleSelection(_targetIndustriesSelected, value),
           );
         }
         if (_role == UserRole.founder) {
@@ -1113,6 +1755,18 @@ class _SignupPageState extends State<SignupPage> {
             linkedin: _linkedin,
             portfolioUrl: _portfolioUrl,
             teamSize: _teamSize,
+            teamSizeOptions: _teamSizeOptions,
+            category: _founderProfileCategory,
+            categoryOptions: _founderCategoryOptions,
+            selectedSkills: _selectedSkills,
+            skillOptions: _founderProfileCategory == null
+                ? const []
+                : _effectiveSkillOptions,
+            isLoadingSkills: _isLoadingSkills,
+            onCategoryChanged: _onFounderProfileCategoryChanged,
+            onSkillSelected: _addSkill,
+            onSkillRemoved: _removeSkill,
+            onManualSkillsChanged: (_) => setState(() {}),
             onPickProfilePhoto: _openProfilePhotoPicker,
             onTeamSizeChanged: (value) => setState(() => _teamSize = value),
           );
@@ -1121,14 +1775,18 @@ class _SignupPageState extends State<SignupPage> {
           return _ClientProfileStep(
             logoName: _profilePhotoName,
             logoPreview: _profilePhotoPreview,
+            businessName: _businessName,
             businessDescription: _businessDescription,
             website: _website,
-            industry: _industry,
+            industry: _selectedIndustry,
+            industryOptions: _effectiveIndustryOptions,
             gstNumber: _gstNumber,
             teamSize: _teamSize,
+            teamSizeOptions: _teamSizeOptions,
             annualRequirement: _annualRequirement,
             serviceLocation: _serviceLocation,
             onPickLogo: _openProfilePhotoPicker,
+            onIndustryChanged: _onIndustryChanged,
             onTeamSizeChanged: (value) => setState(() => _teamSize = value),
           );
         }
@@ -1144,13 +1802,62 @@ class _SignupPageState extends State<SignupPage> {
         return _BudgetStep(hourlyRate: _hourlyRate);
       case 'Portfolios':
         return _PortfolioUploadsStep(
-          portfolioDocName: _portfolioDocName,
-          onPickPortfolioDocument: _pickPortfolioDocument,
+          title: _portfolioTitle,
+          selectedIndustry: _portfolioIndustryOption,
+          industryOptions: _effectiveIndustryOptions,
+          category: _portfolioCategoryOption,
+          categoryOptions: _categoryPublicOptions,
+          selectedSkills: _portfolioSelectedSkills,
+          skillOptions: _portfolioCategoryOption == null
+              ? const []
+              : _effectiveSkillOptions,
+          isLoadingCategories: _isLoadingCategories,
+          isLoadingSkills: _isLoadingSkills,
+          status: _portfolioStatus,
+          client: _portfolioClient,
+          industry: _portfolioIndustry,
+          techStack: _portfolioTechStack,
+          duration: _portfolioDuration,
+          teamSize: _portfolioTeamSize,
+          teamSizeOptions: _teamSizeOptions,
+          role: _portfolioRole,
+          githubUrl: _portfolioGithub,
+          liveUrl: _portfolioLiveUrl,
+          overview: _portfolioOverview,
+          coverName: _portfolioCoverName,
+          videoName: _portfolioVideoName,
+          caseStudyName: _portfolioCaseStudyName,
+          screenshotName: _portfolioScreenshotName,
+          onIndustryChanged: _onPortfolioIndustryChanged,
+          onCategoryChanged: _onPortfolioCategoryChanged,
+          onSkillSelected: _addPortfolioSkill,
+          onSkillRemoved: _removePortfolioSkill,
+          onManualSkillsChanged: (_) => setState(() {}),
+          onStatusChanged: (value) => setState(() => _portfolioStatus = value),
+          onTeamSizeChanged: (value) =>
+              setState(() => _portfolioTeamSize = value),
+          onPickCover: () => _pickPortfolioMedia(_PortfolioMediaType.cover),
+          onPickVideo: () => _pickPortfolioMedia(_PortfolioMediaType.video),
+          onPickCaseStudy: () =>
+              _pickPortfolioMedia(_PortfolioMediaType.caseStudy),
+          onPickScreenshot: () =>
+              _pickPortfolioMedia(_PortfolioMediaType.screenshot),
         );
       case 'Badges':
         return _BadgesStep(
-          certifications: _certifications,
-          education: _education,
+          institution: _educationInstitution,
+          qualification: _educationQualification,
+          specialization: _educationSpecialization,
+          year: _educationYear,
+          educationDocumentName: _educationDocumentName,
+          certificateName: _certificateName,
+          certificateIssuer: _certificateIssuer,
+          certificateIssueDate: _certificateIssueDate,
+          certificateDocumentName: _certificateDocumentName,
+          certificateUrl: _certificateUrl,
+          onPickEducationDocument: _pickEducationDocument,
+          onPickCertificateDocument: _pickCertificateDocument,
+          onPickCertificateIssueDate: _pickCertificateIssueDate,
         );
       case 'Billing':
         return _BillingStep(
@@ -1162,34 +1869,42 @@ class _SignupPageState extends State<SignupPage> {
         return _ClientBusinessTypeStep(
           value: _businessType,
           items: _businessTypeOptions,
+          label: 'Business Type *',
           onChanged: (value) => setState(() => _businessType = value),
+        );
+      case 'Founder type':
+        return _ClientBusinessTypeStep(
+          value: _founderType,
+          items: _founderTypeOptions,
+          label: 'Founder Type *',
+          onChanged: (value) => setState(() => _founderType = value),
         );
       case 'Services & Requirements':
         return _ClientServiceStep(
-          value: _primaryService,
-          subService: _primarySubService,
-          serviceMap: _clientProjectCategories,
-          onChanged: (value) => setState(() {
-            _primaryService = value;
-            _primarySubService = null;
-          }),
-          onSubServiceChanged: (value) =>
-              setState(() => _primarySubService = value),
+          industry: _selectedIndustry,
+          category: _categoryOption,
+          categories: _categoryPublicOptions,
+          selectedSkills: _selectedSkills,
+          skillOptions: _categoryOption == null
+              ? const []
+              : _effectiveSkillOptions,
+          isLoadingCategories: _isLoadingCategories,
+          isLoadingSkills: _isLoadingSkills,
+          onCategoryChanged: _onCategoryChanged,
+          onSkillSelected: _addSkill,
+          onSkillRemoved: _removeSkill,
         );
-      case 'Business Details':
-        return _ClientBusinessDetailsStep(companyName: _companyName);
       case 'Looking For':
-        return _SingleChoiceListStep(
-          title: 'What are your goals?',
-          options: _lookingForOptions,
-          value: _lookingForGoal,
-          onChanged: (value) => setState(() => _lookingForGoal = value),
+        return _MultiChoiceListStep(
+          title: 'What are your goals? *',
+          options: _clientGoalOptions,
+          values: _lookingForGoals,
+          onChanged: (value) => _toggleSelection(_lookingForGoals, value),
         );
       case 'Projects':
         return _ClientProjectsStep(
           title: _projectTitle,
           category: _clientProjectCategory,
-          subcategory: _clientProjectSubcategory,
           budget: _projectBudget,
           timeline: _projectTimeline,
           description: _projectDescription,
@@ -1197,22 +1912,27 @@ class _SignupPageState extends State<SignupPage> {
           locationPreference: _projectLocationPreference,
           remoteType: _remoteType,
           urgency: _urgency,
-          categoryMap: _clientProjectCategories,
-          onCategoryChanged: (value) => setState(() {
-            _clientProjectCategory = value;
-            _clientProjectSubcategory = null;
-          }),
-          onSubcategoryChanged: (value) =>
-              setState(() => _clientProjectSubcategory = value),
+          industry: _selectedIndustry,
+          categories: _categoryPublicOptions,
+          skillOptions: _clientProjectCategory == null
+              ? const []
+              : _effectiveSkillOptions,
+          selectedSkills: _projectSelectedSkills,
+          isLoadingCategories: _isLoadingCategories,
+          isLoadingSkills: _isLoadingSkills,
+          onCategoryChanged: _onClientProjectCategoryChanged,
+          onSkillSelected: _addProjectSkill,
+          onSkillRemoved: _removeProjectSkill,
+          onManualSkillsChanged: (_) => setState(() {}),
           onRemoteTypeChanged: (value) => setState(() => _remoteType = value),
           onUrgencyChanged: (value) => setState(() => _urgency = value),
         );
       case 'Expansion':
-        return _SingleChoiceListStep(
-          title: 'Business Expansion Goals',
-          options: _expansionOptions,
-          value: _expansionGoal,
-          onChanged: (value) => setState(() => _expansionGoal = value),
+        return _MultiChoiceListStep(
+          title: 'Business Expansion Goals *',
+          options: _expansionGoalOptions,
+          values: _expansionGoals,
+          onChanged: (value) => _toggleSelection(_expansionGoals, value),
         );
       case 'Subscription':
         return _BillingStep(
@@ -1224,6 +1944,7 @@ class _SignupPageState extends State<SignupPage> {
         return _ClientBusinessTypeStep(
           value: _investorType,
           items: _investorTypeOptions,
+          label: 'Investor Type *',
           onChanged: (value) => setState(() => _investorType = value),
         );
       case 'Startup Details':
@@ -1243,32 +1964,39 @@ class _SignupPageState extends State<SignupPage> {
           fundingRequired: _fundingRequired,
           equityOffered: _equityOffered,
           demoLink: _demoLink,
+          documentName: _startupDocumentName,
           onStageChanged: (value) => setState(() => _startupStage = value),
+          onPickDocument: _pickStartupDocument,
         );
       case 'Taxonomy':
         return _FounderTaxonomyStep(
-          category: _founderCategory,
-          subcategory: _founderSubCategory,
-          onCategoryChanged: (value) =>
-              setState(() => _founderCategory = value),
-          onSubcategoryChanged: (value) =>
+          category: _founderTaxonomyCategory,
+          skill: _founderSubCategory,
+          categories: _founderCategoryOptions,
+          skills: _founderTaxonomyCategory == null
+              ? const []
+              : _effectiveSkillOptions,
+          isLoadingSkills: _isLoadingSkills,
+          onCategoryChanged: _onFounderTaxonomyCategoryChanged,
+          onSkillChanged: (value) =>
               setState(() => _founderSubCategory = value),
         );
       case 'Goals':
         if (_role == UserRole.investor) {
-          return _TwoColumnChoiceStep(
-            title: 'Looking For (Intent)',
-            options: _investorIntents,
-            value: _investorIntent,
-            onChanged: (value) => setState(() => _investorIntent = value),
+          return _MultiChoiceListStep(
+            title: 'Looking For (Intent) *',
+            options: _investorGoalOptions,
+            values: _investorGoals,
+            onChanged: (value) => _toggleSelection(_investorGoals, value),
           );
         }
         if (_role == UserRole.founder) {
-          return _TwoColumnChoiceStep(
-            title: 'What are you looking for?',
+          return _MultiChoiceListStep(
+            title: 'What are you looking for? *',
             options: _founderGoals,
-            value: _founderGoal,
-            onChanged: (value) => setState(() => _founderGoal = value),
+            values: _founderGoalsSelected,
+            onChanged: (value) =>
+                _toggleSelection(_founderGoalsSelected, value),
           );
         }
         break;
@@ -1277,6 +2005,10 @@ class _SignupPageState extends State<SignupPage> {
           return _SimpleVerificationStep(
             email: _email,
             emailOtp: _emailOtp,
+            accountPhone: _phone,
+            countryIsoCode: _countryIsoCode,
+            password: _password,
+            confirm: _confirm,
             aadhaar: _aadhaar,
             pan: _pan,
             documentName: _verificationDocName,
@@ -1284,13 +2016,12 @@ class _SignupPageState extends State<SignupPage> {
             isSendingOtp: _isSendingOtp,
             isVerifyingOtp: _isVerifyingOtp,
             agree: _agree,
-            documentLabel: 'Company Proof (Optional)',
-            documentHint:
-                'Upload Incorporation Certificate, Partnership Deed, etc.',
-            secondDocumentLabel: 'Investor KYC (Mandatory for Premium)',
-            secondDocumentHint: 'Upload Aadhar, Passport, or equivalent ID.',
+            documentLabel: 'Upload Aadhaar / PAN Document *',
+            documentHint: 'Upload JPG, PNG, PDF, DOC, or DOCX file.',
             onSendOtp: _sendEmailOtp,
             onVerifyOtp: _verifyEmailOtp,
+            onCountryChanged: _setCountryCode,
+            validatePhone: _validatePhone,
             onPickDocument: _pickVerificationDocument,
             onAgreeChanged: (value) => setState(() => _agree = value ?? false),
           );
@@ -1299,6 +2030,10 @@ class _SignupPageState extends State<SignupPage> {
           return _SimpleVerificationStep(
             email: _email,
             emailOtp: _emailOtp,
+            accountPhone: _phone,
+            countryIsoCode: _countryIsoCode,
+            password: _password,
+            confirm: _confirm,
             aadhaar: _aadhaar,
             pan: _pan,
             documentName: _verificationDocName,
@@ -1306,10 +2041,12 @@ class _SignupPageState extends State<SignupPage> {
             isSendingOtp: _isSendingOtp,
             isVerifyingOtp: _isVerifyingOtp,
             agree: _agree,
-            documentLabel: 'Supporting Documents (Optional)',
-            documentHint: 'Upload relevant files.',
+            documentLabel: 'Upload Aadhaar / PAN Document *',
+            documentHint: 'Upload JPG, PNG, PDF, DOC, or DOCX file.',
             onSendOtp: _sendEmailOtp,
             onVerifyOtp: _verifyEmailOtp,
+            onCountryChanged: _setCountryCode,
+            validatePhone: _validatePhone,
             onPickDocument: _pickVerificationDocument,
             onAgreeChanged: (value) => setState(() => _agree = value ?? false),
           );
@@ -1319,6 +2056,8 @@ class _SignupPageState extends State<SignupPage> {
           emailOtp: _emailOtp,
           accountPhone: _phone,
           countryIsoCode: _countryIsoCode,
+          password: _password,
+          confirm: _confirm,
           aadhaar: _aadhaar,
           pan: _pan,
           documentName: _verificationDocName,
@@ -1346,6 +2085,24 @@ class _SignupPageState extends State<SignupPage> {
       .where((e) => e.isNotEmpty)
       .toList();
 
+  List<String> get _projectSelectedSkills => _projectPreferredSkills.text
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+
+  List<String> get _portfolioSelectedSkills => _portfolioTechStack.text
+      .split(',')
+      .map((e) => e.trim())
+      .where((e) => e.isNotEmpty)
+      .toList();
+
+  List<_PublicOption> get _effectiveIndustryOptions => _industryPublicOptions;
+
+  List<String> get _effectiveSkillOptions => _skillPublicOptions.isNotEmpty
+      ? _skillPublicOptions.map((item) => item.label).toList()
+      : const [];
+
   void _addSkill(String skill) {
     final existing = _skills.text.trim();
     final parts = existing.isEmpty
@@ -1362,6 +2119,42 @@ class _SignupPageState extends State<SignupPage> {
   void _removeSkill(String skill) {
     final parts = _selectedSkills.where((item) => item != skill).toList();
     setState(() => _skills.text = parts.join(', '));
+  }
+
+  void _addProjectSkill(String skill) {
+    final parts = _projectSelectedSkills;
+    if (parts.contains(skill)) return;
+    setState(() => _projectPreferredSkills.text = [...parts, skill].join(', '));
+  }
+
+  void _removeProjectSkill(String skill) {
+    final parts = _projectSelectedSkills
+        .where((item) => item != skill)
+        .toList();
+    setState(() => _projectPreferredSkills.text = parts.join(', '));
+  }
+
+  void _addPortfolioSkill(String skill) {
+    final parts = _portfolioSelectedSkills;
+    if (parts.contains(skill)) return;
+    setState(() => _portfolioTechStack.text = [...parts, skill].join(', '));
+  }
+
+  void _removePortfolioSkill(String skill) {
+    final parts = _portfolioSelectedSkills
+        .where((item) => item != skill)
+        .toList();
+    setState(() => _portfolioTechStack.text = parts.join(', '));
+  }
+
+  void _toggleSelection(List<String> values, String value) {
+    setState(() {
+      if (values.contains(value)) {
+        values.remove(value);
+      } else {
+        values.add(value);
+      }
+    });
   }
 
   void _keepPlaceNameOnly(
@@ -1668,41 +2461,33 @@ class _AccountStep extends StatelessWidget {
     required this.formKey,
     required this.name,
     required this.email,
-    required this.phone,
-    required this.password,
-    required this.confirm,
     required this.country,
     required this.countryOptions,
     required this.stateLocation,
+    required this.stateOptions,
     required this.city,
-    required this.countryIsoCode,
-    required this.onCountryChanged,
     required this.onCountrySelected,
+    required this.onStateSelected,
     required this.onCountryPlaceSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
     required this.onEmailChanged,
-    required this.validatePhone,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController name;
   final TextEditingController email;
-  final TextEditingController phone;
-  final TextEditingController password;
-  final TextEditingController confirm;
   final TextEditingController country;
   final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
+  final List<_StateOption> stateOptions;
   final TextEditingController city;
-  final String countryIsoCode;
-  final ValueChanged<CountryCode> onCountryChanged;
   final ValueChanged<_CountryOption> onCountrySelected;
+  final ValueChanged<_StateOption> onStateSelected;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
   final ValueChanged<String> onEmailChanged;
-  final String? Function(String?) validatePhone;
 
   @override
   Widget build(BuildContext context) {
@@ -1728,70 +2513,6 @@ class _AccountStep extends StatelessWidget {
               onChanged: onEmailChanged,
               validator: Validators.email,
             ),
-            AppSizes.vGapLg,
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 80,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Country', style: context.text.titleSmall),
-                      AppSizes.vGapSm,
-                      InputDecorator(
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: AppSizes.sm,
-                            vertical: AppSizes.sm,
-                          ),
-                        ),
-                        child: CountryCodePicker(
-                          initialSelection: countryIsoCode,
-                          onChanged: onCountryChanged,
-                          showCountryOnly: false,
-                          showOnlyCountryWhenClosed: true,
-                          alignLeft: true,
-                          padding: EdgeInsets.zero,
-                          flagWidth: 24,
-                          builder: (countryCode) =>
-                              _CountryCodeButton(countryCode: countryCode),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AppSizes.hGapSm,
-                Expanded(
-                  child: _PhoneFieldWithCounter(
-                    controller: phone,
-                    label: 'Mobile number',
-                    prefixIcon: Icons.phone_outlined,
-                    countryIsoCode: countryIsoCode,
-                    validator: validatePhone,
-                  ),
-                ),
-              ],
-            ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: password,
-              label: 'Password',
-              hint: 'Enter password',
-              prefixIcon: Icons.lock_outline_rounded,
-              obscure: true,
-              validator: Validators.password,
-            ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: confirm,
-              label: 'Confirm password',
-              hint: 'Re-enter password',
-              prefixIcon: Icons.lock_outline_rounded,
-              obscure: true,
-              validator: (v) => Validators.confirmPassword(v, password.text),
-            ),
-            AppSizes.vGapLg,
             _CountrySelectionField(
               controller: country,
               countries: countryOptions,
@@ -1802,11 +2523,13 @@ class _AccountStep extends StatelessWidget {
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _StateSelectionField(
               controller: stateLocation,
+              states: stateOptions,
               label: 'State',
               hint: 'Search and select state',
               validator: (v) => Validators.required(v, field: 'State'),
+              onStateSelected: onStateSelected,
               onPlaceSelected: onStatePlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -1829,41 +2552,33 @@ class _BasicRoleAccountStep extends StatelessWidget {
     required this.formKey,
     required this.name,
     required this.email,
-    required this.phone,
-    required this.password,
-    required this.confirm,
     required this.country,
     required this.countryOptions,
     required this.stateLocation,
+    required this.stateOptions,
     required this.city,
-    required this.countryIsoCode,
-    required this.onCountryChanged,
     required this.onCountrySelected,
+    required this.onStateSelected,
     required this.onCountryPlaceSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
     required this.onEmailChanged,
-    required this.validatePhone,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController name;
   final TextEditingController email;
-  final TextEditingController phone;
-  final TextEditingController password;
-  final TextEditingController confirm;
   final TextEditingController country;
   final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
+  final List<_StateOption> stateOptions;
   final TextEditingController city;
-  final String countryIsoCode;
-  final ValueChanged<CountryCode> onCountryChanged;
   final ValueChanged<_CountryOption> onCountrySelected;
+  final ValueChanged<_StateOption> onStateSelected;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
   final ValueChanged<String> onEmailChanged;
-  final String? Function(String?) validatePhone;
 
   @override
   Widget build(BuildContext context) {
@@ -1887,23 +2602,6 @@ class _BasicRoleAccountStep extends StatelessWidget {
               onChanged: onEmailChanged,
               validator: Validators.email,
             ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: password,
-              label: 'Password',
-              hint: 'Enter password',
-              obscure: true,
-              validator: Validators.password,
-            ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: confirm,
-              label: 'Confirm password',
-              hint: 'Re-enter password',
-              obscure: true,
-              validator: (v) => Validators.confirmPassword(v, password.text),
-            ),
-            AppSizes.vGapLg,
             _CountrySelectionField(
               controller: country,
               countries: countryOptions,
@@ -1914,11 +2612,13 @@ class _BasicRoleAccountStep extends StatelessWidget {
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _StateSelectionField(
               controller: stateLocation,
+              states: stateOptions,
               label: 'State',
               hint: 'Search and select state',
               validator: (v) => Validators.required(v, field: 'State'),
+              onStateSelected: onStateSelected,
               onPlaceSelected: onStatePlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -1928,13 +2628,6 @@ class _BasicRoleAccountStep extends StatelessWidget {
               hint: 'Search and select city',
               validator: (v) => Validators.required(v, field: 'City'),
               onPlaceSelected: onCityPlaceSelected,
-            ),
-            AppSizes.vGapLg,
-            _PhoneWithCountryCodeRow(
-              phone: phone,
-              countryIsoCode: countryIsoCode,
-              onCountryChanged: onCountryChanged,
-              validatePhone: validatePhone,
             ),
           ],
         ),
@@ -1948,47 +2641,33 @@ class _FounderAccountStep extends StatelessWidget {
     required this.formKey,
     required this.name,
     required this.email,
-    required this.phone,
-    required this.password,
-    required this.confirm,
-    required this.founderType,
-    required this.founderTypeOptions,
     required this.country,
     required this.countryOptions,
     required this.stateLocation,
+    required this.stateOptions,
     required this.city,
-    required this.countryIsoCode,
-    required this.onCountryChanged,
     required this.onCountrySelected,
-    required this.onFounderTypeChanged,
     required this.onCountryPlaceSelected,
+    required this.onStateSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
     required this.onEmailChanged,
-    required this.validatePhone,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController name;
   final TextEditingController email;
-  final TextEditingController phone;
-  final TextEditingController password;
-  final TextEditingController confirm;
-  final String? founderType;
-  final List<String> founderTypeOptions;
   final TextEditingController country;
   final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
+  final List<_StateOption> stateOptions;
   final TextEditingController city;
-  final String countryIsoCode;
-  final ValueChanged<CountryCode> onCountryChanged;
   final ValueChanged<_CountryOption> onCountrySelected;
-  final ValueChanged<String?> onFounderTypeChanged;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
+  final ValueChanged<_StateOption> onStateSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
   final ValueChanged<String> onEmailChanged;
-  final String? Function(String?) validatePhone;
 
   @override
   Widget build(BuildContext context) {
@@ -2012,23 +2691,6 @@ class _FounderAccountStep extends StatelessWidget {
               onChanged: onEmailChanged,
               validator: Validators.email,
             ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: password,
-              label: 'Password',
-              hint: 'Enter password',
-              obscure: true,
-              validator: Validators.password,
-            ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: confirm,
-              label: 'Confirm password',
-              hint: 'Re-enter password',
-              obscure: true,
-              validator: (v) => Validators.confirmPassword(v, password.text),
-            ),
-            AppSizes.vGapLg,
             _CountrySelectionField(
               controller: country,
               countries: countryOptions,
@@ -2039,11 +2701,13 @@ class _FounderAccountStep extends StatelessWidget {
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _StateSelectionField(
               controller: stateLocation,
+              states: stateOptions,
               label: 'State',
               hint: 'Search and select state',
               validator: (v) => Validators.required(v, field: 'State'),
+              onStateSelected: onStateSelected,
               onPlaceSelected: onStatePlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -2053,22 +2717,6 @@ class _FounderAccountStep extends StatelessWidget {
               hint: 'Search and select city',
               validator: (v) => Validators.required(v, field: 'City'),
               onPlaceSelected: onCityPlaceSelected,
-            ),
-            AppSizes.vGapLg,
-            _PhoneWithCountryCodeRow(
-              phone: phone,
-              countryIsoCode: countryIsoCode,
-              onCountryChanged: onCountryChanged,
-              validatePhone: validatePhone,
-            ),
-            AppSizes.vGapLg,
-            AppDropdown<String>(
-              label: 'Founder Type',
-              hint: 'Select founder type',
-              value: founderType,
-              items: founderTypeOptions,
-              itemLabel: (item) => item,
-              onChanged: onFounderTypeChanged,
             ),
           ],
         ),
@@ -2128,7 +2776,7 @@ class _PhoneWithCountryCodeRow extends StatelessWidget {
         Expanded(
           child: _PhoneFieldWithCounter(
             controller: phone,
-            label: 'Mobile number',
+            label: 'Mobile number *',
             countryIsoCode: countryIsoCode,
             validator: validatePhone,
           ),
@@ -2143,7 +2791,7 @@ class _PhoneFieldWithCounter extends StatelessWidget {
     required this.controller,
     required this.countryIsoCode,
     required this.validator,
-    this.label = 'Mobile number',
+    this.label = 'Mobile number *',
     this.prefixIcon,
   });
 
@@ -2194,43 +2842,33 @@ class _ClientAccountStep extends StatelessWidget {
     required this.formKey,
     required this.name,
     required this.email,
-    required this.phone,
-    required this.password,
-    required this.confirm,
-    required this.businessName,
     required this.country,
     required this.countryOptions,
     required this.stateLocation,
+    required this.stateOptions,
     required this.city,
-    required this.countryIsoCode,
-    required this.onCountryChanged,
     required this.onCountrySelected,
     required this.onCountryPlaceSelected,
+    required this.onStateSelected,
     required this.onStatePlaceSelected,
     required this.onCityPlaceSelected,
     required this.onEmailChanged,
-    required this.validatePhone,
   });
 
   final GlobalKey<FormState> formKey;
   final TextEditingController name;
   final TextEditingController email;
-  final TextEditingController phone;
-  final TextEditingController password;
-  final TextEditingController confirm;
-  final TextEditingController businessName;
   final TextEditingController country;
   final List<_CountryOption> countryOptions;
   final TextEditingController stateLocation;
+  final List<_StateOption> stateOptions;
   final TextEditingController city;
-  final String countryIsoCode;
-  final ValueChanged<CountryCode> onCountryChanged;
   final ValueChanged<_CountryOption> onCountrySelected;
   final ValueChanged<SelectedPlace> onCountryPlaceSelected;
+  final ValueChanged<_StateOption> onStateSelected;
   final ValueChanged<SelectedPlace> onStatePlaceSelected;
   final ValueChanged<SelectedPlace> onCityPlaceSelected;
   final ValueChanged<String> onEmailChanged;
-  final String? Function(String?) validatePhone;
 
   @override
   Widget build(BuildContext context) {
@@ -2254,30 +2892,6 @@ class _ClientAccountStep extends StatelessWidget {
               onChanged: onEmailChanged,
               validator: Validators.email,
             ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: password,
-              label: 'Password',
-              hint: 'Enter password',
-              obscure: true,
-              validator: Validators.password,
-            ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: confirm,
-              label: 'Confirm password',
-              hint: 'Re-enter password',
-              obscure: true,
-              validator: (v) => Validators.confirmPassword(v, password.text),
-            ),
-            AppSizes.vGapLg,
-            AppTextField(
-              controller: businessName,
-              label: 'Business Name',
-              hint: 'e.g. Acme Corp',
-              validator: (v) => Validators.required(v, field: 'Business name'),
-            ),
-            AppSizes.vGapLg,
             _CountrySelectionField(
               controller: country,
               countries: countryOptions,
@@ -2288,11 +2902,13 @@ class _ClientAccountStep extends StatelessWidget {
               onPlaceSelected: onCountryPlaceSelected,
             ),
             AppSizes.vGapLg,
-            AppLocationField(
+            _StateSelectionField(
               controller: stateLocation,
+              states: stateOptions,
               label: 'State',
               hint: 'Search and select state',
               validator: (v) => Validators.required(v, field: 'State'),
+              onStateSelected: onStateSelected,
               onPlaceSelected: onStatePlaceSelected,
             ),
             AppSizes.vGapLg,
@@ -2302,50 +2918,6 @@ class _ClientAccountStep extends StatelessWidget {
               hint: 'Search and select city',
               validator: (v) => Validators.required(v, field: 'City'),
               onPlaceSelected: onCityPlaceSelected,
-            ),
-            AppSizes.vGapLg,
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: 80,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Country', style: context.text.titleSmall),
-                      AppSizes.vGapSm,
-                      InputDecorator(
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: AppSizes.sm,
-                            vertical: AppSizes.sm,
-                          ),
-                        ),
-                        child: CountryCodePicker(
-                          initialSelection: countryIsoCode,
-                          onChanged: onCountryChanged,
-                          showCountryOnly: false,
-                          showOnlyCountryWhenClosed: true,
-                          alignLeft: true,
-                          padding: EdgeInsets.zero,
-                          flagWidth: 24,
-                          builder: (countryCode) =>
-                              _CountryCodeButton(countryCode: countryCode),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AppSizes.hGapSm,
-                Expanded(
-                  child: _PhoneFieldWithCounter(
-                    controller: phone,
-                    label: 'Mobile number',
-                    countryIsoCode: countryIsoCode,
-                    validator: validatePhone,
-                  ),
-                ),
-              ],
             ),
           ],
         ),
@@ -2359,17 +2931,19 @@ class _ClientBusinessTypeStep extends StatelessWidget {
     required this.value,
     required this.items,
     required this.onChanged,
+    this.label = 'Business Type',
   });
 
   final String? value;
   final List<String> items;
   final ValueChanged<String?> onChanged;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     return _StepCard(
       child: AppDropdown<String>(
-        label: 'Type',
+        label: label,
         hint: 'Choose type',
         value: value,
         items: items,
@@ -2384,27 +2958,35 @@ class _ClientProfileStep extends StatelessWidget {
   const _ClientProfileStep({
     required this.logoName,
     required this.logoPreview,
+    required this.businessName,
     required this.businessDescription,
     required this.website,
     required this.industry,
+    required this.industryOptions,
     required this.gstNumber,
     required this.teamSize,
+    required this.teamSizeOptions,
     required this.annualRequirement,
     required this.serviceLocation,
     required this.onPickLogo,
+    required this.onIndustryChanged,
     required this.onTeamSizeChanged,
   });
 
   final String? logoName;
   final ImageProvider? logoPreview;
+  final TextEditingController businessName;
   final TextEditingController businessDescription;
   final TextEditingController website;
-  final TextEditingController industry;
+  final _PublicOption? industry;
+  final List<_PublicOption> industryOptions;
   final TextEditingController gstNumber;
   final String? teamSize;
+  final List<String> teamSizeOptions;
   final TextEditingController annualRequirement;
   final TextEditingController serviceLocation;
   final VoidCallback onPickLogo;
+  final ValueChanged<_PublicOption?> onIndustryChanged;
   final ValueChanged<String?> onTeamSizeChanged;
 
   @override
@@ -2419,8 +3001,15 @@ class _ClientProfileStep extends StatelessWidget {
           ),
           AppSizes.vGapLg,
           AppTextField(
+            controller: businessName,
+            label: 'Company Name / Business Name *',
+            hint: 'e.g. Acme Corp',
+            validator: (v) => Validators.required(v, field: 'Business name'),
+          ),
+          AppSizes.vGapLg,
+          AppTextField(
             controller: businessDescription,
-            label: 'Business Description',
+            label: 'Business Description *',
             hint: 'Tell us about your business...',
             maxLines: 4,
           ),
@@ -2432,10 +3021,13 @@ class _ClientProfileStep extends StatelessWidget {
             keyboardType: TextInputType.url,
           ),
           AppSizes.vGapLg,
-          AppTextField(
-            controller: industry,
-            label: 'Industry',
-            hint: 'e.g. Technology, Retail, Healthcare...',
+          AppDropdown<_PublicOption>(
+            label: 'Industry *',
+            hint: 'Select industry',
+            value: industryOptions.contains(industry) ? industry : null,
+            items: industryOptions,
+            itemLabel: (item) => item.label,
+            onChanged: onIndustryChanged,
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -2445,10 +3037,10 @@ class _ClientProfileStep extends StatelessWidget {
           ),
           AppSizes.vGapLg,
           AppDropdown<String>(
-            label: 'Team Size',
+            label: 'Team Size *',
             hint: 'Select size',
-            value: teamSize,
-            items: _SignupPageState._teamSizes,
+            value: teamSizeOptions.contains(teamSize) ? teamSize : null,
+            items: teamSizeOptions,
             itemLabel: (item) => item,
             onChanged: onTeamSizeChanged,
           ),
@@ -2472,44 +3064,61 @@ class _ClientProfileStep extends StatelessWidget {
 
 class _ClientServiceStep extends StatelessWidget {
   const _ClientServiceStep({
-    required this.value,
-    required this.subService,
-    required this.serviceMap,
-    required this.onChanged,
-    required this.onSubServiceChanged,
+    required this.industry,
+    required this.category,
+    required this.categories,
+    required this.selectedSkills,
+    required this.skillOptions,
+    required this.isLoadingCategories,
+    required this.isLoadingSkills,
+    required this.onCategoryChanged,
+    required this.onSkillSelected,
+    required this.onSkillRemoved,
   });
 
-  final String? value;
-  final String? subService;
-  final Map<String, List<String>> serviceMap;
-  final ValueChanged<String?> onChanged;
-  final ValueChanged<String?> onSubServiceChanged;
+  final _PublicOption? industry;
+  final _PublicOption? category;
+  final List<_PublicOption> categories;
+  final List<String> selectedSkills;
+  final List<String> skillOptions;
+  final bool isLoadingCategories;
+  final bool isLoadingSkills;
+  final ValueChanged<_PublicOption?> onCategoryChanged;
+  final ValueChanged<String> onSkillSelected;
+  final ValueChanged<String> onSkillRemoved;
 
   @override
   Widget build(BuildContext context) {
-    final serviceItems = serviceMap.keys.toList();
-    final subServiceItems = value == null
-        ? <String>[]
-        : serviceMap[value] ?? <String>[];
     return _StepCard(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppDropdown<String>(
-            label: 'Primary Service',
-            hint: 'Select a service',
-            value: value,
-            items: serviceItems,
-            itemLabel: (item) => item,
-            onChanged: onChanged,
-          ),
+          if (industry == null)
+            Text(
+              'Select an industry in Profile to load categories and skills.',
+              style: context.text.bodyMedium?.copyWith(
+                color: AppColors.mutedText,
+              ),
+            )
+          else if (isLoadingCategories)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            AppDropdown<_PublicOption>(
+              label: 'Category / Primary Service *',
+              hint: 'Select a category',
+              value: categories.contains(category) ? category : null,
+              items: categories,
+              itemLabel: (item) => item.label,
+              onChanged: categories.isEmpty ? null : onCategoryChanged,
+            ),
           AppSizes.vGapLg,
-          AppDropdown<String>(
-            label: 'Sub-Service',
-            hint: 'Select specific sub-service',
-            value: subServiceItems.contains(subService) ? subService : null,
-            items: subServiceItems,
-            itemLabel: (item) => item,
-            onChanged: subServiceItems.isEmpty ? null : onSubServiceChanged,
+          _SkillChoiceSection(
+            label: 'Skills',
+            selectedSkills: selectedSkills,
+            skillOptions: skillOptions,
+            isLoading: isLoadingSkills,
+            onSkillSelected: onSkillSelected,
+            onSkillRemoved: onSkillRemoved,
           ),
         ],
       ),
@@ -2517,34 +3126,17 @@ class _ClientServiceStep extends StatelessWidget {
   }
 }
 
-class _ClientBusinessDetailsStep extends StatelessWidget {
-  const _ClientBusinessDetailsStep({required this.companyName});
-
-  final TextEditingController companyName;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepCard(
-      child: AppTextField(
-        controller: companyName,
-        label: 'Company name',
-        hint: 'Enter company name',
-      ),
-    );
-  }
-}
-
-class _SingleChoiceListStep extends StatelessWidget {
-  const _SingleChoiceListStep({
+class _MultiChoiceListStep extends StatelessWidget {
+  const _MultiChoiceListStep({
     required this.title,
     required this.options,
-    required this.value,
+    required this.values,
     required this.onChanged,
   });
 
   final String title;
   final List<String> options;
-  final String? value;
+  final List<String> values;
   final ValueChanged<String> onChanged;
 
   @override
@@ -2553,7 +3145,12 @@ class _SingleChoiceListStep extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: context.text.titleMedium),
+          Text(
+            title,
+            style: context.text.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           AppSizes.vGapMd,
           for (final option in options)
             Padding(
@@ -2564,12 +3161,14 @@ class _SingleChoiceListStep extends StatelessWidget {
                 child: Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(AppSizes.lg),
+                  // Stable local read keeps selection style consistent during
+                  // rebuilds while parent state owns the actual selected list.
                   decoration: BoxDecoration(
-                    color: value == option
+                    color: values.contains(option)
                         ? AppColors.primary.withValues(alpha: 0.04)
                         : context.theme.cardColor,
                     border: Border.all(
-                      color: value == option
+                      color: values.contains(option)
                           ? AppColors.primary
                           : context.theme.dividerColor,
                     ),
@@ -2578,9 +3177,9 @@ class _SingleChoiceListStep extends StatelessWidget {
                   child: Row(
                     children: [
                       Icon(
-                        value == option
-                            ? Icons.radio_button_checked
-                            : Icons.radio_button_unchecked,
+                        values.contains(option)
+                            ? Icons.check_box_rounded
+                            : Icons.check_box_outline_blank_rounded,
                         color: AppColors.primary,
                       ),
                       AppSizes.hGapMd,
@@ -2602,7 +3201,6 @@ class _ClientProjectsStep extends StatelessWidget {
   const _ClientProjectsStep({
     required this.title,
     required this.category,
-    required this.subcategory,
     required this.budget,
     required this.timeline,
     required this.description,
@@ -2610,16 +3208,22 @@ class _ClientProjectsStep extends StatelessWidget {
     required this.locationPreference,
     required this.remoteType,
     required this.urgency,
-    required this.categoryMap,
+    required this.industry,
+    required this.categories,
+    required this.skillOptions,
+    required this.selectedSkills,
+    required this.isLoadingCategories,
+    required this.isLoadingSkills,
     required this.onCategoryChanged,
-    required this.onSubcategoryChanged,
+    required this.onSkillSelected,
+    required this.onSkillRemoved,
+    required this.onManualSkillsChanged,
     required this.onRemoteTypeChanged,
     required this.onUrgencyChanged,
   });
 
   final TextEditingController title;
-  final String? category;
-  final String? subcategory;
+  final _PublicOption? category;
   final TextEditingController budget;
   final TextEditingController timeline;
   final TextEditingController description;
@@ -2627,18 +3231,21 @@ class _ClientProjectsStep extends StatelessWidget {
   final TextEditingController locationPreference;
   final String? remoteType;
   final String? urgency;
-  final Map<String, List<String>> categoryMap;
-  final ValueChanged<String?> onCategoryChanged;
-  final ValueChanged<String?> onSubcategoryChanged;
+  final _PublicOption? industry;
+  final List<_PublicOption> categories;
+  final List<String> skillOptions;
+  final List<String> selectedSkills;
+  final bool isLoadingCategories;
+  final bool isLoadingSkills;
+  final ValueChanged<_PublicOption?> onCategoryChanged;
+  final ValueChanged<String> onSkillSelected;
+  final ValueChanged<String> onSkillRemoved;
+  final ValueChanged<String> onManualSkillsChanged;
   final ValueChanged<String?> onRemoteTypeChanged;
   final ValueChanged<String?> onUrgencyChanged;
 
   @override
   Widget build(BuildContext context) {
-    final categoryItems = categoryMap.keys.toList();
-    final subcategoryItems = category == null
-        ? <String>[]
-        : categoryMap[category] ?? <String>[];
     return _StepCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2646,45 +3253,62 @@ class _ClientProjectsStep extends StatelessWidget {
           AppTextField(
             controller: title,
             label: 'Project Title',
-            hint: 'e.g. Build an E-commerce Website',
+            hint: 'Enter Project Title',
           ),
           AppSizes.vGapLg,
-          AppDropdown<String>(
-            label: 'Project Category',
-            hint: 'Select Category',
-            value: category,
-            items: categoryItems,
-            itemLabel: (item) => item,
-            onChanged: onCategoryChanged,
+          AppTextField(
+            controller: description,
+            label: 'Description',
+            hint: 'Enter Project Decription',
+            maxLines: 4,
           ),
           AppSizes.vGapLg,
-          AppDropdown<String>(
-            label: 'Project Subcategory',
-            hint: 'Select Subcategory',
-            value: subcategoryItems.contains(subcategory) ? subcategory : null,
-            items: subcategoryItems,
-            itemLabel: (item) => item,
-            onChanged: subcategoryItems.isEmpty ? null : onSubcategoryChanged,
+          if (industry == null)
+            Text(
+              'Select an industry in Profile to load project categories.',
+              style: context.text.bodyMedium?.copyWith(
+                color: AppColors.mutedText,
+              ),
+            )
+          else if (isLoadingCategories)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            AppDropdown<_PublicOption>(
+              label: 'Project Category',
+              hint: 'Select category',
+              value: categories.contains(category) ? category : null,
+              items: categories,
+              itemLabel: (item) => item.label,
+              onChanged: categories.isEmpty ? null : onCategoryChanged,
+            ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: preferredSkills,
+            label: 'Project Skills',
+            hint: 'Select skills',
+            onChanged: onManualSkillsChanged,
+          ),
+          AppSizes.vGapSm,
+          _SkillChoiceSection(
+            label: 'Select from category skills',
+            selectedSkills: selectedSkills,
+            skillOptions: skillOptions,
+            isLoading: isLoadingSkills,
+            onSkillSelected: onSkillSelected,
+            onSkillRemoved: onSkillRemoved,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: budget,
             label: 'Budget',
-            hint: 'e.g. ₹50,000',
+            hint: 'Enter Budget (e.g. ₹50,000)',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: timeline,
             label: 'Timeline',
-            hint: 'e.g. 2 months',
-          ),
-          AppSizes.vGapLg,
-          AppTextField(
-            controller: description,
-            label: 'Description',
-            hint: 'Describe the project requirements...',
-            maxLines: 4,
+            hint: 'Enter Timeline (e.g. 2 months)',
           ),
           AppSizes.vGapLg,
           Text("Project reference files", style: context.text.titleSmall),
@@ -2696,17 +3320,10 @@ class _ClientProjectsStep extends StatelessWidget {
               icon: Icons.attach_file_rounded,
             ),
           ),
-          AppSizes.vGapLg,
-          AppTextField(
-            controller: preferredSkills,
-            label: 'Preferred Skills',
-            hint: 'e.g. React, Node.js, Figma',
-          ),
-          AppSizes.vGapLg,
           AppTextField(
             controller: locationPreference,
             label: 'Location Preference',
-            hint: 'e.g. India',
+            hint: 'Enter Location Preference',
           ),
           AppSizes.vGapMd,
           Row(
@@ -2743,27 +3360,69 @@ class _ClientProjectsStep extends StatelessWidget {
 
 class _CategoryStep extends StatelessWidget {
   const _CategoryStep({
+    required this.industry,
     required this.category,
+    required this.industries,
     required this.categories,
-    required this.onChanged,
+    required this.isLoadingCategories,
+    required this.onIndustryChanged,
+    required this.onCategoryChanged,
   });
 
-  final String? category;
-  final List<String> categories;
-  final ValueChanged<String?> onChanged;
+  final _PublicOption? industry;
+  final _PublicOption? category;
+  final List<_PublicOption> industries;
+  final List<_PublicOption> categories;
+  final bool isLoadingCategories;
+  final ValueChanged<_PublicOption?> onIndustryChanged;
+  final ValueChanged<_PublicOption?> onCategoryChanged;
 
   @override
   Widget build(BuildContext context) {
     return _StepCard(
-      child: AppDropdown<String>(
-        label: 'Primary category',
-        hint: 'Select category',
-        value: category,
-        items: categories,
-        itemLabel: (item) => item,
-        onChanged: onChanged,
-        validator: (value) =>
-            value == null || value.isEmpty ? 'Select category' : null,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppDropdown<_PublicOption>(
+            label: 'Industry *',
+            hint: 'Select industry',
+            value: industries.contains(industry) ? industry : null,
+            items: industries,
+            itemLabel: (item) => item.label,
+            onChanged: onIndustryChanged,
+            validator: (value) => value == null ? 'Select industry' : null,
+          ),
+          AppSizes.vGapLg,
+          if (isLoadingCategories)
+            Row(
+              children: [
+                const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                AppSizes.hGapSm,
+                Text('Loading categories...', style: context.text.bodyMedium),
+              ],
+            )
+          else if (categories.isNotEmpty)
+            AppDropdown<_PublicOption>(
+              label: 'Category *',
+              hint: 'Select category',
+              value: categories.contains(category) ? category : null,
+              items: categories,
+              itemLabel: (item) => item.label,
+              onChanged: onCategoryChanged,
+              validator: (value) => value == null ? 'Select category' : null,
+            )
+          else
+            Text(
+              'No categories available for the selected industry.',
+              style: context.text.bodyMedium?.copyWith(
+                color: AppColors.mutedText,
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2775,6 +3434,8 @@ class _SkillsStep extends StatelessWidget {
     required this.experience,
     required this.bio,
     required this.selectedSkills,
+    required this.skillOptions,
+    required this.isLoadingSkills,
     required this.onSkillSelected,
     required this.onSkillRemoved,
     required this.onManualSkillsChanged,
@@ -2784,6 +3445,8 @@ class _SkillsStep extends StatelessWidget {
   final TextEditingController experience;
   final TextEditingController bio;
   final List<String> selectedSkills;
+  final List<String> skillOptions;
+  final bool isLoadingSkills;
   final ValueChanged<String> onSkillSelected;
   final ValueChanged<String> onSkillRemoved;
   final ValueChanged<String> onManualSkillsChanged;
@@ -2809,24 +3472,18 @@ class _SkillsStep extends StatelessWidget {
             ),
           ),
           AppSizes.vGapSm,
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.sm,
-            children: [
-              for (final skill in _SignupPageState._skillSuggestions)
-                _SkillChoiceChip(
-                  skill: skill,
-                  selected: selectedSkills.contains(skill),
-                  onTap: () => selectedSkills.contains(skill)
-                      ? onSkillRemoved(skill)
-                      : onSkillSelected(skill),
-                ),
-            ],
+          _SkillChoiceSection(
+            label: '',
+            selectedSkills: selectedSkills,
+            skillOptions: skillOptions,
+            isLoading: isLoadingSkills,
+            onSkillSelected: onSkillSelected,
+            onSkillRemoved: onSkillRemoved,
           ),
           AppSizes.vGapXl,
           AppTextField(
             controller: experience,
-            label: 'Years of experience',
+            label: 'Years of experience *',
             hint: 'Enter years of experience',
             prefixIcon: Icons.timeline_rounded,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -2844,6 +3501,76 @@ class _SkillsStep extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SkillChoiceSection extends StatelessWidget {
+  const _SkillChoiceSection({
+    required this.label,
+    required this.selectedSkills,
+    required this.skillOptions,
+    required this.isLoading,
+    required this.onSkillSelected,
+    required this.onSkillRemoved,
+  });
+
+  final String label;
+  final List<String> selectedSkills;
+  final List<String> skillOptions;
+  final bool isLoading;
+  final ValueChanged<String> onSkillSelected;
+  final ValueChanged<String> onSkillRemoved;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (label.isNotEmpty) ...[
+          Text(
+            label,
+            style: context.text.titleSmall?.copyWith(
+              color: AppColors.mutedText,
+            ),
+          ),
+          AppSizes.vGapSm,
+        ],
+        if (isLoading)
+          Row(
+            children: [
+              const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              AppSizes.hGapSm,
+              Text('Loading skills...', style: context.text.bodyMedium),
+            ],
+          )
+        else if (skillOptions.isEmpty)
+          Text(
+            'No skills available for the selected category.',
+            style: context.text.bodyMedium?.copyWith(
+              color: AppColors.mutedText,
+            ),
+          )
+        else
+          Wrap(
+            spacing: AppSizes.sm,
+            runSpacing: AppSizes.sm,
+            children: [
+              for (final skill in skillOptions)
+                _SkillChoiceChip(
+                  skill: skill,
+                  selected: selectedSkills.contains(skill),
+                  onTap: () => selectedSkills.contains(skill)
+                      ? onSkillRemoved(skill)
+                      : onSkillSelected(skill),
+                ),
+            ],
+          ),
+      ],
     );
   }
 }
@@ -3014,7 +3741,7 @@ class _BudgetStep extends StatelessWidget {
     return _StepCard(
       child: AppTextField(
         controller: hourlyRate,
-        label: 'Hourly rate (USD)',
+        label: 'Hourly rate (USD) *',
         hint: 'Enter amount',
         prefixIcon: Icons.attach_money_rounded,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -3062,52 +3789,580 @@ class _TitledFileUpload extends StatelessWidget {
   }
 }
 
-class _PortfolioUploadsStep extends StatelessWidget {
-  const _PortfolioUploadsStep({
-    required this.portfolioDocName,
-    required this.onPickPortfolioDocument,
+class _ResponsiveFieldGrid extends StatelessWidget {
+  const _ResponsiveFieldGrid({required this.children, this.minItemWidth = 320});
+
+  final List<Widget> children;
+  final double minItemWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const spacing = AppSizes.lg;
+        final width = constraints.maxWidth;
+        final columns = width >= (minItemWidth * 2 + spacing) ? 2 : 1;
+        final itemWidth = columns == 1 ? width : (width - spacing) / 2;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            for (final child in children)
+              SizedBox(width: itemWidth, child: child),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CompactUploadTile extends StatelessWidget {
+  const _CompactUploadTile({
+    required this.title,
+    required this.hint,
+    required this.fileName,
+    required this.onTap,
   });
 
-  final String? portfolioDocName;
-  final VoidCallback onPickPortfolioDocument;
+  final String title;
+  final String hint;
+  final String? fileName;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = fileName != null && fileName!.isNotEmpty;
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+      onTap: onTap,
+      child: DottedBorderBox(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.md),
+          child: Row(
+            children: [
+              Icon(
+                selected
+                    ? Icons.description_outlined
+                    : Icons.file_upload_outlined,
+                color: AppColors.primary,
+              ),
+              AppSizes.hGapSm,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      selected ? fileName! : title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.titleSmall,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      selected ? 'Tap to replace' : hint,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.bodySmall?.copyWith(
+                        color: AppColors.mutedText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EducationSignupRow extends StatelessWidget {
+  const _EducationSignupRow({
+    required this.institution,
+    required this.qualification,
+    required this.specialization,
+    required this.year,
+    required this.documentName,
+    required this.onPickDocument,
+  });
+
+  final TextEditingController institution;
+  final TextEditingController qualification;
+  final TextEditingController specialization;
+  final TextEditingController year;
+  final String? documentName;
+  final VoidCallback onPickDocument;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 860;
+        if (compact) {
+          return Column(
+            children: [
+              AppTextField(
+                controller: institution,
+                label: 'Institution *',
+                hint: 'Enter Institution',
+                prefixIcon: Icons.school_outlined,
+              ),
+              AppSizes.vGapLg,
+              AppTextField(
+                controller: qualification,
+                label: 'Qualification *',
+                hint: 'Enter Qualification',
+              ),
+              AppSizes.vGapLg,
+              AppTextField(
+                controller: specialization,
+                label: 'Specialization *',
+                hint: 'Enter Specialization',
+              ),
+              AppSizes.vGapLg,
+              AppTextField(
+                controller: year,
+                label: 'Year *',
+                hint: 'Enter Passing Year',
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(4),
+                ],
+              ),
+              AppSizes.vGapLg,
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _TitledFileUpload(
+                  label: 'Upload Education Document *',
+                  hint: 'Upload JPG, PNG, or PDF education file.',
+                  fileName: documentName,
+                  icon: Icons.upload_file_rounded,
+                  onTap: onPickDocument,
+                ),
+              ),
+            ],
+          );
+        }
+
+        return Column(
+          children: [
+            Row(
+              children: const [
+                Expanded(
+                  flex: 3,
+                  child: _EducationColumnHeader('Institution *'),
+                ),
+                SizedBox(width: AppSizes.md),
+                Expanded(
+                  flex: 2,
+                  child: _EducationColumnHeader('Qualification *'),
+                ),
+                SizedBox(width: AppSizes.md),
+                Expanded(
+                  flex: 2,
+                  child: _EducationColumnHeader('Specialization *'),
+                ),
+                SizedBox(width: AppSizes.md),
+                Expanded(child: _EducationColumnHeader('Year *')),
+                SizedBox(width: AppSizes.md),
+                Expanded(flex: 2, child: _EducationColumnHeader('Document *')),
+              ],
+            ),
+            AppSizes.vGapMd,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: AppTextField(
+                    controller: institution,
+                    hint: 'Enter Institution',
+                    prefixIcon: Icons.school_outlined,
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  flex: 2,
+                  child: AppTextField(
+                    controller: qualification,
+                    hint: 'Enter Qualification',
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  flex: 2,
+                  child: AppTextField(
+                    controller: specialization,
+                    hint: 'Enter Specialization',
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: AppTextField(
+                    controller: year,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(4),
+                    ],
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _TitledFileUpload(
+                      label: 'Upload',
+                      hint: 'Choose file',
+                      fileName: documentName,
+                      icon: Icons.upload_file_rounded,
+                      onTap: onPickDocument,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _EducationColumnHeader extends StatelessWidget {
+  const _EducationColumnHeader(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label.toUpperCase(),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: context.text.labelLarge?.copyWith(
+        color: AppColors.mutedText,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1,
+      ),
+    );
+  }
+}
+
+class _PortfolioUploadsStep extends StatelessWidget {
+  const _PortfolioUploadsStep({
+    required this.title,
+    required this.selectedIndustry,
+    required this.industryOptions,
+    required this.category,
+    required this.categoryOptions,
+    required this.selectedSkills,
+    required this.skillOptions,
+    required this.isLoadingCategories,
+    required this.isLoadingSkills,
+    required this.status,
+    required this.client,
+    required this.industry,
+    required this.techStack,
+    required this.duration,
+    required this.teamSize,
+    required this.teamSizeOptions,
+    required this.role,
+    required this.githubUrl,
+    required this.liveUrl,
+    required this.overview,
+    required this.coverName,
+    required this.videoName,
+    required this.caseStudyName,
+    required this.screenshotName,
+    required this.onIndustryChanged,
+    required this.onCategoryChanged,
+    required this.onSkillSelected,
+    required this.onSkillRemoved,
+    required this.onManualSkillsChanged,
+    required this.onStatusChanged,
+    required this.onTeamSizeChanged,
+    required this.onPickCover,
+    required this.onPickVideo,
+    required this.onPickCaseStudy,
+    required this.onPickScreenshot,
+  });
+
+  final TextEditingController title;
+  final _PublicOption? selectedIndustry;
+  final List<_PublicOption> industryOptions;
+  final _PublicOption? category;
+  final List<_PublicOption> categoryOptions;
+  final List<String> selectedSkills;
+  final List<String> skillOptions;
+  final bool isLoadingCategories;
+  final bool isLoadingSkills;
+  final String? status;
+  final TextEditingController client;
+  final TextEditingController industry;
+  final TextEditingController techStack;
+  final TextEditingController duration;
+  final String? teamSize;
+  final List<String> teamSizeOptions;
+  final TextEditingController role;
+  final TextEditingController githubUrl;
+  final TextEditingController liveUrl;
+  final TextEditingController overview;
+  final String? coverName;
+  final String? videoName;
+  final String? caseStudyName;
+  final String? screenshotName;
+  final ValueChanged<_PublicOption?> onIndustryChanged;
+  final ValueChanged<_PublicOption?> onCategoryChanged;
+  final ValueChanged<String> onSkillSelected;
+  final ValueChanged<String> onSkillRemoved;
+  final ValueChanged<String> onManualSkillsChanged;
+  final ValueChanged<String?> onStatusChanged;
+  final ValueChanged<String?> onTeamSizeChanged;
+  final VoidCallback onPickCover;
+  final VoidCallback onPickVideo;
+  final VoidCallback onPickCaseStudy;
+  final VoidCallback onPickScreenshot;
 
   @override
   Widget build(BuildContext context) {
     return _StepCard(
-      child: AppFileUpload(
-        label: 'Portfolio Project Uploads & Media Attachments',
-        hint: 'Upload PDF, DOC, Excel, or PPT files.',
-        icon: Icons.upload_file_rounded,
-        fileName: portfolioDocName,
-        onTap: onPickPortfolioDocument,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Add portfolio item', style: context.text.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            'Upload cover media and publish when ready',
+            style: context.text.bodyMedium?.copyWith(
+              color: AppColors.mutedText,
+            ),
+          ),
+          AppSizes.vGapLg,
+          AppTextField(controller: title, label: 'Title'),
+          AppSizes.vGapLg,
+          AppDropdown<_PublicOption>(
+            label: 'Industry',
+            hint: 'Select industry',
+            value: industryOptions.contains(selectedIndustry)
+                ? selectedIndustry
+                : null,
+            items: industryOptions,
+            itemLabel: (item) => item.label,
+            onChanged: onIndustryChanged,
+          ),
+          AppSizes.vGapLg,
+          if (isLoadingCategories)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            AppDropdown<_PublicOption>(
+              label: 'Category',
+              hint: 'Select category',
+              value: categoryOptions.contains(category) ? category : null,
+              items: categoryOptions,
+              itemLabel: (item) => item.label,
+              onChanged: categoryOptions.isEmpty ? null : onCategoryChanged,
+            ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: techStack,
+            label: 'Skills',
+            hint: 'Select skills',
+            onChanged: onManualSkillsChanged,
+          ),
+          AppSizes.vGapSm,
+          _SkillChoiceSection(
+            label: 'Select from category skills',
+            selectedSkills: selectedSkills,
+            skillOptions: skillOptions,
+            isLoading: isLoadingSkills,
+            onSkillSelected: onSkillSelected,
+            onSkillRemoved: onSkillRemoved,
+          ),
+          AppSizes.vGapLg,
+          _ResponsiveFieldGrid(
+            children: [
+              AppDropdown<String>(
+                label: 'Status',
+                hint: 'Select status',
+                value: status,
+                items: const ['Draft', 'Published', 'Archived'],
+                itemLabel: (item) => item,
+                onChanged: onStatusChanged,
+              ),
+              AppTextField(controller: client, label: 'Client'),
+              AppTextField(controller: industry, label: 'Industry'),
+            ],
+          ),
+          AppSizes.vGapLg,
+          _ResponsiveFieldGrid(
+            children: [
+              AppTextField(
+                controller: duration,
+                label: 'Duration',
+                hint: 'Enter Duration',
+              ),
+              AppDropdown<String>(
+                label: 'Team size',
+                hint: 'Select team size',
+                value: teamSizeOptions.contains(teamSize) ? teamSize : null,
+                items: teamSizeOptions,
+                itemLabel: (item) => item,
+                onChanged: onTeamSizeChanged,
+              ),
+              AppTextField(controller: role, label: 'Your role'),
+              AppTextField(
+                controller: githubUrl,
+                label: 'Github URL',
+                hint: 'Enter Github URL',
+                keyboardType: TextInputType.url,
+              ),
+              AppTextField(
+                controller: liveUrl,
+                label: 'Live URL',
+                hint: 'Enter Live URL',
+                keyboardType: TextInputType.url,
+              ),
+            ],
+          ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: overview,
+            label: 'Overview',
+            maxLines: 4,
+            hint: 'Enter Overview',
+          ),
+          AppSizes.vGapLg,
+          _ResponsiveFieldGrid(
+            minItemWidth: 210,
+            children: [
+              _CompactUploadTile(
+                title: 'Cover image',
+                hint: 'Select JPG · PNG · WebP',
+                fileName: coverName,
+                onTap: onPickCover,
+              ),
+              _CompactUploadTile(
+                title: 'Video demo',
+                hint: 'Select MP4 · MOV',
+                fileName: videoName,
+                onTap: onPickVideo,
+              ),
+              _CompactUploadTile(
+                title: 'PDF case study',
+                hint: 'Select PDF',
+                fileName: caseStudyName,
+                onTap: onPickCaseStudy,
+              ),
+              _CompactUploadTile(
+                title: 'Extra screenshot',
+                hint: 'Adds as cover if empty',
+                fileName: screenshotName,
+                onTap: onPickScreenshot,
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
 class _BadgesStep extends StatelessWidget {
-  const _BadgesStep({required this.certifications, required this.education});
+  const _BadgesStep({
+    required this.institution,
+    required this.qualification,
+    required this.specialization,
+    required this.year,
+    required this.educationDocumentName,
+    required this.certificateName,
+    required this.certificateIssuer,
+    required this.certificateIssueDate,
+    required this.certificateDocumentName,
+    required this.certificateUrl,
+    required this.onPickEducationDocument,
+    required this.onPickCertificateDocument,
+    required this.onPickCertificateIssueDate,
+  });
 
-  final TextEditingController certifications;
-  final TextEditingController education;
+  final TextEditingController institution;
+  final TextEditingController qualification;
+  final TextEditingController specialization;
+  final TextEditingController year;
+  final String? educationDocumentName;
+  final TextEditingController certificateName;
+  final TextEditingController certificateIssuer;
+  final TextEditingController certificateIssueDate;
+  final String? certificateDocumentName;
+  final TextEditingController certificateUrl;
+  final VoidCallback onPickEducationDocument;
+  final VoidCallback onPickCertificateDocument;
+  final VoidCallback onPickCertificateIssueDate;
 
   @override
   Widget build(BuildContext context) {
     return _StepCard(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTextField(
-            controller: certifications,
-            label: 'Certifications',
-            hint: 'Enter certifications',
-            prefixIcon: Icons.verified_outlined,
+          Text('Education records', style: context.text.titleLarge),
+          const SizedBox(height: 4),
+          Text(
+            'Synced to your freelancer profile',
+            style: context.text.bodyMedium?.copyWith(
+              color: AppColors.mutedText,
+            ),
           ),
           AppSizes.vGapLg,
-          AppTextField(
-            controller: education,
-            label: 'Education',
-            hint: 'Enter education',
-            prefixIcon: Icons.school_outlined,
+          _EducationSignupRow(
+            institution: institution,
+            qualification: qualification,
+            specialization: specialization,
+            year: year,
+            documentName: educationDocumentName,
+            onPickDocument: onPickEducationDocument,
+          ),
+          AppSizes.vGapXl,
+          Text('Certificate', style: context.text.titleLarge),
+          AppSizes.vGapLg,
+          _ResponsiveFieldGrid(
+            children: [
+              AppTextField(
+                controller: certificateName,
+                label: 'Name',
+                hint: 'Enter Certificate name',
+              ),
+              AppTextField(
+                controller: certificateIssuer,
+                label: 'Issuer',
+                hint: 'Enter Issuer name',
+              ),
+              AppTextField(
+                controller: certificateIssueDate,
+                label: 'Issue date',
+                hint: 'Select Date',
+                readOnly: true,
+                suffixIcon: const Icon(Icons.calendar_today_outlined),
+                onTap: onPickCertificateIssueDate,
+              ),
+              AppTextField(
+                controller: certificateUrl,
+                label: 'Certificate Url',
+                hint: 'Enter Certificate Url',
+                keyboardType: TextInputType.url,
+              ),
+            ],
+          ),
+          AppSizes.vGapLg,
+          _TitledFileUpload(
+            label: 'Upload Certificate Document (Image / PDF)',
+            hint: 'Upload JPG, PNG, or PDF certificate file.',
+            fileName: certificateDocumentName,
+            icon: Icons.upload_file_rounded,
+            onTap: onPickCertificateDocument,
           ),
         ],
       ),
@@ -3216,6 +4471,8 @@ class _VerificationStep extends StatelessWidget {
     required this.emailOtp,
     required this.accountPhone,
     required this.countryIsoCode,
+    required this.password,
+    required this.confirm,
     required this.aadhaar,
     required this.pan,
     required this.documentName,
@@ -3236,6 +4493,8 @@ class _VerificationStep extends StatelessWidget {
   final TextEditingController emailOtp;
   final TextEditingController accountPhone;
   final String countryIsoCode;
+  final TextEditingController password;
+  final TextEditingController confirm;
   final TextEditingController aadhaar;
   final TextEditingController pan;
   final String? documentName;
@@ -3365,13 +4624,31 @@ class _VerificationStep extends StatelessWidget {
               Expanded(
                 child: _PhoneFieldWithCounter(
                   controller: accountPhone,
-                  label: 'Mobile Number',
+                  label: 'Mobile Number *',
                   prefixIcon: Icons.phone_outlined,
                   countryIsoCode: countryIsoCode,
                   validator: validatePhone,
                 ),
               ),
             ],
+          ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: password,
+            label: 'Password *',
+            hint: 'Enter password',
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: Validators.password,
+          ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: confirm,
+            label: 'Confirm Password *',
+            hint: 'Re-enter password',
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: (v) => Validators.confirmPassword(v, password.text),
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -3449,14 +4726,16 @@ class _InvestorProfileStep extends StatelessWidget {
     required this.linkedin,
     required this.website,
     required this.bio,
-    required this.minTicket,
-    required this.maxTicket,
-    required this.stagePreference,
-    required this.investmentMode,
-    required this.targetIndustry,
+    required this.ticketSize,
+    required this.ticketOptions,
+    required this.stagePreferences,
+    required this.investmentModes,
+    required this.targetIndustries,
     required this.stageOptions,
+    required this.investmentModeOptions,
     required this.industryOptions,
     required this.onPickProfilePhoto,
+    required this.onTicketChanged,
     required this.onStageChanged,
     required this.onModeChanged,
     required this.onIndustryChanged,
@@ -3468,14 +4747,16 @@ class _InvestorProfileStep extends StatelessWidget {
   final TextEditingController linkedin;
   final TextEditingController website;
   final TextEditingController bio;
-  final TextEditingController minTicket;
-  final TextEditingController maxTicket;
-  final String? stagePreference;
-  final String? investmentMode;
-  final String? targetIndustry;
+  final String? ticketSize;
+  final List<_TicketOption> ticketOptions;
+  final List<String> stagePreferences;
+  final List<String> investmentModes;
+  final List<String> targetIndustries;
   final List<String> stageOptions;
+  final List<String> investmentModeOptions;
   final List<String> industryOptions;
   final VoidCallback onPickProfilePhoto;
+  final ValueChanged<String?> onTicketChanged;
   final ValueChanged<String> onStageChanged;
   final ValueChanged<String> onModeChanged;
   final ValueChanged<String> onIndustryChanged;
@@ -3494,73 +4775,63 @@ class _InvestorProfileStep extends StatelessWidget {
           AppSizes.vGapLg,
           AppTextField(
             controller: companyFund,
-            label: 'Company/Fund Name',
-            hint: 'e.g. Acme Capital',
+            label: 'Company/Fund Name *',
+            hint: 'Enter Company Name',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: linkedin,
             label: 'LinkedIn Profile',
-            hint: 'https://linkedin.com/in/...',
+            hint: 'Enter LinkedIn Url',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: website,
             label: 'Website URL',
-            hint: 'https://...',
+            hint: 'Enter Website Url',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: bio,
             label: 'Bio (Thesis)',
-            hint: 'Sectors, geographies, stages...',
+            hint: 'Enter Bio / Investment Thesis',
             maxLines: 5,
           ),
           AppSizes.vGapLg,
-          Row(
-            children: [
-              Expanded(
-                child: AppTextField(
-                  controller: minTicket,
-                  label: 'Min Ticket Size (₹)',
-                  hint: 'e.g. 500000',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-              ),
-              AppSizes.hGapMd,
-              Expanded(
-                child: AppTextField(
-                  controller: maxTicket,
-                  label: 'Max Ticket Size (₹)',
-                  hint: 'e.g. 50000000',
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                  ),
-                ),
-              ),
-            ],
+          AppDropdown<String>(
+            label: 'Ticket Size *',
+            hint: 'Select ticket size',
+            value: ticketOptions.any((item) => item.id == ticketSize)
+                ? ticketSize
+                : null,
+            items: ticketOptions.map((item) => item.id).toList(),
+            itemLabel: (value) {
+              for (final option in ticketOptions) {
+                if (option.id == value) return option.label;
+              }
+              return value;
+            },
+            onChanged: ticketOptions.isEmpty ? null : onTicketChanged,
           ),
           AppSizes.vGapLg,
-          _CompactRadioGroup(
-            title: 'Stage Preference',
+          _CompactMultiChoiceGroup(
+            title: 'Stage Preference *',
             options: stageOptions,
-            value: stagePreference,
+            values: stagePreferences,
             onChanged: onStageChanged,
           ),
           AppSizes.vGapLg,
-          _CompactRadioGroup(
-            title: 'Investment Mode',
-            options: _SignupPageState._investmentModes,
-            value: investmentMode,
+          _CompactMultiChoiceGroup(
+            title: 'Investment Mode *',
+            options: investmentModeOptions,
+            values: investmentModes,
             onChanged: onModeChanged,
           ),
           AppSizes.vGapLg,
-          _CompactRadioGroup(
-            title: 'Target Industries / Categories',
+          _CompactMultiChoiceGroup(
+            title: 'Target Industries / Categories *',
             options: industryOptions,
-            value: targetIndustry,
+            values: targetIndustries,
             onChanged: onIndustryChanged,
           ),
         ],
@@ -3580,6 +4851,16 @@ class _FounderProfileStep extends StatelessWidget {
     required this.linkedin,
     required this.portfolioUrl,
     required this.teamSize,
+    required this.teamSizeOptions,
+    required this.category,
+    required this.categoryOptions,
+    required this.selectedSkills,
+    required this.skillOptions,
+    required this.isLoadingSkills,
+    required this.onCategoryChanged,
+    required this.onSkillSelected,
+    required this.onSkillRemoved,
+    required this.onManualSkillsChanged,
     required this.onPickProfilePhoto,
     required this.onTeamSizeChanged,
   });
@@ -3593,6 +4874,16 @@ class _FounderProfileStep extends StatelessWidget {
   final TextEditingController linkedin;
   final TextEditingController portfolioUrl;
   final String? teamSize;
+  final List<String> teamSizeOptions;
+  final _PublicOption? category;
+  final List<_PublicOption> categoryOptions;
+  final List<String> selectedSkills;
+  final List<String> skillOptions;
+  final bool isLoadingSkills;
+  final ValueChanged<_PublicOption?> onCategoryChanged;
+  final ValueChanged<String> onSkillSelected;
+  final ValueChanged<String> onSkillRemoved;
+  final ValueChanged<String> onManualSkillsChanged;
   final VoidCallback onPickProfilePhoto;
   final ValueChanged<String?> onTeamSizeChanged;
 
@@ -3609,46 +4900,69 @@ class _FounderProfileStep extends StatelessWidget {
           AppSizes.vGapLg,
           AppTextField(
             controller: bio,
-            label: 'Bio',
+            label: 'Bio *',
             hint: 'Tell us about yourself...',
             maxLines: 5,
+          ),
+          AppSizes.vGapLg,
+          AppDropdown<_PublicOption>(
+            label: 'Category *',
+            hint: 'Select category',
+            value: categoryOptions.contains(category) ? category : null,
+            items: categoryOptions,
+            itemLabel: (item) => item.label,
+            onChanged: categoryOptions.isEmpty ? null : onCategoryChanged,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: skills,
             label: 'Skills',
-            hint: 'e.g. Marketing, AI, Product Management',
+            hint: 'Select Skills',
+            onChanged: onManualSkillsChanged,
+          ),
+          AppSizes.vGapSm,
+          _SkillChoiceSection(
+            label: 'Select from category skills',
+            selectedSkills: selectedSkills,
+            skillOptions: skillOptions,
+            isLoading: isLoadingSkills,
+            onSkillSelected: onSkillSelected,
+            onSkillRemoved: onSkillRemoved,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: experience,
-            label: 'Experience',
-            hint: 'Years of experience or key roles',
+            label: 'Experience *',
+            hint: 'Enter Years of experience',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+            ],
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: education,
             label: 'Education',
-            hint: 'University, degree, etc.',
+            hint: 'Enter Your Education',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: linkedin,
             label: 'LinkedIn',
-            hint: 'https://linkedin.com/in/...',
+            hint: 'Enter LinkedIn Url',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: portfolioUrl,
             label: 'Website / Portfolio',
-            hint: 'https://...',
+            hint: 'Enter Portfolio Url',
           ),
           AppSizes.vGapLg,
           AppDropdown<String>(
-            label: 'Team Size',
+            label: 'Team Size *',
             hint: 'Select team size',
-            value: teamSize,
-            items: _SignupPageState._teamSizes,
+            value: teamSizeOptions.contains(teamSize) ? teamSize : null,
+            items: teamSizeOptions,
             itemLabel: (item) => item,
             onChanged: onTeamSizeChanged,
           ),
@@ -3675,7 +4989,9 @@ class _FounderStartupDetailsStep extends StatelessWidget {
     required this.fundingRequired,
     required this.equityOffered,
     required this.demoLink,
+    required this.documentName,
     required this.onStageChanged,
+    required this.onPickDocument,
   });
 
   final TextEditingController startupName;
@@ -3693,7 +5009,9 @@ class _FounderStartupDetailsStep extends StatelessWidget {
   final TextEditingController fundingRequired;
   final TextEditingController equityOffered;
   final TextEditingController demoLink;
+  final String? documentName;
   final ValueChanged<String?> onStageChanged;
+  final VoidCallback onPickDocument;
 
   @override
   Widget build(BuildContext context) {
@@ -3703,12 +5021,12 @@ class _FounderStartupDetailsStep extends StatelessWidget {
         children: [
           AppTextField(
             controller: startupName,
-            label: 'Startup Name',
+            label: 'Startup Name *',
             hint: 'Enter startup name',
           ),
           AppSizes.vGapLg,
           AppDropdown<String>(
-            label: 'Startup Stage',
+            label: 'Startup Stage *',
             hint: 'Select stage',
             value: startupStage,
             items: startupStageOptions,
@@ -3718,53 +5036,53 @@ class _FounderStartupDetailsStep extends StatelessWidget {
           AppSizes.vGapLg,
           AppTextField(
             controller: shortPitch,
-            label: 'Short Pitch (One-liner)',
-            hint: 'e.g. Uber for dog walking',
+            label: 'Short Pitch (One-liner) *',
+            hint: 'Enter Short Pitch',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: longDescription,
-            label: 'Long Description',
+            label: 'Long Description *',
             hint: 'Describe your startup idea in detail...',
             maxLines: 4,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: problemStatement,
-            label: 'Problem Statement',
+            label: 'Problem Statement *',
             hint: 'Enter problem statement',
             maxLines: 3,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: solution,
-            label: 'Solution',
+            label: 'Solution *',
             hint: 'Enter solution',
             maxLines: 3,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: targetCustomers,
-            label: 'Target Customers',
+            label: 'Target Customers *',
             hint: 'Enter target customers',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: marketSize,
             label: 'Market Size',
-            hint: r'e.g. $10B TAM',
+            hint: 'Enter Market Size (e.g. 10B TAM)',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: businessModel,
             label: 'Business Model',
-            hint: 'B2B, B2C, Marketplace...',
+            hint: 'Enter Model like B2B, B2C, Marketplace...',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: revenueModel,
             label: 'Revenue Model',
-            hint: 'SaaS, Transactional, Ads...',
+            hint: 'Enter Model like SaaS, Transactional, Ads...',
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -3777,29 +5095,29 @@ class _FounderStartupDetailsStep extends StatelessWidget {
           AppTextField(
             controller: fundingRequired,
             label: 'Funding Required',
-            hint: r'e.g. $500K',
+            hint: 'Enter fund amount',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: equityOffered,
             label: 'Equity Offered',
-            hint: 'e.g. 10%',
+            hint: 'Enter Equity Offered',
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           AppSizes.vGapLg,
-          Text("Pitch Deck Upload", style: context.text.titleSmall),
-          AppSizes.vGapSm,
-          Center(
-            child: AppFileUpload(
-              label: 'Choose file',
-              hint: 'Upload pitch deck file.',
-              icon: Icons.upload_file_rounded,
-            ),
+          _TitledFileUpload(
+            label: 'Pitch Deck Upload *',
+            hint: 'Upload pitch deck file.',
+            fileName: documentName,
+            icon: Icons.upload_file_rounded,
+            onTap: onPickDocument,
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: demoLink,
             label: 'Demo Video / App / Website Link',
-            hint: 'https://...',
+            hint: 'Enter Demo Link',
           ),
         ],
       ),
@@ -3810,81 +5128,64 @@ class _FounderStartupDetailsStep extends StatelessWidget {
 class _FounderTaxonomyStep extends StatelessWidget {
   const _FounderTaxonomyStep({
     required this.category,
-    required this.subcategory,
+    required this.skill,
+    required this.categories,
+    required this.skills,
+    required this.isLoadingSkills,
     required this.onCategoryChanged,
-    required this.onSubcategoryChanged,
+    required this.onSkillChanged,
   });
 
-  final String? category;
-  final String? subcategory;
-  final ValueChanged<String?> onCategoryChanged;
-  final ValueChanged<String?> onSubcategoryChanged;
+  final _PublicOption? category;
+  final String? skill;
+  final List<_PublicOption> categories;
+  final List<String> skills;
+  final bool isLoadingSkills;
+  final ValueChanged<_PublicOption?> onCategoryChanged;
+  final ValueChanged<String?> onSkillChanged;
 
   @override
   Widget build(BuildContext context) {
     return _StepCard(
       child: Column(
         children: [
-          AppDropdown<String>(
-            label: 'Primary Category',
+          AppDropdown<_PublicOption>(
+            label: 'Primary Category *',
             hint: 'Select a category',
-            value: category,
-            items: _SignupPageState._founderCategories,
-            itemLabel: (item) => item,
+            value: categories.contains(category) ? category : null,
+            items: categories,
+            itemLabel: (item) => item.label,
             onChanged: onCategoryChanged,
           ),
           AppSizes.vGapLg,
-          AppDropdown<String>(
-            label: 'Sub-Category',
-            hint: 'Select a sub-category',
-            value: subcategory,
-            items: _SignupPageState._founderSubCategories,
-            itemLabel: (item) => item,
-            onChanged: onSubcategoryChanged,
-          ),
+          if (isLoadingSkills)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            AppDropdown<String>(
+              label: 'Skills',
+              hint: 'Select skill',
+              value: skills.contains(skill) ? skill : null,
+              items: skills,
+              itemLabel: (item) => item,
+              onChanged: skills.isEmpty ? null : onSkillChanged,
+            ),
         ],
       ),
     );
   }
 }
 
-class _TwoColumnChoiceStep extends StatelessWidget {
-  const _TwoColumnChoiceStep({
+class _CompactMultiChoiceGroup extends StatelessWidget {
+  const _CompactMultiChoiceGroup({
     required this.title,
     required this.options,
-    required this.value,
+    required this.values,
     required this.onChanged,
   });
 
   final String title;
   final List<String> options;
-  final String? value;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepCard(
-      child: _CompactRadioGroup(
-        title: title,
-        options: options,
-        value: value,
-        onChanged: onChanged,
-      ),
-    );
-  }
-}
-
-class _CompactRadioGroup extends StatelessWidget {
-  const _CompactRadioGroup({
-    required this.title,
-    required this.options,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String title;
-  final List<String> options;
-  final String? value;
+  final List<String> values;
   final ValueChanged<String> onChanged;
 
   @override
@@ -3892,7 +5193,10 @@ class _CompactRadioGroup extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: context.text.titleSmall),
+        Text(
+          title,
+          style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+        ),
         AppSizes.vGapSm,
         Wrap(
           spacing: AppSizes.xl,
@@ -3908,15 +5212,15 @@ class _CompactRadioGroup extends StatelessWidget {
                     child: Row(
                       children: [
                         Icon(
-                          value == option
-                              ? Icons.radio_button_checked
-                              : Icons.radio_button_unchecked,
+                          values.contains(option)
+                              ? Icons.check_box_rounded
+                              : Icons.check_box_outline_blank_rounded,
                           color: AppColors.primary,
                           size: 20,
                         ),
                         AppSizes.hGapSm,
                         Expanded(
-                          child: Text(option, style: context.text.titleSmall),
+                          child: Text(option, style: context.text.bodyMedium),
                         ),
                       ],
                     ),
@@ -3934,6 +5238,10 @@ class _SimpleVerificationStep extends StatelessWidget {
   const _SimpleVerificationStep({
     required this.email,
     required this.emailOtp,
+    required this.accountPhone,
+    required this.countryIsoCode,
+    required this.password,
+    required this.confirm,
     required this.aadhaar,
     required this.pan,
     required this.documentName,
@@ -3943,16 +5251,20 @@ class _SimpleVerificationStep extends StatelessWidget {
     required this.agree,
     required this.documentLabel,
     required this.documentHint,
-    this.secondDocumentLabel,
-    this.secondDocumentHint,
     required this.onSendOtp,
     required this.onVerifyOtp,
+    required this.onCountryChanged,
+    required this.validatePhone,
     required this.onPickDocument,
     required this.onAgreeChanged,
   });
 
   final TextEditingController email;
   final TextEditingController emailOtp;
+  final TextEditingController accountPhone;
+  final String countryIsoCode;
+  final TextEditingController password;
+  final TextEditingController confirm;
   final TextEditingController aadhaar;
   final TextEditingController pan;
   final String? documentName;
@@ -3962,10 +5274,10 @@ class _SimpleVerificationStep extends StatelessWidget {
   final bool agree;
   final String documentLabel;
   final String documentHint;
-  final String? secondDocumentLabel;
-  final String? secondDocumentHint;
   final VoidCallback onSendOtp;
   final VoidCallback onVerifyOtp;
+  final ValueChanged<CountryCode> onCountryChanged;
+  final String? Function(String?) validatePhone;
   final VoidCallback onPickDocument;
   final ValueChanged<bool?> onAgreeChanged;
 
@@ -4013,6 +5325,31 @@ class _SimpleVerificationStep extends StatelessWidget {
             ],
           ),
           AppSizes.vGapLg,
+          _PhoneWithCountryCodeRow(
+            phone: accountPhone,
+            countryIsoCode: countryIsoCode,
+            onCountryChanged: onCountryChanged,
+            validatePhone: validatePhone,
+          ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: password,
+            label: 'Password *',
+            hint: 'Enter password',
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: Validators.password,
+          ),
+          AppSizes.vGapLg,
+          AppTextField(
+            controller: confirm,
+            label: 'Confirm Password *',
+            hint: 'Re-enter password',
+            prefixIcon: Icons.lock_outline_rounded,
+            obscure: true,
+            validator: (v) => Validators.confirmPassword(v, password.text),
+          ),
+          AppSizes.vGapLg,
           AppTextField(
             controller: aadhaar,
             label: 'Aadhaar Card Number *',
@@ -4043,16 +5380,6 @@ class _SimpleVerificationStep extends StatelessWidget {
             icon: Icons.file_present_outlined,
             onTap: onPickDocument,
           ),
-          if (secondDocumentLabel != null) ...[
-            AppSizes.vGapLg,
-            _TitledFileUpload(
-              label: secondDocumentLabel!,
-              hint: secondDocumentHint ?? 'Upload relevant files.',
-              fileName: documentName,
-              icon: Icons.badge_outlined,
-              onTap: onPickDocument,
-            ),
-          ],
           AppSizes.vGapLg,
           Row(
             children: [
@@ -4324,7 +5651,7 @@ class _CountrySelectionField extends StatelessWidget {
       hint: hint,
       value: selected,
       items: countries,
-      itemLabel: (item) => item.displayName,
+      itemLabel: (item) => item.displayNameWithoutPhoneCode,
       validator: (value) => validator(value?.name),
       onChanged: (value) {
         if (value == null) return;
@@ -4334,8 +5661,63 @@ class _CountrySelectionField extends StatelessWidget {
   }
 }
 
+class _StateSelectionField extends StatelessWidget {
+  const _StateSelectionField({
+    required this.controller,
+    required this.states,
+    required this.label,
+    required this.hint,
+    required this.validator,
+    required this.onStateSelected,
+    required this.onPlaceSelected,
+  });
+
+  final TextEditingController controller;
+  final List<_StateOption> states;
+  final String label;
+  final String hint;
+  final String? Function(String?) validator;
+  final ValueChanged<_StateOption> onStateSelected;
+  final ValueChanged<SelectedPlace> onPlaceSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (states.isEmpty) {
+      return AppLocationField(
+        controller: controller,
+        label: label,
+        hint: hint,
+        validator: validator,
+        onPlaceSelected: onPlaceSelected,
+      );
+    }
+
+    _StateOption? selected;
+    for (final state in states) {
+      if (state.name == controller.text) {
+        selected = state;
+        break;
+      }
+    }
+
+    return AppDropdown<_StateOption>(
+      label: label,
+      hint: hint,
+      value: selected,
+      items: states,
+      itemLabel: (item) => item.name,
+      validator: (value) => validator(value?.name),
+      onChanged: (value) {
+        if (value == null) return;
+        onStateSelected(value);
+      },
+    );
+  }
+}
+
 class _CountryOption {
   const _CountryOption({
+    required this.id,
     required this.name,
     required this.code,
     required this.phoneCode,
@@ -4343,6 +5725,7 @@ class _CountryOption {
     required this.allowRegistration,
   });
 
+  final String id;
   final String name;
   final String code;
   final String phoneCode;
@@ -4358,14 +5741,99 @@ class _CountryOption {
     return parts.join(' ');
   }
 
+  String get displayNameWithoutPhoneCode {
+    final parts = [if (flag.isNotEmpty) flag, name];
+    return parts.join(' ');
+  }
+
   factory _CountryOption.fromJson(Map<String, dynamic> json) {
     return _CountryOption(
+      id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
       code: json['code']?.toString() ?? '',
       phoneCode: json['phoneCode']?.toString() ?? '',
       flag: json['flag']?.toString() ?? '',
       allowRegistration: json['allowRegistration'] != false,
     );
+  }
+}
+
+class _TicketOption {
+  const _TicketOption({
+    required this.id,
+    required this.label,
+    required this.value,
+    this.min,
+    this.max,
+  });
+
+  final String id;
+  final String label;
+  final String value;
+  final int? min;
+  final int? max;
+
+  factory _TicketOption.fromJson(Map<String, dynamic> json) {
+    final label =
+        json['label']?.toString().trim() ??
+        json['value']?.toString().trim() ??
+        '';
+    final value =
+        json['value']?.toString().trim() ??
+        json['label']?.toString().trim() ??
+        '';
+    return _TicketOption(
+      id: json['id']?.toString().trim() ?? value,
+      label: label,
+      value: value,
+      min: (json['min'] as num?)?.toInt(),
+      max: (json['max'] as num?)?.toInt(),
+    );
+  }
+}
+
+class _StateOption {
+  const _StateOption({
+    required this.id,
+    required this.code,
+    required this.name,
+    required this.countryCode,
+  });
+
+  final String id;
+  final String code;
+  final String name;
+  final String countryCode;
+
+  factory _StateOption.fromJson(Map<String, dynamic> json) {
+    return _StateOption(
+      id: json['id']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      countryCode: json['countryCode']?.toString() ?? '',
+    );
+  }
+}
+
+class _PublicOption {
+  const _PublicOption({required this.id, required this.label});
+
+  final String id;
+  final String label;
+
+  factory _PublicOption.fromJson(
+    Map<String, dynamic> json, {
+    required List<String> labelKeys,
+  }) {
+    String label = '';
+    for (final key in labelKeys) {
+      final value = json[key]?.toString().trim();
+      if (value != null && value.isNotEmpty) {
+        label = value;
+        break;
+      }
+    }
+    return _PublicOption(id: json['id']?.toString() ?? '', label: label);
   }
 }
 

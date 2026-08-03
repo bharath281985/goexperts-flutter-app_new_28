@@ -149,6 +149,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String countryCode,
     required String password,
     required UserRole role,
+    Map<String, dynamic> signupData = const {},
   }) async {
     if (AppConfig.useMockData) {
       return _mockModeDisabled();
@@ -161,6 +162,7 @@ class AuthRepositoryImpl implements AuthRepository {
         phone: phone,
         countryCode: countryCode,
         role: role,
+        signupData: signupData,
       );
       await _cacheUser(user);
       await _chatSocket?.connect();

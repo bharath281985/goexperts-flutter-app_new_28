@@ -15,6 +15,7 @@ abstract class AuthRepository {
     required String countryCode,
     required String password,
     required UserRole role,
+    Map<String, dynamic> signupData = const {},
   });
   Future<Result<AppUser>> socialLogin(
     String provider, {

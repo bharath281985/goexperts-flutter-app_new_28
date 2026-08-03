@@ -112,7 +112,6 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                           label: 'Message',
                           icon: Icons.chat_bubble_outline_rounded,
                           onPressed: () {
-                            print("founderId: ${s.founderId}");
                             if (s.founderId != null &&
                                 s.founderId!.isNotEmpty) {
                               final nameEncoded = Uri.encodeComponent(
@@ -251,8 +250,8 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.black.withOpacity(0.0),
-                  AppColors.black.withOpacity(0.6),
+                  AppColors.black.withAlpha(30),
+                  AppColors.black.withAlpha(150),
                 ],
               ),
             ),
