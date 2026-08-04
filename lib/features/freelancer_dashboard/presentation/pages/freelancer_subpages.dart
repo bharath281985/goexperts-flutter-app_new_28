@@ -1,15 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:video_player/video_player.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../app/config/app_config.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/result.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/app_file_upload.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -3392,6 +3400,1453 @@ class FreelancerPortfolioPage extends StatefulWidget {
 }
 
 class _FreelancerPortfolioPageState extends State<FreelancerPortfolioPage> {
+  int _listKey = 0;
+
+  void _reload() => setState(() => _listKey++);
+
+  @override
+  Widget build(BuildContext context) {
+    return _ListScaffold(
+      title: 'Portfolio',
+      child: CatalogView<PortfolioItem>(
+        key: ValueKey(_listKey),
+        fetcher: (q) => sl<PortfolioRepository>().getPortfolio(q),
+        searchHint: 'Search portfolio',
+        emptyTitle: 'No portfolio items yet',
+        emptyMessage: 'Add your best work so clients can see what you deliver.',
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => _openAdd(context),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add Portfolio'),
+        ),
+        itemBuilder: (context, item, __) => Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.screenPadding,
+          ),
+          child: _PortfolioCard(
+            item: item,
+            onTap: () =>
+                context.push('${Routes.freelancerPortfolioDetails}/${item.id}'),
+            onEdit: () => _openEdit(context, item.id),
+            onDelete: () => _deletePortfolio(context, item),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAdd(BuildContext context) async {
+    final changed = await context.push<bool>(Routes.freelancerPortfolioForm);
+    if (!context.mounted || changed != true) return;
+    _reload();
+  }
+
+  Future<void> _openEdit(BuildContext context, String id) async {
+    final res = await sl<PortfolioRepository>().getPortfolioItem(id);
+    if (!context.mounted) return;
+    final item = res.valueOrNull;
+    if (item == null) {
+      context.showSnack(
+        res.failureOrNull?.message ?? 'Unable to load portfolio item',
+        isError: true,
+      );
+      return;
+    }
+    final changed = await context.push<bool>(
+      Routes.freelancerPortfolioForm,
+      extra: item,
+    );
+    if (!context.mounted || changed != true) return;
+    _reload();
+  }
+
+  Future<void> _deletePortfolio(
+    BuildContext context,
+    PortfolioItem item,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete portfolio item?'),
+        content: Text('This will remove "${item.title}".'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text(
+              'Delete',
+              style: TextStyle(color: AppColors.danger),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final res = await sl<PortfolioRepository>().deletePortfolio(item.id);
+    if (!context.mounted) return;
+    res.fold((f) => context.showSnack(f.message, isError: true), (message) {
+      context.showSnack(message);
+      _reload();
+    });
+  }
+}
+
+class FreelancerPortfolioDetailsPage extends StatefulWidget {
+  const FreelancerPortfolioDetailsPage({super.key, required this.id});
+
+  final String id;
+
+  @override
+  State<FreelancerPortfolioDetailsPage> createState() =>
+      _FreelancerPortfolioDetailsPageState();
+}
+
+class _FreelancerPortfolioDetailsPageState
+    extends State<FreelancerPortfolioDetailsPage> {
+  late Future<Result<PortfolioItem>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = sl<PortfolioRepository>().getPortfolioItem(widget.id);
+  }
+
+  void _refresh() {
+    setState(() {
+      _future = sl<PortfolioRepository>().getPortfolioItem(widget.id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      appBar: AppBar(title: const Text('Portfolio Details')),
+      body: FutureBuilder<Result<PortfolioItem>>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final result = snapshot.data!;
+          final item = result.valueOrNull;
+          if (item == null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSizes.lg),
+                child: Text(
+                  result.failureOrNull?.message ??
+                      'Unable to load portfolio item',
+                ),
+              ),
+            );
+          }
+          return RefreshIndicator(
+            onRefresh: () async => _refresh(),
+            child: ListView(
+              padding: const EdgeInsets.all(AppSizes.screenPadding),
+              children: [
+                AppCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              style: context.text.titleLarge,
+                            ),
+                          ),
+                          IconButton(
+                            tooltip: 'Edit',
+                            onPressed: () async {
+                              final changed = await context.push<bool>(
+                                Routes.freelancerPortfolioForm,
+                                extra: item,
+                              );
+                              if (!context.mounted || changed != true) return;
+                              _refresh();
+                            },
+                            icon: const Icon(Icons.edit_outlined),
+                          ),
+                        ],
+                      ),
+                      if (item.status.isNotEmpty) ...[
+                        AppSizes.vGapSm,
+                        AppStatusChip(label: item.status, dense: true),
+                      ],
+                      if (item.displayDescription.isNotEmpty) ...[
+                        AppSizes.vGapLg,
+                        Text(
+                          item.displayDescription,
+                          style: context.text.bodyMedium,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                AppSizes.vGapMd,
+                _PortfolioInfoCard(
+                  title: 'Project',
+                  rows: [
+                    ('Industry', item.industry),
+                    ('Industry ID', item.industryId),
+                    ('Category', item.category),
+                    ('Category ID', item.categoryId),
+                    ('Client', item.client),
+                    ('Duration', item.duration),
+                    ('Team Size', item.teamSize),
+                    ('Team Size ID', item.teamSizeId),
+                    ('Role', item.role),
+                  ],
+                ),
+                AppSizes.vGapMd,
+                _PortfolioInfoCard(
+                  title: 'Links & Media',
+                  rows: [
+                    ('GitHub URL', item.githubUrl),
+                    ('Live URL', item.liveUrl),
+                    ('Cover Media', item.coverMedia),
+                    ('Video Demo', item.videoDemo),
+                    ('PDF Case Study', item.pdfCaseStudy),
+                    ('Extra Screenshot', item.extraScreenshot),
+                  ],
+                ),
+                if (item.videoDemo.trim().isNotEmpty) ...[
+                  AppSizes.vGapMd,
+                  _PortfolioVideoPreview(source: item.videoDemo.trim()),
+                ],
+                if (item.displaySkillNames.isNotEmpty) ...[
+                  AppSizes.vGapMd,
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Skills', style: context.text.titleSmall),
+                        AppSizes.vGapMd,
+                        Wrap(
+                          spacing: AppSizes.sm,
+                          runSpacing: AppSizes.sm,
+                          children: [
+                            for (final skill in item.skills)
+                              Chip(
+                                label: Text(
+                                  skill.skillId.isEmpty
+                                      ? skill.skillName
+                                      : '${skill.skillName} (${skill.skillId})',
+                                ),
+                                visualDensity: VisualDensity.compact,
+                              ),
+                            if (item.skills.isEmpty)
+                              for (final skill in item.technologies)
+                                Chip(
+                                  label: Text(skill),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class FreelancerPortfolioFormPage extends StatefulWidget {
+  const FreelancerPortfolioFormPage({super.key, this.item});
+
+  final PortfolioItem? item;
+
+  @override
+  State<FreelancerPortfolioFormPage> createState() =>
+      _FreelancerPortfolioFormPageState();
+}
+
+class _FreelancerPortfolioFormPageState
+    extends State<FreelancerPortfolioFormPage> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _title;
+  late final TextEditingController _description;
+  late final TextEditingController _client;
+  late final TextEditingController _duration;
+  late final TextEditingController _role;
+  late final TextEditingController _githubUrl;
+  late final TextEditingController _liveUrl;
+  late final TextEditingController _overview;
+  late final TextEditingController _coverMedia;
+  late final TextEditingController _videoDemo;
+  late final TextEditingController _pdfCaseStudy;
+  late final TextEditingController _extraScreenshot;
+  final _statuses = const ['Draft', 'Published', 'Archived'];
+  late String _status;
+  bool _saving = false;
+  bool _loadingIndustries = false;
+  bool _loadingCategories = false;
+  bool _loadingSkills = false;
+  bool _loadingTeamSizes = false;
+  List<_PortfolioOption> _industryOptions = const [];
+  List<_PortfolioOption> _categoryOptions = const [];
+  List<_PortfolioOption> _skillOptions = const [];
+  List<_PortfolioOption> _teamSizeOptions = const [];
+  _PortfolioOption? _selectedIndustry;
+  _PortfolioOption? _selectedCategory;
+  _PortfolioOption? _selectedTeamSize;
+  final Map<String, String> _selectedSkillsById = {};
+  String? _coverFileName;
+  String? _videoFileName;
+  String? _caseStudyFileName;
+  String? _screenshotFileName;
+
+  bool get _isEdit => widget.item != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.item;
+    _title = TextEditingController(text: item?.title ?? '');
+    _description = TextEditingController(text: item?.description ?? '');
+    _client = TextEditingController(text: item?.client ?? '');
+    _duration = TextEditingController(text: item?.duration ?? '');
+    _role = TextEditingController(text: item?.role ?? '');
+    _githubUrl = TextEditingController(text: item?.githubUrl ?? '');
+    _liveUrl = TextEditingController(text: item?.liveUrl ?? '');
+    _overview = TextEditingController(text: item?.overview ?? '');
+    _coverMedia = TextEditingController(text: item?.coverMedia ?? '');
+    _videoDemo = TextEditingController(text: item?.videoDemo ?? '');
+    _pdfCaseStudy = TextEditingController(text: item?.pdfCaseStudy ?? '');
+    _extraScreenshot = TextEditingController(text: item?.extraScreenshot ?? '');
+    _status = _statuses.contains(item?.status) ? item!.status : _statuses.first;
+    if (item != null) {
+      _selectedIndustry = _PortfolioOption(
+        id: item.industryId,
+        label: item.industry,
+      );
+      _selectedCategory = _PortfolioOption(
+        id: item.categoryId,
+        label: item.category,
+      );
+      _selectedTeamSize = _PortfolioOption(
+        id: item.teamSizeId,
+        label: item.teamSize,
+      );
+      for (final skill in item.skills) {
+        if (skill.skillId.isNotEmpty) {
+          _selectedSkillsById[skill.skillId] = skill.skillName;
+        }
+      }
+    }
+    _loadInitialOptions();
+  }
+
+  Future<void> _loadInitialOptions() async {
+    await Future.wait([_loadIndustries(), _loadTeamSizes()]);
+    final industry = _selectedIndustry;
+    if (industry != null && industry.id.isNotEmpty) {
+      await _loadCategories(industry.id);
+    }
+    final category = _selectedCategory;
+    if (category != null && category.id.isNotEmpty) {
+      await _loadSkills(category.id);
+    }
+  }
+
+  Future<List<_PortfolioOption>> _loadOptions(
+    String endpoint, {
+    Map<String, dynamic>? query,
+    String? baseUrl,
+  }) async {
+    final host = baseUrl ?? AppConfig.baseUrl;
+    final response = await Dio().get('$host$endpoint', queryParameters: query);
+    final raw = response.data is Map<String, dynamic>
+        ? (response.data as Map<String, dynamic>)['data']
+        : null;
+    if (raw is! List) return const [];
+    return raw
+        .whereType<Map>()
+        .where((item) => item['status'] == null || item['status'] == 'active')
+        .map(
+          (item) => _PortfolioOption.fromJson(Map<String, dynamic>.from(item)),
+        )
+        .where((item) => item.id.isNotEmpty && item.label.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _loadIndustries() async {
+    setState(() => _loadingIndustries = true);
+    try {
+      final items = await _loadOptions(ApiEndpoints.publicIndustries);
+      if (!mounted) return;
+      setState(() {
+        _industryOptions = _mergeSelected(items, _selectedIndustry);
+        _loadingIndustries = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingIndustries = false);
+    }
+  }
+
+  Future<void> _loadCategories(String industryId) async {
+    setState(() => _loadingCategories = true);
+    try {
+      final items = await _loadOptions(
+        ApiEndpoints.publicCategories,
+        query: {
+          'industryId': industryId,
+          'page': 1,
+          'limit': 50,
+          'pageSize': 50,
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _categoryOptions = _mergeSelected(items, _selectedCategory);
+        _loadingCategories = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingCategories = false);
+    }
+  }
+
+  Future<void> _loadSkills(String categoryId) async {
+    setState(() => _loadingSkills = true);
+    try {
+      final items = await _loadOptions(
+        ApiEndpoints.publicSkills,
+        query: {
+          'categoryId': categoryId,
+          'page': 1,
+          'limit': 100,
+          'pageSize': 100,
+        },
+      );
+      if (!mounted) return;
+      setState(() {
+        _skillOptions = items;
+        for (final selected in _selectedSkillsById.entries) {
+          if (!_skillOptions.any((skill) => skill.id == selected.key)) {
+            _skillOptions = [
+              ..._skillOptions,
+              _PortfolioOption(id: selected.key, label: selected.value),
+            ];
+          }
+        }
+        _loadingSkills = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingSkills = false);
+    }
+  }
+
+  Future<void> _loadTeamSizes() async {
+    setState(() => _loadingTeamSizes = true);
+    try {
+      final items = await _loadOptions(
+        ApiEndpoints.publicMobileTeamSizes,
+        baseUrl: AppConfig.mobilePublicBaseUrl,
+      );
+      if (!mounted) return;
+      setState(() {
+        _teamSizeOptions = _mergeSelected(items, _selectedTeamSize);
+        _loadingTeamSizes = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loadingTeamSizes = false);
+    }
+  }
+
+  List<_PortfolioOption> _mergeSelected(
+    List<_PortfolioOption> items,
+    _PortfolioOption? selected,
+  ) {
+    if (selected == null || selected.id.isEmpty) return items;
+    if (items.any((item) => item.id == selected.id)) return items;
+    return [...items, selected];
+  }
+
+  void _onIndustryChanged(_PortfolioOption? value) {
+    setState(() {
+      _selectedIndustry = value;
+      _selectedCategory = null;
+      _categoryOptions = const [];
+      _skillOptions = const [];
+      _selectedSkillsById.clear();
+    });
+    if (value != null) _loadCategories(value.id);
+  }
+
+  void _onCategoryChanged(_PortfolioOption? value) {
+    setState(() {
+      _selectedCategory = value;
+      _skillOptions = const [];
+      _selectedSkillsById.clear();
+    });
+    if (value != null) _loadSkills(value.id);
+  }
+
+  void _toggleSkill(_PortfolioOption skill) {
+    setState(() {
+      if (_selectedSkillsById.containsKey(skill.id)) {
+        _selectedSkillsById.remove(skill.id);
+      } else {
+        _selectedSkillsById[skill.id] = skill.label;
+      }
+    });
+  }
+
+  Future<void> _pickMedia(
+    TextEditingController controller,
+    _PortfolioMediaKind kind,
+  ) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: switch (kind) {
+        _PortfolioMediaKind.video => FileType.video,
+        _PortfolioMediaKind.caseStudy => FileType.custom,
+        _PortfolioMediaKind.cover ||
+        _PortfolioMediaKind.screenshot => FileType.image,
+      },
+      allowedExtensions: kind == _PortfolioMediaKind.caseStudy
+          ? const ['pdf']
+          : null,
+    );
+    final file = result?.files.single;
+    if (file == null) return;
+    final value = file.path?.trim().isNotEmpty == true ? file.path! : file.name;
+    setState(() {
+      controller.text = value;
+      switch (kind) {
+        case _PortfolioMediaKind.cover:
+          _coverFileName = file.name;
+        case _PortfolioMediaKind.video:
+          _videoFileName = file.name;
+        case _PortfolioMediaKind.caseStudy:
+          _caseStudyFileName = file.name;
+        case _PortfolioMediaKind.screenshot:
+          _screenshotFileName = file.name;
+      }
+    });
+  }
+
+  void _clearMedia(TextEditingController controller, _PortfolioMediaKind kind) {
+    setState(() {
+      controller.clear();
+      switch (kind) {
+        case _PortfolioMediaKind.cover:
+          _coverFileName = null;
+        case _PortfolioMediaKind.video:
+          _videoFileName = null;
+        case _PortfolioMediaKind.caseStudy:
+          _caseStudyFileName = null;
+        case _PortfolioMediaKind.screenshot:
+          _screenshotFileName = null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _description.dispose();
+    _client.dispose();
+    _duration.dispose();
+    _role.dispose();
+    _githubUrl.dispose();
+    _liveUrl.dispose();
+    _overview.dispose();
+    _coverMedia.dispose();
+    _videoDemo.dispose();
+    _pdfCaseStudy.dispose();
+    _extraScreenshot.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      appBar: AppBar(title: Text(_isEdit ? 'Edit Portfolio' : 'New Portfolio')),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(AppSizes.screenPadding),
+          children: [
+            AppCard(
+              child: Column(
+                children: [
+                  AppTextField(
+                    controller: _title,
+                    label: 'Title',
+                    hint: 'LMS Platform Development',
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Title is required'
+                        : null,
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _description,
+                    label: 'Description',
+                    hint: 'Short project description',
+                    maxLines: 3,
+                  ),
+                  AppSizes.vGapMd,
+                  AppDropdown<String>(
+                    label: 'Status',
+                    hint: 'Select status',
+                    value: _status,
+                    items: _statuses,
+                    itemLabel: (item) => item,
+                    onChanged: _saving
+                        ? null
+                        : (value) {
+                            if (value == null) return;
+                            setState(() => _status = value);
+                          },
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.vGapMd,
+            AppCard(
+              child: Column(
+                children: [
+                  if (_loadingIndustries)
+                    const LinearProgressIndicator(minHeight: 2)
+                  else
+                    AppDropdown<_PortfolioOption>(
+                      label: 'Industry',
+                      hint: 'Select industry',
+                      value: _industryOptions.contains(_selectedIndustry)
+                          ? _selectedIndustry
+                          : null,
+                      items: _industryOptions,
+                      itemLabel: (item) => item.label,
+                      onChanged: _saving ? null : _onIndustryChanged,
+                    ),
+                  AppSizes.vGapMd,
+                  if (_loadingCategories)
+                    const LinearProgressIndicator(minHeight: 2)
+                  else
+                    AppDropdown<_PortfolioOption>(
+                      label: 'Category',
+                      hint: _selectedIndustry == null
+                          ? 'Select industry first'
+                          : 'Select category',
+                      value: _categoryOptions.contains(_selectedCategory)
+                          ? _selectedCategory
+                          : null,
+                      items: _categoryOptions,
+                      itemLabel: (item) => item.label,
+                      onChanged: _saving || _selectedIndustry == null
+                          ? null
+                          : _onCategoryChanged,
+                    ),
+                  AppSizes.vGapMd,
+                  _PortfolioSkillPicker(
+                    loading: _loadingSkills,
+                    options: _skillOptions,
+                    selectedIds: _selectedSkillsById.keys.toSet(),
+                    onToggle: _saving ? null : _toggleSkill,
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.vGapMd,
+            AppCard(
+              child: Column(
+                children: [
+                  AppTextField(controller: _client, label: 'Client'),
+                  AppSizes.vGapMd,
+                  AppTextField(controller: _duration, label: 'Duration'),
+                  AppSizes.vGapMd,
+                  if (_loadingTeamSizes)
+                    const LinearProgressIndicator(minHeight: 2)
+                  else
+                    AppDropdown<_PortfolioOption>(
+                      label: 'Team Size',
+                      hint: 'Select team size',
+                      value: _teamSizeOptions.contains(_selectedTeamSize)
+                          ? _selectedTeamSize
+                          : null,
+                      items: _teamSizeOptions,
+                      itemLabel: (item) => item.label,
+                      onChanged: _saving
+                          ? null
+                          : (value) =>
+                                setState(() => _selectedTeamSize = value),
+                    ),
+                  AppSizes.vGapMd,
+                  AppTextField(controller: _role, label: 'Role'),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _overview,
+                    label: 'Overview',
+                    maxLines: 4,
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.vGapMd,
+            AppCard(
+              child: Column(
+                children: [
+                  _PortfolioUploadTile(
+                    label: 'Cover Image',
+                    hint: 'Upload JPG, PNG, or WebP',
+                    source: _coverMedia.text,
+                    fileName: _coverFileName ?? _fileLabel(_coverMedia.text),
+                    icon: Icons.image_outlined,
+                    onClear: _saving
+                        ? null
+                        : () => _clearMedia(
+                            _coverMedia,
+                            _PortfolioMediaKind.cover,
+                          ),
+                    onTap: _saving
+                        ? null
+                        : () => _pickMedia(
+                            _coverMedia,
+                            _PortfolioMediaKind.cover,
+                          ),
+                  ),
+                  AppSizes.vGapMd,
+                  _PortfolioUploadTile(
+                    label: 'Video Demo',
+                    hint: 'Upload MP4 or MOV',
+                    source: _videoDemo.text,
+                    fileName: _videoFileName ?? _fileLabel(_videoDemo.text),
+                    icon: Icons.video_library_outlined,
+                    onClear: _saving
+                        ? null
+                        : () => _clearMedia(
+                            _videoDemo,
+                            _PortfolioMediaKind.video,
+                          ),
+                    onTap: _saving
+                        ? null
+                        : () =>
+                              _pickMedia(_videoDemo, _PortfolioMediaKind.video),
+                  ),
+                  if (_videoDemo.text.trim().isNotEmpty) ...[
+                    AppSizes.vGapMd,
+                    _PortfolioVideoPreview(source: _videoDemo.text.trim()),
+                  ],
+                  AppSizes.vGapMd,
+                  _PortfolioUploadTile(
+                    label: 'PDF Case Study',
+                    hint: 'Upload PDF',
+                    source: _pdfCaseStudy.text,
+                    fileName:
+                        _caseStudyFileName ?? _fileLabel(_pdfCaseStudy.text),
+                    icon: Icons.picture_as_pdf_outlined,
+                    onClear: _saving
+                        ? null
+                        : () => _clearMedia(
+                            _pdfCaseStudy,
+                            _PortfolioMediaKind.caseStudy,
+                          ),
+                    onTap: _saving
+                        ? null
+                        : () => _pickMedia(
+                            _pdfCaseStudy,
+                            _PortfolioMediaKind.caseStudy,
+                          ),
+                  ),
+                  AppSizes.vGapMd,
+                  _PortfolioUploadTile(
+                    label: 'Extra Screenshot',
+                    hint: 'Upload JPG, PNG, or WebP',
+                    source: _extraScreenshot.text,
+                    fileName:
+                        _screenshotFileName ??
+                        _fileLabel(_extraScreenshot.text),
+                    icon: Icons.add_photo_alternate_outlined,
+                    onClear: _saving
+                        ? null
+                        : () => _clearMedia(
+                            _extraScreenshot,
+                            _PortfolioMediaKind.screenshot,
+                          ),
+                    onTap: _saving
+                        ? null
+                        : () => _pickMedia(
+                            _extraScreenshot,
+                            _PortfolioMediaKind.screenshot,
+                          ),
+                  ),
+                  AppSizes.vGapLg,
+                  AppTextField(
+                    controller: _githubUrl,
+                    label: 'GitHub URL',
+                    keyboardType: TextInputType.url,
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _liveUrl,
+                    label: 'Live URL',
+                    keyboardType: TextInputType.url,
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.vGapXl,
+            AppPrimaryButton(
+              label: _isEdit ? 'Update Portfolio' : 'Add Portfolio',
+              isLoading: _saving,
+              onPressed: _save,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    final payload = _payload();
+    final repo = sl<PortfolioRepository>();
+    final result = _isEdit
+        ? await repo.updatePortfolio(widget.item!.id, payload)
+        : await repo.addPortfolio(payload);
+    if (!mounted) return;
+    setState(() => _saving = false);
+    result.fold((f) => context.showSnack(f.message, isError: true), (saved) {
+      context.showSnack(
+        saved.responseMessage ??
+            (_isEdit ? 'Portfolio updated' : 'Portfolio added'),
+      );
+      context.pop(true);
+    });
+  }
+
+  Map<String, dynamic> _payload() => {
+    'title': _title.text.trim(),
+    'description': _description.text.trim(),
+    'industry': _selectedIndustry?.label ?? '',
+    'industryId': _selectedIndustry?.id ?? '',
+    'category': _selectedCategory?.label ?? '',
+    'categoryId': _selectedCategory?.id ?? '',
+    'skills': _selectedSkillsById.entries
+        .map((entry) => {'skillId': entry.key, 'skillName': entry.value})
+        .toList(),
+    'status': _status,
+    'client': _client.text.trim(),
+    'duration': _duration.text.trim(),
+    'teamSize': _selectedTeamSize?.label ?? '',
+    'teamSizeId': _selectedTeamSize?.id ?? '',
+    'role': _role.text.trim(),
+    'githubUrl': _githubUrl.text.trim(),
+    'liveUrl': _liveUrl.text.trim(),
+    'overview': _overview.text.trim(),
+    'coverMedia': _coverMedia.text.trim(),
+    'videoDemo': _videoDemo.text.trim(),
+    'pdfCaseStudy': _pdfCaseStudy.text.trim(),
+    'extraScreenshot': _extraScreenshot.text.trim(),
+  };
+}
+
+class _PortfolioCard extends StatelessWidget {
+  const _PortfolioCard({
+    required this.item,
+    required this.onTap,
+    required this.onEdit,
+    required this.onDelete,
+  });
+
+  final PortfolioItem item;
+  final VoidCallback onTap;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      onTap: onTap,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: Text(item.title, style: context.text.titleSmall)),
+              if (item.status.isNotEmpty) AppStatusChip(label: item.status),
+              IconButton(
+                tooltip: 'Edit',
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+              ),
+              IconButton(
+                tooltip: 'Delete',
+                onPressed: onDelete,
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                ),
+              ),
+            ],
+          ),
+          if (item.displayDescription.isNotEmpty) ...[
+            AppSizes.vGapSm,
+            Text(
+              item.displayDescription,
+              style: context.text.bodySmall,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          AppSizes.vGapSm,
+          Wrap(
+            spacing: AppSizes.sm,
+            runSpacing: AppSizes.sm,
+            children: [
+              if (item.industry.isNotEmpty)
+                Chip(
+                  label: Text(item.industry),
+                  visualDensity: VisualDensity.compact,
+                ),
+              if (item.category.isNotEmpty)
+                Chip(
+                  label: Text(item.category),
+                  visualDensity: VisualDensity.compact,
+                ),
+              for (final skill in item.displaySkillNames.take(4))
+                Chip(label: Text(skill), visualDensity: VisualDensity.compact),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PortfolioInfoCard extends StatelessWidget {
+  const _PortfolioInfoCard({required this.title, required this.rows});
+
+  final String title;
+  final List<(String, String)> rows;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = rows.where((row) => row.$2.trim().isNotEmpty).toList();
+    if (visible.isEmpty) return const SizedBox.shrink();
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: context.text.titleSmall),
+          AppSizes.vGapMd,
+          for (final row in visible)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSizes.sm),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: 110,
+                    child: Text(
+                      row.$1,
+                      style: context.text.labelMedium?.copyWith(
+                        color: AppColors.mutedText,
+                      ),
+                    ),
+                  ),
+                  Expanded(child: Text(row.$2, style: context.text.bodySmall)),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PortfolioSkillPicker extends StatelessWidget {
+  const _PortfolioSkillPicker({
+    required this.loading,
+    required this.options,
+    required this.selectedIds,
+    required this.onToggle,
+  });
+
+  final bool loading;
+  final List<_PortfolioOption> options;
+  final Set<String> selectedIds;
+  final ValueChanged<_PortfolioOption>? onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const LinearProgressIndicator(minHeight: 2);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Skills', style: context.text.titleSmall),
+        AppSizes.vGapSm,
+        if (options.isEmpty)
+          Text(
+            'Select a category to load skills.',
+            style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+          )
+        else
+          Wrap(
+            spacing: AppSizes.sm,
+            runSpacing: AppSizes.sm,
+            children: [
+              for (final option in options)
+                FilterChip(
+                  label: Text(option.label),
+                  selected: selectedIds.contains(option.id),
+                  showCheckmark: false,
+                  onSelected: onToggle == null
+                      ? null
+                      : (_) => onToggle!(option),
+                ),
+            ],
+          ),
+      ],
+    );
+  }
+}
+
+class _PortfolioUploadTile extends StatelessWidget {
+  const _PortfolioUploadTile({
+    required this.label,
+    required this.hint,
+    required this.source,
+    required this.fileName,
+    required this.icon,
+    required this.onTap,
+    required this.onClear,
+  });
+
+  final String label;
+  final String hint;
+  final String source;
+  final String? fileName;
+  final IconData icon;
+  final VoidCallback? onTap;
+  final VoidCallback? onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    final cleanSource = source.trim();
+    final showImage = _isImageSource(cleanSource);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(label, style: context.text.titleSmall)),
+            if (fileName?.trim().isNotEmpty == true)
+              IconButton(
+                tooltip: 'Clear file',
+                onPressed: onClear,
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                ),
+              ),
+          ],
+        ),
+        AppSizes.vGapSm,
+        if (showImage)
+          _PortfolioImagePreview(
+            source: cleanSource,
+            fileName: fileName,
+            onTap: onTap,
+          )
+        else
+          AppFileUpload(
+            label: 'Choose file',
+            hint: hint,
+            fileName: fileName,
+            icon: icon,
+            onTap: onTap ?? () {},
+          ),
+      ],
+    );
+  }
+}
+
+class _PortfolioImagePreview extends StatelessWidget {
+  const _PortfolioImagePreview({
+    required this.source,
+    required this.fileName,
+    required this.onTap,
+  });
+
+  final String source;
+  final String? fileName;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = Uri.tryParse(source);
+    final image = uri != null && uri.hasScheme
+        ? Image.network(
+            source,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _imageFallback(context),
+          )
+        : Image.file(
+            File(source),
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _imageFallback(context),
+          );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        child: Ink(
+          height: 170,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.16),
+            ),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                image,
+                Positioned(
+                  left: AppSizes.sm,
+                  right: AppSizes.sm,
+                  bottom: AppSizes.sm,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.56),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.sm,
+                        vertical: AppSizes.xs,
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.image_outlined,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                          const SizedBox(width: AppSizes.xs),
+                          Expanded(
+                            child: Text(
+                              fileName ?? 'Image selected',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.bodySmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          const Icon(
+                            Icons.edit_outlined,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _imageFallback(BuildContext context) {
+    return Center(
+      child: Text(
+        'Unable to preview image',
+        style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+      ),
+    );
+  }
+}
+
+class _PortfolioVideoPreview extends StatelessWidget {
+  const _PortfolioVideoPreview({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        child: _PortfolioVideoPlayer(source: source),
+      ),
+    );
+  }
+}
+
+class _PortfolioVideoPlayer extends StatefulWidget {
+  const _PortfolioVideoPlayer({required this.source, this.fullscreen = false});
+
+  final String source;
+  final bool fullscreen;
+
+  @override
+  State<_PortfolioVideoPlayer> createState() => _PortfolioVideoPlayerState();
+}
+
+class _PortfolioVideoPlayerState extends State<_PortfolioVideoPlayer> {
+  VideoPlayerController? _controller;
+  bool _ready = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PortfolioVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source != widget.source) {
+      _controller?.dispose();
+      _controller = null;
+      _ready = false;
+      _error = null;
+      _init();
+    }
+  }
+
+  Future<void> _init() async {
+    try {
+      final uri = Uri.tryParse(widget.source);
+      final controller = uri != null && uri.hasScheme
+          ? VideoPlayerController.networkUrl(uri)
+          : VideoPlayerController.file(File(widget.source));
+      _controller = controller;
+      await controller.initialize();
+      if (!mounted) return;
+      setState(() => _ready = true);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Unable to preview this video.');
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (_error != null) {
+      return Padding(
+        padding: const EdgeInsets.all(AppSizes.lg),
+        child: Text(_error!, style: context.text.bodySmall),
+      );
+    }
+    if (!_ready || controller == null) {
+      return const AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final videoSize = controller.value.size;
+    final aspectRatio = widget.fullscreen
+        ? (controller.value.aspectRatio == 0
+              ? 16 / 9
+              : controller.value.aspectRatio)
+        : 16 / 9;
+    return AspectRatio(
+      aspectRatio: aspectRatio,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: Colors.black,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: videoSize.width == 0 ? 16 : videoSize.width,
+                  height: videoSize.height == 0 ? 9 : videoSize.height,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _togglePlay,
+                child: Center(
+                  child: AnimatedOpacity(
+                    opacity: controller.value.isPlaying ? 0 : 1,
+                    duration: const Duration(milliseconds: 180),
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black45,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSizes.md),
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: AppSizes.sm,
+            right: AppSizes.sm,
+            bottom: AppSizes.sm,
+            child: Row(
+              children: [
+                IconButton.filledTonal(
+                  onPressed: _togglePlay,
+                  icon: Icon(
+                    controller.value.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                ),
+                Expanded(
+                  child: VideoProgressIndicator(
+                    controller,
+                    allowScrubbing: true,
+                  ),
+                ),
+                if (!widget.fullscreen)
+                  IconButton.filledTonal(
+                    onPressed: _openFullscreen,
+                    icon: const Icon(Icons.fullscreen_rounded),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _togglePlay() {
+    final controller = _controller;
+    if (controller == null) return;
+    setState(() {
+      controller.value.isPlaying ? controller.pause() : controller.play();
+    });
+  }
+
+  Future<void> _openFullscreen() async {
+    await _controller?.pause();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: const Text('Video Demo'),
+          ),
+          body: Center(
+            child: _PortfolioVideoPlayer(
+              source: widget.source,
+              fullscreen: true,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PortfolioOption {
+  const _PortfolioOption({required this.id, required this.label});
+
+  final String id;
+  final String label;
+
+  factory _PortfolioOption.fromJson(Map<String, dynamic> json) {
+    final label =
+        json['name']?.toString().trim() ??
+        json['label']?.toString().trim() ??
+        json['value']?.toString().trim() ??
+        '';
+    return _PortfolioOption(id: json['id']?.toString() ?? '', label: label);
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _PortfolioOption &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+enum _PortfolioMediaKind { cover, video, caseStudy, screenshot }
+
+String? _fileLabel(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return null;
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.pathSegments.isNotEmpty) {
+    return uri.pathSegments.last;
+  }
+  return trimmed.split(Platform.pathSeparator).last;
+}
+
+bool _isImageSource(String value) {
+  final label = _fileLabel(value)?.toLowerCase() ?? '';
+  return label.endsWith('.jpg') ||
+      label.endsWith('.jpeg') ||
+      label.endsWith('.png') ||
+      label.endsWith('.webp') ||
+      label.endsWith('.gif') ||
+      label.endsWith('.bmp') ||
+      label.endsWith('.heic') ||
+      label.endsWith('.heif');
+}
+
+class _LegacyFreelancerPortfolioPage extends StatefulWidget {
+  const _LegacyFreelancerPortfolioPage();
+
+  @override
+  State<_LegacyFreelancerPortfolioPage> createState() =>
+      _LegacyFreelancerPortfolioPageState();
+}
+
+class _LegacyFreelancerPortfolioPageState
+    extends State<_LegacyFreelancerPortfolioPage> {
   int _listKey = 0;
 
   void _reload() => setState(() => _listKey++);

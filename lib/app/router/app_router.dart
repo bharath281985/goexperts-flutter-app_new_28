@@ -37,6 +37,7 @@ import '../../features/documents/presentation/pages/document_viewer_page.dart';
 import '../../features/meetings/presentation/pages/calendar_page.dart';
 import '../../core/dashboard/analytics_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_subpages.dart';
+import '../../features/freelancer_dashboard/domain/entities/portfolio_item.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_edit_profile_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_professional_details_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_verification_page.dart';
@@ -285,6 +286,17 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.freelancerPortfolioPage,
         builder: (_, __) => const FreelancerPortfolioPage(),
+      ),
+      GoRoute(
+        path: '${Routes.freelancerPortfolioDetails}/:id',
+        builder: (_, s) =>
+            FreelancerPortfolioDetailsPage(id: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: Routes.freelancerPortfolioForm,
+        builder: (_, s) => FreelancerPortfolioFormPage(
+          item: s.extra is PortfolioItem ? s.extra as PortfolioItem : null,
+        ),
       ),
       GoRoute(
         path: Routes.freelancerWallet,

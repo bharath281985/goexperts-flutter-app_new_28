@@ -241,4 +241,18 @@ class ApiClientHelper {
       return Err(ApiExceptionHandler.mapException(e));
     }
   }
+
+  Future<Result<T>> deleteEnvelope<T>(
+    String path, {
+    required T Function(ApiResponse<dynamic> envelope) parser,
+  }) async {
+    try {
+      final response = await _dio.delete<Map<String, dynamic>>(path);
+      final envelope = ApiResponse.parse(response.data ?? {}, null);
+      ApiExceptionHandler.ensureSuccess(envelope);
+      return Success(parser(envelope));
+    } catch (e) {
+      return Err(ApiExceptionHandler.mapException(e));
+    }
+  }
 }

@@ -307,7 +307,11 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.freelancerVerification,
             ),
-            DrawerEntry('Portfolio', Icons.perm_media_outlined),
+            DrawerEntry(
+              'Portfolio',
+              Icons.perm_media_outlined,
+              route: Routes.freelancerPortfolioPage,
+            ),
             DrawerEntry('Resume', Icons.description_outlined),
             DrawerEntry('Skills', Icons.psychology_outlined),
             DrawerEntry(

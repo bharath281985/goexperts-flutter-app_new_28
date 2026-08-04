@@ -1,11 +1,14 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:easebuzz_flutter/easebuzz_flutter.dart';
 import 'package:flutter/services.dart';
 
+import '../../app/config/app_config.dart';
 import '../errors/failures.dart';
 import '../network/api_client_helper.dart';
 import '../network/api_endpoints.dart';
+import '../network/api_exception_handler.dart';
 import '../utils/result.dart';
 
 class PaymentInitiateResult {
@@ -167,6 +170,126 @@ class PaymentCheckoutService {
     }
 
     return Success((payment: payment, checkout: checkoutResult.valueOrNull!));
+  }
+
+  Future<
+    Result<({PaymentInitiateResult payment, EasebuzzCheckoutResult checkout})>
+  >
+  checkoutPublicWithEasebuzz({
+    required String purpose,
+    required double amount,
+    required String planId,
+    required String email,
+    required String firstname,
+    required String phone,
+    String currency = 'INR',
+  }) async {
+    final checkoutResult = await _checkoutPublic(
+      amount: amount,
+      currency: currency,
+      email: email,
+      firstname: firstname,
+      gateway: 'easebuzz',
+      planId: planId,
+      phone: phone,
+      purpose: purpose,
+    );
+    if (checkoutResult.isFailure) {
+      return Err(checkoutResult.failureOrNull!);
+    }
+
+    final payment = checkoutResult.valueOrNull!;
+    final sdkResult = await payWithEasebuzzSdk(payment);
+    if (sdkResult.isFailure) {
+      return Err(sdkResult.failureOrNull!);
+    }
+
+    return Success((payment: payment, checkout: sdkResult.valueOrNull!));
+  }
+
+  Future<Result<PaymentInitiateResult>> _checkoutPublic({
+    required double amount,
+    required String currency,
+    required String email,
+    required String firstname,
+    required String gateway,
+    required String planId,
+    required String phone,
+    required String purpose,
+  }) async {
+    try {
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.authBaseUrl,
+          connectTimeout: AppConfig.connectTimeout,
+          receiveTimeout: AppConfig.receiveTimeout,
+          headers: const {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final response = await dio.post<Map<String, dynamic>>(
+        ApiEndpoints.publicPaymentsCheckout,
+        data: {
+          'planId': planId,
+          'amount': amount,
+          'currency': currency,
+          'email': email,
+          'firstname': firstname,
+          'gateway': gateway,
+          'phone': phone,
+          'purpose': purpose,
+        },
+      );
+      final json = response.data ?? {};
+      if (json['success'] != true) {
+        return Err(
+          ServerFailure(
+            json['message']?.toString() ?? 'Payment checkout failed.',
+          ),
+        );
+      }
+
+      final data = json['data'] is Map
+          ? Map<String, dynamic>.from(json['data'] as Map)
+          : const <String, dynamic>{};
+      final payment = data['payment'] is Map
+          ? Map<String, dynamic>.from(data['payment'] as Map)
+          : const <String, dynamic>{};
+      final checkout = data['checkout'] is Map
+          ? Map<String, dynamic>.from(data['checkout'] as Map)
+          : const <String, dynamic>{};
+      final accessKey =
+          json['accessKey']?.toString() ?? checkout['accessKey']?.toString();
+      if (accessKey == null || accessKey.isEmpty) {
+        return const Err(
+          ValidationFailure('Payment access key missing. Please try again.'),
+        );
+      }
+
+      final transactionId = payment['transactionId']?.toString() ?? '';
+      return Success(
+        PaymentInitiateResult(
+          paymentId: payment['id']?.toString() ?? transactionId,
+          gateway: checkout['gateway']?.toString() ?? gateway,
+          paymentUrl:
+              json['checkoutUrl']?.toString() ??
+              json['url']?.toString() ??
+              checkout['url']?.toString() ??
+              '',
+          orderId: transactionId,
+          gatewayPayload: {
+            'accessKey': accessKey,
+            'payMode': 'production',
+            'payment': payment,
+            'checkout': checkout,
+          },
+        ),
+      );
+    } catch (e) {
+      return Err(ApiExceptionHandler.mapException(e));
+    }
   }
 
   Future<Result<Map<String, dynamic>>> verify({

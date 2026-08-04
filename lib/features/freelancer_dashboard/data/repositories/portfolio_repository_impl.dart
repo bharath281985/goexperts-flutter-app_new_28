@@ -26,9 +26,7 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
   Future<Result<PortfolioItem>> getPortfolioItem(String id) {
     return _api.getEnvelope<PortfolioItem>(
       ApiEndpoints.freelancerPortfolioItem(id),
-      parser: (envelope) => PortfolioItem.fromApiJson(
-        Map<String, dynamic>.from(envelope.data as Map),
-      ),
+      parser: (envelope) => _itemFromEnvelope(envelope, fallback: {'id': id}),
     );
   }
 
@@ -55,8 +53,12 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
   }
 
   @override
-  Future<Result<bool>> deletePortfolio(String id) {
-    return _api.deleteAction(ApiEndpoints.freelancerPortfolioItem(id));
+  Future<Result<String>> deletePortfolio(String id) async {
+    final res = await _api.deleteEnvelope<String>(
+      ApiEndpoints.freelancerPortfolioItem(id),
+      parser: (envelope) => envelope.message ?? 'Portfolio item deleted',
+    );
+    return res;
   }
 
   Paginated<PortfolioItem> _pageFromEnvelope(

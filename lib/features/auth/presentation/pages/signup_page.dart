@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -6,13 +9,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:video_player/video_player.dart';
 
 import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_assets.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/payments/payment_checkout_service.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/phone_validation.dart';
 import '../../../../core/validators/validators.dart';
@@ -25,6 +31,14 @@ import '../../../../core/services/google_places_service.dart';
 import '../bloc/auth_bloc.dart';
 
 enum _PortfolioMediaType { cover, video, caseStudy, screenshot }
+
+enum _SignupDocumentType {
+  education,
+  certificate,
+  startup,
+  verification,
+  projectReference,
+}
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -116,6 +130,11 @@ class _SignupPageState extends State<SignupPage> {
   _PublicOption? _portfolioIndustryOption;
   _PublicOption? _portfolioCategoryOption;
   String _plan = '';
+  String _paymentType = '';
+  String _paymentStatus = '';
+  String _transactionId = '';
+  String _paidPlanId = '';
+  bool _isProcessingPayment = false;
   String? _businessType;
   String? _teamSize;
   String? _portfolioStatus = 'Draft';
@@ -141,10 +160,20 @@ class _SignupPageState extends State<SignupPage> {
   String? _portfolioVideoName;
   String? _portfolioCaseStudyName;
   String? _portfolioScreenshotName;
+  String? _projectReferenceName;
+  String? _portfolioCoverSource;
+  String? _portfolioVideoSource;
+  String? _portfolioCaseStudySource;
+  String? _portfolioScreenshotSource;
+  String? _projectReferenceSource;
   String? _startupDocumentName;
   String? _educationDocumentName;
   String? _certificateDocumentName;
   String? _verificationDocName;
+  String? _startupDocumentSource;
+  String? _educationDocumentSource;
+  String? _certificateDocumentSource;
+  String? _verificationDocSource;
   bool _agree = false;
   bool _isEmailVerified = false;
   bool _isSendingOtp = false;
@@ -169,6 +198,7 @@ class _SignupPageState extends State<SignupPage> {
   List<String> _investorGoalOptions = const [];
   List<String> _stagePreferenceOptions = const [];
   List<String> _targetIndustryOptions = const [];
+  List<_PlanOption> _pricingPlanOptions = const [];
   final Map<String, String> _optionIdsByLabel = {};
 
   static const _remoteTypes = ['Remote', 'On-site', 'Hybrid'];
@@ -177,7 +207,6 @@ class _SignupPageState extends State<SignupPage> {
     'Medium (Within a month)',
     'Low (Flexible)',
   ];
-  static const List<_PlanOption> _plans = [];
   static const List<String> _founderGoals = [];
 
   List<String> get _steps {
@@ -415,8 +444,31 @@ class _SignupPageState extends State<SignupPage> {
         (item) => item['value']?.toString() ?? item['label']?.toString(),
         (items) => _expansionGoalOptions = items,
       ),
+      _loadPricingPlans(),
     ]);
     if (mounted) setState(() {});
+  }
+
+  Future<void> _loadPricingPlans() async {
+    try {
+      final res = await Dio().get(
+        '${AppConfig.publicBaseUrl}${ApiEndpoints.publicPricingPlans}',
+      );
+      final raw = res.data is Map<String, dynamic>
+          ? (res.data as Map<String, dynamic>)['data']
+          : null;
+      if (raw is! List) return;
+      final items = raw
+          .whereType<Map>()
+          .where((item) => item['status'] == null || item['status'] == 'active')
+          .map((item) => _PlanOption.fromJson(Map<String, dynamic>.from(item)))
+          .where((item) => item.id.isNotEmpty && item.name.isNotEmpty)
+          .toList();
+      _pricingPlanOptions = items;
+      _ensureSelectedPlanForRole();
+    } catch (_) {
+      // Keep subscription plans empty when API is unavailable.
+    }
   }
 
   Future<void> _loadIndustries() async {
@@ -457,6 +509,43 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   String _idForOption(String value) => _optionIdsByLabel[value] ?? value;
+
+  List<_PlanOption> _plansForRole(UserRole? role) {
+    if (role == null) return const [];
+    final roleValue = role.apiValue.toLowerCase();
+    return _pricingPlanOptions
+        .where((plan) => plan.role.toLowerCase() == roleValue)
+        .toList();
+  }
+
+  _PlanOption? _selectedPlanOption() {
+    final plans = _plansForRole(_role);
+    for (final plan in plans) {
+      if (plan.id == _plan) return plan;
+    }
+    return null;
+  }
+
+  void _ensureSelectedPlanForRole() {
+    final plans = _plansForRole(_role);
+    if (plans.isEmpty) {
+      _plan = '';
+      return;
+    }
+    if (!plans.any((plan) => plan.id == _plan)) {
+      _plan = plans.first.id;
+    }
+  }
+
+  void _setSelectedPlan(String planId) {
+    setState(() {
+      _plan = planId;
+      _paymentType = '';
+      _paymentStatus = '';
+      _transactionId = '';
+      _paidPlanId = '';
+    });
+  }
 
   Future<void> _loadPublicStringOptions(
     String endpoint,
@@ -1197,6 +1286,16 @@ class _SignupPageState extends State<SignupPage> {
       'document': _verificationDocName,
       'acceptedTerms': _agree,
     };
+    final plan = _selectedPlanOption();
+    if (plan != null) {
+      data['subscription'] = {
+        'isFreePlan': plan.isFree,
+        'planId': plan.id,
+        'paymentType': _paymentType,
+        'paymentStatus': _paymentStatus,
+        'transactionId': _transactionId,
+      };
+    }
     return data;
   }
 
@@ -1375,8 +1474,80 @@ class _SignupPageState extends State<SignupPage> {
     return data;
   }
 
-  void _submit(AuthState state) {
+  String _transactionIdFromCheckout(
+    PaymentInitiateResult payment,
+    EasebuzzCheckoutResult checkout,
+  ) {
+    final raw = checkout.raw;
+    final nested = raw['payment_response'] is Map
+        ? Map<String, dynamic>.from(raw['payment_response'] as Map)
+        : const <String, dynamic>{};
+    return nested['txnid']?.toString() ??
+        nested['easepayid']?.toString() ??
+        nested['transaction_id']?.toString() ??
+        raw['txnid']?.toString() ??
+        raw['easepayid']?.toString() ??
+        raw['transaction_id']?.toString() ??
+        payment.orderId;
+  }
+
+  Future<bool> _ensureSubscriptionPayment() async {
+    final plan = _selectedPlanOption();
+    if (plan == null) {
+      context.showSnack('Please choose a subscription plan', isError: true);
+      return false;
+    }
+
+    if (plan.isFree) {
+      _paymentType = '';
+      _paymentStatus = 'paid';
+      _transactionId = '';
+      _paidPlanId = plan.id;
+      return true;
+    }
+
+    if (_paidPlanId == plan.id &&
+        _paymentStatus == 'paid' &&
+        _transactionId.isNotEmpty) {
+      return true;
+    }
+
+    setState(() => _isProcessingPayment = true);
+    final checkout = sl<PaymentCheckoutService>();
+    final result = await checkout.checkoutPublicWithEasebuzz(
+      purpose: 'Subscription ${plan.name}',
+      amount: plan.amount,
+      planId: plan.id,
+      email: _email.text.trim(),
+      firstname: _name.text.trim(),
+      phone: _phone.text.trim(),
+      currency: plan.currency,
+    );
+    if (!mounted) return false;
+
+    final paid = result.valueOrNull;
+    if (paid == null) {
+      setState(() => _isProcessingPayment = false);
+      context.showSnack(
+        result.failureOrNull?.message ?? 'Payment failed. Please try again.',
+        isError: true,
+      );
+      return false;
+    }
+
+    setState(() => _isProcessingPayment = false);
+
+    _paymentType = 'Easebuzz';
+    _paymentStatus = 'paid';
+    _transactionId = _transactionIdFromCheckout(paid.payment, paid.checkout);
+    _paidPlanId = plan.id;
+    return true;
+  }
+
+  Future<void> _submit(AuthState state) async {
     if (state.isSubmitting || _role == null) return;
+    if (!await _ensureSubscriptionPayment()) return;
+    if (!mounted) return;
     context.read<AuthBloc>().add(
       AuthSignupDraftSaved(
         fullName: _name.text.trim(),
@@ -1444,16 +1615,42 @@ class _SignupPageState extends State<SignupPage> {
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
+    final source = file.path?.trim().isNotEmpty == true
+        ? file.path!
+        : file.name;
     setState(() {
       switch (type) {
         case _PortfolioMediaType.cover:
           _portfolioCoverName = file.name;
+          _portfolioCoverSource = source;
         case _PortfolioMediaType.video:
           _portfolioVideoName = file.name;
+          _portfolioVideoSource = source;
         case _PortfolioMediaType.caseStudy:
           _portfolioCaseStudyName = file.name;
+          _portfolioCaseStudySource = source;
         case _PortfolioMediaType.screenshot:
           _portfolioScreenshotName = file.name;
+          _portfolioScreenshotSource = source;
+      }
+    });
+  }
+
+  void _clearPortfolioMedia(_PortfolioMediaType type) {
+    setState(() {
+      switch (type) {
+        case _PortfolioMediaType.cover:
+          _portfolioCoverName = null;
+          _portfolioCoverSource = null;
+        case _PortfolioMediaType.video:
+          _portfolioVideoName = null;
+          _portfolioVideoSource = null;
+        case _PortfolioMediaType.caseStudy:
+          _portfolioCaseStudyName = null;
+          _portfolioCaseStudySource = null;
+        case _PortfolioMediaType.screenshot:
+          _portfolioScreenshotName = null;
+          _portfolioScreenshotSource = null;
       }
     });
   }
@@ -1465,7 +1662,10 @@ class _SignupPageState extends State<SignupPage> {
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
-    setState(() => _educationDocumentName = file.name);
+    setState(() {
+      _educationDocumentName = file.name;
+      _educationDocumentSource = _pickedFileSource(file);
+    });
   }
 
   Future<void> _pickCertificateDocument() async {
@@ -1475,7 +1675,10 @@ class _SignupPageState extends State<SignupPage> {
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
-    setState(() => _certificateDocumentName = file.name);
+    setState(() {
+      _certificateDocumentName = file.name;
+      _certificateDocumentSource = _pickedFileSource(file);
+    });
   }
 
   Future<void> _pickStartupDocument() async {
@@ -1485,7 +1688,10 @@ class _SignupPageState extends State<SignupPage> {
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
-    setState(() => _startupDocumentName = file.name);
+    setState(() {
+      _startupDocumentName = file.name;
+      _startupDocumentSource = _pickedFileSource(file);
+    });
   }
 
   Future<void> _pickCertificateIssueDate() async {
@@ -1511,7 +1717,57 @@ class _SignupPageState extends State<SignupPage> {
     );
     final file = result?.files.single;
     if (file == null || !mounted) return;
-    setState(() => _verificationDocName = file.name);
+    setState(() {
+      _verificationDocName = file.name;
+      _verificationDocSource = _pickedFileSource(file);
+    });
+  }
+
+  Future<void> _pickProjectReferenceFile() async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const [
+        'jpg',
+        'jpeg',
+        'png',
+        'pdf',
+        'mp4',
+        'mov',
+        'doc',
+        'docx',
+      ],
+    );
+    final file = result?.files.single;
+    if (file == null || !mounted) return;
+    setState(() {
+      _projectReferenceName = file.name;
+      _projectReferenceSource = _pickedFileSource(file);
+    });
+  }
+
+  String _pickedFileSource(PlatformFile file) =>
+      file.path?.trim().isNotEmpty == true ? file.path! : file.name;
+
+  void _clearSignupDocument(_SignupDocumentType type) {
+    setState(() {
+      switch (type) {
+        case _SignupDocumentType.education:
+          _educationDocumentName = null;
+          _educationDocumentSource = null;
+        case _SignupDocumentType.certificate:
+          _certificateDocumentName = null;
+          _certificateDocumentSource = null;
+        case _SignupDocumentType.startup:
+          _startupDocumentName = null;
+          _startupDocumentSource = null;
+        case _SignupDocumentType.verification:
+          _verificationDocName = null;
+          _verificationDocSource = null;
+        case _SignupDocumentType.projectReference:
+          _projectReferenceName = null;
+          _projectReferenceSource = null;
+      }
+    });
   }
 
   void _onBack() {
@@ -1559,7 +1815,8 @@ class _SignupPageState extends State<SignupPage> {
                               content: _buildStepContent(),
                               onBack: _onBack,
                               onContinue: () => _onContinue(state),
-                              isSubmitting: state.isSubmitting,
+                              isSubmitting:
+                                  state.isSubmitting || _isProcessingPayment,
                               isLastStep: _step == _steps.length - 1,
                             ),
                           ),
@@ -1591,7 +1848,10 @@ class _SignupPageState extends State<SignupPage> {
       case 'Role':
         return _RoleStep(
           selected: _role,
-          onSelected: (role) => setState(() => _role = role),
+          onSelected: (role) => setState(() {
+            _role = role;
+            _ensureSelectedPlanForRole();
+          }),
         );
       case 'Account':
         if (_role == UserRole.investor) {
@@ -1815,7 +2075,6 @@ class _SignupPageState extends State<SignupPage> {
           isLoadingSkills: _isLoadingSkills,
           status: _portfolioStatus,
           client: _portfolioClient,
-          industry: _portfolioIndustry,
           techStack: _portfolioTechStack,
           duration: _portfolioDuration,
           teamSize: _portfolioTeamSize,
@@ -1828,6 +2087,10 @@ class _SignupPageState extends State<SignupPage> {
           videoName: _portfolioVideoName,
           caseStudyName: _portfolioCaseStudyName,
           screenshotName: _portfolioScreenshotName,
+          coverSource: _portfolioCoverSource,
+          videoSource: _portfolioVideoSource,
+          caseStudySource: _portfolioCaseStudySource,
+          screenshotSource: _portfolioScreenshotSource,
           onIndustryChanged: _onPortfolioIndustryChanged,
           onCategoryChanged: _onPortfolioCategoryChanged,
           onSkillSelected: _addPortfolioSkill,
@@ -1842,6 +2105,12 @@ class _SignupPageState extends State<SignupPage> {
               _pickPortfolioMedia(_PortfolioMediaType.caseStudy),
           onPickScreenshot: () =>
               _pickPortfolioMedia(_PortfolioMediaType.screenshot),
+          onClearCover: () => _clearPortfolioMedia(_PortfolioMediaType.cover),
+          onClearVideo: () => _clearPortfolioMedia(_PortfolioMediaType.video),
+          onClearCaseStudy: () =>
+              _clearPortfolioMedia(_PortfolioMediaType.caseStudy),
+          onClearScreenshot: () =>
+              _clearPortfolioMedia(_PortfolioMediaType.screenshot),
         );
       case 'Badges':
         return _BadgesStep(
@@ -1850,20 +2119,26 @@ class _SignupPageState extends State<SignupPage> {
           specialization: _educationSpecialization,
           year: _educationYear,
           educationDocumentName: _educationDocumentName,
+          educationDocumentSource: _educationDocumentSource,
           certificateName: _certificateName,
           certificateIssuer: _certificateIssuer,
           certificateIssueDate: _certificateIssueDate,
           certificateDocumentName: _certificateDocumentName,
+          certificateDocumentSource: _certificateDocumentSource,
           certificateUrl: _certificateUrl,
           onPickEducationDocument: _pickEducationDocument,
           onPickCertificateDocument: _pickCertificateDocument,
+          onClearEducationDocument: () =>
+              _clearSignupDocument(_SignupDocumentType.education),
+          onClearCertificateDocument: () =>
+              _clearSignupDocument(_SignupDocumentType.certificate),
           onPickCertificateIssueDate: _pickCertificateIssueDate,
         );
       case 'Billing':
         return _BillingStep(
-          plans: _plans,
+          plans: _plansForRole(_role),
           selectedPlan: _plan,
-          onSelected: (plan) => setState(() => _plan = plan),
+          onSelected: _setSelectedPlan,
         );
       case 'Business type':
         return _ClientBusinessTypeStep(
@@ -1912,6 +2187,8 @@ class _SignupPageState extends State<SignupPage> {
           locationPreference: _projectLocationPreference,
           remoteType: _remoteType,
           urgency: _urgency,
+          referenceFileName: _projectReferenceName,
+          referenceFileSource: _projectReferenceSource,
           industry: _selectedIndustry,
           categories: _categoryPublicOptions,
           skillOptions: _clientProjectCategory == null
@@ -1924,6 +2201,9 @@ class _SignupPageState extends State<SignupPage> {
           onSkillSelected: _addProjectSkill,
           onSkillRemoved: _removeProjectSkill,
           onManualSkillsChanged: (_) => setState(() {}),
+          onPickReferenceFile: _pickProjectReferenceFile,
+          onClearReferenceFile: () =>
+              _clearSignupDocument(_SignupDocumentType.projectReference),
           onRemoteTypeChanged: (value) => setState(() => _remoteType = value),
           onUrgencyChanged: (value) => setState(() => _urgency = value),
         );
@@ -1936,9 +2216,9 @@ class _SignupPageState extends State<SignupPage> {
         );
       case 'Subscription':
         return _BillingStep(
-          plans: _plans,
+          plans: _plansForRole(_role),
           selectedPlan: _plan,
-          onSelected: (plan) => setState(() => _plan = plan),
+          onSelected: _setSelectedPlan,
         );
       case 'Investor type':
         return _ClientBusinessTypeStep(
@@ -1965,8 +2245,11 @@ class _SignupPageState extends State<SignupPage> {
           equityOffered: _equityOffered,
           demoLink: _demoLink,
           documentName: _startupDocumentName,
+          documentSource: _startupDocumentSource,
           onStageChanged: (value) => setState(() => _startupStage = value),
           onPickDocument: _pickStartupDocument,
+          onClearDocument: () =>
+              _clearSignupDocument(_SignupDocumentType.startup),
         );
       case 'Taxonomy':
         return _FounderTaxonomyStep(
@@ -2012,6 +2295,7 @@ class _SignupPageState extends State<SignupPage> {
             aadhaar: _aadhaar,
             pan: _pan,
             documentName: _verificationDocName,
+            documentSource: _verificationDocSource,
             isEmailVerified: _isEmailVerified,
             isSendingOtp: _isSendingOtp,
             isVerifyingOtp: _isVerifyingOtp,
@@ -2023,6 +2307,8 @@ class _SignupPageState extends State<SignupPage> {
             onCountryChanged: _setCountryCode,
             validatePhone: _validatePhone,
             onPickDocument: _pickVerificationDocument,
+            onClearDocument: () =>
+                _clearSignupDocument(_SignupDocumentType.verification),
             onAgreeChanged: (value) => setState(() => _agree = value ?? false),
           );
         }
@@ -2037,6 +2323,7 @@ class _SignupPageState extends State<SignupPage> {
             aadhaar: _aadhaar,
             pan: _pan,
             documentName: _verificationDocName,
+            documentSource: _verificationDocSource,
             isEmailVerified: _isEmailVerified,
             isSendingOtp: _isSendingOtp,
             isVerifyingOtp: _isVerifyingOtp,
@@ -2048,6 +2335,8 @@ class _SignupPageState extends State<SignupPage> {
             onCountryChanged: _setCountryCode,
             validatePhone: _validatePhone,
             onPickDocument: _pickVerificationDocument,
+            onClearDocument: () =>
+                _clearSignupDocument(_SignupDocumentType.verification),
             onAgreeChanged: (value) => setState(() => _agree = value ?? false),
           );
         }
@@ -2061,6 +2350,7 @@ class _SignupPageState extends State<SignupPage> {
           aadhaar: _aadhaar,
           pan: _pan,
           documentName: _verificationDocName,
+          documentSource: _verificationDocSource,
           isEmailVerified: _isEmailVerified,
           isSendingOtp: _isSendingOtp,
           isVerifyingOtp: _isVerifyingOtp,
@@ -2072,6 +2362,8 @@ class _SignupPageState extends State<SignupPage> {
             if (_isEmailVerified) setState(() => _isEmailVerified = false);
           },
           onPickDocument: _pickVerificationDocument,
+          onClearDocument: () =>
+              _clearSignupDocument(_SignupDocumentType.verification),
           validatePhone: _validatePhone,
           onAgreeChanged: (value) => setState(() => _agree = value ?? false),
         );
@@ -3208,6 +3500,8 @@ class _ClientProjectsStep extends StatelessWidget {
     required this.locationPreference,
     required this.remoteType,
     required this.urgency,
+    required this.referenceFileName,
+    required this.referenceFileSource,
     required this.industry,
     required this.categories,
     required this.skillOptions,
@@ -3218,6 +3512,8 @@ class _ClientProjectsStep extends StatelessWidget {
     required this.onSkillSelected,
     required this.onSkillRemoved,
     required this.onManualSkillsChanged,
+    required this.onPickReferenceFile,
+    required this.onClearReferenceFile,
     required this.onRemoteTypeChanged,
     required this.onUrgencyChanged,
   });
@@ -3231,6 +3527,8 @@ class _ClientProjectsStep extends StatelessWidget {
   final TextEditingController locationPreference;
   final String? remoteType;
   final String? urgency;
+  final String? referenceFileName;
+  final String? referenceFileSource;
   final _PublicOption? industry;
   final List<_PublicOption> categories;
   final List<String> skillOptions;
@@ -3241,6 +3539,8 @@ class _ClientProjectsStep extends StatelessWidget {
   final ValueChanged<String> onSkillSelected;
   final ValueChanged<String> onSkillRemoved;
   final ValueChanged<String> onManualSkillsChanged;
+  final VoidCallback onPickReferenceFile;
+  final VoidCallback onClearReferenceFile;
   final ValueChanged<String?> onRemoteTypeChanged;
   final ValueChanged<String?> onUrgencyChanged;
 
@@ -3311,15 +3611,16 @@ class _ClientProjectsStep extends StatelessWidget {
             hint: 'Enter Timeline (e.g. 2 months)',
           ),
           AppSizes.vGapLg,
-          Text("Project reference files", style: context.text.titleSmall),
-          AppSizes.vGapSm,
-          Center(
-            child: AppFileUpload(
-              label: 'Choose Files',
-              hint: 'Upload project reference files.',
-              icon: Icons.attach_file_rounded,
-            ),
+          _TitledFileUpload(
+            label: 'Project reference files',
+            hint: 'Upload project reference files.',
+            fileName: referenceFileName,
+            source: referenceFileSource,
+            icon: Icons.attach_file_rounded,
+            onTap: onPickReferenceFile,
+            onClear: onClearReferenceFile,
           ),
+          AppSizes.vGapLg,
           AppTextField(
             controller: locationPreference,
             label: 'Location Preference',
@@ -3758,32 +4059,72 @@ class _TitledFileUpload extends StatelessWidget {
     required this.label,
     required this.hint,
     required this.fileName,
+    this.source,
     required this.icon,
     required this.onTap,
+    this.onClear,
   });
 
   final String label;
   final String hint;
   final String? fileName;
+  final String? source;
   final IconData icon;
   final VoidCallback onTap;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
+    final previewSource = source?.trim().isNotEmpty == true
+        ? source!.trim()
+        : fileName?.trim() ?? '';
+    final selected = fileName?.trim().isNotEmpty == true;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: context.text.titleSmall),
-        AppSizes.vGapSm,
-        Center(
-          child: AppFileUpload(
-            label: 'Choose file',
-            hint: hint,
-            fileName: fileName,
-            icon: icon,
-            onTap: onTap,
-          ),
+        Row(
+          children: [
+            Expanded(child: Text(label, style: context.text.titleSmall)),
+            if (selected && onClear != null)
+              IconButton(
+                tooltip: 'Clear file',
+                onPressed: onClear,
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: AppColors.danger,
+                ),
+              ),
+          ],
         ),
+        AppSizes.vGapSm,
+        if (_signupIsImageSource(previewSource))
+          _SignupImageUploadPreview(
+            title: label,
+            source: previewSource,
+            fileName: fileName,
+            onTap: onTap,
+            onClear: onClear,
+            showTitle: false,
+          )
+        else if (_signupIsVideoSource(previewSource))
+          _SignupVideoUploadPreview(
+            title: label,
+            source: previewSource,
+            fileName: fileName,
+            onTap: onTap,
+            onClear: onClear,
+            showTitle: false,
+          )
+        else
+          Center(
+            child: AppFileUpload(
+              label: 'Choose file',
+              hint: hint,
+              fileName: fileName,
+              icon: icon,
+              onTap: onTap,
+            ),
+          ),
       ],
     );
   }
@@ -3821,17 +4162,42 @@ class _CompactUploadTile extends StatelessWidget {
     required this.title,
     required this.hint,
     required this.fileName,
+    this.source,
     required this.onTap,
+    this.onClear,
   });
 
   final String title;
   final String hint;
   final String? fileName;
+  final String? source;
   final VoidCallback onTap;
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
     final selected = fileName != null && fileName!.isNotEmpty;
+    final previewSource = source?.trim().isNotEmpty == true
+        ? source!.trim()
+        : fileName?.trim() ?? '';
+    if (_signupIsImageSource(previewSource)) {
+      return _SignupImageUploadPreview(
+        title: title,
+        source: previewSource,
+        fileName: fileName,
+        onTap: onTap,
+        onClear: onClear,
+      );
+    }
+    if (_signupIsVideoSource(previewSource)) {
+      return _SignupVideoUploadPreview(
+        title: title,
+        source: previewSource,
+        fileName: fileName,
+        onTap: onTap,
+        onClear: onClear,
+      );
+    }
     return InkWell(
       borderRadius: BorderRadius.circular(AppSizes.radiusLg),
       onTap: onTap,
@@ -3869,8 +4235,213 @@ class _CompactUploadTile extends StatelessWidget {
                   ],
                 ),
               ),
+              if (selected && onClear != null)
+                IconButton(
+                  tooltip: 'Clear file',
+                  onPressed: onClear,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                  ),
+                ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SignupImageUploadPreview extends StatelessWidget {
+  const _SignupImageUploadPreview({
+    required this.title,
+    required this.source,
+    required this.fileName,
+    required this.onTap,
+    this.onClear,
+    this.showTitle = true,
+  });
+
+  final String title;
+  final String source;
+  final String? fileName;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+  final bool showTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _signupIsNetworkSource(source)
+        ? Image.network(
+            source,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _fallback(context),
+          )
+        : Image.file(
+            File(source),
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _fallback(context),
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showTitle) ...[
+          Row(
+            children: [
+              Expanded(child: Text(title, style: context.text.titleSmall)),
+              if (onClear != null)
+                IconButton(
+                  tooltip: 'Clear file',
+                  onPressed: onClear,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                  ),
+                ),
+            ],
+          ),
+          AppSizes.vGapSm,
+        ],
+        InkWell(
+          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          onTap: onTap,
+          child: DottedBorderBox(
+            child: SizedBox(
+              height: 150,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    image,
+                    Positioned(
+                      left: AppSizes.sm,
+                      right: AppSizes.sm,
+                      bottom: AppSizes.sm,
+                      child: _SignupPreviewCaption(
+                        icon: Icons.image_outlined,
+                        title: fileName ?? title,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _fallback(BuildContext context) {
+    return Center(
+      child: Text(
+        'Unable to preview image',
+        style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+      ),
+    );
+  }
+}
+
+class _SignupVideoUploadPreview extends StatelessWidget {
+  const _SignupVideoUploadPreview({
+    required this.title,
+    required this.source,
+    required this.fileName,
+    required this.onTap,
+    this.onClear,
+    this.showTitle = true,
+  });
+
+  final String title;
+  final String source;
+  final String? fileName;
+  final VoidCallback onTap;
+  final VoidCallback? onClear;
+  final bool showTitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showTitle) ...[
+          Row(
+            children: [
+              Expanded(child: Text(title, style: context.text.titleSmall)),
+              if (onClear != null)
+                IconButton(
+                  tooltip: 'Clear file',
+                  onPressed: onClear,
+                  icon: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                  ),
+                ),
+            ],
+          ),
+          AppSizes.vGapSm,
+        ],
+        DottedBorderBox(
+          child: Column(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                child: _SignupVideoPlayer(source: source),
+              ),
+              InkWell(
+                onTap: onTap,
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSizes.sm),
+                  child: _SignupPreviewCaption(
+                    icon: Icons.video_library_outlined,
+                    title: fileName ?? title,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SignupPreviewCaption extends StatelessWidget {
+  const _SignupPreviewCaption({required this.icon, required this.title});
+
+  final IconData icon;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.56),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.sm,
+          vertical: AppSizes.xs,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            const SizedBox(width: AppSizes.xs),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.bodySmall?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const Icon(Icons.edit_outlined, color: Colors.white, size: 16),
+          ],
         ),
       ),
     );
@@ -3884,7 +4455,9 @@ class _EducationSignupRow extends StatelessWidget {
     required this.specialization,
     required this.year,
     required this.documentName,
+    required this.documentSource,
     required this.onPickDocument,
+    required this.onClearDocument,
   });
 
   final TextEditingController institution;
@@ -3892,7 +4465,9 @@ class _EducationSignupRow extends StatelessWidget {
   final TextEditingController specialization;
   final TextEditingController year;
   final String? documentName;
+  final String? documentSource;
   final VoidCallback onPickDocument;
+  final VoidCallback onClearDocument;
 
   @override
   Widget build(BuildContext context) {
@@ -3938,8 +4513,10 @@ class _EducationSignupRow extends StatelessWidget {
                   label: 'Upload Education Document *',
                   hint: 'Upload JPG, PNG, or PDF education file.',
                   fileName: documentName,
+                  source: documentSource,
                   icon: Icons.upload_file_rounded,
                   onTap: onPickDocument,
+                  onClear: onClearDocument,
                 ),
               ),
             ],
@@ -4018,8 +4595,10 @@ class _EducationSignupRow extends StatelessWidget {
                       label: 'Upload',
                       hint: 'Choose file',
                       fileName: documentName,
+                      source: documentSource,
                       icon: Icons.upload_file_rounded,
                       onTap: onPickDocument,
+                      onClear: onClearDocument,
                     ),
                   ),
                 ),
@@ -4052,6 +4631,223 @@ class _EducationColumnHeader extends StatelessWidget {
   }
 }
 
+class _SignupVideoPlayer extends StatefulWidget {
+  const _SignupVideoPlayer({required this.source, this.fullscreen = false});
+
+  final String source;
+  final bool fullscreen;
+
+  @override
+  State<_SignupVideoPlayer> createState() => _SignupVideoPlayerState();
+}
+
+class _SignupVideoPlayerState extends State<_SignupVideoPlayer> {
+  VideoPlayerController? _controller;
+  bool _ready = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SignupVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.source != widget.source) {
+      _controller?.dispose();
+      _controller = null;
+      _ready = false;
+      _error = null;
+      _init();
+    }
+  }
+
+  Future<void> _init() async {
+    try {
+      final controller = _signupIsNetworkSource(widget.source)
+          ? VideoPlayerController.networkUrl(Uri.parse(widget.source))
+          : VideoPlayerController.file(File(widget.source));
+      _controller = controller;
+      await controller.initialize();
+      if (!mounted) return;
+      setState(() => _ready = true);
+    } catch (_) {
+      if (mounted) setState(() => _error = 'Unable to preview this video.');
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = _controller;
+    if (_error != null) {
+      return SizedBox(
+        height: 150,
+        child: Center(child: Text(_error!, style: context.text.bodySmall)),
+      );
+    }
+    if (!_ready || controller == null) {
+      return const AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    final videoSize = controller.value.size;
+    final aspectRatio = widget.fullscreen
+        ? (controller.value.aspectRatio == 0
+              ? 16 / 9
+              : controller.value.aspectRatio)
+        : 16 / 9;
+    return AspectRatio(
+      aspectRatio: aspectRatio,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          ColoredBox(
+            color: Colors.black,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.contain,
+                child: SizedBox(
+                  width: videoSize.width == 0 ? 16 : videoSize.width,
+                  height: videoSize.height == 0 ? 9 : videoSize.height,
+                  child: VideoPlayer(controller),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _togglePlay,
+                child: Center(
+                  child: AnimatedOpacity(
+                    opacity: controller.value.isPlaying ? 0 : 1,
+                    duration: const Duration(milliseconds: 180),
+                    child: const DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black45,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(AppSizes.md),
+                        child: Icon(
+                          Icons.play_arrow_rounded,
+                          color: Colors.white,
+                          size: 34,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: AppSizes.sm,
+            right: AppSizes.sm,
+            bottom: AppSizes.sm,
+            child: Row(
+              children: [
+                IconButton.filledTonal(
+                  onPressed: _togglePlay,
+                  icon: Icon(
+                    controller.value.isPlaying
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                  ),
+                ),
+                Expanded(
+                  child: VideoProgressIndicator(
+                    controller,
+                    allowScrubbing: true,
+                  ),
+                ),
+                if (!widget.fullscreen)
+                  IconButton.filledTonal(
+                    onPressed: _openFullscreen,
+                    icon: const Icon(Icons.fullscreen_rounded),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _togglePlay() {
+    final controller = _controller;
+    if (controller == null) return;
+    setState(() {
+      controller.value.isPlaying ? controller.pause() : controller.play();
+    });
+  }
+
+  Future<void> _openFullscreen() async {
+    await _controller?.pause();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => Dialog.fullscreen(
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            foregroundColor: Colors.white,
+            title: const Text('Video Demo'),
+          ),
+          body: Center(
+            child: _SignupVideoPlayer(source: widget.source, fullscreen: true),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+bool _signupIsNetworkSource(String value) {
+  final uri = Uri.tryParse(value.trim());
+  return uri != null && uri.hasScheme;
+}
+
+String _signupFileLabel(String value) {
+  final trimmed = value.trim();
+  final uri = Uri.tryParse(trimmed);
+  if (uri != null && uri.pathSegments.isNotEmpty) return uri.pathSegments.last;
+  return trimmed.split(Platform.pathSeparator).last;
+}
+
+bool _signupIsImageSource(String value) {
+  final label = _signupFileLabel(value).toLowerCase();
+  return label.endsWith('.jpg') ||
+      label.endsWith('.jpeg') ||
+      label.endsWith('.png') ||
+      label.endsWith('.webp') ||
+      label.endsWith('.gif') ||
+      label.endsWith('.bmp') ||
+      label.endsWith('.heic') ||
+      label.endsWith('.heif');
+}
+
+bool _signupIsVideoSource(String value) {
+  final label = _signupFileLabel(value).toLowerCase();
+  return label.endsWith('.mp4') ||
+      label.endsWith('.mov') ||
+      label.endsWith('.m4v') ||
+      label.endsWith('.webm') ||
+      label.endsWith('.avi') ||
+      label.endsWith('.mkv');
+}
+
 class _PortfolioUploadsStep extends StatelessWidget {
   const _PortfolioUploadsStep({
     required this.title,
@@ -4065,7 +4861,6 @@ class _PortfolioUploadsStep extends StatelessWidget {
     required this.isLoadingSkills,
     required this.status,
     required this.client,
-    required this.industry,
     required this.techStack,
     required this.duration,
     required this.teamSize,
@@ -4078,6 +4873,10 @@ class _PortfolioUploadsStep extends StatelessWidget {
     required this.videoName,
     required this.caseStudyName,
     required this.screenshotName,
+    required this.coverSource,
+    required this.videoSource,
+    required this.caseStudySource,
+    required this.screenshotSource,
     required this.onIndustryChanged,
     required this.onCategoryChanged,
     required this.onSkillSelected,
@@ -4089,6 +4888,10 @@ class _PortfolioUploadsStep extends StatelessWidget {
     required this.onPickVideo,
     required this.onPickCaseStudy,
     required this.onPickScreenshot,
+    required this.onClearCover,
+    required this.onClearVideo,
+    required this.onClearCaseStudy,
+    required this.onClearScreenshot,
   });
 
   final TextEditingController title;
@@ -4102,7 +4905,6 @@ class _PortfolioUploadsStep extends StatelessWidget {
   final bool isLoadingSkills;
   final String? status;
   final TextEditingController client;
-  final TextEditingController industry;
   final TextEditingController techStack;
   final TextEditingController duration;
   final String? teamSize;
@@ -4115,6 +4917,10 @@ class _PortfolioUploadsStep extends StatelessWidget {
   final String? videoName;
   final String? caseStudyName;
   final String? screenshotName;
+  final String? coverSource;
+  final String? videoSource;
+  final String? caseStudySource;
+  final String? screenshotSource;
   final ValueChanged<_PublicOption?> onIndustryChanged;
   final ValueChanged<_PublicOption?> onCategoryChanged;
   final ValueChanged<String> onSkillSelected;
@@ -4126,6 +4932,10 @@ class _PortfolioUploadsStep extends StatelessWidget {
   final VoidCallback onPickVideo;
   final VoidCallback onPickCaseStudy;
   final VoidCallback onPickScreenshot;
+  final VoidCallback onClearCover;
+  final VoidCallback onClearVideo;
+  final VoidCallback onClearCaseStudy;
+  final VoidCallback onClearScreenshot;
 
   @override
   Widget build(BuildContext context) {
@@ -4194,7 +5004,6 @@ class _PortfolioUploadsStep extends StatelessWidget {
                 onChanged: onStatusChanged,
               ),
               AppTextField(controller: client, label: 'Client'),
-              AppTextField(controller: industry, label: 'Industry'),
             ],
           ),
           AppSizes.vGapLg,
@@ -4243,25 +5052,33 @@ class _PortfolioUploadsStep extends StatelessWidget {
                 title: 'Cover image',
                 hint: 'Select JPG · PNG · WebP',
                 fileName: coverName,
+                source: coverSource,
                 onTap: onPickCover,
+                onClear: onClearCover,
               ),
               _CompactUploadTile(
                 title: 'Video demo',
                 hint: 'Select MP4 · MOV',
                 fileName: videoName,
+                source: videoSource,
                 onTap: onPickVideo,
+                onClear: onClearVideo,
               ),
               _CompactUploadTile(
                 title: 'PDF case study',
                 hint: 'Select PDF',
                 fileName: caseStudyName,
+                source: caseStudySource,
                 onTap: onPickCaseStudy,
+                onClear: onClearCaseStudy,
               ),
               _CompactUploadTile(
                 title: 'Extra screenshot',
                 hint: 'Adds as cover if empty',
                 fileName: screenshotName,
+                source: screenshotSource,
                 onTap: onPickScreenshot,
+                onClear: onClearScreenshot,
               ),
             ],
           ),
@@ -4278,13 +5095,17 @@ class _BadgesStep extends StatelessWidget {
     required this.specialization,
     required this.year,
     required this.educationDocumentName,
+    required this.educationDocumentSource,
     required this.certificateName,
     required this.certificateIssuer,
     required this.certificateIssueDate,
     required this.certificateDocumentName,
+    required this.certificateDocumentSource,
     required this.certificateUrl,
     required this.onPickEducationDocument,
     required this.onPickCertificateDocument,
+    required this.onClearEducationDocument,
+    required this.onClearCertificateDocument,
     required this.onPickCertificateIssueDate,
   });
 
@@ -4293,13 +5114,17 @@ class _BadgesStep extends StatelessWidget {
   final TextEditingController specialization;
   final TextEditingController year;
   final String? educationDocumentName;
+  final String? educationDocumentSource;
   final TextEditingController certificateName;
   final TextEditingController certificateIssuer;
   final TextEditingController certificateIssueDate;
   final String? certificateDocumentName;
+  final String? certificateDocumentSource;
   final TextEditingController certificateUrl;
   final VoidCallback onPickEducationDocument;
   final VoidCallback onPickCertificateDocument;
+  final VoidCallback onClearEducationDocument;
+  final VoidCallback onClearCertificateDocument;
   final VoidCallback onPickCertificateIssueDate;
 
   @override
@@ -4323,7 +5148,9 @@ class _BadgesStep extends StatelessWidget {
             specialization: specialization,
             year: year,
             documentName: educationDocumentName,
+            documentSource: educationDocumentSource,
             onPickDocument: onPickEducationDocument,
+            onClearDocument: onClearEducationDocument,
           ),
           AppSizes.vGapXl,
           Text('Certificate', style: context.text.titleLarge),
@@ -4361,8 +5188,10 @@ class _BadgesStep extends StatelessWidget {
             label: 'Upload Certificate Document (Image / PDF)',
             hint: 'Upload JPG, PNG, or PDF certificate file.',
             fileName: certificateDocumentName,
+            source: certificateDocumentSource,
             icon: Icons.upload_file_rounded,
             onTap: onPickCertificateDocument,
+            onClear: onClearCertificateDocument,
           ),
         ],
       ),
@@ -4408,8 +5237,8 @@ class _BillingStep extends StatelessWidget {
                           : constraints.maxWidth,
                       child: _PlanCard(
                         plan: plan,
-                        selected: selectedPlan == plan.name,
-                        onTap: () => onSelected(plan.name),
+                        selected: selectedPlan == plan.id,
+                        onTap: () => onSelected(plan.id),
                       ),
                     ),
                 ],
@@ -4446,19 +5275,247 @@ class _PlanCard extends StatelessWidget {
               ? AppColors.primary.withValues(alpha: 0.04)
               : context.theme.cardColor,
           border: Border.all(
-            color: selected ? AppColors.primary : context.theme.dividerColor,
+            color: selected
+                ? AppColors.primary
+                : context.theme.dividerColor.withValues(alpha: 0.8),
+            width: selected ? 1.4 : 1,
           ),
           borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: selected ? 0.08 : 0.04),
+              blurRadius: selected ? 18 : 10,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(plan.name, style: context.text.titleMedium),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(plan.name, style: context.text.titleMedium),
+                ),
+                if (selected)
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
+              ],
+            ),
             AppSizes.vGapMd,
-            Text(plan.price, style: context.text.headlineSmall),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (plan.originalPrice != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      right: AppSizes.sm,
+                      bottom: 3,
+                    ),
+                    child: Text(
+                      plan.originalPrice!,
+                      style: context.text.bodyMedium?.copyWith(
+                        color: AppColors.mutedText,
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ),
+                ],
+                Flexible(
+                  child: Text(plan.price, style: context.text.headlineSmall),
+                ),
+              ],
+            ),
             AppSizes.vGapMd,
-            Text('Standard access plan', style: context.text.bodyMedium),
+            Wrap(
+              spacing: AppSizes.sm,
+              runSpacing: AppSizes.sm,
+              children: [
+                _PlanBadge(
+                  label: plan.popular ? 'Popular' : 'Not popular',
+                  color: plan.popular ? AppColors.success : AppColors.mutedText,
+                  filled: plan.popular,
+                ),
+                _PlanBadge(
+                  label: plan.recommended ? 'Recommended' : 'Standard',
+                  color: plan.recommended
+                      ? AppColors.primary
+                      : AppColors.mutedText,
+                  filled: plan.recommended,
+                ),
+                if (plan.savedBadge != null && plan.savedBadge!.isNotEmpty)
+                  _PlanBadge(
+                    label: plan.savedBadge!,
+                    color: AppColors.warning,
+                    filled: true,
+                  ),
+              ],
+            ),
+            if (plan.features.isNotEmpty) ...[
+              AppSizes.vGapLg,
+              _PlanSectionTitle(icon: Icons.auto_awesome, label: 'Features'),
+              AppSizes.vGapSm,
+              for (final feature in plan.features)
+                _PlanDetailRow(icon: Icons.check, label: feature),
+            ],
+            if (plan.limits.isNotEmpty) ...[
+              AppSizes.vGapLg,
+              _PlanSectionTitle(icon: Icons.speed_rounded, label: 'Limits'),
+              AppSizes.vGapSm,
+              Wrap(
+                spacing: AppSizes.sm,
+                runSpacing: AppSizes.sm,
+                children: [
+                  for (final entry in plan.limits.entries)
+                    _PlanLimitChip(
+                      label:
+                          '${_formatPlanLimitKey(entry.key)}: ${_formatPlanLimitValue(entry.value)}',
+                    ),
+                ],
+              ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+
+  String _formatPlanLimitKey(String key) {
+    final spaced = key
+        .replaceAll(RegExp(r'[_-]+'), ' ')
+        .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}');
+    return spaced
+        .split(' ')
+        .where((part) => part.trim().isNotEmpty)
+        .map(
+          (part) => part.length == 1
+              ? part.toUpperCase()
+              : '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+        )
+        .join(' ');
+  }
+
+  String _formatPlanLimitValue(Object? value) {
+    if (value is bool) return value ? 'Yes' : 'No';
+    return value?.toString() ?? '';
+  }
+}
+
+class _PlanBadge extends StatelessWidget {
+  const _PlanBadge({
+    required this.label,
+    required this.color,
+    this.filled = true,
+  });
+
+  final String label;
+  final Color color;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.sm,
+        vertical: AppSizes.xs,
+      ),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: filled ? 0.12 : 0.04),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+        border: Border.all(
+          color: color.withValues(alpha: filled ? 0.32 : 0.18),
+        ),
+      ),
+      child: Text(
+        label,
+        style: context.text.labelSmall?.copyWith(
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanSectionTitle extends StatelessWidget {
+  const _PlanSectionTitle({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.primaryBlack),
+        const SizedBox(width: AppSizes.sm),
+        Text(
+          label,
+          style: context.text.labelLarge?.copyWith(
+            color: AppColors.primaryBlack,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlanDetailRow extends StatelessWidget {
+  const _PlanDetailRow({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.sm),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(width: AppSizes.sm),
+          Expanded(
+            child: Text(
+              label,
+              style: context.text.bodySmall?.copyWith(
+                color: AppColors.primaryBlack,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlanLimitChip extends StatelessWidget {
+  const _PlanLimitChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.14)),
+      ),
+      child: Text(
+        label,
+        style: context.text.bodySmall?.copyWith(
+          color: AppColors.primaryBlack,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -4476,6 +5533,7 @@ class _VerificationStep extends StatelessWidget {
     required this.aadhaar,
     required this.pan,
     required this.documentName,
+    required this.documentSource,
     required this.isEmailVerified,
     required this.isSendingOtp,
     required this.isVerifyingOtp,
@@ -4485,6 +5543,7 @@ class _VerificationStep extends StatelessWidget {
     required this.onCountryChanged,
     required this.onEmailChanged,
     required this.onPickDocument,
+    required this.onClearDocument,
     required this.validatePhone,
     required this.onAgreeChanged,
   });
@@ -4498,6 +5557,7 @@ class _VerificationStep extends StatelessWidget {
   final TextEditingController aadhaar;
   final TextEditingController pan;
   final String? documentName;
+  final String? documentSource;
   final bool isEmailVerified;
   final bool isSendingOtp;
   final bool isVerifyingOtp;
@@ -4507,6 +5567,7 @@ class _VerificationStep extends StatelessWidget {
   final ValueChanged<CountryCode> onCountryChanged;
   final ValueChanged<String> onEmailChanged;
   final VoidCallback onPickDocument;
+  final VoidCallback onClearDocument;
   final String? Function(String?) validatePhone;
   final ValueChanged<bool?> onAgreeChanged;
 
@@ -4679,7 +5740,9 @@ class _VerificationStep extends StatelessWidget {
             hint: 'Upload a clear photo, PDF, DOC, Excel, or PPT file.',
             icon: Icons.file_present_outlined,
             fileName: documentName,
+            source: documentSource,
             onTap: onPickDocument,
+            onClear: onClearDocument,
           ),
           AppSizes.vGapLg,
           Row(
@@ -4990,8 +6053,10 @@ class _FounderStartupDetailsStep extends StatelessWidget {
     required this.equityOffered,
     required this.demoLink,
     required this.documentName,
+    required this.documentSource,
     required this.onStageChanged,
     required this.onPickDocument,
+    required this.onClearDocument,
   });
 
   final TextEditingController startupName;
@@ -5010,8 +6075,10 @@ class _FounderStartupDetailsStep extends StatelessWidget {
   final TextEditingController equityOffered;
   final TextEditingController demoLink;
   final String? documentName;
+  final String? documentSource;
   final ValueChanged<String?> onStageChanged;
   final VoidCallback onPickDocument;
+  final VoidCallback onClearDocument;
 
   @override
   Widget build(BuildContext context) {
@@ -5110,8 +6177,10 @@ class _FounderStartupDetailsStep extends StatelessWidget {
             label: 'Pitch Deck Upload *',
             hint: 'Upload pitch deck file.',
             fileName: documentName,
+            source: documentSource,
             icon: Icons.upload_file_rounded,
             onTap: onPickDocument,
+            onClear: onClearDocument,
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -5245,6 +6314,7 @@ class _SimpleVerificationStep extends StatelessWidget {
     required this.aadhaar,
     required this.pan,
     required this.documentName,
+    required this.documentSource,
     required this.isEmailVerified,
     required this.isSendingOtp,
     required this.isVerifyingOtp,
@@ -5256,6 +6326,7 @@ class _SimpleVerificationStep extends StatelessWidget {
     required this.onCountryChanged,
     required this.validatePhone,
     required this.onPickDocument,
+    required this.onClearDocument,
     required this.onAgreeChanged,
   });
 
@@ -5268,6 +6339,7 @@ class _SimpleVerificationStep extends StatelessWidget {
   final TextEditingController aadhaar;
   final TextEditingController pan;
   final String? documentName;
+  final String? documentSource;
   final bool isEmailVerified;
   final bool isSendingOtp;
   final bool isVerifyingOtp;
@@ -5279,6 +6351,7 @@ class _SimpleVerificationStep extends StatelessWidget {
   final ValueChanged<CountryCode> onCountryChanged;
   final String? Function(String?) validatePhone;
   final VoidCallback onPickDocument;
+  final VoidCallback onClearDocument;
   final ValueChanged<bool?> onAgreeChanged;
 
   @override
@@ -5377,8 +6450,10 @@ class _SimpleVerificationStep extends StatelessWidget {
             label: documentLabel,
             hint: documentHint,
             fileName: documentName,
+            source: documentSource,
             icon: Icons.file_present_outlined,
             onTap: onPickDocument,
+            onClear: onClearDocument,
           ),
           AppSizes.vGapLg,
           Row(
@@ -5838,8 +6913,113 @@ class _PublicOption {
 }
 
 class _PlanOption {
-  const _PlanOption(this.name, this.price);
+  const _PlanOption({
+    required this.id,
+    required this.name,
+    required this.role,
+    required this.amount,
+    required this.currency,
+    required this.duration,
+    required this.popular,
+    required this.recommended,
+    this.features = const [],
+    this.limits = const {},
+    this.originalAmount,
+    this.savedBadge,
+  });
 
+  final String id;
   final String name;
-  final String price;
+  final String role;
+  final double amount;
+  final String currency;
+  final String duration;
+  final bool popular;
+  final bool recommended;
+  final List<String> features;
+  final Map<String, dynamic> limits;
+  final double? originalAmount;
+  final String? savedBadge;
+
+  bool get isFree => amount <= 0 || name.toLowerCase().contains('free');
+
+  List<String> get badges => [
+    if (popular) 'Popular',
+    if (recommended) 'Recommended',
+    if (savedBadge != null && savedBadge!.isNotEmpty) savedBadge!,
+  ];
+
+  String get price {
+    return _money(amount);
+  }
+
+  String? get originalPrice {
+    final original = originalAmount;
+    if (original == null || original <= amount) return null;
+    return _money(original);
+  }
+
+  String _money(double value) {
+    final symbol = currency.toUpperCase() == 'INR' ? '₹' : '$currency ';
+    final amountText = value % 1 == 0
+        ? value.toInt().toString()
+        : value.toStringAsFixed(2);
+    final period = duration.isEmpty ? '' : '/$duration';
+    return '$symbol$amountText$period';
+  }
+
+  factory _PlanOption.fromJson(Map<String, dynamic> json) {
+    return _PlanOption(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      role: json['role']?.toString() ?? '',
+      amount: (json['amount'] as num?)?.toDouble() ?? 0,
+      currency: json['currency']?.toString() ?? 'INR',
+      duration: json['duration']?.toString() ?? '',
+      popular: json['popular'] == true,
+      recommended: json['recommended'] == true,
+      features: _parseFeatures(json['features']),
+      limits: _parseLimits(json['limits']),
+      originalAmount: _doubleOrNull(json['originalAmount']),
+      savedBadge: json['savedBadge']?.toString().trim(),
+    );
+  }
+
+  static List<String> _parseFeatures(dynamic raw) {
+    final value = _decodeJsonString(raw);
+    if (value is List) {
+      return value
+          .map((item) => item?.toString().trim() ?? '')
+          .where((item) => item.isNotEmpty)
+          .toList();
+    }
+    return const [];
+  }
+
+  static Map<String, dynamic> _parseLimits(dynamic raw) {
+    final value = _decodeJsonString(raw);
+    if (value is Map) {
+      return Map<String, dynamic>.from(value)
+        ..removeWhere((key, value) => key.toString().trim().isEmpty);
+    }
+    return const {};
+  }
+
+  static dynamic _decodeJsonString(dynamic raw) {
+    if (raw is String) {
+      final trimmed = raw.trim();
+      if (trimmed.isEmpty) return raw;
+      try {
+        return jsonDecode(trimmed);
+      } catch (_) {
+        return raw;
+      }
+    }
+    return raw;
+  }
+
+  static double? _doubleOrNull(dynamic raw) {
+    if (raw is num) return raw.toDouble();
+    return double.tryParse(raw?.toString() ?? '');
+  }
 }

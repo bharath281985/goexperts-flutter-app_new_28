@@ -27,7 +27,9 @@ class Routes {
   static const freelancerProfessionalDetails =
       '/freelancer/professional-details';
   static const freelancerVerification = '/freelancer/verification';
-  static const freelancerPortfolioPage = '/freelancer/portfolio-edit';
+  static const freelancerPortfolioPage = '/freelancer/portfolio';
+  static const freelancerPortfolioDetails = '/freelancer/portfolio-detail';
+  static const freelancerPortfolioForm = '/freelancer/portfolio-form';
 
   // Client
   static const clientDashboard = '/client/dashboard';

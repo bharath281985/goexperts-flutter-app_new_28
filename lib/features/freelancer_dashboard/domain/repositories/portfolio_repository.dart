@@ -10,5 +10,5 @@ abstract class PortfolioRepository {
     String id,
     Map<String, dynamic> data,
   );
-  Future<Result<bool>> deletePortfolio(String id);
+  Future<Result<String>> deletePortfolio(String id);
 }

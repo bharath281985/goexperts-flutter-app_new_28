@@ -44,6 +44,8 @@ class ApiEndpoints {
   static const publicStartups = '/public/startups';
   static const publicProjects = '/public/projects';
   static const publicPricing = '/public/pricing';
+  static const publicPricingPlans = '/pricing_plans';
+  static const publicPaymentsCheckout = '/payments/checkout';
   static const publicBlogs = '/public/blogs';
   static const publicFaqs = '/public/faqs';
   static const publicTestimonials = '/public/testimonials';
