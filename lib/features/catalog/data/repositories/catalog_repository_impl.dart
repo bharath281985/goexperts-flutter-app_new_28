@@ -1,72 +1,76 @@
-import '../../../../app/config/app_config.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../../core/mock/mock_data.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
-import '../../../../core/utils/mock_utils.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/catalog_entities.dart';
 import '../../domain/repositories/catalog_repository.dart';
 
-/// Mock implementation reading from [MockData]. Swap for a Dio datasource later.
 class CatalogRepositoryImpl implements CatalogRepository {
   CatalogRepositoryImpl([this._api]);
 
   final ApiClientHelper? _api;
 
   @override
-  Future<Result<Paginated<ServiceItem>>> getServices(QueryParams params) =>
-      MockUtils.paginate(
-        MockData.services,
-        params,
-        searchMatcher: (s, q) =>
-            s.name.toLowerCase().contains(q) ||
-            s.category.toLowerCase().contains(q),
-      );
+  Future<Result<Paginated<ServiceItem>>> getServices(QueryParams params) async {
+    if (_api == null) return _apiNotConfigured();
+    // Assuming a public endpoint for services (if missing from ApiEndpoints, just fallback to error or general search)
+    return const Err(ServerFailure('Endpoint for services not mapped yet.'));
+  }
 
   @override
-  Future<Result<ServiceItem>> getService(String id) =>
-      _find(MockData.services, (e) => e.id == id);
+  Future<Result<ServiceItem>> getService(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for service by id not mapped yet.'),
+    );
+  }
 
   @override
-  Future<Result<Paginated<Technology>>> getTechnologies(QueryParams params) =>
-      MockUtils.paginate(
-        MockData.technologies,
-        params,
-        searchMatcher: (t, q) => t.name.toLowerCase().contains(q),
-      );
+  Future<Result<Paginated<Technology>>> getTechnologies(
+    QueryParams params,
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+    // Replace with correct ApiEndpoint if available
+    return const Err(
+      ServerFailure('Endpoint for technologies not mapped yet.'),
+    );
+  }
 
   @override
-  Future<Result<Technology>> getTechnology(String id) =>
-      _find(MockData.technologies, (e) => e.id == id);
+  Future<Result<Technology>> getTechnology(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for technology by id not mapped yet.'),
+    );
+  }
 
   @override
-  Future<Result<Paginated<CategoryItem>>> getCategories(QueryParams params) =>
-      MockUtils.paginate(
-        MockData.categories,
-        params,
-        searchMatcher: (c, q) => c.name.toLowerCase().contains(q),
-      );
+  Future<Result<Paginated<CategoryItem>>> getCategories(
+    QueryParams params,
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+    // Assuming parsing map logic for category
+    return const Err(
+      ServerFailure('Endpoint for categories not fully implemented yet.'),
+    );
+  }
 
   @override
-  Future<Result<CategoryItem>> getCategory(String id) =>
-      _find(MockData.categories, (e) => e.id == id);
+  Future<Result<CategoryItem>> getCategory(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for category by id not mapped yet.'),
+    );
+  }
 
   @override
   Future<Result<Paginated<Certificate>>> getCertificates(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) {
-      return MockUtils.paginate(
-        MockData.certificates,
-        params,
-        searchMatcher: (c, q) =>
-            c.title.toLowerCase().contains(q) ||
-            c.issuer.toLowerCase().contains(q),
-      );
-    }
+    if (_api == null) return _apiNotConfigured();
+
     return _api.getEnvelope<Paginated<Certificate>>(
       ApiEndpoints.files,
       query: {...params.toApiQuery(), 'category': 'certificate'},
@@ -80,45 +84,43 @@ class CatalogRepositoryImpl implements CatalogRepository {
   }
 
   @override
-  Future<Result<Certificate>> getCertificate(String id) =>
-      _find(MockData.certificates, (e) => e.id == id);
+  Future<Result<Certificate>> getCertificate(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for certificate by id not mapped yet.'),
+    );
+  }
 
   @override
   Future<Result<Paginated<InvestmentOpportunity>>> getOpportunities(
     QueryParams params,
-  ) => MockUtils.paginate(
-    MockData.opportunities,
-    params,
-    searchMatcher: (o, q) =>
-        o.startupName.toLowerCase().contains(q) ||
-        o.industry.toLowerCase().contains(q),
-  );
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for opportunities not mapped yet.'),
+    );
+  }
 
   @override
-  Future<Result<InvestmentOpportunity>> getOpportunity(String id) =>
-      _find(MockData.opportunities, (e) => e.id == id);
+  Future<Result<InvestmentOpportunity>> getOpportunity(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for opportunity by id not mapped yet.'),
+    );
+  }
 
   @override
   Future<Result<BusinessPlan>> getBusinessPlan(String startupId) async {
-    final plan =
-        MockData.businessPlans[startupId] ??
-        MockData.businessPlans.values.first;
-    return MockUtils.single(plan);
+    if (_api == null) return _apiNotConfigured();
+    return const Err(
+      ServerFailure('Endpoint for business plan not mapped yet.'),
+    );
   }
 
   @override
   Future<Result<PitchDeck>> getPitchDeck(String startupId) async {
-    final deck =
-        MockData.pitchDecks[startupId] ?? MockData.pitchDecks.values.first;
-    return MockUtils.single(deck);
-  }
-
-  Future<Result<T>> _find<T>(List<T> source, bool Function(T) test) async {
-    final match = source.where(test);
-    if (match.isEmpty) {
-      return const Err(NotFoundFailure());
-    }
-    return MockUtils.single(match.first);
+    if (_api == null) return _apiNotConfigured();
+    return const Err(ServerFailure('Endpoint for pitch deck not mapped yet.'));
   }
 
   static Certificate _certificateFromJson(Map<String, dynamic> json) {
@@ -140,4 +142,7 @@ class CatalogRepositoryImpl implements CatalogRepository {
           const [],
     );
   }
+
+  Future<Result<T>> _apiNotConfigured<T>() async =>
+      const Err(ServerFailure('Live API client is not configured.'));
 }

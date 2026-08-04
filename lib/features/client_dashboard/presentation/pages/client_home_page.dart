@@ -116,11 +116,13 @@ class ClientHomePage extends StatelessWidget {
             state.freelancers.isNotEmpty
                 ? '${state.freelancers.length} recent applications.'
                 : 'No applications yet.',
+            onTap: () => context.push(Routes.clientProjects),
           ),
           _buildEmptyStateCard(
             'Pending Payments',
             'Release before due date to keep vendors happy',
             'No pending payments.',
+            onTap: () => context.push(Routes.clientPayments),
           ),
         ]),
         'Workspace': _buildMultiColumn(context, [
@@ -130,16 +132,19 @@ class ClientHomePage extends StatelessWidget {
             state.meetings.isNotEmpty
                 ? 'You have ${state.meetings.length} meetings.'
                 : 'No meetings scheduled today.',
+            onTap: () => context.push(Routes.meetings),
           ),
           _buildEmptyStateCard(
             'Today\'s Tasks',
             '0 due',
             'No tasks due today.',
+            onTap: () => context.push(Routes.clientProjects),
           ),
           _buildEmptyStateCard(
             'Pending Approvals',
             'Awaiting your sign-off',
             'Nothing pending your approval.',
+            onTap: () => context.push(Routes.clientProjects),
           ),
         ]),
         'Inbox': _buildMultiColumn(context, [
@@ -149,6 +154,7 @@ class ClientHomePage extends StatelessWidget {
             state.unreadMessagesCount > 0
                 ? 'You have ${state.unreadMessagesCount} unread messages.'
                 : 'No messages yet.',
+            onTap: () => context.push(Routes.messages),
           ),
           _buildEmptyStateCard(
             'Latest Notifications',
@@ -190,88 +196,93 @@ class ClientHomePage extends StatelessWidget {
     String message, {
     String? topRightAction,
     VoidCallback? onActionTap,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryBlack.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBlack,
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 4),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlack.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          subtitle,
+                          title,
                           style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.subtleText,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlack,
                           ),
                         ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.subtleText,
+                            ),
+                          ),
+                        ],
                       ],
-                    ],
-                  ),
-                ),
-                if (topRightAction != null)
-                  InkWell(
-                    onTap: onActionTap,
-                    child: Text(
-                      topRightAction,
-                      style: const TextStyle(
-                        color: Color(0xFFE50A36),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                      ),
                     ),
                   ),
-              ],
+                  if (topRightAction != null)
+                    InkWell(
+                      onTap: onActionTap,
+                      child: Text(
+                        topRightAction,
+                        style: const TextStyle(
+                          color: Color(0xFFE50A36),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.only(
-              bottom: 40,
-              top: 40,
-              left: 16,
-              right: 16,
-            ),
-            child: Center(
-              child: Text(
-                message,
-                style: const TextStyle(
-                  color: AppColors.subtleText,
-                  fontSize: 13,
+            Padding(
+              padding: const EdgeInsets.only(
+                bottom: 40,
+                top: 40,
+                left: 16,
+                right: 16,
+              ),
+              child: Center(
+                child: Text(
+                  message,
+                  style: const TextStyle(
+                    color: AppColors.subtleText,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -485,25 +496,31 @@ class ClientHomePage extends StatelessWidget {
               SizedBox(
                 width: width,
                 child: _projCard(
+                  context,
                   'TOTAL PROJECTS',
                   '${state.activeProjectsCount + state.pendingProposalsCount}',
                 ),
               ),
-              SizedBox(width: width, child: _projCard('OPEN PROJECTS', '0')),
+              SizedBox(
+                width: width,
+                child: _projCard(context, 'OPEN PROJECTS', '0'),
+              ),
               SizedBox(
                 width: width,
                 child: _projCard(
+                  context,
                   'ACTIVE PROJECTS',
                   '${state.activeProjectsCount}',
                 ),
               ),
               SizedBox(
                 width: width,
-                child: _projCard('COMPLETED PROJECTS', '0'),
+                child: _projCard(context, 'COMPLETED PROJECTS', '0'),
               ),
               SizedBox(
                 width: width,
                 child: _spendCard(
+                  context,
                   'TOTAL SPEND',
                   Formatters.compactCurrency(state.monthlyEarnings),
                 ),
@@ -511,6 +528,7 @@ class ClientHomePage extends StatelessWidget {
               SizedBox(
                 width: width,
                 child: _spendCard(
+                  context,
                   'WALLET BALANCE',
                   Formatters.compactCurrency(state.wallet?.available ?? 0),
                 ),
@@ -527,21 +545,27 @@ class ClientHomePage extends StatelessWidget {
       children: [
         Expanded(
           child: _projCard(
+            context,
             'TOTAL PROJECTS',
             '${state.activeProjectsCount + state.pendingProposalsCount}',
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(child: _projCard('OPEN PROJECTS', '0')),
+        Expanded(child: _projCard(context, 'OPEN PROJECTS', '0')),
         const SizedBox(width: 16),
         Expanded(
-          child: _projCard('ACTIVE PROJECTS', '${state.activeProjectsCount}'),
+          child: _projCard(
+            context,
+            'ACTIVE PROJECTS',
+            '${state.activeProjectsCount}',
+          ),
         ),
         const SizedBox(width: 16),
-        Expanded(child: _projCard('COMPLETED PROJECTS', '0')),
+        Expanded(child: _projCard(context, 'COMPLETED PROJECTS', '0')),
         const SizedBox(width: 16),
         Expanded(
           child: _spendCard(
+            context,
             'TOTAL SPEND',
             Formatters.compactCurrency(state.monthlyEarnings),
           ),
@@ -549,6 +573,7 @@ class ClientHomePage extends StatelessWidget {
         const SizedBox(width: 16),
         Expanded(
           child: _spendCard(
+            context,
             'WALLET BALANCE',
             Formatters.compactCurrency(state.wallet?.available ?? 0),
           ),
@@ -557,23 +582,27 @@ class ClientHomePage extends StatelessWidget {
     );
   }
 
-  Widget _projCard(String title, String value) {
+  Widget _projCard(BuildContext context, String title, String value) {
     return DashboardMetricCard(
       title: title,
       value: value,
       lineColor: const Color(0xFFE50A36),
       tagLabel: '',
       tagColor: AppColors.success,
+      onTap: () => context.push(Routes.clientProjects),
     );
   }
 
-  Widget _spendCard(String title, String value) {
+  Widget _spendCard(BuildContext context, String title, String value) {
     return DashboardMetricCard(
       title: title,
       value: value,
       lineColor: const Color(0xFFE50A36),
       tagLabel: '',
       tagColor: AppColors.success,
+      onTap: () => title.contains('SPEND')
+          ? context.push(Routes.clientPayments)
+          : context.push(Routes.wallet),
     );
   }
 }

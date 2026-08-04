@@ -55,8 +55,23 @@ class AuthState extends Equatable {
   bool get hasRole => user?.role != null;
   bool get isProfileComplete => user?.isProfileComplete ?? false;
   bool get hasSubscription =>
-      subscriptionStatus == SubscriptionGateStatus.active;
+      subscriptionStatus == SubscriptionGateStatus.active ||
+      // Server explicitly says the user has a subscription
+      (user?.serverHasSubscription == true) ||
+      // Server provides a direct dashboard redirect — honour it
+      _serverRedirectsToDashboard;
   bool get needsSubscription => !hasSubscription;
+
+  /// True when the server explicitly redirects to a known dashboard path.
+  bool get _serverRedirectsToDashboard {
+    final r = user?.redirectTo;
+    if (r == null || r.isEmpty) return false;
+    return r.contains('dashboard') ||
+        r.contains('/founder/') ||
+        r.contains('/investor/') ||
+        r.contains('/client/') ||
+        r.contains('/freelancer/');
+  }
 
   AuthState copyWith({
     AuthStatus? status,

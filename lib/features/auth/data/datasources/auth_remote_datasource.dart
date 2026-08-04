@@ -252,10 +252,22 @@ class AuthRemoteDatasource {
   }
 
   AppUser _userFromAuthPayload(Map<String, dynamic> data) {
-    final userJson = data['user'];
-    if (userJson is Map<String, dynamic>) {
-      return AppUser.fromApiJson(userJson);
+    final userRaw = data['user'];
+    if (userRaw is! Map)
+      throw Exception('User data missing from auth response');
+    final userJson = Map<String, dynamic>.from(userRaw);
+    // Merge top-level auth-response fields into the user map so AppUser
+    // can read hasSubscription, isSubscribed, redirectTo, etc.
+    for (final key in [
+      'hasSubscription',
+      'isSubscribed',
+      'redirectTo',
+      'subscriptionPlan',
+    ]) {
+      if (!userJson.containsKey(key) && data.containsKey(key)) {
+        userJson[key] = data[key];
+      }
     }
-    throw Exception('User data missing from auth response');
+    return AppUser.fromApiJson(userJson);
   }
 }

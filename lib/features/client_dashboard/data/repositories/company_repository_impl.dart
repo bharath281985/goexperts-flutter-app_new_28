@@ -1,10 +1,8 @@
-import '../../../../app/config/app_config.dart';
 import '../../../../core/errors/failures.dart';
-import '../../../../core/mock/mock_data.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/file_upload_helper.dart';
-import '../../../../core/utils/mock_utils.dart';
+import '../../../../core/network/api_response.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/company.dart';
@@ -16,31 +14,42 @@ class CompanyRepositoryImpl implements CompanyRepository {
   final FileUploadHelper? _uploader;
 
   @override
-  Future<Result<Paginated<Company>>> getCompanies(QueryParams params) {
-    return MockUtils.paginate<Company>(
-      MockData.companies,
-      params,
-      searchMatcher: (c, q) =>
-          c.name.toLowerCase().contains(q) ||
-          c.industry.toLowerCase().contains(q),
+  Future<Result<Paginated<Company>>> getCompanies(QueryParams params) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Paginated<Company>>(
+      ApiEndpoints
+          .publicClients, // Assuming clients map to companies based on endpoints
+      query: params.toApiQuery(),
+      parser: (env) => ApiResponse.parsePaginated(
+        env.data,
+        env.meta,
+        _fromJson,
+        fallbackPage: params.page,
+      ),
     );
   }
 
   @override
-  Future<Result<Company>> getCompany(String id) {
-    final c = MockData.companies.firstWhere(
-      (e) => e.id == id,
-      orElse: () => MockData.companies.first,
+  Future<Result<Company>> getCompany(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.get<Company>(
+      ApiEndpoints.publicClient(id),
+      parser: (data) => _fromJson(Map<String, dynamic>.from(data as Map)),
     );
-    return MockUtils.single(c);
   }
 
   @override
-  Future<Result<bool>> toggleFollow(String id) => MockUtils.action();
+  Future<Result<bool>> toggleFollow(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.postAction(
+      '${ApiEndpoints.favorites}/toggle',
+      body: {'entityType': 'company', 'entityId': id},
+    );
+  }
 
   @override
   Future<Result<Company>> getClientProfile() async {
-    if (AppConfig.useMockData || _api == null) {
+    if (_api == null) {
       return _apiNotConfigured();
     }
     return _api.get<Company>(
@@ -54,7 +63,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
     Map<String, dynamic> data, {
     String? logoPath,
   }) async {
-    if (AppConfig.useMockData || _api == null) {
+    if (_api == null) {
       return _apiNotConfigured();
     }
     if (logoPath != null && _uploader != null) {
@@ -76,7 +85,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
 
   @override
   Future<Result<String>> uploadClientLogo(String filePath) async {
-    if (AppConfig.useMockData || _api == null || _uploader == null) {
+    if (_api == null || _uploader == null) {
       return _apiNotConfigured();
     }
     return _uploader.uploadUrl(
@@ -87,7 +96,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
 
   @override
   Future<Result<String>> uploadClientDocument(String filePath) async {
-    if (AppConfig.useMockData || _api == null || _uploader == null) {
+    if (_api == null || _uploader == null) {
       return _apiNotConfigured();
     }
     final direct = await _uploader.uploadUrl(
@@ -102,7 +111,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
     );
   }
 
-  Company _fromJson(Map<String, dynamic> json) => Company(
+  static Company _fromJson(Map<String, dynamic> json) => Company(
     id: json['id']?.toString() ?? 'company',
     name:
         json['name'] as String? ??

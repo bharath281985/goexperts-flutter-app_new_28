@@ -18,7 +18,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
 
   @override
   Future<Result<Paginated<Meeting>>> getMeetings(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
@@ -63,7 +63,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
 
   @override
   Future<Result<Meeting>> getMeeting(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
@@ -85,7 +85,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
 
   @override
   Future<Result<bool>> schedule(Meeting meeting) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     if (role == UserRole.freelancer) {
       return const Err(
@@ -125,7 +125,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
 
   @override
   Future<Result<bool>> cancel(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     if (role == UserRole.freelancer) {
       return const Err(
@@ -144,7 +144,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
 
   @override
   Future<Result<bool>> reschedule(String id, DateTime newStartTime) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final base = (role == UserRole.client)
         ? ApiEndpoints.clientMeetings

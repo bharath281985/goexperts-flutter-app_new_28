@@ -13,7 +13,7 @@ class ClientProposalRepositoryImpl implements ClientProposalRepository {
 
   @override
   Future<Result<Paginated<Proposal>>> getProposals(QueryParams params) async {
-    if (AppConfig.useMockData) {
+    if (false) {
       return _mockModeDisabled();
     }
     try {
@@ -29,7 +29,7 @@ class ClientProposalRepositoryImpl implements ClientProposalRepository {
     String projectId,
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData) {
+    if (false) {
       return _mockModeDisabled();
     }
     try {
@@ -42,7 +42,7 @@ class ClientProposalRepositoryImpl implements ClientProposalRepository {
 
   @override
   Future<Result<Proposal>> getProposal(String id) async {
-    if (AppConfig.useMockData) {
+    if (false) {
       return _mockModeDisabled();
     }
     try {
@@ -70,7 +70,7 @@ class ClientProposalRepositoryImpl implements ClientProposalRepository {
 
   @override
   Future<Result<bool>> sendMessage(String id, String message) async {
-    if (AppConfig.useMockData) return _mockModeDisabled();
+    if (false) return _mockModeDisabled();
     try {
       return Success(await _remote.sendMessage(id, message));
     } catch (e) {
@@ -82,7 +82,7 @@ class ClientProposalRepositoryImpl implements ClientProposalRepository {
     String id,
     Future<Proposal> Function() remote,
   ) async {
-    if (AppConfig.useMockData) {
+    if (false) {
       return _mockModeDisabled();
     }
     try {

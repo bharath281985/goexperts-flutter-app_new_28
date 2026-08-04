@@ -93,7 +93,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Result<List<SubscriptionPlan>>> getPlans() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     return _api.get<List<SubscriptionPlan>>(
       _plansPath(role),
@@ -109,7 +109,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Result<CurrentSubscription?>> getCurrentSubscription() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final res = await _api.getEnvelope<Map<String, dynamic>?>(
       _currentPath(role),
@@ -143,7 +143,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Result<String?>> getCurrentPlanId() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final res = await getCurrentSubscription();
     return res.fold(Err.new, (subscription) {
       if (subscription == null) {
@@ -161,7 +161,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   Future<Result<SubscriptionGateStatus>> getSubscriptionStatus(
     UserRole role,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final res = await _api.getEnvelope<Map<String, dynamic>?>(
       _currentPath(role),
       parser: (envelope) {
@@ -203,7 +203,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Result<String>> subscribe(String planId, {bool yearly = false}) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final billingCycle = yearly ? 'yearly' : 'monthly';
 
@@ -251,7 +251,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Result<bool>> renew({bool yearly = false}) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     return _api.postAction(
       _renewPath(role),
@@ -261,7 +261,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
   @override
   Future<Result<bool>> cancel() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     return _api.postAction(_cancelPath(role));
   }

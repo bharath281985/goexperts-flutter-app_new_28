@@ -20,7 +20,7 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   Future<Result<Paginated<Freelancer>>> getFreelancers(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = role == UserRole.client
         ? ApiEndpoints.clientFreelancers
@@ -39,7 +39,7 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
 
   @override
   Future<Result<Freelancer>> getFreelancer(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = role == UserRole.client
         ? '${ApiEndpoints.clientFreelancers}/$id'
@@ -52,13 +52,13 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
 
   @override
   Future<Result<bool>> toggleSave(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction('${ApiEndpoints.clientFreelancers}/$id/save');
   }
 
   @override
   Future<Result<bool>> toggleFollow(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(
       '${ApiEndpoints.favorites}/toggle',
       body: {'entityType': 'freelancer', 'entityId': id},
@@ -67,7 +67,7 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
 
   @override
   Future<Result<bool>> invite(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     // Opens chat / DM invite via client team invite when available.
     return _api.postAction(
       '${ApiEndpoints.clientTeam}/invite',

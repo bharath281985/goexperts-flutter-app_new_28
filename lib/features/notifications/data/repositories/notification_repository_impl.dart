@@ -18,7 +18,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<int>> unreadCount() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
         ? ApiEndpoints.freelancerNotificationsUnreadCount
@@ -37,7 +37,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
   Future<Result<Paginated<AppNotification>>> getNotifications(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
@@ -59,7 +59,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<bool>> markAllRead() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
         ? ApiEndpoints.freelancerNotificationsReadAll
@@ -69,7 +69,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<bool>> markRead(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
         ? ApiEndpoints.freelancerNotificationRead(id)
@@ -79,7 +79,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<bool>> delete(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
         ? ApiEndpoints.freelancerNotificationDelete(id)
@@ -89,7 +89,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<Map<String, dynamic>>> getPreferences() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
         ? ApiEndpoints.freelancerNotificationPreferences
@@ -102,7 +102,7 @@ class NotificationRepositoryImpl implements NotificationRepository {
 
   @override
   Future<Result<bool>> updatePreferences(Map<String, dynamic> data) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
     final path = (role == UserRole.freelancer)
         ? ApiEndpoints.freelancerNotificationPreferences

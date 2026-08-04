@@ -20,7 +20,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<UserRole?> _role() async => await _tokenRoleHelper?.resolve();
   @override
   Future<Result<Paginated<Project>>> getProjects(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final String path;
@@ -49,7 +49,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<Project>> getProject(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = role == UserRole.freelancer
@@ -71,7 +71,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     String id,
     Map<String, dynamic> data,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.putEnvelope<Project>(
       ApiEndpoints.clientProject(id),
       body: data,
@@ -82,7 +82,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<bool>> updateProjectStatus(String id, String status) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.patchAction(
       ApiEndpoints.clientProjectStatus(id),
       body: {'status': status},
@@ -91,13 +91,13 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<bool>> deleteProject(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.deleteAction(ApiEndpoints.clientProject(id));
   }
 
   @override
   Future<Result<bool>> trackProjectShare(String id, String platform) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     // Prefer public share so any role can track; fall back to client path.
     final primary = await _api.postAction(
       '/public/projects/$id/share',
@@ -112,7 +112,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<bool>> toggleSave(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(
       '${ApiEndpoints.favorites}/toggle',
       body: {'entityType': 'project', 'entityId': id},
@@ -121,7 +121,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<bool>> apply(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     // Apply = open proposal create; return success so UI can navigate to Apply form.
     // Actual bid is submitted via ProposalRepository.submitProposal.
     return const Success(true);
@@ -129,7 +129,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<Paginated<Contract>>> getContracts(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = role == UserRole.client
@@ -149,7 +149,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
   @override
   Future<Result<Contract>> getContract(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = role == UserRole.client

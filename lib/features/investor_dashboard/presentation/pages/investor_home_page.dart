@@ -142,7 +142,7 @@ class InvestorHomePage extends StatelessWidget {
   Widget _buildTopHeader(BuildContext context, DashboardState state) {
     final name = state.investorName;
     final pending = state.investorPendingDeals;
-    final meetingsCount = state.meetings.length.toString();
+    final meetingsCount = state.upcomingMeetingsCount.toString();
     final dealsClosed = state.investorDealsClosed;
 
     return Padding(
@@ -230,77 +230,82 @@ class InvestorHomePage extends StatelessWidget {
                         () => context.push(Routes.investorPortfolio),
                         isDark: true,
                       ),
-                      const SizedBox(width: 10),
-                      _buildHeaderButton(
-                        'Opportunities',
-                        Icons.bolt,
-                        AppColors.primaryBlack,
-                        () => context.push(Routes.investorDeals),
-                        isDark: true,
-                      ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 14),
                 // ── Portfolio Overview button (bottom-right) ──
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Builder(
-                    builder: (ctx) => PopupMenuButton<String>(
-                      color: AppColors.primaryBlack,
-                      elevation: 16,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                        side: BorderSide(
-                          color: AppColors.primary.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      position: PopupMenuPosition.over,
-                      offset: const Offset(0, -210),
-                      itemBuilder: (_) => [
-                        PopupMenuItem(
-                          enabled: false,
-                          padding: const EdgeInsets.all(16),
-                          child: _buildPortfolioPopupContent(ctx, state),
-                        ),
-                      ],
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.projectBodyText,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.pie_chart,
-                              size: 14,
-                              color: AppColors.white,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Portfolio Overview',
-                              style: TextStyle(
-                                color: AppColors.white,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    _buildHeaderButton(
+                      'Opportunities',
+                      Icons.bolt,
+                      AppColors.primaryBlack,
+                      () => context.push(Routes.investorDeals),
+                      isDark: true,
+                    ),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Builder(
+                          builder: (ctx) => PopupMenuButton<String>(
+                            color: AppColors.primaryBlack,
+                            elevation: 16,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                              side: BorderSide(
+                                color: AppColors.primary.withValues(alpha: 0.4),
                               ),
                             ),
-                            SizedBox(width: 4),
-                            Icon(
-                              Icons.keyboard_arrow_up,
-                              size: 14,
-                              color: AppColors.white,
+                            position: PopupMenuPosition.over,
+                            offset: const Offset(0, -210),
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                enabled: false,
+                                padding: const EdgeInsets.all(16),
+                                child: _buildPortfolioPopupContent(ctx, state),
+                              ),
+                            ],
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.projectBodyText,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.pie_chart,
+                                    size: 14,
+                                    color: AppColors.white,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Text(
+                                    'Portfolio Overview',
+                                    style: TextStyle(
+                                      color: AppColors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(width: 4),
+                                  Icon(
+                                    Icons.keyboard_arrow_up,
+                                    size: 14,
+                                    color: AppColors.white,
+                                  ),
+                                ],
+                              ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),
@@ -637,7 +642,7 @@ class InvestorHomePage extends StatelessWidget {
     const offersSent = '0';
     const dueDiligence = '0';
     final roip = '$dealsClosed closed';
-    final meetingsCount = state.meetings.length.toString();
+    final meetingsCount = state.upcomingMeetingsCount.toString();
     final unreadMsgs = state.unreadMessagesCount.toString();
     final notifs = state.unreadNotificationsCount.toString();
 
@@ -661,6 +666,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'PORTFOLIO VALUE',
                 value: portfolioValue,
                 lineColor: Colors.red,
+                onTap: () => context.push(Routes.investorPortfolio),
               ),
             ),
             SizedBox(
@@ -669,6 +675,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'TOTAL INVESTMENTS',
                 value: totalInvestments,
                 lineColor: AppColors.success,
+                onTap: () => context.push(Routes.investorPortfolio),
               ),
             ),
             SizedBox(
@@ -677,6 +684,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'AVAILABLE CAPITAL',
                 value: balance,
                 lineColor: AppColors.projectPurpleText,
+                onTap: () => context.push(Routes.wallet),
               ),
             ),
             SizedBox(
@@ -685,6 +693,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'STARTUPS FOLLOWING',
                 value: startupsFollowing,
                 lineColor: AppColors.warning,
+                onTap: () => context.push(Routes.investorStartups),
               ),
             ),
             SizedBox(
@@ -693,6 +702,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'PENDING INTERESTS',
                 value: pendingDeals,
                 lineColor: AppColors.danger,
+                onTap: () => context.push(Routes.investorDeals),
               ),
             ),
             SizedBox(
@@ -701,6 +711,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'MEETINGS THIS WEEK',
                 value: meetingsCount,
                 lineColor: AppColors.info,
+                onTap: () => context.push(Routes.meetings),
               ),
             ),
             SizedBox(
@@ -709,6 +720,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'DUE DILIGENCE',
                 value: dueDiligence,
                 lineColor: AppColors.warning,
+                onTap: () => context.push(Routes.investorDeals),
               ),
             ),
             SizedBox(
@@ -717,6 +729,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'OFFERS SENT',
                 value: offersSent,
                 lineColor: AppColors.success,
+                onTap: () => context.push(Routes.investorOffers),
               ),
             ),
             SizedBox(
@@ -725,6 +738,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'ROI %',
                 value: roip,
                 lineColor: AppColors.success,
+                onTap: () => context.push(Routes.investorPortfolio),
               ),
             ),
             SizedBox(
@@ -733,6 +747,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'UNREAD MESSAGES',
                 value: unreadMsgs,
                 lineColor: Colors.red,
+                onTap: () => context.push(Routes.messages),
               ),
             ),
             SizedBox(
@@ -749,6 +764,7 @@ class InvestorHomePage extends StatelessWidget {
                 title: 'WALLET BALANCE',
                 value: balance,
                 lineColor: AppColors.info,
+                onTap: () => context.push(Routes.wallet),
               ),
             ),
           ],
@@ -778,45 +794,49 @@ class InvestorHomePage extends StatelessWidget {
           ...state.meetings
               .take(3)
               .map(
-                (m) => Container(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.border),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.warning,
-                          borderRadius: BorderRadius.circular(8),
+                (m) => InkWell(
+                  onTap: () => context.push(Routes.meetings),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.warning,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.calendar_today,
+                            color: AppColors.warning,
+                            size: 16,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.calendar_today,
-                          color: AppColors.warning,
-                          size: 16,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              m.title,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                m.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 2),
-                            // Text(Formatters.formatDateTime(m.startTime), style: const TextStyle(color: AppColors.subtleText, fontSize: 11)),
-                          ],
+                              const SizedBox(height: 2),
+                              // Text(Formatters.formatDateTime(m.startTime), style: const TextStyle(color: AppColors.subtleText, fontSize: 11)),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -843,57 +863,61 @@ class InvestorHomePage extends StatelessWidget {
         else
           ...msgs.take(3).map((m) {
             final msg = m;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.border),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    backgroundImage: msg['avatar'] != null
-                        ? NetworkImage(msg['avatar'])
-                        : null,
-                    radius: 16,
-                    child: msg['avatar'] == null
-                        ? const Icon(Icons.person, size: 16)
-                        : null,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          msg['name'] ?? 'Support',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          msg['msg'] ?? '',
-                          style: const TextStyle(
-                            color: AppColors.subtleText,
-                            fontSize: 12,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+            return InkWell(
+              onTap: () => context.push(Routes.messages),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.border),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundImage: msg['avatar'] != null
+                          ? NetworkImage(msg['avatar'])
+                          : null,
+                      radius: 16,
+                      child: msg['avatar'] == null
+                          ? const Icon(Icons.person, size: 16)
+                          : null,
                     ),
-                  ),
-                  Text(
-                    msg['time'] ?? 'Today',
-                    style: const TextStyle(
-                      color: AppColors.subtleText,
-                      fontSize: 10,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            msg['name'] ?? 'Support',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            msg['msg'] ?? '',
+                            style: const TextStyle(
+                              color: AppColors.subtleText,
+                              fontSize: 12,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    Text(
+                      msg['time'] ?? 'Today',
+                      style: const TextStyle(
+                        color: AppColors.subtleText,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           }),
@@ -902,100 +926,104 @@ class InvestorHomePage extends StatelessWidget {
   }
 
   Widget _buildCompactStartupTile(BuildContext context, Startup s) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            backgroundColor: AppColors.warning,
-            radius: 20,
-            child: Text(
-              s.name.isNotEmpty ? s.name[0].toUpperCase() : 'S',
-              style: TextStyle(
-                color: AppColors.warning,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  s.name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${s.industry} - ${s.stage}',
-                  style: const TextStyle(
-                    color: AppColors.subtleText,
-                    fontSize: 11,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                s.fundingRaised > 0
-                    ? Formatters.compactCurrency(s.fundingRaised)
-                    : '--',
+    return InkWell(
+      onTap: () => context.push('${Routes.startupDetails}/${s.id}'),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              backgroundColor: AppColors.warning,
+              radius: 20,
+              child: Text(
+                s.name.isNotEmpty ? s.name[0].toUpperCase() : 'S',
                 style: const TextStyle(
+                  color: AppColors.warning,
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
                 ),
               ),
-              const Text(
-                'Raising',
-                style: TextStyle(color: AppColors.subtleText, fontSize: 10),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.startupIconGreenSurface,
-              borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.circle, size: 8, color: AppColors.success),
-                const SizedBox(width: 4),
-                Text(
-                  s.stage,
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    s.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${s.industry} - ${s.stage}',
+                    style: const TextStyle(
+                      color: AppColors.subtleText,
+                      fontSize: 11,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  s.fundingRaised > 0
+                      ? Formatters.compactCurrency(s.fundingRaised)
+                      : '--',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+                const Text(
+                  'Raising',
+                  style: TextStyle(color: AppColors.subtleText, fontSize: 10),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          const Icon(
-            Icons.chevron_right,
-            color: AppColors.subtleText,
-            size: 20,
-          ),
-        ],
+            const SizedBox(width: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.startupIconGreenSurface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.circle, size: 8, color: AppColors.success),
+                  const SizedBox(width: 4),
+                  Text(
+                    s.stage,
+                    style: const TextStyle(
+                      color: AppColors.success,
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(
+              Icons.chevron_right,
+              color: AppColors.subtleText,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -72,7 +72,7 @@ class FounderHomePage extends StatelessWidget {
     final raised = state.monthlyEarnings;
     final goal = state.fundingGoal > 0 ? state.fundingGoal : 0.0;
     final pitchViews = state.pendingProposalsCount;
-    final meetings = state.meetings.length;
+    final meetings = state.upcomingMeetingsCount;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -333,6 +333,7 @@ class FounderHomePage extends StatelessWidget {
                 'STARTUP PROFILE STATUS',
                 'Active',
                 AppColors.primary,
+                onTap: () => context.push(Routes.founderStartup),
               ),
             ),
             SizedBox(
@@ -341,6 +342,7 @@ class FounderHomePage extends StatelessWidget {
                 'INVESTOR VIEWS',
                 '${state.profileCompletionPercent}',
                 AppColors.success,
+                onTap: () => context.push(Routes.founderInvestors),
               ),
             ),
             SizedBox(
@@ -349,11 +351,17 @@ class FounderHomePage extends StatelessWidget {
                 'INVESTOR INTERESTS',
                 '${state.activeProjectsCount}',
                 AppColors.warning,
+                onTap: () => context.push(Routes.founderInvestors),
               ),
             ),
             SizedBox(
               width: width,
-              child: _buildMetricCard('CONTACT REQUESTS', '0', AppColors.info),
+              child: _buildMetricCard(
+                'CONTACT REQUESTS',
+                '0',
+                AppColors.info,
+                onTap: () => context.push(Routes.founderInvestors),
+              ),
             ),
             SizedBox(
               width: width,
@@ -361,6 +369,7 @@ class FounderHomePage extends StatelessWidget {
                 'PITCH DECK DOWNLOADS',
                 '${state.pendingProposalsCount}',
                 AppColors.primary,
+                onTap: () => context.push(Routes.founderPitchDeck),
               ),
             ),
             SizedBox(
@@ -369,14 +378,16 @@ class FounderHomePage extends StatelessWidget {
                 'UNREAD MESSAGES',
                 '${state.unreadMessagesCount}',
                 AppColors.warning,
+                onTap: () => context.push(Routes.messages),
               ),
             ),
             SizedBox(
               width: width,
               child: _buildMetricCard(
                 'SCHEDULED MEETINGS',
-                '${state.meetings.length}',
+                '${state.upcomingMeetingsCount}',
                 AppColors.info,
+                onTap: () => context.push(Routes.meetings),
               ),
             ),
             SizedBox(
@@ -385,6 +396,7 @@ class FounderHomePage extends StatelessWidget {
                 'SUBSCRIPTION STATUS',
                 'Free Founder Plan',
                 AppColors.primary,
+                onTap: () => context.push(Routes.subscriptionsManage),
               ),
             ),
             SizedBox(
@@ -393,6 +405,7 @@ class FounderHomePage extends StatelessWidget {
                 'PROFILE STRENGTH SCORE',
                 '${state.profileCompletionPercent}%',
                 AppColors.success,
+                onTap: () => context.push(Routes.founderProfile),
               ),
             ),
           ],
@@ -401,11 +414,17 @@ class FounderHomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricCard(String title, String value, Color bottomColor) {
+  Widget _buildMetricCard(
+    String title,
+    String value,
+    Color bottomColor, {
+    VoidCallback? onTap,
+  }) {
     return DashboardMetricCard(
       title: title,
       value: value,
       lineColor: bottomColor,
+      onTap: onTap,
     );
   }
 
@@ -414,61 +433,69 @@ class FounderHomePage extends StatelessWidget {
     String subtitle,
     String emptyMessage, {
     IconData icon = Icons.calendar_today,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      width: double.infinity,
-      height: 200,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          ),
-          Text(
-            subtitle,
-            style: const TextStyle(color: AppColors.subtleText, fontSize: 11),
-          ),
-          const Spacer(),
-          Center(
-            child: Column(
-              children: [
-                if (title.contains('Meeting')) ...[
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.background,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(icon, color: AppColors.subtleText, size: 24),
-                  ),
-                  const SizedBox(height: 8),
-                ],
-                Text(
-                  emptyMessage,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: AppColors.primaryBlack,
-                  ),
-                ),
-                if (title.contains('Meeting'))
-                  const Text(
-                    'Use your scheduler to invite interestedinvestors.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 11, color: AppColors.subtleText),
-                  ),
-              ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        height: 200,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
             ),
-          ),
-          const Spacer(),
-        ],
+            Text(
+              subtitle,
+              style: const TextStyle(color: AppColors.subtleText, fontSize: 11),
+            ),
+            const Spacer(),
+            Center(
+              child: Column(
+                children: [
+                  if (title.contains('Meeting')) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(icon, color: AppColors.subtleText, size: 24),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  Text(
+                    emptyMessage,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                      color: AppColors.primaryBlack,
+                    ),
+                  ),
+                  if (title.contains('Meeting'))
+                    const Text(
+                      'Use your scheduler to invite interested investors.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppColors.subtleText,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const Spacer(),
+          ],
+        ),
       ),
     );
   }
@@ -568,18 +595,21 @@ class FounderHomePage extends StatelessWidget {
           'Key roadmap checkpoints',
           'No milestones yet.',
           icon: Icons.flag,
+          onTap: () => context.push(Routes.founderStartup),
         ),
         'Recent Activity': _buildEmptyStateCard(
           'Recent Investor Activity',
           'From investor requests',
           'No recent activity.',
           icon: Icons.history,
+          onTap: () => context.push(Routes.founderInvestors),
         ),
         'Upcoming Meetings': _buildEmptyStateCard(
           'Upcoming Meetings',
           '',
           'No meetings scheduled',
           icon: Icons.calendar_today,
+          onTap: () => context.push(Routes.meetings),
         ),
       },
     );

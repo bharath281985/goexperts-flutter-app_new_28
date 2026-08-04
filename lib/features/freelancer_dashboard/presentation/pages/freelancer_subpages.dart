@@ -1715,7 +1715,12 @@ class _FreelancerExperiencePageState extends State<FreelancerExperiencePage> {
       (_) {},
       (p) => _roles
         ..clear()
-        ..addAll(p.experience.map((role) => _ExperienceDraft(role: role))),
+        ..addAll(
+          p.experience
+              .split(',')
+              .where((e) => e.isNotEmpty)
+              .map((role) => _ExperienceDraft(role: role)),
+        ),
     );
     setState(() => _loading = false);
   }
@@ -2595,9 +2600,10 @@ class _FreelancerEducationPageState extends State<FreelancerEducationPage> {
       (p) => _items
         ..clear()
         ..addAll(
-          p.education.map(
-            (education) => _EducationDraft(institution: education),
-          ),
+          p.education
+              .split(',')
+              .where((e) => e.isNotEmpty)
+              .map((education) => _EducationDraft(institution: education)),
         ),
     );
     setState(() => _loading = false);

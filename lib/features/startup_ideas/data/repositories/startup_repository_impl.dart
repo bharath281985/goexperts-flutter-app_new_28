@@ -20,7 +20,7 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<Paginated<Startup>>> getStartups(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.investor
         ? ApiEndpoints.investorStartups
@@ -41,7 +41,7 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<Startup>> getStartup(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.investor
         ? ApiEndpoints.investorStartup(id)
@@ -57,7 +57,7 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<bool>> toggleSave(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     if (role == UserRole.investor) {
       final post = await _api.postAction(ApiEndpoints.investorStartupSave(id));
@@ -69,7 +69,7 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<bool>> toggleFollow(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(
       '${ApiEndpoints.favorites}/toggle',
       body: {'entityType': 'startup', 'entityId': id},
@@ -78,7 +78,7 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<bool>> expressInterest(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(
       ApiEndpoints.investorExpressInterest,
       body: {'startupId': id},
@@ -87,13 +87,13 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<bool>> withdrawInterest(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(ApiEndpoints.investorCancelInvestment(id));
   }
 
   @override
   Future<Result<Startup>> createIdea(Map<String, dynamic> data) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.post<Startup>(
       ApiEndpoints.founderIdeas,
       body: data,
@@ -107,7 +107,7 @@ class StartupRepositoryImpl implements StartupRepository {
     String id,
     Map<String, dynamic> data,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.put<Startup>(
       ApiEndpoints.founderStartup,
       body: data,
@@ -118,7 +118,7 @@ class StartupRepositoryImpl implements StartupRepository {
 
   @override
   Future<Result<bool>> deleteIdea(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.deleteAction('${ApiEndpoints.founderIdeas}/$id');
   }
 

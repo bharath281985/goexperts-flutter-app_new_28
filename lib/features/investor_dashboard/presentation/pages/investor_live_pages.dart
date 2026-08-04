@@ -31,6 +31,15 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
   final _country = TextEditingController();
   final _city = TextEditingController();
   final _bio = TextEditingController();
+  final _thesis = TextEditingController();
+  final _ticketMin = TextEditingController();
+  final _ticketMax = TextEditingController();
+  final _investorType = TextEditingController();
+  final _linkedin = TextEditingController();
+  final _website = TextEditingController();
+  final _panNumber = TextEditingController();
+  final _aadhaarNumber = TextEditingController();
+  final _panGst = TextEditingController();
 
   String? _avatarUrl;
   String? _localAvatarPath;
@@ -53,6 +62,15 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     _country.dispose();
     _city.dispose();
     _bio.dispose();
+    _thesis.dispose();
+    _ticketMin.dispose();
+    _ticketMax.dispose();
+    _investorType.dispose();
+    _linkedin.dispose();
+    _website.dispose();
+    _panNumber.dispose();
+    _aadhaarNumber.dispose();
+    _panGst.dispose();
     super.dispose();
   }
 
@@ -72,8 +90,18 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           m['full_name']?.toString() ??
           m['name']?.toString() ??
           '';
-      _company.text = m['company']?.toString() ?? m['firm']?.toString() ?? '';
-      _phone.text = user['phone']?.toString() ?? m['phone']?.toString() ?? '';
+      _company.text =
+          m['company']?.toString() ??
+          m['firm']?.toString() ??
+          m['firmName']?.toString() ??
+          '';
+      _phone.text =
+          user['phone']?.toString() ??
+          m['phone']?.toString() ??
+          m['phoneNumber']?.toString() ??
+          user['mobile']?.toString() ??
+          m['mobile']?.toString() ??
+          '';
       _country.text =
           user['country']?.toString() ?? m['country']?.toString() ?? '';
 
@@ -82,6 +110,19 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       _city.text = city ?? location ?? '';
 
       _bio.text = m['bio']?.toString() ?? user['bio']?.toString() ?? '';
+      _thesis.text =
+          m['thesis']?.toString() ?? user['thesis']?.toString() ?? '';
+      _ticketMin.text = m['ticketMin']?.toString() ?? '';
+      _ticketMax.text = m['ticketMax']?.toString() ?? '';
+      _investorType.text = m['investorType']?.toString() ?? '';
+      _linkedin.text =
+          m['linkedin']?.toString() ?? user['linkedin']?.toString() ?? '';
+      _website.text =
+          m['website']?.toString() ?? user['website']?.toString() ?? '';
+      _panNumber.text = m['panNumber']?.toString() ?? '';
+      _aadhaarNumber.text = m['aadhaarNumber']?.toString() ?? '';
+      _panGst.text = m['panGst']?.toString() ?? '';
+
       _avatarUrl =
           user['avatarUrl']?.toString() ??
           user['avatar_url']?.toString() ??
@@ -110,12 +151,27 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       'fullName': fullName,
       'company': _company.text.trim(),
       'firm': _company.text.trim(),
+      'firmName': _company.text.trim(),
       'phone': _phone.text.trim(),
+      'phoneNumber': _phone.text.trim(),
+      'mobile': _phone.text.trim(),
       'country': _country.text.trim(),
       'city': _city.text.trim(),
       'location': _city.text.trim(),
       'bio': _bio.text.trim(),
+      'thesis': _thesis.text.trim(),
+      'investorType': _investorType.text.trim(),
+      'linkedin': _linkedin.text.trim(),
+      'website': _website.text.trim(),
+      'panNumber': _panNumber.text.trim(),
+      'aadhaarNumber': _aadhaarNumber.text.trim(),
+      'panGst': _panGst.text.trim(),
+      if (_ticketMin.text.trim().isNotEmpty)
+        'ticketMin': double.tryParse(_ticketMin.text.trim()),
+      if (_ticketMax.text.trim().isNotEmpty)
+        'ticketMax': double.tryParse(_ticketMax.text.trim()),
       if (_avatarUrl != null) 'avatarUrl': _avatarUrl,
+      if (_avatarUrl != null) 'avatar': _avatarUrl,
     };
 
     final Result<Map<String, dynamic>> res;
@@ -239,11 +295,82 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
+                  controller: _investorType,
+                  label: 'Investor Type',
+                  hint: 'e.g., Angel Investor, VC',
+                ),
+                AppSizes.vGapMd,
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        controller: _ticketMin,
+                        label: 'Min Ticket Size',
+                        hint: 'e.g. 25000',
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: AppTextField(
+                        controller: _ticketMax,
+                        label: 'Max Ticket Size',
+                        hint: 'e.g. 250000',
+                        keyboardType: TextInputType.number,
+                      ),
+                    ),
+                  ],
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _thesis,
+                  label: 'Investment Thesis',
+                  hint: 'Describe your investment thesis',
+                  maxLines: 3,
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
                   controller: _bio,
                   label: 'Bio',
                   hint: 'Enter your bio',
                   maxLines: 3,
                 ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _linkedin,
+                  label: 'LinkedIn Profile',
+                  hint: 'LinkedIn URL',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _website,
+                  label: 'Website',
+                  hint: 'Enter website URL',
+                ),
+                AppSizes.vGapXl,
+                const Text(
+                  'KYC Documents',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _panNumber,
+                  label: 'PAN Number',
+                  hint: 'Enter your PAN number',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _aadhaarNumber,
+                  label: 'Aadhaar Number',
+                  hint: 'Enter your Aadhaar number',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _panGst,
+                  label: 'GST Number',
+                  hint: 'Enter GST number if applicable',
+                ),
+                AppSizes.vGapXl,
 
                 AppPrimaryButton(
                   label: 'Save',
@@ -257,9 +384,22 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
   }
 
   int _completion() {
-    final values = [_fullName.text, _company.text, _city.text, _bio.text];
+    final values = [
+      _fullName.text,
+      _company.text,
+      _city.text,
+      _bio.text,
+      _investorType.text,
+      _ticketMin.text,
+      _ticketMax.text,
+      _thesis.text,
+      _linkedin.text,
+      _website.text,
+      _panNumber.text,
+      _aadhaarNumber.text,
+    ];
     final filled = values.where((e) => e.trim().isNotEmpty).length;
-    return ((filled / 4) * 100).round();
+    return ((filled / values.length) * 100).round();
   }
 }
 

@@ -68,50 +68,67 @@ class Investor extends Equatable {
   );
 
   factory Investor.fromApiJson(Map<String, dynamic> json) {
-    final Map<String, dynamic>? profile =
+    final Map<String, dynamic> profile =
         (json['investorProfile'] ?? json['investor_profile']) != null
         ? Map<String, dynamic>.from(
             (json['investorProfile'] ?? json['investor_profile']) as Map,
           )
-        : null;
+        : json;
 
     final id = (json['id']?.toString() ?? '');
     final profileId =
-        (profile?['id']?.toString() ?? json['investorId']?.toString() ?? '');
+        (profile['id']?.toString() ?? json['investorId']?.toString() ?? '');
     final name =
         json['fullName']?.toString() ?? json['name']?.toString() ?? 'Investor';
-    final bio = json['bio']?.toString() ?? '';
-    final avatarUrl = json['avatarUrl'] as String?;
+    final bio = json['bio']?.toString() ?? json['thesis']?.toString() ?? '';
+    final avatarUrl =
+        json['avatarUrl'] as String? ?? profile['avatarUrl'] as String?;
 
-    final country = json['country'] as String?;
-    final city = json['city'] as String?;
+    final country = json['country'] as String? ?? profile['country'] as String?;
+    final city = json['city'] as String? ?? profile['city'] as String?;
     String location = 'N/A';
-    if (city != null && country != null) {
+    if (city != null &&
+        city.isNotEmpty &&
+        country != null &&
+        country.isNotEmpty) {
       location = '$city, $country';
-    } else if (city != null) {
+    } else if (city != null && city.isNotEmpty) {
       location = city;
-    } else if (country != null) {
+    } else if (country != null && country.isNotEmpty) {
       location = country;
     }
 
     final ticketMin =
-        (profile?['ticketMin'] as num?)?.toDouble() ??
+        (profile['ticketMin'] as num?)?.toDouble() ??
         (json['minInvestment'] as num?)?.toDouble() ??
         0.0;
     final ticketMax =
-        (profile?['ticketMax'] as num?)?.toDouble() ??
+        (profile['ticketMax'] as num?)?.toDouble() ??
         (json['maxInvestment'] as num?)?.toDouble() ??
         0.0;
     final company =
-        profile?['firm']?.toString() ?? json['company']?.toString() ?? '';
+        profile['firmName']?.toString() ??
+        profile['firm']?.toString() ??
+        json['company']?.toString() ??
+        '';
 
-    final focusAreasStr = profile?['focusAreas']?.toString() ?? '';
+    final focusAreasStr = profile['focusAreas']?.toString() ?? '';
     List<String> interestedIndustries = const [];
     if (focusAreasStr.isNotEmpty) {
       interestedIndustries = focusAreasStr
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
+          .toList();
+    } else if (profile['categories'] is List &&
+        (profile['categories'] as List).isNotEmpty) {
+      interestedIndustries = (profile['categories'] as List)
+          .map((e) => e.toString())
+          .toList();
+    } else if (profile['industries'] is List &&
+        (profile['industries'] as List).isNotEmpty) {
+      interestedIndustries = (profile['industries'] as List)
+          .map((e) => e.toString())
           .toList();
     } else if (json['interestedIndustries'] is List) {
       interestedIndustries = (json['interestedIndustries'] as List)
@@ -120,10 +137,9 @@ class Investor extends Equatable {
     }
 
     final role = json['role']?.toString() ?? '';
-    final focusAreasStrForType = profile?['focusAreas']?.toString() ?? '';
-    final investorType = focusAreasStrForType.trim().isNotEmpty
-        ? focusAreasStrForType
-        : 'All';
+    final investorType =
+        profile['investorType']?.toString() ??
+        (focusAreasStr.trim().isNotEmpty ? focusAreasStr : 'Angel Investor');
 
     final isVerified =
         json['isVerified'] as bool? ?? json['verified'] as bool? ?? false;
@@ -143,7 +159,7 @@ class Investor extends Equatable {
       avatarUrl: avatarUrl,
       bio: bio,
       partnerRole: role,
-      dealsCount: (profile?['deals'] as num?)?.toInt() ?? 0,
+      dealsCount: (profile['deals'] as num?)?.toInt() ?? 0,
       portfolioCount: 0,
       isVerified: isVerified,
       isFollowing: isFollowing,

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/mock/mock_data.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
@@ -61,13 +60,6 @@ class _CalendarPageState extends State<CalendarPage> {
   List<_CalEvent> _seedEvents() {
     final now = DateTime.now();
     return [
-      for (final m in MockData.meetings)
-        _CalEvent(
-          m.title,
-          m.startTime,
-          _CalKind.meeting,
-          subtitle: 'with ${m.withName}',
-        ),
       _CalEvent(
         'Submit fintech milestone',
         now.add(const Duration(days: 1, hours: 3)),

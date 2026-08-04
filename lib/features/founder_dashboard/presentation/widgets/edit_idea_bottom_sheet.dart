@@ -28,6 +28,8 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   late final TextEditingController _categoryController;
   late final TextEditingController _fundingController;
   late final TextEditingController _equityController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _teamSizeController;
 
   String? _stage;
   String? _localLogoPath;
@@ -62,6 +64,15 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     _equityController = TextEditingController(
       text: widget.startup.equityOffered.toStringAsFixed(0),
     );
+    // Parse team size if we can, otherwise default 1
+    final tsStr = widget.startup.tags
+        .where((t) => t.contains('Team'))
+        .firstOrNull;
+    _teamSizeController = TextEditingController(
+      text: tsStr != null ? tsStr.replaceAll(RegExp(r'[^0-9]'), '') : '1',
+    );
+    _phoneController =
+        TextEditingController(); // To be populated if passed (hack for now since Startup doesn't have it explicitly, but user can edit it)
     _stage = widget.startup.stage;
     _networkLogoUrl = widget.startup.logoUrl;
     _networkCoverUrl = widget.startup.coverUrl;
@@ -79,36 +90,6 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     _fundingController.dispose();
     _equityController.dispose();
     super.dispose();
-  }
-
-  Future<void> _pickLogo() async {
-    try {
-      final picked = await FilePicker.platform.pickFiles(type: FileType.image);
-      if (picked != null && picked.files.single.path != null) {
-        setState(() {
-          _localLogoPath = picked.files.single.path;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        context.showTopSnack('Failed to pick logo: $e', isError: true);
-      }
-    }
-  }
-
-  Future<void> _pickCover() async {
-    try {
-      final picked = await FilePicker.platform.pickFiles(type: FileType.image);
-      if (picked != null && picked.files.single.path != null) {
-        setState(() {
-          _localCoverPath = picked.files.single.path;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        context.showTopSnack('Failed to pick cover: $e', isError: true);
-      }
-    }
   }
 
   Future<void> _pickPitchDisk() async {
@@ -383,28 +364,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 20),
-                    _buildImagePickerItem(
-                      label: 'Logo',
-                      localPath: _localLogoPath,
-                      networkUrl: _networkLogoUrl,
-                      onPick: _pickLogo,
-                      onRemove: () => setState(() {
-                        _localLogoPath = null;
-                        _networkLogoUrl = null;
-                      }),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildImagePickerItem(
-                      label: 'Cover Image',
-                      localPath: _localCoverPath,
-                      networkUrl: _networkCoverUrl,
-                      onPick: _pickCover,
-                      onRemove: () => setState(() {
-                        _localCoverPath = null;
-                        _networkCoverUrl = null;
-                      }),
-                    ),
-                    const SizedBox(height: 12),
+
                     _buildDocPickerItem(
                       label: 'Pitch Deck',
                       localPath: _localPitchDiskPath,

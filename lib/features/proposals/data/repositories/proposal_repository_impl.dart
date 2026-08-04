@@ -16,7 +16,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
 
   @override
   Future<Result<Paginated<Proposal>>> getProposals(QueryParams params) {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     return _api.getEnvelope<Paginated<Proposal>>(
       ApiEndpoints.freelancerProposals,
@@ -32,7 +32,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
 
   @override
   Future<Result<Proposal>> getProposal(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     return _api.get<Proposal>(
       '${ApiEndpoints.freelancerProposals}/$id',
@@ -49,7 +49,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
     required int deliveryDays,
     List<String> attachments = const [],
   }) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final body = <String, dynamic>{
       'projectId': projectId,
@@ -75,7 +75,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
     required double bidAmount,
     int? deliveryDays,
   }) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     return _api.putEnvelope<Proposal>(
       ApiEndpoints.freelancerProposal(proposalId),
@@ -91,19 +91,19 @@ class ProposalRepositoryImpl implements ProposalRepository {
 
   @override
   Future<Result<bool>> withdraw(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.deleteAction(ApiEndpoints.freelancerProposalWithdraw(id));
   }
 
   @override
   Future<Result<bool>> deleteProposal(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.deleteAction(ApiEndpoints.freelancerProposal(id));
   }
 
   @override
   Future<Result<bool>> updateStatus(String id, String status) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final normalized = status.toLowerCase().trim();
     final path = switch (normalized) {
       'shortlisted' || 'shortlist' => ApiEndpoints.clientProposalShortlist(id),

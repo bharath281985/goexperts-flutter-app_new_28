@@ -541,6 +541,7 @@ class FreelancerHomePage extends StatelessWidget {
                 tagLabel: 'Lifetime stats',
                 tagColor: AppColors.info,
                 showIcon: false,
+                onTap: () => context.push(Routes.wallet),
               ),
             ),
             SizedBox(
@@ -552,6 +553,7 @@ class FreelancerHomePage extends StatelessWidget {
                 tagLabel: 'Ready to withdraw',
                 tagColor: AppColors.success,
                 showIcon: false,
+                onTap: () => context.push(Routes.wallet),
               ),
             ),
             SizedBox(
@@ -565,6 +567,7 @@ class FreelancerHomePage extends StatelessWidget {
                 tagLabel: '1 active now',
                 tagColor: AppColors.info,
                 showIcon: false,
+                onTap: () => context.push(Routes.freelancerProjects),
               ),
             ),
             SizedBox(
@@ -576,6 +579,7 @@ class FreelancerHomePage extends StatelessWidget {
                 tagLabel: 'In delivery',
                 tagColor: AppColors.warning,
                 showIcon: false,
+                onTap: () => context.push(Routes.freelancerProjects),
               ),
             ),
             SizedBox(
@@ -589,6 +593,7 @@ class FreelancerHomePage extends StatelessWidget {
                     : 'Active proposals',
                 tagColor: AppColors.subtleText,
                 showIcon: false,
+                onTap: () => context.push(Routes.freelancerProposals),
               ),
             ),
             SizedBox(
@@ -600,6 +605,7 @@ class FreelancerHomePage extends StatelessWidget {
                 tagLabel: 'None urgent',
                 tagColor: AppColors.success,
                 showIcon: false,
+                onTap: () => context.push(Routes.freelancerProjects),
               ),
             ),
             SizedBox(
@@ -613,6 +619,7 @@ class FreelancerHomePage extends StatelessWidget {
                     : 'Meetings scheduled',
                 tagColor: AppColors.subtleText,
                 showIcon: false,
+                onTap: () => context.push(Routes.meetings),
               ),
             ),
             SizedBox(
@@ -624,6 +631,7 @@ class FreelancerHomePage extends StatelessWidget {
                 tagLabel: '4 reviews',
                 tagColor: AppColors.success,
                 showIcon: false,
+                onTap: () => context.push(Routes.freelancerProfile),
               ),
             ),
           ],
@@ -936,83 +944,88 @@ class FreelancerHomePage extends StatelessWidget {
     Widget child, {
     String? actionLabel,
     VoidCallback? onAction,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryBlack.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryBlack,
-                        ),
-                      ),
-                      if (subtitle != null) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: AppColors.subtleText,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (actionLabel != null)
-                  InkWell(
-                    onTap: onAction,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlack.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          actionLabel,
+                          title,
                           style: const TextStyle(
-                            color: Color(0xFFE50A36),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primaryBlack,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        const Icon(
-                          Icons.arrow_outward,
-                          size: 14,
-                          color: Color(0xFFE50A36),
-                        ),
+                        if (subtitle != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppColors.subtleText,
+                            ),
+                          ),
+                        ],
                       ],
                     ),
                   ),
-              ],
+                  if (actionLabel != null)
+                    InkWell(
+                      onTap: onAction,
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            actionLabel,
+                            style: const TextStyle(
+                              color: Color(0xFFE50A36),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.arrow_outward,
+                            size: 14,
+                            color: Color(0xFFE50A36),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
             ),
-          ),
-          child,
-        ],
+            child,
+          ],
+        ),
       ),
     );
   }
@@ -1028,8 +1041,6 @@ class FreelancerHomePage extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // No Icon shown in the user's screenshot for messages/meetings empty states, but we can keep it mapped minimal, or drop the icon.
-            // In the screenshot it's just text. Let's just use text for 100% fidelity.
             Text(
               message,
               style: const TextStyle(color: AppColors.subtleText, fontSize: 12),
@@ -1063,12 +1074,14 @@ class FreelancerHomePage extends StatelessWidget {
                   )
                   .toList(),
             ),
+      onTap: () => context.push(Routes.meetings),
     );
 
     final messages = _buildActivityCard(
       'Messages',
       null, // No subtitle
       _buildEmptyContent('No messages yet.', Icons.chat_bubble_outline),
+      onTap: () => context.push(Routes.messages),
     );
 
     return Column(

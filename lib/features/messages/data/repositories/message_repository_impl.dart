@@ -97,7 +97,7 @@ class MessageRepositoryImpl implements MessageRepository {
   Future<Result<Paginated<Conversation>>> getConversations(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = (role == UserRole.freelancer)
@@ -146,7 +146,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<List<ChatMessage>>> getMessages(String conversationId) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = (role == UserRole.client)
@@ -185,7 +185,7 @@ class MessageRepositoryImpl implements MessageRepository {
     String text, {
     String? attachmentUrl,
   }) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = (role == UserRole.freelancer)
@@ -234,7 +234,7 @@ class MessageRepositoryImpl implements MessageRepository {
     String? text,
     String? projectId,
   }) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = (role == UserRole.freelancer)
@@ -282,7 +282,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<String>> uploadChatAttachment(String filePath) async {
-    if (AppConfig.useMockData || _api == null || _uploader == null) {
+    if (_api == null || _uploader == null) {
       return _apiNotConfigured();
     }
     final file = File(filePath);
@@ -314,7 +314,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<bool>> markMessageRead(String messageId) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.client
         ? ApiEndpoints.clientMessageRead(messageId)
@@ -328,7 +328,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<bool>> markConversationRead(String conversationId) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.client
         ? '${ApiEndpoints.clientMessagesConversations}/$conversationId/read-all'
@@ -344,7 +344,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<bool>> markConversationUnread(String conversationId) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.client
         ? '${ApiEndpoints.clientMessagesConversations}/$conversationId/unread'
@@ -360,7 +360,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<bool>> deleteMessage(String messageId) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.client
         ? '/client/messages/$messageId'
@@ -376,7 +376,7 @@ class MessageRepositoryImpl implements MessageRepository {
 
   @override
   Future<Result<bool>> deleteConversation(String conversationId) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.client
         ? '${ApiEndpoints.clientMessagesConversations}/$conversationId'

@@ -15,7 +15,7 @@ class FounderRepositoryImpl implements FounderRepository {
 
   @override
   Future<Result<Paginated<Founder>>> getFounders(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.getEnvelope<Paginated<Founder>>(
       '/founders',
       query: params.toApiQuery(),
@@ -30,7 +30,7 @@ class FounderRepositoryImpl implements FounderRepository {
 
   @override
   Future<Result<Founder>> getFounder(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.get<Founder>(
       '/founders/$id',
       parser: (raw) => _founderFromJson(Map<String, dynamic>.from(raw as Map)),
@@ -41,7 +41,7 @@ class FounderRepositoryImpl implements FounderRepository {
   Future<Result<Paginated<InvestorRequest>>> getInvestorRequests(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.getEnvelope<Paginated<InvestorRequest>>(
       ApiEndpoints.founderInvestorRequests,
       query: params.toApiQuery(),
@@ -56,7 +56,7 @@ class FounderRepositoryImpl implements FounderRepository {
 
   @override
   Future<Result<bool>> respondToRequest(String id, String status) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final normalized = status.toLowerCase();
     if (normalized == 'accepted' || normalized == 'accept') {
       return _api.patchAction(ApiEndpoints.founderInvestorRequestAccept(id));
@@ -75,7 +75,7 @@ class FounderRepositoryImpl implements FounderRepository {
 
   @override
   Future<Result<bool>> toggleFollow(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(
       '${ApiEndpoints.favorites}/toggle',
       body: {'entityType': 'founder', 'entityId': id},

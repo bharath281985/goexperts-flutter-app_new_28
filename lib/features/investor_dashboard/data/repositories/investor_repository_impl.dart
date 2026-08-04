@@ -20,7 +20,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<Paginated<Investor>>> getInvestors(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.founder
         ? ApiEndpoints.founderInvestors
@@ -39,7 +39,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<Investor>> getInvestor(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.founder
         ? ApiEndpoints.founderInvestor(id)
@@ -52,7 +52,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<Paginated<Deal>>> getDeals(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.getEnvelope<Paginated<Deal>>(
       ApiEndpoints.investorInvestments,
       query: params.toApiQuery(),
@@ -136,7 +136,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
   Future<Result<Paginated<PortfolioItem>>> getPortfolio(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.getEnvelope<Paginated<PortfolioItem>>(
       ApiEndpoints.investorPortfolio,
       query: params.toApiQuery(),
@@ -162,7 +162,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<bool>> toggleFollow(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postAction(
       '${ApiEndpoints.favorites}/toggle',
       body: {'entityType': 'investor', 'entityId': id},
@@ -171,7 +171,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<bool>> toggleSave(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final post = await _api.postAction(
       ApiEndpoints.investorWatchlist,
       body: {'startupId': id},

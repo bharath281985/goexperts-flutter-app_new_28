@@ -30,6 +30,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   final _experience = TextEditingController();
   final _education = TextEditingController();
   final _languages = TextEditingController();
+  final _fullName = TextEditingController();
+  final _phone = TextEditingController();
+  final _title = TextEditingController();
+  final _city = TextEditingController();
+  final _state = TextEditingController();
+  final _country = TextEditingController();
+  final _github = TextEditingController();
+  final _portfolio = TextEditingController();
+  final _linkedin = TextEditingController();
+  final _website = TextEditingController();
+  final _panNumber = TextEditingController();
+  final _aadhaarNumber = TextEditingController();
 
   // Availability options
   static const _availabilityOptions = [
@@ -61,6 +73,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     _experience.dispose();
     _education.dispose();
     _languages.dispose();
+    _fullName.dispose();
+    _phone.dispose();
+    _title.dispose();
+    _city.dispose();
+    _state.dispose();
+    _country.dispose();
+    _github.dispose();
+    _portfolio.dispose();
+    _linkedin.dispose();
+    _website.dispose();
+    _panNumber.dispose();
+    _aadhaarNumber.dispose();
     super.dispose();
   }
 
@@ -76,9 +100,23 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
           ? p.hourlyRate.toStringAsFixed(0)
           : '';
       _skillsRaw.text = p.skills.join(', ');
-      _experience.text = p.experience.join(', ');
-      _education.text = p.education.join(', ');
+      _experience.text = p.experience;
+      _education.text = p.education;
       _languages.text = p.languages.join(', ');
+
+      _fullName.text = p.fullName;
+      _phone.text = p.phone;
+      _title.text = p.title;
+      _city.text = p.city;
+      _state.text = p.state;
+      _country.text = p.country;
+      _github.text = p.githubUrl;
+      _portfolio.text = p.portfolioUrl;
+      _linkedin.text = p.linkedin;
+      _website.text = p.website;
+      _panNumber.text = p.panNumber;
+      _aadhaarNumber.text = p.aadhaarNumber;
+
       if (_availabilityOptions.contains(p.availability)) {
         _availability = p.availability;
       }
@@ -91,28 +129,38 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
     final payload = {
       'bio': _bio.text.trim(),
+      'overview': _bio.text.trim(),
       'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0,
       'skills': _skillsRaw.text
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
-      'experience': _experience.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
-      'education': _education.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
+
+      'experience': _experience.text.trim(),
+      'education': _education.text.trim(),
       'languages': _languages.text
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
+      'status': _availability,
       'availability': _availability,
+      'fullName': _fullName.text.trim(),
+      'name': _fullName.text.trim(),
+      'phone': _phone.text.trim(),
+      'mobile': _phone.text.trim(),
+      'title': _title.text.trim(),
+      'professionalTitle': _title.text.trim(),
+      'city': _city.text.trim(),
+      'state': _state.text.trim(),
+      'country': _country.text.trim(),
+      'githubUrl': _github.text.trim(),
+      'portfolioUrl': _portfolio.text.trim(),
+      'linkedin': _linkedin.text.trim(),
+      'website': _website.text.trim(),
+      'panNumber': _panNumber.text.trim(),
+      'aadhaarNumber': _aadhaarNumber.text.trim(),
     };
 
     final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
@@ -168,6 +216,11 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       _experience.text.trim().isNotEmpty,
       _education.text.trim().isNotEmpty,
       _languages.text.trim().isNotEmpty,
+      _fullName.text.trim().isNotEmpty,
+      _title.text.trim().isNotEmpty,
+      _city.text.trim().isNotEmpty,
+      _panNumber.text.trim().isNotEmpty,
+      _aadhaarNumber.text.trim().isNotEmpty,
       (_localAvatarPath ?? _profile?.avatarUrl ?? '').isNotEmpty,
       (_profile?.resumeUrl ?? '').isNotEmpty,
     ];
@@ -238,6 +291,56 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                           ),
                         ),
                       ),
+                  ],
+                ),
+                AppSizes.vGapLg,
+
+                _SectionLabel('About You'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _fullName,
+                  label: 'Full Name',
+                  hint: 'Enter your full name',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _title,
+                  label: 'Professional Title',
+                  hint: 'e.g. Senior Flutter Developer',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _phone,
+                  label: 'Phone Number',
+                  hint: 'Enter your phone number',
+                ),
+                AppSizes.vGapLg,
+
+                _SectionLabel('Location'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _city,
+                  label: 'City',
+                  hint: 'e.g. Hyderabad',
+                ),
+                AppSizes.vGapMd,
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppTextField(
+                        controller: _state,
+                        label: 'State',
+                        hint: 'e.g. Telangana',
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: AppTextField(
+                        controller: _country,
+                        label: 'Country',
+                        hint: 'e.g. India',
+                      ),
+                    ),
                   ],
                 ),
                 AppSizes.vGapLg,
@@ -450,6 +553,42 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       ),
                     ],
                   ),
+                ),
+                AppSizes.vGapLg,
+                _SectionLabel('Social & Links'),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _github,
+                  label: 'GitHub URL',
+                  hint: 'https://github.com/...',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _portfolio,
+                  label: 'Portfolio URL',
+                  hint: 'https://...',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _linkedin,
+                  label: 'LinkedIn Profile',
+                  hint: 'LinkedIn URL',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _website,
+                  label: 'Website',
+                  hint: 'Personal website URL',
+                ),
+                AppSizes.vGapLg,
+
+                _SectionLabel('KYC Documents'),
+                AppSizes.vGapSm,
+                AppTextField(controller: _panNumber, label: 'PAN Number'),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _aadhaarNumber,
+                  label: 'Aadhaar Number',
                 ),
                 AppSizes.vGapXl,
 

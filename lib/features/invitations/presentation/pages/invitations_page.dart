@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/mock/mock_data.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_avatar.dart';
@@ -22,9 +21,6 @@ class InvitationsPage extends StatefulWidget {
 class _InvitationsPageState extends State<InvitationsPage> {
   static const _filters = ['All', 'Pending', 'Accepted', 'Rejected', 'Expired'];
   String _filter = 'All';
-
-  bool _matches(AppInvitation i) =>
-      _filter == 'All' || i.status.label == _filter;
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +63,11 @@ class _InvitationsPageState extends State<InvitationsPage> {
               child: TabBarView(
                 children: [
                   _list(
-                    MockData.invitationsSent.where(_matches).toList(),
+                    const [], // Empty for now as mock data is removed
                     sent: true,
                   ),
                   _list(
-                    MockData.invitationsReceived.where(_matches).toList(),
+                    const [], // Empty for now as mock data is removed
                     sent: false,
                   ),
                 ],
@@ -83,7 +79,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
     );
   }
 
-  Widget _list(List<AppInvitation> items, {required bool sent}) {
+  Widget _list(List<dynamic> items, {required bool sent}) {
     if (items.isEmpty) {
       return const AppEmptyState(
         title: 'No invitations',
@@ -98,7 +94,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
     );
   }
 
-  Widget _tile(AppInvitation inv, {required bool sent}) {
+  Widget _tile(dynamic inv, {required bool sent}) {
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

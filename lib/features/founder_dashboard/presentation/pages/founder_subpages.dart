@@ -4,7 +4,6 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/mock/mock_data.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -14,7 +13,6 @@ class FounderPitchDeckEditorPage extends StatelessWidget {
   const FounderPitchDeckEditorPage({super.key});
   @override
   Widget build(BuildContext context) {
-    final deck = MockData.pitchDecks['s1']!;
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Pitch Deck Editor'),
@@ -33,55 +31,7 @@ class FounderPitchDeckEditorPage extends StatelessWidget {
       body: ReorderableListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         onReorderItem: (a, b) => context.showSnack('Reordered slides'),
-        children: [
-          for (var i = 0; i < deck.slides.length; i++)
-            AppCard(
-              key: ValueKey('slide_$i'),
-              margin: const EdgeInsets.only(bottom: AppSizes.sm),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                    child: Text(
-                      '${i + 1}',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                  AppSizes.hGapMd,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          deck.slides[i].title,
-                          style: context.text.titleSmall,
-                        ),
-                        Text(
-                          deck.slides[i].subtitle,
-                          style: context.text.labelSmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => context.showSnack('Edit slide'),
-                    icon: const Icon(Icons.edit_outlined, size: 18),
-                  ),
-                  const Icon(
-                    Icons.drag_handle_rounded,
-                    color: AppColors.mutedText,
-                  ),
-                ],
-              ),
-            ),
-        ],
+        children: [],
       ),
     );
   }
@@ -91,7 +41,6 @@ class FounderBusinessPlanEditorPage extends StatelessWidget {
   const FounderBusinessPlanEditorPage({super.key});
   @override
   Widget build(BuildContext context) {
-    final plan = MockData.businessPlans['s1']!;
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Business Plan Editor'),
@@ -109,38 +58,7 @@ class FounderBusinessPlanEditorPage extends StatelessWidget {
       ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
-        children: [
-          for (final s in plan.sections)
-            AppCard(
-              margin: const EdgeInsets.only(bottom: AppSizes.sm),
-              onTap: () => context.showSnack('Edit ${s.title}'),
-              child: Row(
-                children: [
-                  const Icon(Icons.subject_rounded, color: AppColors.primary),
-                  AppSizes.hGapMd,
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(s.title, style: context.text.titleSmall),
-                        Text(
-                          s.content,
-                          style: context.text.labelSmall,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(
-                    Icons.edit_outlined,
-                    size: 18,
-                    color: AppColors.mutedText,
-                  ),
-                ],
-              ),
-            ),
-        ],
+        children: [],
       ),
     );
   }

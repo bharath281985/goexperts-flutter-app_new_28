@@ -1,7 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../utils/enums.dart';
-import '../utils/paginated.dart';
 import '../../features/freelancer_dashboard/domain/entities/freelancer.dart';
 import '../../features/freelancer_dashboard/domain/repositories/freelancer_repository.dart';
 import '../../features/investor_dashboard/domain/entities/investor.dart';
@@ -28,6 +27,7 @@ class DashboardState extends Equatable {
     this.startups = const [],
     this.investors = const [],
     this.wallet,
+    this.walletBalance = 0.0,
     this.profileCompletionPercent = 0,
     this.activeProjectsCount = 0,
     this.pendingProposalsCount = 0,
@@ -36,6 +36,7 @@ class DashboardState extends Equatable {
     this.topSkills = const [],
     this.earningsChart = const [],
     this.unreadNotificationsCount = 0,
+    this.upcomingMeetingsCount = 0,
     this.unreadMessagesCount = 0,
     this.investorData = const {},
   });
@@ -47,6 +48,7 @@ class DashboardState extends Equatable {
   final List<Startup> startups;
   final List<Investor> investors;
   final WalletSummary? wallet;
+  final double walletBalance;
   final int profileCompletionPercent;
   final int activeProjectsCount;
   final int pendingProposalsCount;
@@ -55,6 +57,7 @@ class DashboardState extends Equatable {
   final List<String> topSkills;
   final List<double> earningsChart;
   final int unreadNotificationsCount;
+  final int upcomingMeetingsCount;
   final int unreadMessagesCount;
   final Map<String, dynamic> investorData;
 
@@ -66,6 +69,7 @@ class DashboardState extends Equatable {
     List<Startup>? startups,
     List<Investor>? investors,
     WalletSummary? wallet,
+    double? walletBalance,
     int? profileCompletionPercent,
     int? activeProjectsCount,
     int? pendingProposalsCount,
@@ -74,6 +78,7 @@ class DashboardState extends Equatable {
     List<String>? topSkills,
     List<double>? earningsChart,
     int? unreadNotificationsCount,
+    int? upcomingMeetingsCount,
     int? unreadMessagesCount,
     Map<String, dynamic>? investorData,
   }) {
@@ -85,6 +90,7 @@ class DashboardState extends Equatable {
       startups: startups ?? this.startups,
       investors: investors ?? this.investors,
       wallet: wallet ?? this.wallet,
+      walletBalance: walletBalance ?? this.walletBalance,
       profileCompletionPercent:
           profileCompletionPercent ?? this.profileCompletionPercent,
       activeProjectsCount: activeProjectsCount ?? this.activeProjectsCount,
@@ -96,6 +102,8 @@ class DashboardState extends Equatable {
       earningsChart: earningsChart ?? this.earningsChart,
       unreadNotificationsCount:
           unreadNotificationsCount ?? this.unreadNotificationsCount,
+      upcomingMeetingsCount:
+          upcomingMeetingsCount ?? this.upcomingMeetingsCount,
       unreadMessagesCount: unreadMessagesCount ?? this.unreadMessagesCount,
       investorData: investorData ?? this.investorData,
     );
@@ -144,6 +152,7 @@ class DashboardState extends Equatable {
     startups,
     investors,
     wallet,
+    walletBalance,
     profileCompletionPercent,
     activeProjectsCount,
     pendingProposalsCount,
@@ -151,6 +160,7 @@ class DashboardState extends Equatable {
     fundingGoal,
     topSkills,
     earningsChart,
+    upcomingMeetingsCount,
     unreadNotificationsCount,
     unreadMessagesCount,
     investorData,
@@ -181,45 +191,10 @@ class DashboardCubit extends Cubit<DashboardState> {
   final WalletRepository walletRepository;
   final ApiClientHelper apiClient;
 
-  static const _q = QueryParams(pageSize: 5);
-
   Future<void> load() async {
     emit(state.copyWith(status: ViewStatus.loading));
     try {
-      final meetings = await meetingRepository.getMeetings(_q);
-      final wallet = await walletRepository.getSummary();
-
-      var next = state.copyWith(
-        status: ViewStatus.success,
-        meetings: meetings.valueOrNull?.items ?? const [],
-        wallet: wallet.valueOrNull,
-      );
-
-      switch (role) {
-        case UserRole.freelancer:
-          final projects = await projectRepository.getProjects(_q);
-          next = next.copyWith(
-            projects: projects.valueOrNull?.items ?? const [],
-          );
-          break;
-        case UserRole.client:
-          final freelancers = await freelancerRepository.getFreelancers(_q);
-          final projects = await projectRepository.getProjects(_q);
-          next = next.copyWith(
-            freelancers: freelancers.valueOrNull?.items ?? const [],
-            projects: projects.valueOrNull?.items ?? const [],
-          );
-          break;
-        case UserRole.investor:
-          // Fully relying on the bottom /investor/dashboard API to populate state.
-          break;
-        case UserRole.founder:
-          final investors = await investorRepository.getInvestors(_q);
-          next = next.copyWith(
-            investors: investors.valueOrNull?.items ?? const [],
-          );
-          break;
-      }
+      var next = state.copyWith(status: ViewStatus.success);
 
       // Freelancer dashboard cards/charts: GET /freelancer/dashboard
       if (role == UserRole.freelancer) {
@@ -246,8 +221,12 @@ class DashboardCubit extends Cubit<DashboardState> {
                   ?.map((e) => (e as num?)?.toDouble() ?? 0)
                   .toList() ??
               const <double>[];
+          final walletBal = (data['walletBalance'] as num?)?.toDouble() ?? 0;
+          final meetings = (data['upcomingMeetings'] as num?)?.toInt() ?? 0;
           next = next.copyWith(
             profileCompletionPercent: completion,
+            walletBalance: walletBal,
+            upcomingMeetingsCount: meetings,
             pendingProposalsCount: pendingProposals,
             activeProjectsCount: activeProjects,
             monthlyEarnings: monthlyEarnings,
@@ -275,8 +254,12 @@ class DashboardCubit extends Cubit<DashboardState> {
                   ?.map((e) => (e as num?)?.toDouble() ?? 0)
                   .toList() ??
               const <double>[];
+          final walletBal = (data['walletBalance'] as num?)?.toDouble() ?? 0;
+          final meetings = (data['upcomingMeetings'] as num?)?.toInt() ?? 0;
           next = next.copyWith(
             activeProjectsCount: activeProjects,
+            walletBalance: walletBal,
+            upcomingMeetingsCount: meetings,
             pendingProposalsCount: applications,
             profileCompletionPercent: completion,
             monthlyEarnings: totalSpend,
@@ -353,8 +336,11 @@ class DashboardCubit extends Cubit<DashboardState> {
             );
           }).toList();
 
+          final walletBal =
+              (summaryData['walletBalance'] as num?)?.toDouble() ?? 0;
           next = next.copyWith(
             monthlyEarnings: portfolioValue,
+            walletBalance: walletBal,
             activeProjectsCount: activeInvestments,
             pendingProposalsCount: pendingInvestments,
             profileCompletionPercent: profileCompletion,
@@ -398,8 +384,11 @@ class DashboardCubit extends Cubit<DashboardState> {
             }).toList();
           }
 
+          final walletBal = (data['walletBalance'] as num?)?.toDouble() ?? 0;
           next = next.copyWith(
             activeProjectsCount: investorInterests,
+            walletBalance: walletBal,
+            upcomingMeetingsCount: meetings,
             pendingProposalsCount: pitchViews,
             profileCompletionPercent: startupViews,
             monthlyEarnings: raised,
@@ -413,17 +402,6 @@ class DashboardCubit extends Cubit<DashboardState> {
           );
         });
       }
-
-      final conversations = await messageRepository.getConversations(
-        const QueryParams(page: 1, pageSize: 50),
-      );
-      conversations.fold((_) {}, (page) {
-        final unreadMessages = page.items.fold<int>(
-          0,
-          (total, conversation) => total + conversation.unreadCount,
-        );
-        next = next.copyWith(unreadMessagesCount: unreadMessages);
-      });
 
       emit(next);
     } catch (_) {

@@ -20,7 +20,7 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Result<WalletSummary>> getSummary() async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = role == UserRole.freelancer
@@ -53,7 +53,7 @@ class WalletRepositoryImpl implements WalletRepository {
   Future<Result<Paginated<WalletTransaction>>> getTransactions(
     QueryParams params,
   ) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = role == UserRole.freelancer
@@ -81,7 +81,7 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Result<Paginated<Invoice>>> getInvoices(QueryParams params) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     final path = role == UserRole.freelancer
@@ -107,7 +107,7 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Result<WalletTransaction>> getTransaction(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return const Err(
       NotFoundFailure('Transaction detail API pending role prefix.'),
     );
@@ -115,7 +115,7 @@ class WalletRepositoryImpl implements WalletRepository {
 
   @override
   Future<Result<Invoice>> getInvoice(String id) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
     if (role == UserRole.freelancer) {
@@ -144,7 +144,7 @@ class WalletRepositoryImpl implements WalletRepository {
     Map<String, dynamic>? bankDetails,
     Map<String, dynamic>? upiDetails,
   }) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     final role = await _role();
     final path = role == UserRole.freelancer
         ? ApiEndpoints.freelancerWalletWithdraw
@@ -175,7 +175,7 @@ class WalletRepositoryImpl implements WalletRepository {
     required String currency,
     required String purpose,
   }) async {
-    if (AppConfig.useMockData || _api == null) return _apiNotConfigured();
+    if (_api == null) return _apiNotConfigured();
     return _api.postEnvelopeAcceptingHttpSuccess<String>(
       ApiEndpoints.clientPaymentsInitiate,
       body: {

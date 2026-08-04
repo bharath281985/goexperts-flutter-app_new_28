@@ -18,6 +18,8 @@ class AppUser extends Equatable {
     this.headline,
     this.location,
     this.profileCompletion = 0,
+    this.redirectTo,
+    this.serverHasSubscription,
   });
 
   final String id;
@@ -31,11 +33,17 @@ class AppUser extends Equatable {
   final bool isProfileComplete;
   final String? subscriptionPlan;
 
-  /// Backend gate: `active` | `expired` | `none` (optional until login/me returns it).
+  /// Backend gate: `active` | `expired` | `none`.
   final String? subscriptionStatus;
   final String? headline;
   final String? location;
   final int profileCompletion;
+
+  /// Explicit redirect path from server (e.g. "/founder/dashboard").
+  final String? redirectTo;
+
+  /// `hasSubscription` / `isSubscribed` flag as returned directly by the API.
+  final bool? serverHasSubscription;
 
   AppUser copyWith({
     String? fullName,
@@ -50,6 +58,8 @@ class AppUser extends Equatable {
     int? profileCompletion,
     String? phone,
     String? countryCode,
+    String? redirectTo,
+    bool? serverHasSubscription,
   }) {
     return AppUser(
       id: id,
@@ -66,6 +76,9 @@ class AppUser extends Equatable {
       headline: headline ?? this.headline,
       location: location ?? this.location,
       profileCompletion: profileCompletion ?? this.profileCompletion,
+      redirectTo: redirectTo ?? this.redirectTo,
+      serverHasSubscription:
+          serverHasSubscription ?? this.serverHasSubscription,
     );
   }
 
@@ -85,10 +98,22 @@ class AppUser extends Equatable {
   }
 
   factory AppUser.fromApiJson(Map<String, dynamic> json) {
-    String? str(String camel, String snake) =>
-        json[camel] as String? ?? json[snake] as String?;
-    bool flag(String camel, String snake) =>
-        json[camel] as bool? ?? json[snake] as bool? ?? false;
+    // Safe string reader: returns null for falsy non-string values (bool false, 0, etc.)
+    String? str(String camel, String snake) {
+      final v = json[camel] ?? json[snake];
+      if (v == null || v == false || v == 0) return null;
+      if (v is String) return v.isEmpty ? null : v;
+      return v.toString();
+    }
+
+    // Safe bool reader: handles bool, int, and string representations
+    bool flag(String camel, String snake) {
+      final v = json[camel] ?? json[snake];
+      if (v is bool) return v;
+      if (v is int) return v != 0;
+      if (v is String) return v == 'true' || v == '1';
+      return false;
+    }
 
     final profileCompletion =
         json['profileCompletion'] as int? ??
@@ -105,6 +130,12 @@ class AppUser extends Equatable {
     final joinedLocation = locationParts.isEmpty
         ? null
         : locationParts.join(', ');
+
+    // hasSubscription / isSubscribed from the API response.
+    final serverHasSubscription =
+        json['hasSubscription'] as bool? ??
+        json['isSubscribed'] as bool? ??
+        json['has_subscription'] as bool?;
 
     return AppUser(
       id: str('id', 'id') ?? '',
@@ -129,6 +160,8 @@ class AppUser extends Equatable {
       subscriptionStatus: str('subscriptionStatus', 'subscription_status'),
       headline: str('headline', 'headline') ?? str('bio', 'bio'),
       location: str('location', 'location') ?? joinedLocation,
+      redirectTo: str('redirectTo', 'redirect_to'),
+      serverHasSubscription: serverHasSubscription,
     );
   }
 
@@ -147,6 +180,9 @@ class AppUser extends Equatable {
     'headline': headline,
     'location': location,
     'profile_completion': profileCompletion,
+    if (redirectTo != null) 'redirect_to': redirectTo,
+    if (serverHasSubscription != null)
+      'has_subscription': serverHasSubscription,
   };
 
   @override
