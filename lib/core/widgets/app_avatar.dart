@@ -1,11 +1,11 @@
 import 'dart:typed_data';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../utils/formatters.dart';
+import 'custom_cached_image.dart';
 
 /// Avatar that renders a network image or gracefully falls back to initials.
 class AppAvatar extends StatelessWidget {
@@ -67,11 +67,11 @@ class AppAvatar extends StatelessWidget {
                     fit: BoxFit.cover,
                     placeholderBuilder: (_) => _initials(seedColor),
                   )
-                : CachedNetworkImage(
+                : CustomCachedImage(
                     imageUrl: resolvedUrl,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) => _initials(seedColor),
-                    errorWidget: (_, __, ___) => _initials(seedColor),
+                    placeholder: _initials(seedColor),
+                    errorWidget: _initials(seedColor),
                   )
           : _initials(seedColor),
     );

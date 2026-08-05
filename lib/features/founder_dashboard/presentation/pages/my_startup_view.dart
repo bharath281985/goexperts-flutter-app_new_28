@@ -9,6 +9,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../widgets/edit_idea_bottom_sheet.dart';
@@ -246,7 +247,7 @@ class _MyStartupViewState extends State<MyStartupView> {
           fit: StackFit.expand,
           children: [
             if (coverUrl != null && coverUrl.isNotEmpty)
-              Image.network(coverUrl, fit: BoxFit.cover)
+              CustomCachedImage(imageUrl: coverUrl, fit: BoxFit.cover)
             else
               Container(
                 color: AppColors.primary.withValues(alpha: 0.1),

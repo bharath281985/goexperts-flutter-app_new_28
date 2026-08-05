@@ -10,6 +10,7 @@ import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_action_sheet.dart';
 import '../../../../core/widgets/app_avatar.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../domain/entities/conversation.dart';
 import '../../domain/repositories/message_repository.dart';
 import '../bloc/chat_cubit.dart';
@@ -420,12 +421,12 @@ class _AttachmentPreview extends StatelessWidget {
     if (type == MessageType.image) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(8),
-        child: Image.network(
-          url,
+        child: CustomCachedImage(
+          imageUrl: url,
           width: 180,
           height: 140,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _fileChip(context, label),
+          errorWidget: _fileChip(context, label),
         ),
       );
     }

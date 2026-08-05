@@ -27,6 +27,7 @@ import '../../../../core/widgets/app_file_upload.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/services/google_places_service.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -4272,10 +4273,10 @@ class _SignupImageUploadPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = _signupIsNetworkSource(source)
-        ? Image.network(
-            source,
+        ? CustomCachedImage(
+            imageUrl: source,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _fallback(context),
+            errorWidget: _fallback(context),
           )
         : Image.file(
             File(source),
@@ -4999,7 +5000,13 @@ class _PortfolioUploadsStep extends StatelessWidget {
                 label: 'Status',
                 hint: 'Select status',
                 value: status,
-                items: const ['Draft', 'Published', 'Archived'],
+                items: const [
+                  'Published',
+                  'Featured',
+                  'Case Study',
+                  'Draft',
+                  'Archived',
+                ],
                 itemLabel: (item) => item,
                 onChanged: onStatusChanged,
               ),

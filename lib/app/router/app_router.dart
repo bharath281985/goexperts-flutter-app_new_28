@@ -36,6 +36,7 @@ import '../../features/invitations/presentation/pages/invitations_page.dart';
 import '../../features/documents/presentation/pages/document_viewer_page.dart';
 import '../../features/meetings/presentation/pages/calendar_page.dart';
 import '../../core/dashboard/analytics_page.dart';
+import '../../features/freelancer_dashboard/presentation/pages/freelancer_credentials_pages.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_subpages.dart';
 import '../../features/freelancer_dashboard/domain/entities/portfolio_item.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_edit_profile_page.dart';
@@ -543,7 +544,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.freelancerCertificates,
-        builder: (_, __) => const FreelancerCertificatesPage(),
+        builder: (_, __) => const FreelancerCertificatesApiPage(),
       ),
       GoRoute(
         path: Routes.freelancerSkills,
@@ -555,7 +556,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.freelancerEducation,
-        builder: (_, __) => const FreelancerEducationPage(),
+        builder: (_, __) => const FreelancerEducationApiPage(),
       ),
       GoRoute(
         path: Routes.freelancerWithdrawals,

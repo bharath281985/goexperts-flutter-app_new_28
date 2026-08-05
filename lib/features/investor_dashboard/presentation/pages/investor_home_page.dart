@@ -15,6 +15,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 
 class InvestorHomePage extends StatelessWidget {
@@ -140,7 +141,6 @@ class InvestorHomePage extends StatelessWidget {
   }
 
   Widget _buildTopHeader(BuildContext context, DashboardState state) {
-    final name = state.investorName;
     final pending = state.investorPendingDeals;
     final meetingsCount = state.upcomingMeetingsCount.toString();
     final dealsClosed = state.investorDealsClosed;
@@ -630,8 +630,9 @@ class InvestorHomePage extends StatelessWidget {
   }
 
   Widget _buildGridCards(BuildContext context, DashboardState state) {
-    final portfolioValue =
-        '${Formatters.compactCurrency(state.investorDeployedRaw)}';
+    final portfolioValue = Formatters.compactCurrency(
+      state.investorDeployedRaw,
+    );
     final balance = state.investorWalletBalance;
 
     final totalInvestments = state.investorTotalInvestments;
@@ -875,14 +876,20 @@ class InvestorHomePage extends StatelessWidget {
                 ),
                 child: Row(
                   children: [
-                    CircleAvatar(
-                      backgroundImage: msg['avatar'] != null
-                          ? NetworkImage(msg['avatar'])
-                          : null,
-                      radius: 16,
-                      child: msg['avatar'] == null
-                          ? const Icon(Icons.person, size: 16)
-                          : null,
+                    ClipOval(
+                      child: SizedBox(
+                        width: 32,
+                        height: 32,
+                        child: msg['avatar'] != null
+                            ? CustomCachedImage(
+                                imageUrl: msg['avatar'],
+                                fit: BoxFit.cover,
+                              )
+                            : const ColoredBox(
+                                color: AppColors.background,
+                                child: Icon(Icons.person, size: 16),
+                              ),
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

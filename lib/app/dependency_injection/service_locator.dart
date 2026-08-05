@@ -30,10 +30,12 @@ import '../../features/proposals/data/repositories/proposal_repository_impl.dart
 import '../../features/proposals/domain/repositories/proposal_repository.dart';
 import '../../features/freelancer_dashboard/data/repositories/freelancer_repository_impl.dart';
 import '../../features/freelancer_dashboard/data/repositories/freelancer_profile_repository_impl.dart';
+import '../../features/freelancer_dashboard/data/repositories/freelancer_credentials_repository_impl.dart';
 import '../../features/freelancer_dashboard/data/repositories/freelancer_task_repository_impl.dart';
 import '../../features/freelancer_dashboard/data/repositories/portfolio_repository_impl.dart';
 import '../../features/freelancer_dashboard/domain/repositories/freelancer_repository.dart';
 import '../../features/freelancer_dashboard/domain/repositories/freelancer_profile_repository.dart';
+import '../../features/freelancer_dashboard/domain/repositories/freelancer_credentials_repository.dart';
 import '../../features/freelancer_dashboard/domain/repositories/freelancer_task_repository.dart';
 import '../../features/freelancer_dashboard/domain/repositories/portfolio_repository.dart';
 import '../../features/client_dashboard/data/repositories/company_repository_impl.dart';
@@ -153,6 +155,9 @@ class ServiceLocator {
     );
     _register<FreelancerProfileRepository>(
       FreelancerProfileRepositoryImpl(apiClient, fileUploadHelper),
+    );
+    _register<FreelancerCredentialsRepository>(
+      FreelancerCredentialsRepositoryImpl(apiClient),
     );
     _register<FreelancerTaskRepository>(
       FreelancerTaskRepositoryImpl(apiClient, fileUploadHelper),

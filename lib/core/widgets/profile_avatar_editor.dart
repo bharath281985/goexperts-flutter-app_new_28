@@ -1,12 +1,12 @@
 import 'dart:io';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import 'custom_cached_image.dart';
 
 /// A reusable avatar editor widget for profile edit pages.
 /// Shows a 100×100 circle with the current avatar (local or network),
@@ -102,17 +102,17 @@ class ProfileAvatarEditor extends StatelessWidget {
         placeholderBuilder: (_) => _placeholder(),
       );
     }
-    return CachedNetworkImage(
+    return CustomCachedImage(
       imageUrl: url,
       fit: BoxFit.cover,
-      placeholder: (_, __) => const Center(
+      placeholder: const Center(
         child: SizedBox(
           width: 28,
           height: 28,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
       ),
-      errorWidget: (_, __, ___) => _placeholder(),
+      errorWidget: _placeholder(),
     );
   }
 

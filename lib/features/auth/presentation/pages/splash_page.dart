@@ -147,20 +147,22 @@ class _SplashPageState extends State<SplashPage>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    const Spacer(),
                     Image.asset(
                       AppAssets.fullBannerImage,
                       width: MediaQuery.of(context).size.width * 0.65,
                       fit: BoxFit.contain,
                     ),
-                    const SizedBox(height: 60),
-                    const SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 3,
+                    const Spacer(),
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width * 0.65,
+                      height: 5,
+                      child: LinearProgressIndicator(
                         color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(5),
                       ),
                     ),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),

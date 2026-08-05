@@ -25,6 +25,7 @@ import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../../../core/widgets/category_skills_picker.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
 import '../../domain/entities/freelancer_task.dart';
 import '../../domain/entities/portfolio_item.dart';
@@ -3419,17 +3420,12 @@ class _FreelancerPortfolioPageState extends State<FreelancerPortfolioPage> {
           icon: const Icon(Icons.add_rounded),
           label: const Text('Add Portfolio'),
         ),
-        itemBuilder: (context, item, __) => Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSizes.screenPadding,
-          ),
-          child: _PortfolioCard(
-            item: item,
-            onTap: () =>
-                context.push('${Routes.freelancerPortfolioDetails}/${item.id}'),
-            onEdit: () => _openEdit(context, item.id),
-            onDelete: () => _deletePortfolio(context, item),
-          ),
+        itemBuilder: (context, item, __) => _PortfolioCard(
+          item: item,
+          onTap: () =>
+              context.push('${Routes.freelancerPortfolioDetails}/${item.id}'),
+          onEdit: () => _openEdit(context, item.id),
+          onDelete: () => _deletePortfolio(context, item),
         ),
       ),
     );
@@ -3687,7 +3683,13 @@ class _FreelancerPortfolioFormPageState
   late final TextEditingController _videoDemo;
   late final TextEditingController _pdfCaseStudy;
   late final TextEditingController _extraScreenshot;
-  final _statuses = const ['Draft', 'Published', 'Archived'];
+  final _statuses = const [
+    'Published',
+    'Featured',
+    'Case Study',
+    'Draft',
+    'Archived',
+  ];
   late String _status;
   bool _saving = false;
   bool _loadingIndustries = false;
@@ -4268,60 +4270,361 @@ class _PortfolioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skills = item.displaySkillNames;
+    final visibleSkills = skills.take(3).toList();
+    final remainingSkills = skills.length - visibleSkills.length;
+    final cover = item.coverMedia.trim().isNotEmpty
+        ? item.coverMedia.trim()
+        : item.extraScreenshot.trim();
+    final meta = [
+      if (item.industry.trim().isNotEmpty) item.industry.trim(),
+      if (item.category.trim().isNotEmpty) item.category.trim(),
+    ];
+
     return AppCard(
+      padding: EdgeInsets.zero,
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+      radius: AppSizes.radiusXl,
+      child: IntrinsicHeight(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 174),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Expanded(child: Text(item.title, style: context.text.titleSmall)),
-              if (item.status.isNotEmpty) AppStatusChip(label: item.status),
-              IconButton(
-                tooltip: 'Edit',
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined),
+              SizedBox(
+                width: 132,
+                child: _PortfolioCardMedia(
+                  source: cover,
+                  status: item.status,
+                  category: item.category,
+                ),
               ),
-              IconButton(
-                tooltip: 'Delete',
-                onPressed: onDelete,
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.danger,
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizes.md,
+                    AppSizes.md,
+                    AppSizes.sm,
+                    AppSizes.md,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: context.text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w900,
+                                height: 1.18,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.xs),
+                          _PortfolioActionButton(
+                            tooltip: 'Edit',
+                            icon: Icons.edit_outlined,
+                            onPressed: onEdit,
+                          ),
+                          _PortfolioActionButton(
+                            tooltip: 'Delete',
+                            icon: Icons.delete_outline_rounded,
+                            color: AppColors.danger,
+                            onPressed: onDelete,
+                          ),
+                        ],
+                      ),
+                      if (item.displayDescription.isNotEmpty) ...[
+                        AppSizes.vGapXs,
+                        Text(
+                          item.displayDescription,
+                          style: context.text.bodySmall?.copyWith(
+                            color: AppColors.mutedText,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                      if (meta.isNotEmpty) ...[
+                        AppSizes.vGapSm,
+                        Wrap(
+                          spacing: AppSizes.xs,
+                          runSpacing: AppSizes.xs,
+                          children: [
+                            for (final value in meta.take(2))
+                              _PortfolioMetaPill(
+                                label: value,
+                                icon: value == item.industry
+                                    ? Icons.business_center_outlined
+                                    : Icons.category_outlined,
+                              ),
+                          ],
+                        ),
+                      ],
+                      if (visibleSkills.isNotEmpty) ...[
+                        AppSizes.vGapSm,
+                        Wrap(
+                          spacing: AppSizes.xs,
+                          runSpacing: AppSizes.xs,
+                          children: [
+                            for (final skill in visibleSkills)
+                              _PortfolioSkillPill(label: skill),
+                            if (remainingSkills > 0)
+                              _PortfolioSkillPill(
+                                label: '+$remainingSkills more',
+                                strong: true,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          if (item.displayDescription.isNotEmpty) ...[
-            AppSizes.vGapSm,
-            Text(
-              item.displayDescription,
-              style: context.text.bodySmall,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+        ),
+      ),
+    );
+  }
+}
+
+class _PortfolioCardMedia extends StatelessWidget {
+  const _PortfolioCardMedia({
+    required this.source,
+    required this.status,
+    required this.category,
+  });
+
+  final String source;
+  final String status;
+  final String category;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = _isImageSource(source);
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        if (hasImage)
+          _PortfolioCardImage(source: source)
+        else
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.12),
+                  AppColors.primary.withValues(alpha: 0.03),
+                  AppColors.warning.withValues(alpha: 0.10),
+                ],
+              ),
             ),
-          ],
-          AppSizes.vGapSm,
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.sm,
-            children: [
-              if (item.industry.isNotEmpty)
-                Chip(
-                  label: Text(item.industry),
-                  visualDensity: VisualDensity.compact,
+            child: Center(
+              child: Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.white.withValues(alpha: 0.82),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primaryBlack.withValues(alpha: 0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-              if (item.category.isNotEmpty)
-                Chip(
-                  label: Text(item.category),
-                  visualDensity: VisualDensity.compact,
+                child: const Icon(
+                  Icons.business_center_outlined,
+                  color: AppColors.primary,
+                  size: 30,
                 ),
-              for (final skill in item.displaySkillNames.take(4))
-                Chip(label: Text(skill), visualDensity: VisualDensity.compact),
-            ],
+              ),
+            ),
+          ),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.black.withValues(alpha: hasImage ? 0.10 : 0),
+                Colors.black.withValues(alpha: hasImage ? 0.42 : 0),
+              ],
+            ),
+          ),
+        ),
+        if (status.trim().isNotEmpty)
+          Positioned(
+            left: AppSizes.sm,
+            top: AppSizes.sm,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.sm,
+                vertical: 5,
+              ),
+              decoration: BoxDecoration(
+                color: hasImage
+                    ? Colors.white.withValues(alpha: 0.92)
+                    : AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+              ),
+              child: Text(
+                status,
+                style: context.text.labelSmall?.copyWith(
+                  color: hasImage ? AppColors.primaryBlack : AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        if (category.trim().isNotEmpty)
+          Positioned(
+            left: AppSizes.sm,
+            right: AppSizes.sm,
+            bottom: AppSizes.sm,
+            child: Center(
+              child: Text(
+                category,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.titleSmall?.copyWith(
+                  color: hasImage ? Colors.white : AppColors.primaryBlack,
+                  fontWeight: FontWeight.w800,
+                  shadows: hasImage
+                      ? const [Shadow(color: Colors.black54, blurRadius: 8)]
+                      : null,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _PortfolioActionButton extends StatelessWidget {
+  const _PortfolioActionButton({
+    required this.tooltip,
+    required this.icon,
+    required this.onPressed,
+    this.color = AppColors.primaryBlack,
+  });
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 34,
+      height: 34,
+      child: IconButton(
+        tooltip: tooltip,
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        icon: Icon(icon, size: 19, color: color),
+        style: IconButton.styleFrom(
+          backgroundColor: AppColors.primaryBlack.withValues(alpha: 0.04),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PortfolioCardImage extends StatelessWidget {
+  const _PortfolioCardImage({required this.source});
+
+  final String source;
+
+  @override
+  Widget build(BuildContext context) {
+    final uri = Uri.tryParse(source);
+    if (uri != null && uri.hasScheme) {
+      return CustomCachedImage(imageUrl: source, fit: BoxFit.cover);
+    }
+    return Image.file(
+      File(source),
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          const Center(child: Icon(Icons.image_not_supported_outlined)),
+    );
+  }
+}
+
+class _PortfolioMetaPill extends StatelessWidget {
+  const _PortfolioMetaPill({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.14)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(width: AppSizes.xs),
+          Text(
+            label,
+            style: context.text.labelSmall?.copyWith(
+              color: AppColors.primaryBlack,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PortfolioSkillPill extends StatelessWidget {
+  const _PortfolioSkillPill({required this.label, this.strong = false});
+
+  final String label;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 6),
+      decoration: BoxDecoration(
+        color: (strong ? AppColors.primary : AppColors.success).withValues(
+          alpha: strong ? 0.10 : 0.08,
+        ),
+        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+        border: Border.all(
+          color: (strong ? AppColors.primary : AppColors.success).withValues(
+            alpha: strong ? 0.22 : 0.16,
+          ),
+        ),
+      ),
+      child: Text(
+        label,
+        style: context.text.labelSmall?.copyWith(
+          color: AppColors.primaryBlack,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -4490,10 +4793,10 @@ class _PortfolioImagePreview extends StatelessWidget {
   Widget build(BuildContext context) {
     final uri = Uri.tryParse(source);
     final image = uri != null && uri.hasScheme
-        ? Image.network(
-            source,
+        ? CustomCachedImage(
+            imageUrl: source,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _imageFallback(context),
+            errorWidget: _imageFallback(context),
           )
         : Image.file(
             File(source),
