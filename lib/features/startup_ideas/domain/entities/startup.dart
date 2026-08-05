@@ -109,7 +109,10 @@ class Startup extends Equatable {
 
   factory Startup.fromApiJson(Map<String, dynamic> json) {
     final dynamic founderField =
-        json['founderProfile'] ?? json['founder_profile'] ?? json['founder'];
+        json['user'] ??
+        json['founderProfile'] ??
+        json['founder_profile'] ??
+        json['founder'];
     final Map<String, dynamic>? profile = (founderField is Map)
         ? Map<String, dynamic>.from(founderField)
         : null;
@@ -130,6 +133,7 @@ class Startup extends Equatable {
         json['tagline']?.toString() ??
         profile?['tagline']?.toString() ??
         json['bio']?.toString() ??
+        profile?['bio']?.toString() ??
         '';
     final industry =
         json['industry']?.toString() ??

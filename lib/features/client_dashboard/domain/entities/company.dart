@@ -21,6 +21,18 @@ class Company extends Equatable {
     this.isSaved = false,
     this.gst = '',
     this.pan = '',
+    this.panNumber = '',
+    this.aadhaarNumber = '',
+    this.email = '',
+    this.phone = '',
+    this.bio = '',
+    this.city = '',
+    this.country = '',
+    this.linkedin = '',
+    this.companySize = '',
+    this.phoneCode = '',
+    this.countryCode = '',
+    this.countryId = '',
   });
 
   final String id;
@@ -41,6 +53,18 @@ class Company extends Equatable {
   final bool isSaved;
   final String gst;
   final String pan;
+  final String panNumber;
+  final String aadhaarNumber;
+  final String email;
+  final String phone;
+  final String bio;
+  final String city;
+  final String country;
+  final String linkedin;
+  final String companySize;
+  final String phoneCode;
+  final String countryCode;
+  final String countryId;
 
   Company copyWith({bool? isFollowing, bool? isSaved}) => Company(
     id: id,
@@ -61,6 +85,18 @@ class Company extends Equatable {
     isSaved: isSaved ?? this.isSaved,
     gst: gst,
     pan: pan,
+    panNumber: panNumber,
+    aadhaarNumber: aadhaarNumber,
+    email: email,
+    phone: phone,
+    bio: bio,
+    city: city,
+    country: country,
+    linkedin: linkedin,
+    companySize: companySize,
+    phoneCode: phoneCode,
+    countryCode: countryCode,
+    countryId: countryId,
   );
 
   @override

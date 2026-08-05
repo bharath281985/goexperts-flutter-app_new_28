@@ -32,6 +32,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   final _languages = TextEditingController();
   final _fullName = TextEditingController();
   final _phone = TextEditingController();
+  final _phoneCode = TextEditingController(text: '+91');
+  final _countryCode = TextEditingController(text: 'IN');
+  final _experienceYears = TextEditingController();
   final _title = TextEditingController();
   final _city = TextEditingController();
   final _state = TextEditingController();
@@ -75,6 +78,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     _languages.dispose();
     _fullName.dispose();
     _phone.dispose();
+    _phoneCode.dispose();
+    _countryCode.dispose();
+    _experienceYears.dispose();
     _title.dispose();
     _city.dispose();
     _state.dispose();
@@ -106,6 +112,11 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
       _fullName.text = p.fullName;
       _phone.text = p.phone;
+      _phoneCode.text = p.phoneCode.isEmpty ? '+91' : p.phoneCode;
+      _countryCode.text = p.countryCode.isEmpty ? 'IN' : p.countryCode;
+      _experienceYears.text = p.experienceYears > 0
+          ? p.experienceYears.toString()
+          : p.experience;
       _title.text = p.title;
       _city.text = p.city;
       _state.text = p.state;
@@ -125,11 +136,14 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   Future<void> _save() async {
+    if (_fullName.text.trim().isEmpty) {
+      context.showSnack('Full name is required', isError: true);
+      return;
+    }
     setState(() => _saving = true);
 
     final payload = {
       'bio': _bio.text.trim(),
-      'overview': _bio.text.trim(),
       'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0,
       'skills': _skillsRaw.text
           .split(',')
@@ -137,37 +151,24 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
           .where((e) => e.isNotEmpty)
           .toList(),
 
-      'experience': _experience.text.trim(),
-      'education': _education.text.trim(),
-      'languages': _languages.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
-      'status': _availability,
+      'experienceYears': int.tryParse(_experienceYears.text.trim()) ?? 0,
       'availability': _availability,
       'fullName': _fullName.text.trim(),
-      'name': _fullName.text.trim(),
       'phone': _phone.text.trim(),
-      'mobile': _phone.text.trim(),
-      'title': _title.text.trim(),
-      'professionalTitle': _title.text.trim(),
+      'phoneCode': _phoneCode.text.trim(),
+      'countryCode': _countryCode.text.trim(),
+      'headline': _title.text.trim(),
       'city': _city.text.trim(),
-      'state': _state.text.trim(),
-      'country': _country.text.trim(),
-      'githubUrl': _github.text.trim(),
-      'portfolioUrl': _portfolio.text.trim(),
+      'countryId': _country.text.trim(),
+      'github': _github.text.trim(),
+      'portfolio': _portfolio.text.trim(),
       'linkedin': _linkedin.text.trim(),
-      'website': _website.text.trim(),
-      'panNumber': _panNumber.text.trim(),
-      'aadhaarNumber': _aadhaarNumber.text.trim(),
     };
 
     final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
     if (!mounted) return;
     setState(() => _saving = false);
-    res.fold((f) => context.showSnack(f.message), (p) {
-      _profile = p;
+    res.fold((f) => context.showSnack(f.message), (_) {
       context.showSnack('Profile updated successfully!');
       // Refresh AuthBloc so the drawer/profile header updates
       context.read<AuthBloc>().add(const AuthRefreshUser());
@@ -309,10 +310,26 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                   hint: 'e.g. Senior Flutter Developer',
                 ),
                 AppSizes.vGapMd,
-                AppTextField(
-                  controller: _phone,
-                  label: 'Phone Number',
-                  hint: 'Enter your phone number',
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 92,
+                      child: AppTextField(
+                        controller: _phoneCode,
+                        label: 'Code',
+                        hint: '+91',
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: AppTextField(
+                        controller: _phone,
+                        label: 'Phone Number',
+                        hint: 'Enter your phone number',
+                        keyboardType: TextInputType.phone,
+                      ),
+                    ),
+                  ],
                 ),
                 AppSizes.vGapLg,
 
@@ -325,20 +342,22 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                 ),
                 AppSizes.vGapMd,
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
+                    SizedBox(
+                      width: 110,
                       child: AppTextField(
-                        controller: _state,
-                        label: 'State',
-                        hint: 'e.g. Telangana',
+                        controller: _countryCode,
+                        label: 'Country Code',
+                        hint: 'IN',
                       ),
                     ),
-                    const SizedBox(width: 16),
+                    AppSizes.hGapMd,
                     Expanded(
                       child: AppTextField(
                         controller: _country,
                         label: 'Country',
-                        hint: 'e.g. India',
+                        hint: 'India',
                       ),
                     ),
                   ],
@@ -468,8 +487,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                 _SectionLabel('Experience'),
                 AppSizes.vGapSm,
                 AppTextField(
-                  controller: _experience,
-                  label: 'Experience',
+                  controller: _experienceYears,
+                  label: 'Years of experience',
                   hint: 'Senior Dev at TechCorp, Freelance Flutter Dev…',
                   maxLines: 3,
                   textInputAction: TextInputAction.next,
@@ -584,11 +603,17 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
                 _SectionLabel('KYC Documents'),
                 AppSizes.vGapSm,
-                AppTextField(controller: _panNumber, label: 'PAN Number'),
+                AppTextField(
+                  controller: _panNumber,
+                  label: 'PAN Number',
+                  maxLength: 10,
+                ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _aadhaarNumber,
                   label: 'Aadhaar Number',
+                  keyboardType: TextInputType.number,
+                  maxLength: 12,
                 ),
                 AppSizes.vGapXl,
 

@@ -6,6 +6,7 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
@@ -24,14 +25,18 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   late final TextEditingController _nameController;
   late final TextEditingController _fullNameController;
   late final TextEditingController _bioController;
-  late final TextEditingController _industryController;
-  late final TextEditingController _categoryController;
   late final TextEditingController _fundingController;
   late final TextEditingController _equityController;
-  late final TextEditingController _phoneController;
   late final TextEditingController _teamSizeController;
 
   String? _stage;
+  String? _categoryId;
+  String? _industryId;
+
+  // Fallback initial values if not mapped
+  String _initialCategory = '';
+  String _initialIndustry = '';
+
   String? _localLogoPath;
   String? _localCoverPath;
   String? _localPitchDiskPath;
@@ -43,6 +48,11 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   String? _networkBusinessPlanUrl;
 
   bool _loading = false;
+  bool _loadingOptions = true;
+  List<Map<String, dynamic>> _stagesList = [];
+  List<Map<String, dynamic>> _categoriesList = [];
+  List<Map<String, dynamic>> _industriesList = [];
+  String? _stageId;
 
   @override
   void initState() {
@@ -52,12 +62,12 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
       text: widget.startup.founderName,
     );
     _bioController = TextEditingController(text: widget.startup.tagline);
-    _industryController = TextEditingController(text: widget.startup.industry);
-    _categoryController = TextEditingController(
-      text: widget.startup.tags.isNotEmpty
-          ? widget.startup.tags.first
-          : widget.startup.industry,
-    );
+
+    _initialIndustry = widget.startup.industry;
+    _initialCategory = widget.startup.tags.isNotEmpty
+        ? widget.startup.tags.first
+        : widget.startup.industry;
+
     _fundingController = TextEditingController(
       text: widget.startup.fundingRequired.toStringAsFixed(0),
     );
@@ -71,13 +81,109 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     _teamSizeController = TextEditingController(
       text: tsStr != null ? tsStr.replaceAll(RegExp(r'[^0-9]'), '') : '1',
     );
-    _phoneController =
-        TextEditingController(); // To be populated if passed (hack for now since Startup doesn't have it explicitly, but user can edit it)
+
     _stage = widget.startup.stage;
     _networkLogoUrl = widget.startup.logoUrl;
     _networkCoverUrl = widget.startup.coverUrl;
     _networkPitchDiskUrl = widget.startup.pitchDeckUrl;
     _networkBusinessPlanUrl = widget.startup.businessPlanUrl;
+    _loadOptions();
+  }
+
+  Future<void> _loadOptions() async {
+    final futures = await Future.wait([
+      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
+        ApiEndpoints.publicStartupStages,
+        parser: (raw) => (raw as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
+      ),
+      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
+        ApiEndpoints.publicCategories,
+        parser: (raw) => (raw as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
+      ),
+      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
+        ApiEndpoints.publicIndustries,
+        parser: (raw) => (raw as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
+      ),
+    ]);
+
+    if (!mounted) return;
+
+    if (futures[0].isSuccess) {
+      _stagesList = futures[0].valueOrNull ?? [];
+      final stageStr = _stage ?? '';
+      _stageId =
+          _stagesList.any(
+            (e) =>
+                e['id'] == stageStr ||
+                e['value'] == stageStr ||
+                e['label'] == stageStr ||
+                e['name'] == stageStr,
+          )
+          ? _stagesList
+                .firstWhere(
+                  (e) =>
+                      e['id'] == stageStr ||
+                      e['value'] == stageStr ||
+                      e['label'] == stageStr ||
+                      e['name'] == stageStr,
+                )['id']
+                ?.toString()
+          : null;
+    }
+
+    if (futures[1].isSuccess) {
+      _categoriesList = futures[1].valueOrNull ?? [];
+      _categoryId =
+          _categoriesList.any(
+            (e) =>
+                e['id'] == _initialCategory ||
+                e['value'] == _initialCategory ||
+                e['label'] == _initialCategory ||
+                e['name'] == _initialCategory,
+          )
+          ? _categoriesList
+                .firstWhere(
+                  (e) =>
+                      e['id'] == _initialCategory ||
+                      e['value'] == _initialCategory ||
+                      e['label'] == _initialCategory ||
+                      e['name'] == _initialCategory,
+                )['id']
+                ?.toString()
+          : null;
+    }
+
+    if (futures[2].isSuccess) {
+      _industriesList = futures[2].valueOrNull ?? [];
+      _industryId =
+          _industriesList.any(
+            (e) =>
+                e['id'] == _initialIndustry ||
+                e['value'] == _initialIndustry ||
+                e['label'] == _initialIndustry ||
+                e['name'] == _initialIndustry,
+          )
+          ? _industriesList
+                .firstWhere(
+                  (e) =>
+                      e['id'] == _initialIndustry ||
+                      e['value'] == _initialIndustry ||
+                      e['label'] == _initialIndustry ||
+                      e['name'] == _initialIndustry,
+                )['id']
+                ?.toString()
+          : null;
+    }
+
+    setState(() {
+      _loadingOptions = false;
+    });
   }
 
   @override
@@ -85,8 +191,6 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     _nameController.dispose();
     _fullNameController.dispose();
     _bioController.dispose();
-    _industryController.dispose();
-    _categoryController.dispose();
     _fundingController.dispose();
     _equityController.dispose();
     super.dispose();
@@ -126,123 +230,6 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
         context.showTopSnack('Failed to pick Business Plan: $e', isError: true);
       }
     }
-  }
-
-  void _viewLocalImage(String path) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        child: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Image.file(File(path)),
-            ),
-            IconButton(
-              icon: const CircleAvatar(
-                backgroundColor: Colors.black54,
-                child: Icon(Icons.close, color: Colors.white, size: 18),
-              ),
-              onPressed: () => Navigator.pop(ctx),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildImagePickerItem({
-    required String label,
-    required String? localPath,
-    required String? networkUrl,
-    required VoidCallback onPick,
-    required VoidCallback onRemove,
-  }) {
-    if (localPath != null || (networkUrl != null && networkUrl.isNotEmpty)) {
-      return Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey.shade300),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: localPath != null
-                  ? Image.file(
-                      File(localPath),
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.network(
-                      networkUrl!,
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const Icon(Icons.broken_image_outlined, size: 40),
-                    ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                  ),
-                  Text(
-                    localPath != null ? 'New Image Picked' : 'Current Image',
-                    style: TextStyle(
-                      color: localPath != null ? Colors.green : Colors.blue,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (localPath != null)
-              IconButton(
-                icon: const Icon(Icons.visibility_outlined, size: 20),
-                onPressed: () => _viewLocalImage(localPath),
-                tooltip: 'View Picked',
-              ),
-            IconButton(
-              icon: const Icon(Icons.edit_outlined, size: 20),
-              onPressed: onPick,
-              tooltip: 'Change',
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.delete_outline_rounded,
-                color: AppColors.danger,
-                size: 20,
-              ),
-              onPressed: onRemove,
-              tooltip: 'Remove',
-            ),
-          ],
-        ),
-      );
-    }
-
-    return OutlinedButton.icon(
-      style: OutlinedButton.styleFrom(
-        minimumSize: const Size(double.infinity, 38),
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-      ),
-      onPressed: onPick,
-      icon: const Icon(Icons.image_outlined, size: 18),
-      label: Text('Pick $label'),
-    );
   }
 
   Widget _buildDocPickerItem({
@@ -406,49 +393,90 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                       readOnly: true,
                     ),
                     const SizedBox(height: 12),
-                    AppTextField(
-                      controller: _industryController,
-                      label: 'Industry',
-                      hint: 'e.g. Healthcare',
-                      validator: (v) =>
-                          v?.trim().isEmpty == true ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    AppTextField(
-                      controller: _categoryController,
-                      label: 'Category',
-                      hint: 'e.g. Artificial Intelligence',
-                      validator: (v) =>
-                          v?.trim().isEmpty == true ? 'Required' : null,
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      initialValue: _stage,
-                      decoration: const InputDecoration(
-                        labelText: 'Stage',
-                        border: OutlineInputBorder(),
+                    if (_loadingOptions)
+                      const Center(child: CircularProgressIndicator())
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          DropdownButtonFormField<String>(
+                            initialValue: _industryId,
+                            decoration: const InputDecoration(
+                              labelText: 'Industry',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _industriesList
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['id']?.toString() ?? '',
+                                    child: Text(
+                                      (e['name'] ??
+                                                  e['label'] ??
+                                                  e['value'] ??
+                                                  e['id'])
+                                              ?.toString() ??
+                                          '',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (val) =>
+                                setState(() => _industryId = val),
+                            validator: (v) => v == null ? 'Required' : null,
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: _categoryId,
+                            decoration: const InputDecoration(
+                              labelText: 'Category',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _categoriesList
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['id']?.toString() ?? '',
+                                    child: Text(
+                                      (e['name'] ??
+                                                  e['label'] ??
+                                                  e['value'] ??
+                                                  e['id'])
+                                              ?.toString() ??
+                                          '',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (val) =>
+                                setState(() => _categoryId = val),
+                            validator: (v) => v == null ? 'Required' : null,
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: _stageId,
+                            decoration: const InputDecoration(
+                              labelText: 'Stage',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _stagesList
+                                .map(
+                                  (e) => DropdownMenuItem<String>(
+                                    value: e['id']?.toString() ?? '',
+                                    child: Text(
+                                      (e['label'] ??
+                                                  e['name'] ??
+                                                  e['value'] ??
+                                                  e['id'])
+                                              ?.toString() ??
+                                          '',
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (val) => setState(() => _stageId = val),
+                            validator: (v) => v == null ? 'Required' : null,
+                          ),
+                        ],
                       ),
-                      items:
-                          {
-                                'Idea Stage',
-                                'Prototype',
-                                'MVP',
-                                'Early Revenue',
-                                'Early Traction',
-                                'Growth',
-                                'Scaling',
-                                'Expansion',
-                                if (_stage != null && _stage!.isNotEmpty)
-                                  _stage!,
-                              }
-                              .map(
-                                (s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)),
-                              )
-                              .toList(),
-                      onChanged: (val) => setState(() => _stage = val),
-                      validator: (v) => v == null ? 'Required' : null,
-                    ),
                     const SizedBox(height: 12),
                     Row(
                       children: [
@@ -569,9 +597,12 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                     'pitchDeck': pitchDiskUrl ?? '',
                                     'businessPlan': businessPlanUrl ?? '',
                                     'startupName': _nameController.text.trim(),
-                                    'industry': _industryController.text.trim(),
-                                    'category': _categoryController.text.trim(),
-                                    'stage': _stage,
+                                    'industry': _industryId ?? _initialIndustry,
+                                    'industryId': _industryId,
+                                    'category': _categoryId ?? _initialCategory,
+                                    'categoryId': _categoryId,
+                                    'stage': _stageId ?? _stage,
+                                    'stageId': _stageId ?? _stage,
                                     'funding':
                                         double.tryParse(
                                           _fundingController.text.trim(),

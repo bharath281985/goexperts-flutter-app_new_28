@@ -70,17 +70,23 @@ class ProfileAvatarEditor extends StatelessWidget {
     if (source == null) return;
 
     final picker = ImagePicker();
-    final picked = await picker.pickImage(
-      source: source,
-      maxWidth: 1024,
-      maxHeight: 1024,
-      imageQuality: 85,
-    );
-    final path = picked?.path;
-    if (path == null) return;
-    onPathPicked(path);
-    if (context.mounted) {
-      context.showSnack('Photo selected. Tap Save to upload.');
+    try {
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+      final path = picked?.path;
+      if (path == null) return;
+      onPathPicked(path);
+      if (context.mounted) {
+        context.showSnack('Photo selected. Tap Save to upload.');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnack('Camera or Gallery permission denied.');
+      }
     }
   }
 

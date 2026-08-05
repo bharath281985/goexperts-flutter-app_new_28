@@ -103,16 +103,12 @@ class StartupRepositoryImpl implements StartupRepository {
   }
 
   @override
-  Future<Result<Startup>> updateIdea(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
+  Future<Result<bool>> updateIdea(String id, Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.put<Startup>(
+    return _api.putEnvelope<bool>(
       ApiEndpoints.founderStartup,
       body: data,
-      parser: (raw) =>
-          Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
+      parser: (env) => true,
     );
   }
 

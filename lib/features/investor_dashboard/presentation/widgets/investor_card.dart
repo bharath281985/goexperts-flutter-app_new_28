@@ -115,30 +115,30 @@ class AppInvestorCard extends StatelessWidget {
             ],
           ),
           AppSizes.vGapMd,
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onFollow,
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(40),
-                  ),
-                  child: Text(investor.isFollowing ? 'Following' : 'Follow'),
-                ),
-              ),
-              AppSizes.hGapMd,
-              Expanded(
-                child: FilledButton(
-                  onPressed: onConnect,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    minimumSize: const Size.fromHeight(40),
-                  ),
-                  child: const Text('Connect'),
-                ),
-              ),
-            ],
-          ),
+          // Row(
+          //   children: [
+          //     Expanded(
+          //       child: OutlinedButton(
+          //         onPressed: onFollow,
+          //         style: OutlinedButton.styleFrom(
+          //           minimumSize: const Size.fromHeight(40),
+          //         ),
+          //         child: Text(investor.isFollowing ? 'Following' : 'Follow'),
+          //       ),
+          //     ),
+          //     AppSizes.hGapMd,
+          //     Expanded(
+          //       child: FilledButton(
+          //         onPressed: onConnect,
+          //         style: FilledButton.styleFrom(
+          //           backgroundColor: AppColors.primary,
+          //           minimumSize: const Size.fromHeight(40),
+          //         ),
+          //         child: const Text('Connect'),
+          //       ),
+          //     ),
+          //   ],
+          // ),
         ],
       ),
     );

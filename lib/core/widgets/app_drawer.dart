@@ -224,6 +224,8 @@ class AppDrawer extends StatelessWidget {
                                     e.onTap!();
                                   } else if (e.route != null) {
                                     context.push(e.route!);
+                                  } else {
+                                    context.showSnack('Coming soon');
                                   }
                                 },
                               ),
@@ -282,13 +284,13 @@ class AppDrawer extends StatelessWidget {
             const DrawerEntry(
               'Analytics',
               Icons.insights_outlined,
-              route: Routes.freelancerDashboard,
+              route: Routes.freelancerAnalytics,
             ),
             DrawerEntry(
               'Notifications',
               Icons.notifications_none_rounded,
               route: Routes.notifications,
-              badge: unreadNotifications > 0 ? unreadNotifications : 4,
+              badge: unreadNotifications > 0 ? unreadNotifications : null,
             ),
           ]),
           const DrawerSection('Profile', [
@@ -313,7 +315,11 @@ class AppDrawer extends StatelessWidget {
               route: Routes.freelancerPortfolioPage,
             ),
             DrawerEntry('Resume', Icons.description_outlined),
-            DrawerEntry('Skills', Icons.psychology_outlined),
+            DrawerEntry(
+              'Skills',
+              Icons.psychology_outlined,
+              route: Routes.freelancerSkills,
+            ),
             DrawerEntry(
               'Experience',
               Icons.timeline_outlined,
@@ -335,15 +341,22 @@ class AppDrawer extends StatelessWidget {
               'Projects',
               Icons.work_outline_rounded,
               route: Routes.freelancerProjects,
-              badge: 1,
             ),
             DrawerEntry(
               'Proposals',
               Icons.send_outlined,
               route: Routes.freelancerProposals,
             ),
-            DrawerEntry('Contracts', Icons.assignment_turned_in_outlined),
-            DrawerEntry('Tasks', Icons.task_alt_outlined),
+            DrawerEntry(
+              'Contracts',
+              Icons.assignment_turned_in_outlined,
+              route: Routes.freelancerContracts,
+            ),
+            DrawerEntry(
+              'Tasks',
+              Icons.task_alt_outlined,
+              route: Routes.freelancerTasks,
+            ),
             DrawerEntry(
               'Calendar',
               Icons.calendar_month_outlined,
@@ -360,7 +373,11 @@ class AppDrawer extends StatelessWidget {
               route: Routes.messages,
             ),
             DrawerEntry('My Clients', Icons.people_outline_rounded),
-            DrawerEntry('Reviews', Icons.star_border_rounded),
+            DrawerEntry(
+              'Reviews',
+              Icons.star_border_rounded,
+              route: Routes.freelancerReviews,
+            ),
           ]),
           const DrawerSection('Finance', [
             DrawerEntry('Earnings', Icons.bar_chart_rounded),
@@ -370,8 +387,16 @@ class AppDrawer extends StatelessWidget {
               route: Routes.wallet,
             ),
             DrawerEntry('Transactions', Icons.sync_alt_rounded),
-            DrawerEntry('Withdrawals', Icons.payments_outlined),
-            DrawerEntry('Invoices', Icons.receipt_long_outlined),
+            DrawerEntry(
+              'Withdrawals',
+              Icons.payments_outlined,
+              route: Routes.freelancerWithdrawals,
+            ),
+            DrawerEntry(
+              'Invoices',
+              Icons.receipt_long_outlined,
+              route: Routes.freelancerInvoices,
+            ),
             DrawerEntry(
               'Subscriptions',
               Icons.workspace_premium_outlined,
@@ -390,7 +415,11 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
           ]),
           const DrawerSection('System', [
-            DrawerEntry('Search Center', Icons.search_rounded),
+            DrawerEntry(
+              'Search Center',
+              Icons.search_rounded,
+              route: Routes.search,
+            ),
             DrawerEntry('Connected Apps', Icons.power_outlined),
             DrawerEntry('Downloads', Icons.download_outlined),
             DrawerEntry('Activity Logs', Icons.show_chart_rounded),
@@ -429,7 +458,7 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry(
               'Analytics & Reports',
               Icons.bar_chart_rounded,
-              route: Routes.clientDashboard,
+              route: Routes.clientAnalytics,
             ), // Placeholder
             DrawerEntry(
               'Notifications',
@@ -443,16 +472,19 @@ class AppDrawer extends StatelessWidget {
               Icons.business_outlined,
               route: Routes.clientProfile,
             ),
-            DrawerEntry('Verification', Icons.verified_user_outlined, badge: 2),
+            DrawerEntry('Verification', Icons.verified_user_outlined),
             DrawerEntry('Departments', Icons.account_balance_outlined),
-            DrawerEntry('Teams', Icons.groups_outlined),
+            DrawerEntry(
+              'Teams',
+              Icons.groups_outlined,
+              route: Routes.clientTeams,
+            ),
           ]),
           const DrawerSection('Projects', [
             DrawerEntry(
               'Projects',
               Icons.work_outline_rounded,
               route: Routes.clientProjects,
-              badge: 12,
             ),
             DrawerEntry('Pipeline', Icons.view_kanban_outlined),
             DrawerEntry('Tasks', Icons.task_alt_outlined),
@@ -468,17 +500,24 @@ class AppDrawer extends StatelessWidget {
               'Applications',
               Icons.inbox_outlined,
               route: Routes.clientApplications,
-              badge: 10,
             ),
-            DrawerEntry('Invitations', Icons.send_outlined),
-            DrawerEntry('Shortlisted', Icons.favorite_border_rounded),
+            DrawerEntry(
+              'Invitations',
+              Icons.send_outlined,
+              route: Routes.invitations,
+            ),
+            DrawerEntry(
+              'Shortlisted',
+              Icons.favorite_border_rounded,
+              route: Routes.clientShortlisted,
+            ),
           ]),
           DrawerSection('Communication', [
             DrawerEntry(
               'Messages',
               Icons.chat_bubble_outline_rounded,
               route: Routes.messages,
-              badge: unreadMessages > 0 ? unreadMessages : 8,
+              badge: unreadMessages > 0 ? unreadMessages : null,
             ),
             DrawerEntry(
               'Meetings',
@@ -506,7 +545,11 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Insights', [
-            DrawerEntry('Freelancer Performance', Icons.insights_outlined),
+            DrawerEntry(
+              'Insights',
+              Icons.insights_outlined,
+              route: Routes.clientReports,
+            ),
             DrawerEntry('Reviews & Ratings', Icons.star_border_rounded),
             DrawerEntry(
               'Business Intelligence',
@@ -527,8 +570,16 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry('Downloads', Icons.download_outlined),
           ]),
           const DrawerSection('System', [
-            DrawerEntry('Notifications', Icons.notifications_outlined),
-            DrawerEntry('Global Search', Icons.search_rounded),
+            DrawerEntry(
+              'Notifications',
+              Icons.notifications_outlined,
+              route: Routes.notifications,
+            ),
+            DrawerEntry(
+              'Global Search',
+              Icons.search_rounded,
+              route: Routes.search,
+            ),
             DrawerEntry(
               'AI Assistant',
               Icons.auto_awesome_outlined,
@@ -540,7 +591,11 @@ class AppDrawer extends StatelessWidget {
               Icons.help_outline_rounded,
               route: Routes.support,
             ),
-            DrawerEntry('Support', Icons.support_agent_outlined),
+            DrawerEntry(
+              'Support',
+              Icons.support_agent_outlined,
+              route: Routes.support,
+            ),
             DrawerEntry('Activity Log', Icons.show_chart_rounded),
             DrawerEntry('Audit Log', Icons.list_alt_rounded),
             DrawerEntry(
@@ -1203,6 +1258,8 @@ class _FounderDrawerSection extends StatelessWidget {
                     entry.onTap!();
                   } else if (entry.route != null) {
                     context.push(entry.route!);
+                  } else {
+                    context.showSnack('Coming soon');
                   }
                 },
               ),

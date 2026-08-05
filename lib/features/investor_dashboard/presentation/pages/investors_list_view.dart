@@ -52,11 +52,11 @@ class InvestorsListView extends StatelessWidget {
       itemBuilder: (context, i, _) => AppInvestorCard(
         investor: i,
         onTap: () => context.push('${Routes.publicInvestor}/${i.id}'),
-        onFollow: () => context.showSnack(
-          i.isFollowing ? 'Unfollowed' : 'Following ${i.name}',
-        ),
-        onConnect: () =>
-            context.showSnack('Connection request sent to ${i.name}'),
+        // onFollow: () => context.showSnack(
+        //   i.isFollowing ? 'Unfollowed' : 'Following ${i.name}',
+        // ),
+        // onConnect: () =>
+        //     context.showSnack('Connection request sent to ${i.name}'),
       ),
     );
   }

@@ -205,6 +205,21 @@ class ApiClientHelper {
     }
   }
 
+  Future<Result<T>> patchEnvelope<T>(
+    String path, {
+    Map<String, dynamic>? body,
+    required T Function(ApiResponse<dynamic> envelope) parser,
+  }) async {
+    try {
+      final response = await _dio.patch<Map<String, dynamic>>(path, data: body);
+      final envelope = ApiResponse.parse(response.data ?? {}, null);
+      ApiExceptionHandler.ensureSuccess(envelope);
+      return Success(parser(envelope));
+    } catch (e) {
+      return Err(ApiExceptionHandler.mapException(e));
+    }
+  }
+
   Future<Result<T>> uploadBytesEnvelope<T>(
     String path, {
     required List<int> bytes,

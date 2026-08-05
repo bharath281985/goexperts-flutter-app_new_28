@@ -40,6 +40,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
   final _panNumber = TextEditingController();
   final _aadhaarNumber = TextEditingController();
   final _panGst = TextEditingController();
+  final _phoneCode = TextEditingController(text: '+91');
+  final _countryCode = TextEditingController(text: 'IN');
+  final _preferredIndustries = TextEditingController();
 
   String? _avatarUrl;
   String? _localAvatarPath;
@@ -71,6 +74,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     _panNumber.dispose();
     _aadhaarNumber.dispose();
     _panGst.dispose();
+    _phoneCode.dispose();
+    _countryCode.dispose();
+    _preferredIndustries.dispose();
     super.dispose();
   }
 
@@ -81,39 +87,58 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     );
     if (!mounted) return;
     res.fold((f) => context.showSnack(f.message), (m) {
-      final user = m['user'] as Map<String, dynamic>? ?? {};
-      _email.text = user['email']?.toString() ?? m['email']?.toString() ?? '';
+      final data = m['data'] is Map
+          ? Map<String, dynamic>.from(m['data'] as Map)
+          : m;
+      final user = data['user'] is Map
+          ? Map<String, dynamic>.from(data['user'] as Map)
+          : const <String, dynamic>{};
+      _email.text =
+          user['email']?.toString() ?? data['email']?.toString() ?? '';
       _fullName.text =
           user['fullName']?.toString() ??
           user['full_name']?.toString() ??
-          m['fullName']?.toString() ??
-          m['full_name']?.toString() ??
-          m['name']?.toString() ??
+          data['fullName']?.toString() ??
+          data['full_name']?.toString() ??
+          data['name']?.toString() ??
           '';
       _company.text =
-          m['company']?.toString() ??
-          m['firm']?.toString() ??
-          m['firmName']?.toString() ??
+          data['company']?.toString() ??
+          data['firm']?.toString() ??
+          data['firmName']?.toString() ??
           '';
       _phone.text =
           user['phone']?.toString() ??
-          m['phone']?.toString() ??
-          m['phoneNumber']?.toString() ??
+          data['phone']?.toString() ??
+          data['phoneNumber']?.toString() ??
           user['mobile']?.toString() ??
-          m['mobile']?.toString() ??
+          data['mobile']?.toString() ??
           '';
       _country.text =
-          user['country']?.toString() ?? m['country']?.toString() ?? '';
+          user['country']?.toString() ?? data['country']?.toString() ?? '';
 
       final city = user['city']?.toString();
-      final location = m['location']?.toString();
+      final location = data['location']?.toString();
       _city.text = city ?? location ?? '';
 
-      _bio.text = m['bio']?.toString() ?? user['bio']?.toString() ?? '';
-      _thesis.text =
-          m['thesis']?.toString() ?? user['thesis']?.toString() ?? '';
-      _ticketMin.text = m['ticketMin']?.toString() ?? '';
-      _ticketMax.text = m['ticketMax']?.toString() ?? '';
+      _bio.text = data['bio']?.toString() ?? user['bio']?.toString() ?? '';
+      _phoneCode.text = data['phoneCode']?.toString() ?? '+91';
+      _countryCode.text = data['countryCode']?.toString() ?? 'IN';
+      _country.text = data['countryId']?.toString() ?? _country.text;
+      _thesis.text = data['investmentStage']?.toString() ??
+          m['thesis']?.toString() ??
+          user['thesis']?.toString() ??
+          '';
+      _ticketMin.text = data['checkSize']?.toString() ??
+          m['ticketMin']?.toString() ??
+          '';
+      _ticketMax.text = data['portfolioCount']?.toString() ??
+          m['ticketMax']?.toString() ??
+          '';
+      final industries = data['preferredIndustries'];
+      _preferredIndustries.text = industries is List
+          ? industries.join(', ')
+          : industries?.toString() ?? '';
       _investorType.text = m['investorType']?.toString() ?? '';
       _linkedin.text =
           m['linkedin']?.toString() ?? user['linkedin']?.toString() ?? '';
@@ -147,49 +172,31 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
     setState(() => _saving = true);
     final Map<String, dynamic> body = {
-      'name': fullName,
       'fullName': fullName,
-      'company': _company.text.trim(),
-      'firm': _company.text.trim(),
       'firmName': _company.text.trim(),
       'phone': _phone.text.trim(),
-      'phoneNumber': _phone.text.trim(),
-      'mobile': _phone.text.trim(),
-      'country': _country.text.trim(),
+      'phoneCode': _phoneCode.text.trim(),
+      'countryCode': _countryCode.text.trim(),
+      'countryId': _country.text.trim(),
       'city': _city.text.trim(),
-      'location': _city.text.trim(),
       'bio': _bio.text.trim(),
-      'thesis': _thesis.text.trim(),
-      'investorType': _investorType.text.trim(),
+      'investmentStage': _thesis.text.trim(),
+      'checkSize': _ticketMin.text.trim(),
+      'preferredIndustries': _preferredIndustries.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'portfolioCount': int.tryParse(_ticketMax.text.trim()) ?? 0,
       'linkedin': _linkedin.text.trim(),
       'website': _website.text.trim(),
-      'panNumber': _panNumber.text.trim(),
-      'aadhaarNumber': _aadhaarNumber.text.trim(),
-      'panGst': _panGst.text.trim(),
-      if (_ticketMin.text.trim().isNotEmpty)
-        'ticketMin': double.tryParse(_ticketMin.text.trim()),
-      if (_ticketMax.text.trim().isNotEmpty)
-        'ticketMax': double.tryParse(_ticketMax.text.trim()),
-      if (_avatarUrl != null) 'avatarUrl': _avatarUrl,
-      if (_avatarUrl != null) 'avatar': _avatarUrl,
     };
 
-    final Result<Map<String, dynamic>> res;
-    if (_localAvatarPath != null) {
-      res = await sl<FileUploadHelper>().upload(
-        path: _localAvatarPath!,
-        endpoint: ApiEndpoints.investorProfile,
-        fileField: 'file',
-        method: 'put',
-        fields: body,
-      );
-    } else {
-      res = await sl<ApiClientHelper>().put<Map<String, dynamic>>(
-        ApiEndpoints.investorProfile,
-        body: body,
-        parser: (raw) => Map<String, dynamic>.from(raw as Map),
-      );
-    }
+    final res = await sl<ApiClientHelper>().patchEnvelope<bool>(
+      ApiEndpoints.investorProfile,
+      body: body,
+      parser: (_) => true,
+    );
 
     if (!mounted) return;
     setState(() {
@@ -199,17 +206,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       }
     });
 
-    res.fold((f) => context.showSnack(f.message, isError: true), (json) {
+    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
       context.showSnack('Investor profile updated');
-      final url =
-          json['avatarUrl']?.toString() ??
-          json['url']?.toString() ??
-          _avatarUrl;
-      if (url != null) {
-        setState(() {
-          _avatarUrl = url;
-        });
-      }
       final currentUser = context.read<AuthBloc>().state.user;
       if (currentUser != null) {
         context.read<AuthBloc>().add(
@@ -225,6 +223,25 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       }
       Navigator.of(context).pop();
     });
+  }
+
+  Future<void> _uploadAvatar(String path) async {
+    setState(() => _localAvatarPath = path);
+    final result = await sl<FileUploadHelper>().uploadUrl(
+      path: path,
+      endpoint: ApiEndpoints.investorProfileAvatar,
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) => context.showSnack(failure.message, isError: true),
+      (url) {
+        setState(() {
+          _avatarUrl = url;
+          _localAvatarPath = null;
+        });
+        context.read<AuthBloc>().add(const AuthRefreshUser());
+      },
+    );
   }
 
   @override
@@ -253,8 +270,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 ProfileAvatarEditor(
                   localPath: _localAvatarPath,
                   networkUrl: _avatarUrl,
-                  onPathPicked: (path) =>
-                      setState(() => _localAvatarPath = path),
+                  onPathPicked: _uploadAvatar,
                 ),
                 AppSizes.vGapXl,
                 AppTextField(
@@ -272,20 +288,53 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _company,
-                  label: 'Company',
-                  hint: 'Enter company name',
+                  label: 'Firm Name',
+                  hint: 'Enter your firm name',
                 ),
                 AppSizes.vGapMd,
-                AppTextField(
-                  controller: _phone,
-                  label: 'Phone',
-                  hint: 'Enter your phone number',
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 92,
+                      child: AppTextField(
+                        controller: _phoneCode,
+                        label: 'Code',
+                        hint: '+91',
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: AppTextField(
+                        controller: _phone,
+                        label: 'Phone Number',
+                        hint: 'Enter contact phone',
+                        keyboardType: TextInputType.phone,
+                      ),
+                    ),
+                  ],
                 ),
                 AppSizes.vGapMd,
-                AppTextField(
-                  controller: _country,
-                  label: 'Country',
-                  hint: 'Enter your country',
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 110,
+                      child: AppTextField(
+                        controller: _countryCode,
+                        label: 'Country Code',
+                        hint: 'IN',
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: AppTextField(
+                        controller: _country,
+                        label: 'Country',
+                        hint: 'India',
+                      ),
+                    ),
+                  ],
                 ),
                 AppSizes.vGapMd,
                 AppLocationField(
@@ -294,28 +343,21 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   hint: 'Search and select your city',
                 ),
                 AppSizes.vGapMd,
-                AppTextField(
-                  controller: _investorType,
-                  label: 'Investor Type',
-                  hint: 'e.g., Angel Investor, VC',
-                ),
-                AppSizes.vGapMd,
                 Row(
                   children: [
                     Expanded(
                       child: AppTextField(
                         controller: _ticketMin,
-                        label: 'Min Ticket Size',
-                        hint: 'e.g. 25000',
-                        keyboardType: TextInputType.number,
+                        label: 'Check Size',
+                        hint: r'$50,000 - $250,000',
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: AppTextField(
                         controller: _ticketMax,
-                        label: 'Max Ticket Size',
-                        hint: 'e.g. 250000',
+                        label: 'Portfolio Count',
+                        hint: 'e.g. 14',
                         keyboardType: TextInputType.number,
                       ),
                     ),
@@ -324,9 +366,15 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _thesis,
-                  label: 'Investment Thesis',
-                  hint: 'Describe your investment thesis',
-                  maxLines: 3,
+                  label: 'Investment Stage',
+                  hint: 'e.g. Pre-Seed / Seed',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _preferredIndustries,
+                  label: 'Preferred Industries',
+                  hint: 'AI/ML, Fintech, Enterprise SaaS',
+                  maxLines: 2,
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
@@ -348,29 +396,6 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   hint: 'Enter website URL',
                 ),
                 AppSizes.vGapXl,
-                const Text(
-                  'KYC Documents',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _panNumber,
-                  label: 'PAN Number',
-                  hint: 'Enter your PAN number',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _aadhaarNumber,
-                  label: 'Aadhaar Number',
-                  hint: 'Enter your Aadhaar number',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _panGst,
-                  label: 'GST Number',
-                  hint: 'Enter GST number if applicable',
-                ),
-                AppSizes.vGapXl,
 
                 AppPrimaryButton(
                   label: 'Save',
@@ -389,14 +414,12 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       _company.text,
       _city.text,
       _bio.text,
-      _investorType.text,
       _ticketMin.text,
       _ticketMax.text,
       _thesis.text,
+      _preferredIndustries.text,
       _linkedin.text,
       _website.text,
-      _panNumber.text,
-      _aadhaarNumber.text,
     ];
     final filled = values.where((e) => e.trim().isNotEmpty).length;
     return ((filled / values.length) * 100).round();

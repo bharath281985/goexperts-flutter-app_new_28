@@ -7,7 +7,7 @@ abstract class CompanyRepository {
   Future<Result<Company>> getCompany(String id);
   Future<Result<bool>> toggleFollow(String id);
   Future<Result<Company>> getClientProfile();
-  Future<Result<Company>> updateClientProfile(
+  Future<Result<bool>> updateClientProfile(
     Map<String, dynamic> data, {
     String? logoPath,
   });

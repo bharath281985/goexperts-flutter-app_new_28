@@ -28,13 +28,25 @@ class ClientCompanyProfilePage extends StatefulWidget {
 
 class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   final _name = TextEditingController();
+  final _email = TextEditingController();
+  final _phone = TextEditingController();
+  final _phoneCode = TextEditingController(text: '+91');
+  final _countryCode = TextEditingController(text: 'IN');
+  final _companyNameController = TextEditingController();
   final _industry = TextEditingController();
-  final _gst = TextEditingController();
+  final _teamSize = TextEditingController();
+  final _bio = TextEditingController();
+  final _city = TextEditingController();
+  final _country = TextEditingController();
   final _website = TextEditingController();
-  final _address = TextEditingController();
+  final _linkedin = TextEditingController();
+  final _pan = TextEditingController();
+  final _aadhaar = TextEditingController();
+  final _gst = TextEditingController();
+
   bool _loading = true;
   bool _saving = false;
-  Company? _company;
+  Company? _companyData;
   String? _localLogoPath;
 
   @override
@@ -46,10 +58,21 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   @override
   void dispose() {
     _name.dispose();
+    _email.dispose();
+    _phone.dispose();
+    _phoneCode.dispose();
+    _countryCode.dispose();
+    _companyNameController.dispose();
     _industry.dispose();
-    _gst.dispose();
+    _teamSize.dispose();
+    _bio.dispose();
+    _city.dispose();
+    _country.dispose();
     _website.dispose();
-    _address.dispose();
+    _linkedin.dispose();
+    _pan.dispose();
+    _aadhaar.dispose();
+    _gst.dispose();
     super.dispose();
   }
 
@@ -57,26 +80,47 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     final res = await sl<CompanyRepository>().getClientProfile();
     if (!mounted) return;
     res.fold((f) => context.showSnack(f.message), (c) {
-      _company = c;
-      _name.text = c.name;
+      _companyData = c;
+      _name.text = c.ownerName.isNotEmpty ? c.ownerName : c.name;
+      _email.text = c.email;
+      _phone.text = c.phone;
+      _phoneCode.text = c.phoneCode.isEmpty ? '+91' : c.phoneCode;
+      _countryCode.text = c.countryCode.isEmpty ? 'IN' : c.countryCode;
+      _companyNameController.text = c.name;
       _industry.text = c.industry;
-      _gst.text = c.gst;
+      _teamSize.text = c.teamSize;
+      _bio.text = c.bio;
+      _city.text = c.city;
+      _country.text = c.country;
       _website.text = c.website ?? '';
-      _address.text = c.location;
+      _linkedin.text = c.linkedin;
+      _pan.text = (c.pan.isNotEmpty ? c.pan : c.panNumber);
+      _aadhaar.text = c.aadhaarNumber;
+      _gst.text = c.gst;
     });
     setState(() => _loading = false);
   }
 
   Future<void> _save() async {
+    if (_name.text.trim().isEmpty) {
+      context.showSnack('Full name is required', isError: true);
+      return;
+    }
     setState(() => _saving = true);
     final res = await sl<CompanyRepository>().updateClientProfile({
-      'name': _name.text.trim(),
-      'company': _name.text.trim(),
+      'fullName': _name.text.trim(),
+      'phone': _phone.text.trim(),
+      'phoneCode': _phoneCode.text.trim(),
+      'countryCode': _countryCode.text.trim(),
+      'companyName': _companyNameController.text.trim(),
       'industry': _industry.text.trim(),
-      'gst': _gst.text.trim(),
+      'companySize': _teamSize.text.trim(),
+      'bio': _bio.text.trim(),
+      'city': _city.text.trim(),
+      'countryId': _country.text.trim(),
       'website': _website.text.trim(),
-      'address': _address.text.trim(),
-    }, logoPath: _localLogoPath);
+      'linkedin': _linkedin.text.trim(),
+    });
     if (!mounted) return;
     setState(() {
       _saving = false;
@@ -84,18 +128,12 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         _localLogoPath = null;
       }
     });
-    res.fold((f) => context.showSnack(f.message), (c) {
-      _company = c;
+    res.fold((f) => context.showSnack(f.message), (_) {
       context.showSnack('Company profile updated');
       final currentUser = context.read<AuthBloc>().state.user;
       if (currentUser != null) {
         context.read<AuthBloc>().add(
-          AuthUserUpdated(
-            currentUser.copyWith(
-              fullName: _name.text.trim(),
-              avatarUrl: c.logoUrl,
-            ),
-          ),
+          AuthUserUpdated(currentUser.copyWith(fullName: _name.text.trim())),
         );
       }
       Navigator.of(context).pop();
@@ -115,6 +153,22 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     );
   }
 
+  Future<void> _uploadLogo(String path) async {
+    setState(() => _localLogoPath = path);
+    final result = await sl<CompanyRepository>().uploadClientLogo(path);
+    if (!mounted) return;
+    result.fold(
+      (failure) => context.showSnack(failure.message, isError: true),
+      (url) {
+        setState(() {
+          _localLogoPath = null;
+        });
+        context.read<AuthBloc>().add(const AuthRefreshUser());
+        context.showSnack('Company logo updated');
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -129,7 +183,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _company?.isVerified == true
+                        _companyData?.isVerified == true
                             ? 'Verified business'
                             : 'Verification pending',
                       ),
@@ -141,28 +195,97 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppSizes.vGapMd,
                 ProfileAvatarEditor(
                   localPath: _localLogoPath,
-                  networkUrl: _company?.logoUrl,
-                  onPathPicked: (path) => setState(() => _localLogoPath = path),
+                  networkUrl: _companyData?.logoUrl,
+                  onPathPicked: _uploadLogo,
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _name,
+                  label: 'Full Name',
+                  hint: 'Enter your full name',
+                ),
+                AppSizes.vGapMd,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 92,
+                      child: AppTextField(
+                        controller: _phoneCode,
+                        label: 'Code',
+                        hint: '+91',
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: AppTextField(
+                        controller: _phone,
+                        label: 'Phone Number',
+                        hint: 'Enter contact phone',
+                        keyboardType: TextInputType.phone,
+                        maxLength: 10,
+                      ),
+                    ),
+                  ],
+                ),
+                AppSizes.vGapLg,
+                Text('Company Info', style: context.text.titleMedium),
+                AppSizes.vGapSm,
+                AppTextField(
+                  controller: _companyNameController,
                   label: 'Company Name',
                   hint: 'Enter company name',
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
-                  controller: _industry,
-                  label: 'Industry',
-                  hint: 'Enter industry',
+                  controller: _bio,
+                  label: 'Biography / Overview',
+                  hint: 'Brief description about the company',
+                  maxLines: 3,
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
-                  controller: _gst,
-                  label: 'GST',
-                  hint: 'Enter GST number',
+                  controller: _industry,
+                  label: 'Industry',
+                  hint: 'Enter industry (e.g. Technology)',
                 ),
                 AppSizes.vGapMd,
+                AppTextField(
+                  controller: _teamSize,
+                  label: 'Company Size',
+                  hint: 'e.g. 50-200',
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _city,
+                  label: 'City',
+                  hint: 'Your city',
+                ),
+                AppSizes.vGapMd,
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 110,
+                      child: AppTextField(
+                        controller: _countryCode,
+                        label: 'Country Code',
+                        hint: 'IN',
+                      ),
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: AppTextField(
+                        controller: _country,
+                        label: 'Country',
+                        hint: 'India',
+                      ),
+                    ),
+                  ],
+                ),
+                AppSizes.vGapLg,
+                Text('Links', style: context.text.titleMedium),
+                AppSizes.vGapSm,
                 AppTextField(
                   controller: _website,
                   label: 'Website',
@@ -170,15 +293,15 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
-                  controller: _address,
-                  label: 'Address',
-                  hint: 'Enter company address',
-                  maxLines: 2,
+                  controller: _linkedin,
+                  label: 'LinkedIn URL',
+                  hint: 'Enter LinkedIn URL',
                 ),
                 AppSizes.vGapLg,
                 AppPrimaryButton(
                   label: 'Upload Document',
                   onPressed: _uploadDoc,
+                  icon: Icons.upload_file_outlined,
                 ),
                 AppSizes.vGapMd,
                 AppPrimaryButton(
@@ -186,6 +309,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   isLoading: _saving,
                   onPressed: _save,
                 ),
+                SizedBox(height: MediaQuery.viewInsetsOf(context).bottom),
               ],
             ),
     );
@@ -194,14 +318,20 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   int _completionPercent() {
     final vals = [
       _name.text.trim(),
+      _email.text.trim(),
+      _phone.text.trim(),
+      _companyNameController.text.trim(),
       _industry.text.trim(),
-      _gst.text.trim(),
-      _website.text.trim(),
-      _address.text.trim(),
-      if ((_company?.logoUrl ?? '').isNotEmpty) 'logo',
+      _bio.text.trim(),
+      _city.text.trim(),
+      _country.text.trim(),
+      _pan.text.trim(),
+      _aadhaar.text.trim(),
+      if ((_companyData?.logoUrl ?? '').isNotEmpty || _localLogoPath != null)
+        'logo',
     ];
     final filled = vals.where((e) => e.isNotEmpty).length;
-    return ((filled / 6) * 100).round();
+    return ((filled / 11) * 100).round();
   }
 }
 

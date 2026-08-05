@@ -11,6 +11,8 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_gradient_header.dart';
 import '../../../../core/widgets/app_list_tile.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/dashboard/dashboard_cubit.dart';
 // DashboardCubit is optional — MyProfilePage works with AuthBloc alone.
@@ -35,7 +37,91 @@ class _MyProfilePageState extends State<MyProfilePage> {
   void initState() {
     super.initState();
     context.read<AuthBloc>().add(const AuthRefreshUser());
+    _syncRoleProfile();
     _fetchAverage();
+  }
+
+  Future<void> _syncRoleProfile() async {
+    final user = context.read<AuthBloc>().state.user;
+    if (user == null || user.role == null) return;
+
+    final api = sl<ApiClientHelper>();
+    String endpoint = '';
+
+    switch (user.role!) {
+      case UserRole.freelancer:
+        endpoint = ApiEndpoints.freelancerProfile;
+        break;
+      case UserRole.client:
+        endpoint = ApiEndpoints.clientProfile;
+        break;
+      case UserRole.investor:
+        endpoint = ApiEndpoints.investorProfile;
+        break;
+      case UserRole.founder:
+        endpoint = ApiEndpoints.founderProfile;
+        break;
+    }
+
+    if (endpoint.isEmpty) return;
+
+    final res = await api.getEnvelope<Map<String, dynamic>>(
+      endpoint,
+      parser: (raw) {
+        if (raw.data is Map) {
+          return Map<String, dynamic>.from(raw.data as Map);
+        }
+        return {};
+      },
+    );
+
+    if (!mounted) return;
+
+    res.fold((_) {}, (data) {
+      final possibleNames = [
+        data['fullName'],
+        data['name'],
+        data['companyCategory'],
+        data['companyName'],
+        if (data['user'] is Map) (data['user'] as Map)['fullName'],
+      ];
+      final nameStr = possibleNames
+          .firstWhere(
+            (e) => e != null && e.toString().trim().isNotEmpty,
+            orElse: () => null,
+          )
+          ?.toString()
+          .trim();
+
+      final possibleAvatars = [
+        data['avatarUrl'],
+        data['logoUrl'],
+        data['logo'],
+        data['avatar_url'],
+        if (data['user'] is Map) (data['user'] as Map)['avatarUrl'],
+      ];
+      final avatarStr = possibleAvatars
+          .firstWhere(
+            (e) => e != null && e.toString().trim().isNotEmpty,
+            orElse: () => null,
+          )
+          ?.toString()
+          .trim();
+
+      if (nameStr != null || avatarStr != null) {
+        final currentUser = context.read<AuthBloc>().state.user;
+        if (currentUser != null) {
+          context.read<AuthBloc>().add(
+            AuthUserUpdated(
+              currentUser.copyWith(
+                fullName: nameStr ?? currentUser.fullName,
+                avatarUrl: avatarStr ?? currentUser.avatarUrl,
+              ),
+            ),
+          );
+        }
+      }
+    });
   }
 
   Future<void> _fetchAverage() async {
@@ -96,7 +182,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
       metric2Label = 'Portfolio';
       metric2Val = dashState != null
-          ? '\$${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          ? '\₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
           : '—';
     } else if (role == UserRole.founder) {
       metric1Label = 'Meetings';
@@ -105,21 +191,33 @@ class _MyProfilePageState extends State<MyProfilePage> {
           : '0';
       metric2Label = 'Raised';
       metric2Val = dashState != null
-          ? '\$${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          ? '\₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
           : '—';
     } else if (role == UserRole.client) {
       metric1Label = 'Projects';
       metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
       metric2Label = 'Spend';
       metric2Val = dashState != null
-          ? '\$${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          ? '\₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          : '—';
+    } else if (role == UserRole.freelancer) {
+      metric1Label = 'Projects';
+      metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
+      metric2Label = 'Earned';
+      metric2Val = dashState != null
+          ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
           : '—';
     }
 
     return RefreshIndicator(
       onRefresh: () async {
         context.read<AuthBloc>().add(const AuthRefreshUser());
-        await _fetchAverage();
+        await Future.wait([_syncRoleProfile(), _fetchAverage()]);
+        try {
+          if (mounted) {
+            context.read<DashboardCubit>().refresh();
+          }
+        } catch (_) {}
       },
       child: ListView(
         padding: EdgeInsets.zero,

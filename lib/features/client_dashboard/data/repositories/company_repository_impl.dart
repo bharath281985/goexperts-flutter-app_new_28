@@ -59,7 +59,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
   }
 
   @override
-  Future<Result<Company>> updateClientProfile(
+  Future<Result<bool>> updateClientProfile(
     Map<String, dynamic> data, {
     String? logoPath,
   }) async {
@@ -71,15 +71,15 @@ class CompanyRepositoryImpl implements CompanyRepository {
         path: logoPath,
         endpoint: ApiEndpoints.clientProfile,
         fileField: 'file',
-        method: 'put',
+        method: 'patch',
         fields: data,
       );
-      return uploadRes.fold(Err.new, (json) => Success(_fromJson(json)));
+      return uploadRes.fold(Err.new, (_) => const Success(true));
     }
-    return _api.put<Company>(
+    return _api.patchEnvelope<bool>(
       ApiEndpoints.clientProfile,
       body: data,
-      parser: (raw) => _fromJson(Map<String, dynamic>.from(raw as Map)),
+      parser: (_) => true,
     );
   }
 
@@ -111,34 +111,61 @@ class CompanyRepositoryImpl implements CompanyRepository {
     );
   }
 
-  static Company _fromJson(Map<String, dynamic> json) => Company(
-    id: json['id']?.toString() ?? 'company',
-    name:
-        json['name'] as String? ??
-        json['companyName'] as String? ??
-        json['company'] as String? ??
-        'Company',
-    industry: json['industry'] as String? ?? 'General',
-    location:
-        json['location'] as String? ?? json['address'] as String? ?? 'N/A',
-    ownerName: json['ownerName'] as String? ?? '',
-    logoUrl:
-        json['logoUrl'] as String? ??
-        json['logo'] as String? ??
-        json['avatarUrl'] as String?,
-    coverUrl: json['coverUrl'] as String?,
-    description: json['description'] as String? ?? '',
-    website: json['website'] as String?,
-    teamSize: json['teamSize']?.toString() ?? '1-10',
-    isVerified: json['isVerified'] as bool? ?? false,
-    projectsPosted: (json['projectsPosted'] as num?)?.toInt() ?? 0,
-    hiresCount: (json['hiresCount'] as num?)?.toInt() ?? 0,
-    rating: (json['rating'] as num?)?.toDouble() ?? 0,
-    isFollowing: json['isFollowing'] as bool? ?? false,
-    isSaved: json['isSaved'] as bool? ?? false,
-    gst: json['gst'] as String? ?? '',
-    pan: json['pan'] as String? ?? '',
-  );
+  static Company _fromJson(Map<String, dynamic> json) {
+    final data = json['data'] is Map
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : json;
+    final user = data['user'] is Map
+        ? Map<String, dynamic>.from(data['user'] as Map)
+        : const <String, dynamic>{};
+    return Company(
+      id: data['id']?.toString() ?? 'company',
+      name:
+          data['companyName'] as String? ??
+          data['name'] as String? ??
+          'Company',
+      industry: data['industry'] as String? ?? 'General',
+      location:
+          json['location'] as String? ?? json['address'] as String? ?? 'N/A',
+      ownerName:
+          data['fullName'] as String? ?? user['fullName'] as String? ?? '',
+      logoUrl:
+          json['logoUrl'] as String? ??
+          json['logo'] as String? ??
+          json['avatarUrl'] as String?,
+      coverUrl: json['coverUrl'] as String?,
+      description: json['description'] as String? ?? '',
+      website: data['website'] as String?,
+      teamSize:
+          data['companySize']?.toString() ??
+          data['teamSize']?.toString() ??
+          '1-10',
+      isVerified: json['isVerified'] as bool? ?? false,
+      projectsPosted: (json['projectsPosted'] as num?)?.toInt() ?? 0,
+      hiresCount: (json['hiresCount'] as num?)?.toInt() ?? 0,
+      rating: (json['rating'] as num?)?.toDouble() ?? 0,
+      isFollowing: json['isFollowing'] as bool? ?? false,
+      isSaved: json['isSaved'] as bool? ?? false,
+      gst: json['gst'] as String? ?? '',
+      pan: json['pan'] as String? ?? '',
+      panNumber: json['panNumber'] as String? ?? '',
+      aadhaarNumber: json['aadhaarNumber'] as String? ?? '',
+      email: data['email'] as String? ?? user['email'] as String? ?? '',
+      phone: data['phone'] as String? ?? user['phone'] as String? ?? '',
+      bio: data['bio'] as String? ?? user['bio'] as String? ?? '',
+      city: data['city'] as String? ?? user['city'] as String? ?? '',
+      country: data['countryId'] as String? ?? data['country'] as String? ?? '',
+      linkedin: data['linkedin'] as String? ?? '',
+      companySize: data['companySize']?.toString() ?? '',
+      phoneCode:
+          data['phoneCode']?.toString() ?? user['phoneCode']?.toString() ?? '',
+      countryCode:
+          data['countryCode']?.toString() ??
+          user['countryCode']?.toString() ??
+          '',
+      countryId: data['countryId']?.toString() ?? '',
+    );
+  }
 
   Future<Result<T>> _apiNotConfigured<T>() async =>
       const Err(ServerFailure('Live API client is not configured.'));

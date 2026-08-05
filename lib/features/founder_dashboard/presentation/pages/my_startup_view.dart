@@ -635,9 +635,18 @@ class _MyStartupViewState extends State<MyStartupView> {
     onTap: () async {
       if (url != null && url.isNotEmpty) {
         final uri = Uri.tryParse(url);
-        if (uri != null && await canLaunchUrl(uri)) {
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          return;
+        if (uri != null) {
+          if (url.toLowerCase().endsWith('.pdf') ||
+              url.toLowerCase().contains('.pdf?')) {
+            context.push(
+              '${Routes.documentViewer}?url=${Uri.encodeComponent(url)}&name=${Uri.encodeComponent(title)}',
+            );
+            return;
+          }
+          try {
+            await launchUrl(uri, mode: LaunchMode.externalApplication);
+            return;
+          } catch (_) {}
         }
       }
       if (context.mounted) {

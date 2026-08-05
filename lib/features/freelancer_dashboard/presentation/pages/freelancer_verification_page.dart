@@ -223,23 +223,32 @@ class _FreelancerVerificationPageState
   }
 
   Future<void> _pickKycImage(_KycDocumentType type, ImageSource source) async {
-    final picked = await _imagePicker.pickImage(
-      source: source,
-      imageQuality: 85,
-      maxWidth: 1600,
-      maxHeight: 1600,
-    );
-    if (picked == null || !mounted) return;
+    try {
+      final picked = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1600,
+        maxHeight: 1600,
+      );
+      if (picked == null || !mounted) return;
 
-    final bytes = await picked.readAsBytes();
-    if (!mounted) return;
-    setState(() {
-      _documents[type]!
-        ..path = picked.path
-        ..name = picked.name
-        ..previewBytes = bytes
-        ..uploaded = false;
-    });
+      final bytes = await picked.readAsBytes();
+      if (!mounted) return;
+      setState(() {
+        _documents[type]!
+          ..path = picked.path
+          ..name = picked.name
+          ..previewBytes = bytes
+          ..uploaded = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        context.showSnack(
+          'Camera or Gallery permission denied.',
+          isError: true,
+        );
+      }
+    }
   }
 
   Future<void> _pickKycFile(_KycDocumentType type) async {
