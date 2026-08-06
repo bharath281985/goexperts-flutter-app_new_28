@@ -428,7 +428,7 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry(
               'Help Center',
               Icons.help_outline_rounded,
-              route: Routes.support,
+              route: Routes.helpCenter,
             ),
             DrawerEntry(
               'Support',
@@ -487,7 +487,11 @@ class AppDrawer extends StatelessWidget {
               route: Routes.clientProjects,
             ),
             DrawerEntry('Pipeline', Icons.view_kanban_outlined),
-            DrawerEntry('Tasks', Icons.task_alt_outlined),
+            DrawerEntry(
+              'Tasks',
+              Icons.task_alt_outlined,
+              route: Routes.clientTasks,
+            ),
             DrawerEntry('Contracts', Icons.assignment_outlined),
           ]),
           const DrawerSection('Talent', [
@@ -589,7 +593,7 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry(
               'Help Center',
               Icons.help_outline_rounded,
-              route: Routes.support,
+              route: Routes.helpCenter,
             ),
             DrawerEntry(
               'Support',

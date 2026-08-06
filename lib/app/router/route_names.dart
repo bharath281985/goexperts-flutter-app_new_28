@@ -35,6 +35,8 @@ class Routes {
   static const clientDashboard = '/client/dashboard';
   static const clientProjects = '/client/projects';
   static const clientCreateProject = '/client/create-project';
+  static const clientTasks = '/client/tasks';
+  static const clientAddTask = '/client/tasks/add';
   static const clientFreelancers = '/client/freelancers';
   static const clientPayments = '/client/payments';
   static const clientProfile = '/client/profile';
@@ -68,6 +70,11 @@ class Routes {
   static const changePassword = '/change-password';
   static const privacyPolicy = '/privacy';
   static const termsOfService = '/terms';
+  static const aboutGoExperts = '/about-goexperts';
+  static const refundPolicy = '/refund-policy';
+  static const helpCenter = '/help-center';
+  static const contactUs = '/contact-us';
+  static const deleteAccount = '/delete-account';
 
   // Detail routes (deep-link ready)
   static const chat = '/chat'; // /chat/:id

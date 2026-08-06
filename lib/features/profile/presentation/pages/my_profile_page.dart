@@ -182,7 +182,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
       metric2Label = 'Portfolio';
       metric2Val = dashState != null
-          ? '\₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
           : '—';
     } else if (role == UserRole.founder) {
       metric1Label = 'Meetings';
@@ -191,14 +191,14 @@ class _MyProfilePageState extends State<MyProfilePage> {
           : '0';
       metric2Label = 'Raised';
       metric2Val = dashState != null
-          ? '\₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
           : '—';
     } else if (role == UserRole.client) {
       metric1Label = 'Projects';
       metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
       metric2Label = 'Spend';
       metric2Val = dashState != null
-          ? '\₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
+          ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
           : '—';
     } else if (role == UserRole.freelancer) {
       metric1Label = 'Projects';
@@ -212,12 +212,13 @@ class _MyProfilePageState extends State<MyProfilePage> {
     return RefreshIndicator(
       onRefresh: () async {
         context.read<AuthBloc>().add(const AuthRefreshUser());
-        await Future.wait([_syncRoleProfile(), _fetchAverage()]);
+        DashboardCubit? dashboardCubit;
         try {
-          if (mounted) {
-            context.read<DashboardCubit>().refresh();
-          }
+          dashboardCubit = context.read<DashboardCubit>();
         } catch (_) {}
+        await Future.wait([_syncRoleProfile(), _fetchAverage()]);
+        if (!mounted) return;
+        dashboardCubit?.refresh();
       },
       child: ListView(
         padding: EdgeInsets.zero,
@@ -424,6 +425,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     'Support',
                     () => context.push(Routes.support),
                   ),
+                  _tile(
+                    context,
+                    Icons.delete_outline_rounded,
+                    'Delete Account',
+                    () => context.push(Routes.deleteAccount),
+                  ),
                 ]),
                 AppSizes.vGapLg,
                 AppCard(
@@ -460,23 +467,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
         ],
       ),
     );
-  }
-
-  void _viewPublic(BuildContext context, UserRole role, String id) {
-    switch (role) {
-      case UserRole.freelancer:
-        context.push('${Routes.publicFreelancer}/$id');
-        break;
-      case UserRole.client:
-        context.push('${Routes.publicCompany}/$id');
-        break;
-      case UserRole.investor:
-        context.push('${Routes.publicInvestor}/$id');
-        break;
-      case UserRole.founder:
-        context.push('${Routes.publicFounder}/$id');
-        break;
-    }
   }
 
   Widget _stat(BuildContext context, String value, String label) => Column(

@@ -220,6 +220,11 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => context.push(Routes.privacyPolicy),
             ),
             AppListTile(
+              title: 'Refund Policy',
+              leadingIcon: Icons.receipt_long_outlined,
+              onTap: () => context.push(Routes.refundPolicy),
+            ),
+            AppListTile(
               title: 'Terms of Service',
               leadingIcon: Icons.gavel_outlined,
               onTap: () => context.push(Routes.termsOfService),
@@ -230,12 +235,17 @@ class _SettingsPageState extends State<SettingsPage> {
             AppListTile(
               title: 'Help Center',
               leadingIcon: Icons.help_outline_rounded,
-              onTap: () => context.push(Routes.support),
+              onTap: () => context.push(Routes.helpCenter),
             ),
             AppListTile(
               title: 'About Go Experts',
               leadingIcon: Icons.info_outline_rounded,
-              onTap: () => context.push(Routes.privacyPolicy),
+              onTap: () => context.push(Routes.aboutGoExperts),
+            ),
+            AppListTile(
+              title: 'Contact Us',
+              leadingIcon: Icons.contact_support_outlined,
+              onTap: () => context.push(Routes.contactUs),
             ),
             AppListTile(
               title: 'App Version',

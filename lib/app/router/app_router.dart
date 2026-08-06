@@ -62,9 +62,11 @@ import '../../features/role_selection/presentation/pages/role_selection_page.dar
 import '../../features/settings/presentation/pages/legal_document_page.dart';
 import '../../features/settings/presentation/pages/bookmarks_page.dart';
 import '../../features/settings/presentation/pages/change_password_page.dart';
+import '../../features/settings/presentation/pages/delete_account_page.dart';
 import '../../features/settings/presentation/pages/global_search_page.dart';
-import '../../features/settings/presentation/pages/security_center_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/settings/presentation/pages/public_content_page.dart';
+import '../../features/settings/presentation/pages/security_center_page.dart';
 import '../../features/startup_ideas/presentation/pages/startup_details_page.dart';
 import '../../features/subscriptions/presentation/pages/current_subscription_page.dart';
 import '../../features/subscriptions/presentation/pages/subscription_selection_page.dart';
@@ -315,6 +317,16 @@ GoRouter createRouter(AuthBloc authBloc) {
             CreateProjectPage(projectId: s.uri.queryParameters['projectId']),
       ),
       GoRoute(
+        path: Routes.clientTasks,
+        builder: (_, __) => const ClientTasksPage(),
+      ),
+      GoRoute(
+        path: Routes.clientAddTask,
+        builder: (_, s) => ClientAddTaskPage(
+          task: s.extra is ClientTask ? s.extra as ClientTask : null,
+        ),
+      ),
+      GoRoute(
         path: Routes.clientFreelancers,
         builder: (_, __) => const FreelancersStandalonePage(),
       ),
@@ -385,11 +397,38 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(path: Routes.support, builder: (_, __) => const SupportPage()),
       GoRoute(
         path: Routes.privacyPolicy,
-        builder: (_, __) => LegalDocumentPage.privacy(),
+        builder: (_, __) =>
+            const PublicContentPage(title: 'Privacy Policy', path: 'privacy'),
       ),
       GoRoute(
         path: Routes.termsOfService,
         builder: (_, __) => LegalDocumentPage.terms(),
+      ),
+      GoRoute(
+        path: Routes.aboutGoExperts,
+        builder: (_, __) =>
+            const PublicContentPage(title: 'About Go Experts', path: 'about'),
+      ),
+      GoRoute(
+        path: Routes.refundPolicy,
+        builder: (_, __) => const PublicContentPage(
+          title: 'Refund Policy',
+          path: 'refund-policy',
+        ),
+      ),
+      GoRoute(
+        path: Routes.helpCenter,
+        builder: (_, __) =>
+            const PublicContentPage(title: 'Help Center', path: 'help-center'),
+      ),
+      GoRoute(
+        path: Routes.contactUs,
+        builder: (_, __) =>
+            const PublicContentPage(title: 'Contact Us', path: 'contact'),
+      ),
+      GoRoute(
+        path: Routes.deleteAccount,
+        builder: (_, __) => const DeleteAccountPage(),
       ),
       GoRoute(
         path: Routes.search,
