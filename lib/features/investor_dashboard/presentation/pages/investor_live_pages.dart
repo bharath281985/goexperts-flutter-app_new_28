@@ -125,14 +125,15 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       _phoneCode.text = data['phoneCode']?.toString() ?? '+91';
       _countryCode.text = data['countryCode']?.toString() ?? 'IN';
       _country.text = data['countryId']?.toString() ?? _country.text;
-      _thesis.text = data['investmentStage']?.toString() ??
+      _thesis.text =
+          data['investmentStage']?.toString() ??
           m['thesis']?.toString() ??
           user['thesis']?.toString() ??
           '';
-      _ticketMin.text = data['checkSize']?.toString() ??
-          m['ticketMin']?.toString() ??
-          '';
-      _ticketMax.text = data['portfolioCount']?.toString() ??
+      _ticketMin.text =
+          data['checkSize']?.toString() ?? m['ticketMin']?.toString() ?? '';
+      _ticketMax.text =
+          data['portfolioCount']?.toString() ??
           m['ticketMax']?.toString() ??
           '';
       final industries = data['preferredIndustries'];
@@ -172,27 +173,39 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
     setState(() => _saving = true);
     final Map<String, dynamic> body = {
+      // ── Personal ──────────────────────────────────────────────────────────
       'fullName': fullName,
-      'firmName': _company.text.trim(),
       'phone': _phone.text.trim(),
-      'phoneCode': _phoneCode.text.trim(),
       'countryCode': _countryCode.text.trim(),
-      'countryId': _country.text.trim(),
+      // ── Location ──────────────────────────────────────────────────────────
       'city': _city.text.trim(),
-      'bio': _bio.text.trim(),
-      'investmentStage': _thesis.text.trim(),
-      'checkSize': _ticketMin.text.trim(),
-      'preferredIndustries': _preferredIndustries.text
+      'country': _country.text.trim(),
+      // ── Investment Details ─────────────────────────────────────────────────
+      'firmName': _company.text.trim(),
+      'investorType': _investorType.text.trim(),
+      'thesis': _thesis.text.trim(),
+      'ticketMin': double.tryParse(_ticketMin.text.trim()) ?? 0.0,
+      'ticketMax': double.tryParse(_ticketMax.text.trim()) ?? 0.0,
+      'focusAreas': _preferredIndustries.text
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
-      'portfolioCount': int.tryParse(_ticketMax.text.trim()) ?? 0,
+      'stages': <String>[],
+      'modes': <String>[],
+      // ── Social & Links ────────────────────────────────────────────────────
       'linkedin': _linkedin.text.trim(),
       'website': _website.text.trim(),
+      // ── KYC ───────────────────────────────────────────────────────────────
+      'panNumber': _panNumber.text.trim(),
+      'aadhaarNumber': _aadhaarNumber.text.trim(),
+      'panGst': _panGst.text.trim(),
+      // ── Avatar ────────────────────────────────────────────────────────────
+      if (_localAvatarPath != null || _avatarUrl != null)
+        'avatarUrl': _localAvatarPath ?? _avatarUrl,
     };
 
-    final res = await sl<ApiClientHelper>().patchEnvelope<bool>(
+    final res = await sl<ApiClientHelper>().putEnvelope<bool>(
       ApiEndpoints.investorProfile,
       body: body,
       parser: (_) => true,

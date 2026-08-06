@@ -299,8 +299,6 @@ class ApiEndpoints {
       '/investor/watchlist/$id/priority';
   static const investorInvestments = '/investor/investments';
   static String investorInvestment(String id) => '/investor/investments/$id';
-  static const investorExpressInterest =
-      '/investor/investments/express-interest';
   static String investorCancelInvestment(String id) =>
       '/investor/investments/$id/cancel';
   static const investorOffer = '/investor/investments/offer';

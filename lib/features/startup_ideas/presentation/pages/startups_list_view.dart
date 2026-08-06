@@ -10,6 +10,7 @@ import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../domain/entities/startup.dart';
 import '../../domain/repositories/startup_repository.dart';
+import '../widgets/investment_offer_sheet.dart';
 import '../widgets/startup_card.dart';
 
 /// Embeddable startup discovery catalog.
@@ -120,9 +121,23 @@ class StartupsListView extends StatelessWidget {
                 }
               });
             } else {
-              context.push(
-                '${Routes.apply}?type=Investment&name=${Uri.encodeComponent(s.name)}&projectId=${s.id}',
+              final submitted = await showInvestmentOfferSheet(
+                context,
+                startupId: s.id,
+                startupName: s.name,
               );
+              if (submitted == true) {
+                final updated = s.copyWith(hasInvested: true);
+                bloc.add(
+                  ListItemUpdated(
+                    updated,
+                    (existing, newItem) => existing.id == newItem.id,
+                  ),
+                );
+                if (context.mounted) {
+                  context.push('${Routes.startupDetails}/${s.id}');
+                }
+              }
             }
           },
           onEdit: null,

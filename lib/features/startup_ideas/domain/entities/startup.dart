@@ -131,6 +131,7 @@ class Startup extends Equatable {
         'Startup';
     final tagline =
         json['tagline']?.toString() ??
+        json['description']?.toString() ??
         profile?['tagline']?.toString() ??
         json['bio']?.toString() ??
         profile?['bio']?.toString() ??
@@ -163,7 +164,9 @@ class Startup extends Equatable {
 
     final city = json['city'] as String? ?? profile?['city'] as String?;
     final country =
-        json['country'] as String? ?? profile?['country'] as String?;
+        json['country'] as String? ??
+        profile?['country'] as String? ??
+        profile?['countryId'] as String?;
     String location =
         json['location'] as String? ?? profile?['location'] as String? ?? 'N/A';
     if (json['location'] == null && profile?['location'] == null) {
@@ -221,7 +224,10 @@ class Startup extends Equatable {
       coverUrl: coverUrl,
       founderAvatar: founderAvatar,
       problem:
-          profile?['problem'] as String? ?? json['problem'] as String? ?? '',
+          profile?['problem'] as String? ??
+          json['problem'] as String? ??
+          json['problemStatement'] as String? ??
+          '',
       solution:
           profile?['solution'] as String? ?? json['solution'] as String? ?? '',
       businessModel:

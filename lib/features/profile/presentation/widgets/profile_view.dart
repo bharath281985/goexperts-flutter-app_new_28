@@ -459,13 +459,7 @@ class ProfileView extends StatelessWidget {
           icon: Icons.handshake_outlined,
           onTap: () => ContactWorkflow.hire(context, data.name),
         ),
-      if (data.type == PublicProfileType.investor ||
-          data.type == PublicProfileType.founder)
-        AppAction(
-          label: 'Express Interest',
-          icon: Icons.favorite_border_rounded,
-          onTap: () => ContactWorkflow.expressInterest(context, data.name),
-        ),
+
       AppAction(
         label: 'Copy Profile Link',
         icon: Icons.link_rounded,

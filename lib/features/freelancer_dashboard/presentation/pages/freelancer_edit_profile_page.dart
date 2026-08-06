@@ -1,6 +1,7 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -58,9 +59,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   bool _loading = true;
   bool _saving = false;
   bool _uploadingAvatar = false;
-  bool _uploadingResume = false;
   FreelancerProfile? _profile;
   String? _localAvatarPath;
+  String? _pendingResumePath; // staged resume, uploaded on Save
 
   @override
   void initState() {
@@ -142,27 +143,62 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     }
     setState(() => _saving = true);
 
+    // Upload pending resume first
+    if (_pendingResumePath != null) {
+      final uploadRes = await sl<FreelancerProfileRepository>().uploadResume(
+        _pendingResumePath!,
+      );
+      if (!mounted) return;
+      uploadRes.fold(
+        (f) => context.showSnack(
+          'Resume upload failed: ${f.message}',
+          isError: true,
+        ),
+        (_) {
+          // Reload profile to get new resumeUrl
+          _pendingResumePath = null;
+        },
+      );
+    }
+
     final payload = {
+      // ── Personal ──────────────────────────────────────────────────────────
+      'fullName': _fullName.text.trim(),
+      'phone': _phone.text.trim(),
+      'phoneCode': _phoneCode.text.trim(),
+      'countryCode': _countryCode.text.trim(),
       'bio': _bio.text.trim(),
-      'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0,
+      'title': _title.text.trim(),
+      // ── Location ──────────────────────────────────────────────────────────
+      'city': _city.text.trim(),
+      'state': _state.text.trim(),
+      'country': _country.text.trim(),
+      // ── Work ──────────────────────────────────────────────────────────────
+      'availability': _availability,
+      'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0.0,
       'skills': _skillsRaw.text
           .split(',')
           .map((e) => e.trim())
           .where((e) => e.isNotEmpty)
           .toList(),
-
-      'experienceYears': int.tryParse(_experienceYears.text.trim()) ?? 0,
-      'availability': _availability,
-      'fullName': _fullName.text.trim(),
-      'phone': _phone.text.trim(),
-      'phoneCode': _phoneCode.text.trim(),
-      'countryCode': _countryCode.text.trim(),
-      'headline': _title.text.trim(),
-      'city': _city.text.trim(),
-      'countryId': _country.text.trim(),
-      'github': _github.text.trim(),
-      'portfolio': _portfolio.text.trim(),
+      'languages': _languages.text
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList(),
+      'education': _education.text.trim(),
+      'experience': _experienceYears.text.trim(),
+      // ── Social & Links ────────────────────────────────────────────────────
+      'githubUrl': _github.text.trim(),
+      'portfolioUrl': _portfolio.text.trim(),
       'linkedin': _linkedin.text.trim(),
+      'website': _website.text.trim(),
+      // ── KYC ───────────────────────────────────────────────────────────────
+      'panNumber': _panNumber.text.trim(),
+      'aadhaarNumber': _aadhaarNumber.text.trim(),
+      // ── Avatar ────────────────────────────────────────────────────────────
+      if (_localAvatarPath != null || _profile?.avatarUrl != null)
+        'avatarUrl': _localAvatarPath ?? _profile?.avatarUrl,
     };
 
     final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
@@ -170,7 +206,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     setState(() => _saving = false);
     res.fold((f) => context.showSnack(f.message), (_) {
       context.showSnack('Profile updated successfully!');
-      // Refresh AuthBloc so the drawer/profile header updates
       context.read<AuthBloc>().add(const AuthRefreshUser());
       Navigator.of(context).pop();
     });
@@ -188,7 +223,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     });
   }
 
-  Future<void> _uploadResume() async {
+  Future<void> _pickResume() async {
     final picked = await FilePicker.platform.pickFiles(
       allowMultiple: false,
       type: FileType.custom,
@@ -196,15 +231,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     );
     final path = picked?.files.single.path;
     if (path == null) return;
+    setState(() => _pendingResumePath = path);
+    context.showSnack('Resume selected — tap Save to upload.');
+  }
 
-    setState(() => _uploadingResume = true);
-    final res = await sl<FreelancerProfileRepository>().uploadResume(path);
-    if (!mounted) return;
-    setState(() => _uploadingResume = false);
-    res.fold(
-      (f) => context.showSnack(f.message),
-      (_) => context.showSnack('Resume uploaded successfully!'),
-    );
+  Future<void> _openResumeUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (mounted) context.showSnack('Unable to open resume', isError: true);
+    }
   }
 
   // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -223,7 +261,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       _panNumber.text.trim().isNotEmpty,
       _aadhaarNumber.text.trim().isNotEmpty,
       (_localAvatarPath ?? _profile?.avatarUrl ?? '').isNotEmpty,
-      (_profile?.resumeUrl ?? '').isNotEmpty,
+      (_profile?.resumeUrl?.isNotEmpty == true || _pendingResumePath != null),
     ];
     final filled = checks.where((c) => c).length;
     return ((filled / checks.length) * 100).round();
@@ -259,286 +297,142 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
+          : SingleChildScrollView(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
-              children: [
-                // ── Completion banner ───────────────────────────────────────
-                _CompletionCard(percent: _completionPercent()),
-                AppSizes.vGapLg,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // ── Completion banner ───────────────────────────────────────
+                  _CompletionCard(percent: _completionPercent()),
+                  AppSizes.vGapLg,
 
-                // ── Avatar ─────────────────────────────────────────────────
-                _SectionLabel('Profile Photo'),
-                AppSizes.vGapSm,
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    ProfileAvatarEditor(
-                      localPath: _localAvatarPath,
-                      networkUrl: _profile?.avatarUrl,
-                      onPathPicked: _uploadAvatar,
-                      size: 110,
-                    ),
-                    if (_uploadingAvatar)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: Colors.black38,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                AppSizes.vGapLg,
-
-                _SectionLabel('About You'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _fullName,
-                  label: 'Full Name',
-                  hint: 'Enter your full name',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _title,
-                  label: 'Professional Title',
-                  hint: 'e.g. Senior Flutter Developer',
-                ),
-                AppSizes.vGapMd,
-                Row(
-                  children: [
-                    SizedBox(
-                      width: 92,
-                      child: AppTextField(
-                        controller: _phoneCode,
-                        label: 'Code',
-                        hint: '+91',
-                      ),
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: AppTextField(
-                        controller: _phone,
-                        label: 'Phone Number',
-                        hint: 'Enter your phone number',
-                        keyboardType: TextInputType.phone,
-                      ),
-                    ),
-                  ],
-                ),
-                AppSizes.vGapLg,
-
-                _SectionLabel('Location'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _city,
-                  label: 'City',
-                  hint: 'e.g. Hyderabad',
-                ),
-                AppSizes.vGapMd,
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 110,
-                      child: AppTextField(
-                        controller: _countryCode,
-                        label: 'Country Code',
-                        hint: 'IN',
-                      ),
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: AppTextField(
-                        controller: _country,
-                        label: 'Country',
-                        hint: 'India',
-                      ),
-                    ),
-                  ],
-                ),
-                AppSizes.vGapLg,
-
-                // ── Bio ────────────────────────────────────────────────────
-                _SectionLabel('Professional Bio'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _bio,
-                  label: 'Bio',
-                  hint:
-                      'Tell clients about yourself, your expertise, and what makes you unique…',
-                  maxLines: 4,
-                  textInputAction: TextInputAction.newline,
-                ),
-                AppSizes.vGapLg,
-
-                // ── Availability & Rate ─────────────────────────────────────
-                _SectionLabel('Work Preferences'),
-                AppSizes.vGapSm,
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        controller: _hourlyRate,
-                        label: 'Hourly Rate (₹)',
-                        hint: 'e.g. 1500',
-                        prefixIcon: Icons.currency_rupee_rounded,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        textInputAction: TextInputAction.next,
-                      ),
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Availability',
-                            style: context.text.labelMedium?.copyWith(
-                              color: colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          AppSizes.vGapXs,
-                          AppCard(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSizes.sm,
-                            ),
-                            child: DropdownButton<String>(
-                              value: _availability,
-                              isExpanded: true,
-                              underline: const SizedBox.shrink(),
-                              items: const [
-                                DropdownMenuItem(
-                                  value: 'available',
-                                  child: Text('Available'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'part-time',
-                                  child: Text('Part-Time'),
-                                ),
-                                DropdownMenuItem(
-                                  value: 'not-available',
-                                  child: Text('Not Available'),
-                                ),
-                              ],
-                              onChanged: (v) =>
-                                  setState(() => _availability = v!),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                AppSizes.vGapLg,
-
-                // ── Skills ─────────────────────────────────────────────────
-                _SectionLabel('Skills'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _skillsRaw,
-                  label: 'Skills',
-                  hint: 'Flutter, Python, UI/UX, Node.js…',
-                  maxLines: 2,
-                  textInputAction: TextInputAction.next,
-                  onChanged: (_) => setState(() {}),
-                ),
-                AppSizes.vGapXs,
-                Text(
-                  'Separate skills with commas',
-                  style: context.text.labelSmall?.copyWith(
-                    color: context.colors.onSurfaceVariant,
-                  ),
-                ),
-                if (_skillsRaw.text.trim().isNotEmpty) ...[
+                  // ── Avatar ─────────────────────────────────────────────────
+                  _SectionLabel('Profile Photo'),
                   AppSizes.vGapSm,
-                  _ChipsPreview(raw: _skillsRaw.text),
-                ],
-                AppSizes.vGapLg,
-
-                // ── Languages ──────────────────────────────────────────────
-                _SectionLabel('Languages'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _languages,
-                  label: 'Languages',
-                  hint: 'English, Hindi, Tamil…',
-                  textInputAction: TextInputAction.next,
-                ),
-                AppSizes.vGapXs,
-                Text(
-                  'Separate with commas',
-                  style: context.text.labelSmall?.copyWith(
-                    color: context.colors.onSurfaceVariant,
-                  ),
-                ),
-                AppSizes.vGapLg,
-
-                // ── Experience ─────────────────────────────────────────────
-                _SectionLabel('Experience'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _experienceYears,
-                  label: 'Years of experience',
-                  hint: 'Senior Dev at TechCorp, Freelance Flutter Dev…',
-                  maxLines: 3,
-                  textInputAction: TextInputAction.next,
-                ),
-                AppSizes.vGapXs,
-                Text(
-                  'Separate entries with commas',
-                  style: context.text.labelSmall?.copyWith(
-                    color: context.colors.onSurfaceVariant,
-                  ),
-                ),
-                AppSizes.vGapLg,
-
-                // ── Education ──────────────────────────────────────────────
-                _SectionLabel('Education'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _education,
-                  label: 'Education',
-                  hint: 'B.Tech Computer Science - NIT…',
-                  maxLines: 2,
-                  textInputAction: TextInputAction.next,
-                ),
-                AppSizes.vGapXs,
-                Text(
-                  'Separate entries with commas',
-                  style: context.text.labelSmall?.copyWith(
-                    color: context.colors.onSurfaceVariant,
-                  ),
-                ),
-                AppSizes.vGapLg,
-
-                // ── Resume ─────────────────────────────────────────────────
-                _SectionLabel('Resume / CV'),
-                AppSizes.vGapSm,
-                AppCard(
-                  child: Row(
+                  Stack(
+                    alignment: Alignment.center,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMd,
+                      ProfileAvatarEditor(
+                        localPath: _localAvatarPath,
+                        networkUrl: _profile?.avatarUrl,
+                        onPathPicked: _uploadAvatar,
+                        size: 110,
+                      ),
+                      if (_uploadingAvatar)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black38,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                        child: const Icon(
-                          Icons.description_outlined,
-                          color: AppColors.primary,
+                    ],
+                  ),
+                  AppSizes.vGapLg,
+
+                  _SectionLabel('About You'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _fullName,
+                    label: 'Full Name',
+                    hint: 'Enter your full name',
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _title,
+                    label: 'Professional Title',
+                    hint: 'e.g. Senior Flutter Developer',
+                  ),
+                  AppSizes.vGapMd,
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 92,
+                        child: AppTextField(
+                          controller: _phoneCode,
+                          label: 'Code',
+                          hint: '+91',
+                        ),
+                      ),
+                      AppSizes.hGapMd,
+                      Expanded(
+                        child: AppTextField(
+                          controller: _phone,
+                          label: 'Phone Number',
+                          hint: 'Enter your phone number',
+                          keyboardType: TextInputType.phone,
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSizes.vGapLg,
+
+                  _SectionLabel('Location'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _city,
+                    label: 'City',
+                    hint: 'e.g. Hyderabad',
+                  ),
+                  AppSizes.vGapMd,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(
+                        width: 110,
+                        child: AppTextField(
+                          controller: _countryCode,
+                          label: 'Country Code',
+                          hint: 'IN',
+                        ),
+                      ),
+                      AppSizes.hGapMd,
+                      Expanded(
+                        child: AppTextField(
+                          controller: _country,
+                          label: 'Country',
+                          hint: 'India',
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSizes.vGapLg,
+
+                  // ── Bio ────────────────────────────────────────────────────
+                  _SectionLabel('Professional Bio'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _bio,
+                    label: 'Bio',
+                    hint:
+                        'Tell clients about yourself, your expertise, and what makes you unique…',
+                    maxLines: 4,
+                    textInputAction: TextInputAction.newline,
+                  ),
+                  AppSizes.vGapLg,
+
+                  // ── Availability & Rate ─────────────────────────────────────
+                  _SectionLabel('Work Preferences'),
+                  AppSizes.vGapSm,
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: AppTextField(
+                          controller: _hourlyRate,
+                          label: 'Hourly Rate (₹)',
+                          hint: 'e.g. 1500',
+                          prefixIcon: Icons.currency_rupee_rounded,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          textInputAction: TextInputAction.next,
                         ),
                       ),
                       AppSizes.hGapMd,
@@ -547,85 +441,191 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              (_profile?.resumeUrl?.isNotEmpty == true)
-                                  ? 'Resume uploaded'
-                                  : 'No resume uploaded yet',
-                              style: context.text.bodyMedium?.copyWith(
+                              'Availability',
+                              style: context.text.labelMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Text(
-                              'PDF, DOC, DOCX accepted',
-                              style: context.text.labelSmall?.copyWith(
-                                color: colors.onSurfaceVariant,
+                            AppSizes.vGapXs,
+                            AppCard(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSizes.sm,
+                              ),
+                              child: DropdownButton<String>(
+                                value: _availability,
+                                isExpanded: true,
+                                underline: const SizedBox.shrink(),
+                                items: const [
+                                  DropdownMenuItem(
+                                    value: 'available',
+                                    child: Text('Available'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'part-time',
+                                    child: Text('Part-Time'),
+                                  ),
+                                  DropdownMenuItem(
+                                    value: 'not-available',
+                                    child: Text('Not Available'),
+                                  ),
+                                ],
+                                onChanged: (v) =>
+                                    setState(() => _availability = v!),
                               ),
                             ),
                           ],
                         ),
                       ),
-                      AppSizes.hGapMd,
-                      AppPrimaryButton(
-                        label: _uploadingResume ? 'Uploading…' : 'Upload',
-                        icon: Icons.upload_rounded,
-                        isLoading: _uploadingResume,
-                        onPressed: _uploadingResume ? null : _uploadResume,
-                      ),
                     ],
                   ),
-                ),
-                AppSizes.vGapLg,
-                _SectionLabel('Social & Links'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _github,
-                  label: 'GitHub URL',
-                  hint: 'https://github.com/...',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _portfolio,
-                  label: 'Portfolio URL',
-                  hint: 'https://...',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _linkedin,
-                  label: 'LinkedIn Profile',
-                  hint: 'LinkedIn URL',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _website,
-                  label: 'Website',
-                  hint: 'Personal website URL',
-                ),
-                AppSizes.vGapLg,
+                  AppSizes.vGapLg,
 
-                _SectionLabel('KYC Documents'),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _panNumber,
-                  label: 'PAN Number',
-                  maxLength: 10,
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _aadhaarNumber,
-                  label: 'Aadhaar Number',
-                  keyboardType: TextInputType.number,
-                  maxLength: 12,
-                ),
-                AppSizes.vGapXl,
+                  // ── Skills ─────────────────────────────────────────────────
+                  _SectionLabel('Skills'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _skillsRaw,
+                    label: 'Skills',
+                    hint: 'Flutter, Python, UI/UX, Node.js…',
+                    maxLines: 2,
+                    textInputAction: TextInputAction.next,
+                    onChanged: (_) => setState(() {}),
+                  ),
+                  AppSizes.vGapXs,
+                  Text(
+                    'Separate skills with commas',
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  if (_skillsRaw.text.trim().isNotEmpty) ...[
+                    AppSizes.vGapSm,
+                    _ChipsPreview(raw: _skillsRaw.text),
+                  ],
+                  AppSizes.vGapLg,
 
-                // ── Save button ────────────────────────────────────────────
-                AppPrimaryButton(
-                  label: 'Save Profile',
-                  icon: Icons.check_circle_outline_rounded,
-                  isLoading: _saving,
-                  onPressed: _saving ? null : _save,
-                ),
-                AppSizes.vGapLg,
-              ],
+                  // ── Languages ──────────────────────────────────────────────
+                  _SectionLabel('Languages'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _languages,
+                    label: 'Languages',
+                    hint: 'English, Hindi, Tamil…',
+                    textInputAction: TextInputAction.next,
+                  ),
+                  AppSizes.vGapXs,
+                  Text(
+                    'Separate with commas',
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  AppSizes.vGapLg,
+
+                  // ── Experience ─────────────────────────────────────────────
+                  _SectionLabel('Experience'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _experienceYears,
+                    label: 'Years of experience',
+                    hint: 'Senior Dev at TechCorp, Freelance Flutter Dev…',
+                    maxLines: 3,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  AppSizes.vGapXs,
+                  Text(
+                    'Separate entries with commas',
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  AppSizes.vGapLg,
+
+                  // ── Education ──────────────────────────────────────────────
+                  _SectionLabel('Education'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _education,
+                    label: 'Education',
+                    hint: 'B.Tech Computer Science - NIT…',
+                    maxLines: 2,
+                    textInputAction: TextInputAction.next,
+                  ),
+                  AppSizes.vGapXs,
+                  Text(
+                    'Separate entries with commas',
+                    style: context.text.labelSmall?.copyWith(
+                      color: context.colors.onSurfaceVariant,
+                    ),
+                  ),
+                  AppSizes.vGapLg,
+
+                  // ── Resume ─────────────────────────────────────────────────
+                  _SectionLabel('Resume / CV'),
+                  AppSizes.vGapSm,
+                  _ResumeCard(
+                    networkUrl: _profile?.resumeUrl,
+                    pendingPath: _pendingResumePath,
+                    onPick: _pickResume,
+                    onOpenUrl: _openResumeUrl,
+                    onRemovePending: () =>
+                        setState(() => _pendingResumePath = null),
+                  ),
+                  AppSizes.vGapLg,
+                  _SectionLabel('Social & Links'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _github,
+                    label: 'GitHub URL',
+                    hint: 'https://github.com/...',
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _portfolio,
+                    label: 'Portfolio URL',
+                    hint: 'https://...',
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _linkedin,
+                    label: 'LinkedIn Profile',
+                    hint: 'LinkedIn URL',
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _website,
+                    label: 'Website',
+                    hint: 'Personal website URL',
+                  ),
+                  AppSizes.vGapLg,
+
+                  _SectionLabel('KYC Documents'),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _panNumber,
+                    label: 'PAN Number',
+                    maxLength: 10,
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _aadhaarNumber,
+                    label: 'Aadhaar Number',
+                    keyboardType: TextInputType.number,
+                    maxLength: 12,
+                  ),
+                  AppSizes.vGapXl,
+
+                  // ── Save button ────────────────────────────────────────────
+                  AppPrimaryButton(
+                    label: 'Save Profile',
+                    icon: Icons.check_circle_outline_rounded,
+                    isLoading: _saving,
+                    onPressed: _saving ? null : _save,
+                  ),
+                  AppSizes.vGapLg,
+                ],
+              ),
             ),
     );
   }
@@ -743,6 +743,165 @@ class _ChipsPreview extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
       ],
+    );
+  }
+}
+
+class _ResumeCard extends StatelessWidget {
+  const _ResumeCard({
+    required this.networkUrl,
+    required this.pendingPath,
+    required this.onPick,
+    required this.onOpenUrl,
+    required this.onRemovePending,
+  });
+
+  final String? networkUrl;
+  final String? pendingPath;
+  final VoidCallback onPick;
+  final void Function(String url) onOpenUrl;
+  final VoidCallback onRemovePending;
+
+  String get _pendingFileName {
+    if (pendingPath == null) return '';
+    return pendingPath!.split(RegExp(r'[\\/]')).last;
+  }
+
+  String get _networkFileName {
+    if (networkUrl == null || networkUrl!.isEmpty) return '';
+    final raw = networkUrl!.split('?').first;
+    return raw.split('/').last;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.colors;
+    final hasNetwork = networkUrl != null && networkUrl!.isNotEmpty;
+    final hasPending = pendingPath != null;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                ),
+                child: Icon(
+                  Icons.description_outlined,
+                  color: hasNetwork || hasPending
+                      ? AppColors.primary
+                      : colors.onSurfaceVariant,
+                ),
+              ),
+              AppSizes.hGapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasPending
+                          ? 'New resume selected'
+                          : hasNetwork
+                          ? 'Resume uploaded'
+                          : 'No resume uploaded yet',
+                      style: context.text.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (hasPending)
+                      Text(
+                        _pendingFileName,
+                        style: context.text.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      )
+                    else if (hasNetwork)
+                      GestureDetector(
+                        onTap: () => onOpenUrl(networkUrl!),
+                        child: Text(
+                          _networkFileName.isNotEmpty
+                              ? _networkFileName
+                              : 'View Resume',
+                          style: context.text.labelSmall?.copyWith(
+                            color: AppColors.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      )
+                    else
+                      Text(
+                        'PDF, DOC, DOCX accepted',
+                        style: context.text.labelSmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              AppSizes.hGapSm,
+              if (hasPending)
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  color: AppColors.danger,
+                  tooltip: 'Remove selection',
+                  onPressed: onRemovePending,
+                ),
+              AppPrimaryButton(
+                label: hasPending
+                    ? 'Change'
+                    : (hasNetwork ? 'Replace' : 'Upload'),
+                icon: Icons.upload_rounded,
+                onPressed: onPick,
+                expanded: false,
+              ),
+            ],
+          ),
+          if (hasPending) ...[
+            AppSizes.vGapXs,
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.sm,
+                vertical: AppSizes.xs,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                border: Border.all(
+                  color: AppColors.warning.withValues(alpha: 0.4),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline_rounded,
+                    size: 14,
+                    color: AppColors.warning,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'This resume will be uploaded when you tap "Save Profile"',
+                      style: context.text.labelSmall?.copyWith(
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

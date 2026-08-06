@@ -108,18 +108,31 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     }
     setState(() => _saving = true);
     final res = await sl<CompanyRepository>().updateClientProfile({
+      // ── Personal ──────────────────────────────────────────────────────────
       'fullName': _name.text.trim(),
       'phone': _phone.text.trim(),
       'phoneCode': _phoneCode.text.trim(),
       'countryCode': _countryCode.text.trim(),
+      'bio': _bio.text.trim(),
+      // ── Location ──────────────────────────────────────────────────────────
+      'city': _city.text.trim(),
+      'state': '',
+      'country': _country.text.trim(),
+      // ── Company ───────────────────────────────────────────────────────────
       'companyName': _companyNameController.text.trim(),
       'industry': _industry.text.trim(),
-      'companySize': _teamSize.text.trim(),
-      'bio': _bio.text.trim(),
-      'city': _city.text.trim(),
-      'countryId': _country.text.trim(),
+      'teamSize': _teamSize.text.trim(),
+      'clientGoals': <String>[],
+      // ── Social & Links ────────────────────────────────────────────────────
       'website': _website.text.trim(),
       'linkedin': _linkedin.text.trim(),
+      // ── KYC ───────────────────────────────────────────────────────────────
+      'panNumber': _pan.text.trim(),
+      'aadhaarNumber': _aadhaar.text.trim(),
+      'gst': _gst.text.trim(),
+      // ── Logo ──────────────────────────────────────────────────────────────
+      if (_localLogoPath != null || _companyData?.logoUrl != null)
+        'logo': _localLogoPath ?? _companyData?.logoUrl,
     });
     if (!mounted) return;
     setState(() {

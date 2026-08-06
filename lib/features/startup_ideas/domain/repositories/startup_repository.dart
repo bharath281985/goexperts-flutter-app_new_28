@@ -7,7 +7,7 @@ abstract class StartupRepository {
   Future<Result<Startup>> getStartup(String id);
   Future<Result<bool>> toggleSave(String id);
   Future<Result<bool>> toggleFollow(String id);
-  Future<Result<bool>> expressInterest(String id);
+  Future<Result<bool>> submitOffer(Map<String, dynamic> data);
   Future<Result<bool>> withdrawInterest(String id);
   Future<Result<Startup>> createIdea(Map<String, dynamic> data);
   Future<Result<bool>> updateIdea(String id, Map<String, dynamic> data);

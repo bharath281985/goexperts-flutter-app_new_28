@@ -11,8 +11,6 @@ import '../../../../core/widgets/app_file_upload.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/network/api_client_helper.dart';
-import '../../../../core/network/api_endpoints.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../../../proposals/domain/repositories/proposal_repository.dart';
@@ -186,28 +184,6 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
         (failure) => context.showSnack(failure.message, isError: true),
         (_) {
           context.showSnack('Proposal sent to client for review!');
-          Navigator.of(context).maybePop();
-        },
-      );
-      return;
-    }
-
-    if (_isInvestment && widget.projectId != null) {
-      final api = sl<ApiClientHelper>();
-      final result = await api.postAction(
-        ApiEndpoints.investorExpressInterest,
-        body: {
-          'startupId': widget.projectId,
-          'amount': double.tryParse(_budget.text.trim()) ?? 0.0,
-          'message': _coverLetter.text.trim(),
-        },
-      );
-      if (!mounted) return;
-      setState(() => _submitting = false);
-      result.fold(
-        (failure) => context.showSnack(failure.message, isError: true),
-        (_) {
-          context.showSnack('Investment application submitted successfully!');
           Navigator.of(context).maybePop();
         },
       );

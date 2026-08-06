@@ -22,7 +22,7 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
 
   @override
   Future<Result<bool>> updateProfile(Map<String, dynamic> data) {
-    return _api.patchEnvelope<bool>(
+    return _api.putEnvelope<bool>(
       ApiEndpoints.freelancerProfile,
       body: data,
       parser: (raw) => true,

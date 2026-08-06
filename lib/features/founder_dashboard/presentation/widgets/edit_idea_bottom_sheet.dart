@@ -12,9 +12,14 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 
 class EditIdeaBottomSheet extends StatefulWidget {
-  const EditIdeaBottomSheet({required this.startup, super.key});
+  const EditIdeaBottomSheet({
+    required this.startup,
+    this.rawStartup,
+    super.key,
+  });
 
   final Startup startup;
+  final Map<String, dynamic>? rawStartup;
 
   @override
   State<EditIdeaBottomSheet> createState() => EditIdeaBottomSheetState();
@@ -63,10 +68,22 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     );
     _bioController = TextEditingController(text: widget.startup.tagline);
 
-    _initialIndustry = widget.startup.industry;
-    _initialCategory = widget.startup.tags.isNotEmpty
-        ? widget.startup.tags.first
-        : widget.startup.industry;
+    _initialIndustry =
+        widget.rawStartup?['industryId']?.toString() ??
+        widget.rawStartup?['industry']?.toString() ??
+        widget.startup.industry;
+
+    _initialCategory =
+        widget.rawStartup?['categoryId']?.toString() ??
+        widget.rawStartup?['category']?.toString() ??
+        (widget.startup.tags.isNotEmpty
+            ? widget.startup.tags.first
+            : widget.startup.industry);
+
+    _stage =
+        widget.rawStartup?['stageId']?.toString() ??
+        widget.rawStartup?['stage']?.toString() ??
+        widget.startup.stage;
 
     _fundingController = TextEditingController(
       text: widget.startup.fundingRequired.toStringAsFixed(0),
@@ -75,14 +92,13 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
       text: widget.startup.equityOffered.toStringAsFixed(0),
     );
     // Parse team size if we can, otherwise default 1
-    final tsStr = widget.startup.tags
-        .where((t) => t.contains('Team'))
-        .firstOrNull;
+    final tsStr =
+        widget.rawStartup?['teamSize']?.toString() ??
+        widget.startup.tags.where((t) => t.contains('Team')).firstOrNull;
     _teamSizeController = TextEditingController(
       text: tsStr != null ? tsStr.replaceAll(RegExp(r'[^0-9]'), '') : '1',
     );
 
-    _stage = widget.startup.stage;
     _networkLogoUrl = widget.startup.logoUrl;
     _networkCoverUrl = widget.startup.coverUrl;
     _networkPitchDiskUrl = widget.startup.pitchDeckUrl;

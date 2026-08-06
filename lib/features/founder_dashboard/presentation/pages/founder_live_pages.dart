@@ -72,6 +72,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   String? _founderTypeId;
   String? _stageId;
   String? _industryId;
+  String? _categoryId;
   String? _countryId;
 
   String? _avatarUrl;
@@ -82,6 +83,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   List<Map<String, dynamic>> _founderTypesList = [];
   List<Map<String, dynamic>> _stagesList = [];
   List<Map<String, dynamic>> _industriesList = [];
+  List<Map<String, dynamic>> _categoriesList = [];
   List<Map<String, dynamic>> _countriesList = [];
 
   @override
@@ -157,6 +159,12 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
       ),
+      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
+        ApiEndpoints.publicMobileCategories,
+        parser: (raw) => (raw as List)
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
+      ),
     ]);
 
     if (!mounted) return;
@@ -166,6 +174,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     final stagesRes = futures[2] as Result<List<Map<String, dynamic>>>;
     final industriesRes = futures[3] as Result<List<Map<String, dynamic>>>;
     final countriesRes = futures[4] as Result<List<Map<String, dynamic>>>;
+    final categoriesRes = futures[5] as Result<List<Map<String, dynamic>>>;
 
     if (typesRes.isSuccess) {
       _founderTypesList = typesRes.valueOrNull ?? [];
@@ -181,6 +190,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
 
     if (countriesRes.isSuccess) {
       _countriesList = countriesRes.valueOrNull ?? [];
+    }
+
+    if (categoriesRes.isSuccess) {
+      _categoriesList = categoriesRes.valueOrNull ?? [];
     }
 
     profileRes.fold((f) => context.showSnack(f.message, isError: true), (m) {
@@ -288,24 +301,12 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
 
       final indStr =
           data['industryId']?.toString() ?? data['industry']?.toString() ?? '';
-      _industryId =
-          _industriesList.any(
-            (e) =>
-                e['id'] == indStr ||
-                e['value'] == indStr ||
-                e['name'] == indStr ||
-                e['label'] == indStr,
-          )
-          ? _industriesList
-                .firstWhere(
-                  (e) =>
-                      e['id'] == indStr ||
-                      e['value'] == indStr ||
-                      e['name'] == indStr ||
-                      e['label'] == indStr,
-                )['id']
-                ?.toString()
-          : null;
+      // Match by id first, then by name/label (API may return name instead of id)
+      _industryId = _resolveDropdownId(_industriesList, indStr);
+
+      final catStr =
+          data['categoryId']?.toString() ?? data['category']?.toString() ?? '';
+      _categoryId = _resolveDropdownId(_categoriesList, catStr);
 
       final countryStr =
           data['countryId']?.toString() ??
@@ -341,6 +342,24 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     setState(() => _loading = false);
   }
 
+  /// Resolve a dropdown id from a list of options.
+  /// Matches by [id], [value], [name], or [label] — case-insensitive.
+  String? _resolveDropdownId(List<Map<String, dynamic>> list, String raw) {
+    final val = raw.trim();
+    if (val.isEmpty) return null;
+    final lower = val.toLowerCase();
+    for (final e in list) {
+      final id = e['id']?.toString() ?? '';
+      final value = e['value']?.toString() ?? '';
+      final name = e['name']?.toString().toLowerCase() ?? '';
+      final label = e['label']?.toString().toLowerCase() ?? '';
+      if (id == val || value == val || name == lower || label == lower) {
+        return id.isNotEmpty ? id : null;
+      }
+    }
+    return null;
+  }
+
   Future<void> _save() async {
     final fullName = _fullName.text.trim();
 
@@ -352,36 +371,44 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     setState(() => _saving = true);
     final int teamSizeInt = int.tryParse(_teamSize.text.trim()) ?? 1;
     final Map<String, dynamic> body = {
+      // ── Personal ────────────────────────────────────────────────────────────
       'fullName': fullName,
       'phone': _phone.text.trim(),
       'phoneCode': _phoneCode.text.trim(),
       'countryCode': _countryCode.text.trim(),
-      'countryId': _countryId ?? _country.text.trim(),
-      'city': _city.text.trim(),
       'bio': _bio.text.trim(),
-      'founderTypeId': _founderTypeId ?? '',
+      // ── Location ────────────────────────────────────────────────────────────
+      'city': _city.text.trim(),
+      'state': '',
+      'country': _countryId ?? _country.text.trim(),
+      // ── Social & Links ──────────────────────────────────────────────────────
+      'linkedin': _linkedin.text.trim(),
+      'website': _website.text.trim(),
+      // ── Startup Details ─────────────────────────────────────────────────────
+      'founderType': _founderTypeId ?? '',
       'startupName': _startupName.text.trim(),
-      'industryId': _industryId ?? '',
-      'categoryId': _category.text.trim(),
-      'stageId': _stageId ?? '',
+      'industry': _industryId ?? '',
+      'category': _categoryId ?? '',
+      'fundingStage': _stageId ?? '',
       'teamSize': teamSizeInt,
-      'businessType': _businessType.text.trim(),
-      'businessExpansionGoals': _expansionGoals.text.trim(),
-      'oneLinePitch': _shortPitch.text.trim(),
+      // ── Financials ──────────────────────────────────────────────────────────
+      'raised': double.tryParse(_raised.text.trim()) ?? 0,
+      'equityOffered': double.tryParse(_equityOffered.text.trim()) ?? 0,
+      'valuation': double.tryParse(_valuation.text.trim()) ?? 0,
+      'runway': _runway.text.trim(),
+      'burnRate': double.tryParse(_burnRate.text.trim()) ?? 0,
+      // ── Narrative ───────────────────────────────────────────────────────────
       'problemStatement': _problemStatement.text.trim(),
       'solution': _solution.text.trim(),
       'businessModel': _businessModel.text.trim(),
       'revenueModel': _revenueModel.text.trim(),
+      'marketSize': '',
       'targetCustomers': _targetCustomers.text.trim(),
       'competitiveAdvantage': _competitiveAdvantage.text.trim(),
       'technologyStack': _technologyStack.text.trim(),
-      'raised': double.tryParse(_raised.text.trim()) ?? 0,
-      'equity': double.tryParse(_equityOffered.text.trim()) ?? 0,
-      'valuation': double.tryParse(_valuation.text.trim()) ?? 0,
-      'runway': _runway.text.trim(),
-      'burnRate': double.tryParse(_burnRate.text.trim()) ?? 0,
-      'website': _website.text.trim(),
-      'linkedin': _linkedin.text.trim(),
+      // ── Background ──────────────────────────────────────────────────────────
+      'education': _education.text.trim(),
+      'experience': _experience.text.trim(),
     };
 
     final Result<String> res;
@@ -390,7 +417,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         path: _localAvatarPath!,
         endpoint: ApiEndpoints.founderProfile,
         fileField: 'file',
-        method: 'patch',
+        method: 'put',
         fields: body,
       );
       res = uploadRes.fold((f) => Err(f), (json) {
@@ -403,7 +430,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         return const Success('Founder profile updated successfully');
       });
     } else {
-      res = await sl<ApiClientHelper>().patchEnvelope<String>(
+      res = await sl<ApiClientHelper>().putEnvelope<String>(
         ApiEndpoints.founderProfile,
         body: body,
         parser: (envelope) => envelope.message?.trim().isNotEmpty == true
@@ -625,6 +652,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                             value: _industryId,
                             items: _industriesList
                                 .map((e) => e['id']?.toString() ?? '')
+                                .where((id) => id.isNotEmpty)
                                 .toList(),
                             itemLabel: (v) {
                               final item = _industriesList.firstWhere(
@@ -639,10 +667,23 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                         ),
                         AppSizes.hGapMd,
                         Expanded(
-                          child: AppTextField(
-                            controller: _category,
+                          child: AppDropdown<String>(
                             label: 'Category',
-                            hint: 'e.g. GenAI',
+                            hint: 'Select category',
+                            value: _categoryId,
+                            items: _categoriesList
+                                .map((e) => e['id']?.toString() ?? '')
+                                .where((id) => id.isNotEmpty)
+                                .toList(),
+                            itemLabel: (v) {
+                              final item = _categoriesList.firstWhere(
+                                (e) => e['id'] == v,
+                                orElse: () => {},
+                              );
+                              return (item['name'] ?? item['label'] ?? v)
+                                  .toString();
+                            },
+                            onChanged: (v) => setState(() => _categoryId = v),
                           ),
                         ),
                       ],

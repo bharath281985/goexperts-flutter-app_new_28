@@ -71,12 +71,12 @@ class CompanyRepositoryImpl implements CompanyRepository {
         path: logoPath,
         endpoint: ApiEndpoints.clientProfile,
         fileField: 'file',
-        method: 'patch',
+        method: 'put',
         fields: data,
       );
       return uploadRes.fold(Err.new, (_) => const Success(true));
     }
-    return _api.patchEnvelope<bool>(
+    return _api.putEnvelope<bool>(
       ApiEndpoints.clientProfile,
       body: data,
       parser: (_) => true,

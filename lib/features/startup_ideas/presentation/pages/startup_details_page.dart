@@ -17,6 +17,7 @@ import '../../../../core/widgets/app_section_header.dart';
 import '../../domain/entities/startup.dart';
 import '../../domain/repositories/startup_repository.dart';
 import '../../../../core/utils/result.dart';
+import '../widgets/investment_offer_sheet.dart';
 
 class StartupDetailsPage extends StatefulWidget {
   const StartupDetailsPage({super.key, required this.id});
@@ -205,11 +206,14 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                                 });
                               }
                             } else {
-                              await context.push(
-                                '${Routes.apply}?type=Investment&name=${Uri.encodeComponent(s.name)}&projectId=${s.id}',
+                              final submitted = await showInvestmentOfferSheet(
+                                context,
+                                startupId: s.id,
+                                startupName: s.name,
                               );
-                              if (mounted) {
+                              if (submitted == true && mounted) {
                                 setState(() {
+                                  _hasInvestedOverride = true;
                                   _future = sl<StartupRepository>().getStartup(
                                     widget.id,
                                   );
@@ -234,12 +238,11 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
     return ListView(
       padding: EdgeInsets.zero,
       children: [
-        // 1. Banner Image with Gradient Bottom overlay
+        // 1. Sleek Gradient Banner Image with premium fade
         Container(
-          height: 160,
-          decoration: BoxDecoration(
-            gradient: AppColors.primaryGradient,
-            image: const DecorationImage(
+          height: 190,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
               image: AssetImage('assets/images/startup_banner.png'),
               fit: BoxFit.cover,
             ),
@@ -250,9 +253,11 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.black.withAlpha(30),
-                  AppColors.black.withAlpha(150),
+                  Colors.transparent,
+                  Theme.of(context).scaffoldBackgroundColor.withOpacity(0.4),
+                  Theme.of(context).scaffoldBackgroundColor,
                 ],
+                stops: const [0.4, 0.8, 1.0],
               ),
             ),
           ),
@@ -334,11 +339,26 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                 ),
 
                 AppSizes.vGapLg,
-                // 3. Financials Premium Card
+                AppSizes.vGapLg,
+                // 3. Premium Interactive Financial Overview
                 AppSectionHeader(title: 'Overview'),
                 AppSizes.vGapSm,
-                AppCard(
-                  padding: const EdgeInsets.all(AppSizes.lg),
+                Container(
+                  padding: const EdgeInsets.all(AppSizes.xl),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(AppSizes.radiusXl),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.06),
+                        blurRadius: 24,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: AppColors.primary.withOpacity(0.08),
+                    ),
+                  ),
                   child: Column(
                     children: [
                       Row(
@@ -354,22 +374,22 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                           ),
                           Container(
                             width: 1,
-                            height: 40,
-                            color: AppColors.border,
+                            height: 48,
+                            color: AppColors.border.withOpacity(0.5),
                           ),
                           Expanded(
                             child: _financialStat(
                               context,
                               'Equity',
-                              '${s.equityOffered.toStringAsFixed(1)}%',
+                              '${s.equityOffered.toStringAsFixed(s.equityOffered.truncateToDouble() == s.equityOffered ? 0 : 1)}%',
                               Icons.pie_chart_rounded,
                               AppColors.primary,
                             ),
                           ),
                           Container(
                             width: 1,
-                            height: 40,
-                            color: AppColors.border,
+                            height: 48,
+                            color: AppColors.border.withOpacity(0.5),
                           ),
                           Expanded(
                             child: _financialStat(
@@ -382,7 +402,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                           ),
                         ],
                       ),
-                      AppSizes.vGapLg,
+                      AppSizes.vGapXl,
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -390,36 +410,95 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Funding Progress',
-                                style: context.text.labelMedium,
-                              ),
-                              Text(
-                                '${(s.fundingProgress * 100).toStringAsFixed(0)}%',
+                                'Funding Raised',
                                 style: context.text.labelMedium?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '${(s.fundingProgress * 100).toStringAsFixed(0)}%',
+                                  style: context.text.labelMedium?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w800,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
-                          AppSizes.vGapSm,
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(999),
-                            child: LinearProgressIndicator(
-                              value: s.fundingProgress,
-                              minHeight: 8,
-                              backgroundColor: AppColors.primary.withValues(
-                                alpha: 0.15,
+                          AppSizes.vGapMd,
+                          Stack(
+                            children: [
+                              Container(
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: AppColors.border.withOpacity(0.4),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
                               ),
-                              valueColor: const AlwaysStoppedAnimation(
-                                AppColors.primary,
+                              LayoutBuilder(
+                                builder: (ctx, constraints) {
+                                  return Container(
+                                    height: 10,
+                                    width:
+                                        constraints.maxWidth *
+                                        (s.fundingProgress.clamp(0.02, 1)),
+                                    decoration: BoxDecoration(
+                                      gradient: AppColors.primaryGradient,
+                                      borderRadius: BorderRadius.circular(999),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppColors.primary.withOpacity(
+                                            0.4,
+                                          ),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
                               ),
-                            ),
+                            ],
                           ),
-                          AppSizes.vGapSm,
-                          Text(
-                            '${Formatters.compactCurrency(s.fundingRaised)} raised · ${s.investorInterests} interested',
-                            style: context.text.labelSmall,
+                          AppSizes.vGapMd,
+                          Row(
+                            children: [
+                              Text(
+                                Formatters.compactCurrency(s.fundingRaised),
+                                style: context.text.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.darkText,
+                                ),
+                              ),
+                              Text(
+                                ' raised',
+                                style: context.text.bodySmall?.copyWith(
+                                  color: AppColors.subtleText,
+                                ),
+                              ),
+                              const Spacer(),
+                              Icon(
+                                Icons.favorite_rounded,
+                                size: 14,
+                                color: AppColors.danger.withOpacity(0.8),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${s.investorInterests} interested',
+                                style: context.text.labelSmall?.copyWith(
+                                  color: AppColors.subtleText,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -566,16 +645,29 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
   ) => Column(
     children: [
       Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          shape: BoxShape.circle,
+          color: color.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.12)),
         ),
-        child: Icon(icon, color: color, size: 20),
+        child: Icon(icon, color: color, size: 24),
       ),
-      AppSizes.vGapSm,
-      Text(value, style: context.text.titleSmall, textAlign: TextAlign.center),
-      Text(label, style: context.text.labelSmall),
+      AppSizes.vGapMd,
+      Text(
+        value,
+        style: context.text.titleMedium?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: AppColors.darkText,
+        ),
+        textAlign: TextAlign.center,
+      ),
+      const SizedBox(height: 2),
+      Text(
+        label,
+        style: context.text.labelSmall?.copyWith(color: AppColors.subtleText),
+        textAlign: TextAlign.center,
+      ),
     ],
   );
 

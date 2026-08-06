@@ -75,16 +75,6 @@ class ContactWorkflow {
     context.push('${Routes.apply}?type=Hire&name=${Uri.encodeComponent(name)}');
   }
 
-  static void invest(BuildContext context, String name) {
-    context.push(
-      '${Routes.apply}?type=Investment&name=${Uri.encodeComponent(name)}',
-    );
-  }
-
-  static void expressInterest(BuildContext context, String name) {
-    context.showSnack('Expressed interest in $name successfully!');
-  }
-
   static void requestCallback(BuildContext context, String name) {
     context.showSnack(
       'Callback requested from $name. You will be notified shortly.',

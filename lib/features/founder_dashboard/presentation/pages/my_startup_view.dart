@@ -70,7 +70,8 @@ class _MyStartupViewState extends State<MyStartupView> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => EditIdeaBottomSheet(startup: startup),
+      builder: (ctx) =>
+          EditIdeaBottomSheet(startup: startup, rawStartup: _startup),
     );
 
     if (data == null) return;
@@ -239,6 +240,7 @@ class _MyStartupViewState extends State<MyStartupView> {
     required String name,
   }) {
     return SliverAppBar(
+      automaticallyImplyLeading: false,
       expandedHeight: 200,
       pinned: true,
       backgroundColor: AppColors.background,

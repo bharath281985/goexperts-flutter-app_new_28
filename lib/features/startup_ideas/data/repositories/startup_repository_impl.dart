@@ -77,18 +77,19 @@ class StartupRepositoryImpl implements StartupRepository {
   }
 
   @override
-  Future<Result<bool>> expressInterest(String id) async {
+  Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.postAction(
-      ApiEndpoints.investorExpressInterest,
-      body: {'startupId': id},
+    return _api.postEnvelope<bool>(
+      ApiEndpoints.investorOffer,
+      body: data,
+      parser: (env) => true,
     );
   }
 
   @override
   Future<Result<bool>> withdrawInterest(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.postAction(ApiEndpoints.investorCancelInvestment(id));
+    return _api.patchAction(ApiEndpoints.investorCancelInvestment(id));
   }
 
   @override
