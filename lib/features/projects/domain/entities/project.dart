@@ -18,6 +18,8 @@ class Project extends Equatable {
     required this.postedAt,
     this.clientId,
     this.clientAvatar,
+    this.industryId,
+    this.industryName = '',
     this.categoryId,
     this.skillIds = const [],
     this.proposalsCount = 0,
@@ -38,6 +40,8 @@ class Project extends Equatable {
   final String? clientId;
   final String clientName;
   final String? clientAvatar;
+  final String? industryId;
+  final String industryName;
   final String category;
   final String? categoryId;
   final List<String> skills;
@@ -72,6 +76,8 @@ class Project extends Equatable {
     clientId: clientId,
     clientName: clientName,
     clientAvatar: clientAvatar,
+    industryId: industryId,
+    industryName: industryName,
     category: category,
     categoryId: categoryId,
     skills: skills,
@@ -143,8 +149,9 @@ class Project extends Equatable {
     if (raw is List) {
       return raw
           .map((e) {
-            if (e is Map)
+            if (e is Map) {
               return e['url']?.toString() ?? e['name']?.toString() ?? '';
+            }
             return e.toString();
           })
           .where((e) => e.isNotEmpty)
@@ -194,6 +201,8 @@ class Project extends Equatable {
           (json['clientAvatar'] as String?) ??
           (json['avatarUrl'] as String?) ??
           (clientObj is Map ? clientObj['avatarUrl']?.toString() : null),
+      industryId: json['industryId']?.toString(),
+      industryName: json['industryName']?.toString() ?? '',
       category: _uuid.hasMatch(categoryRaw) ? 'General' : categoryRaw,
       categoryId:
           json['categoryId']?.toString() ??

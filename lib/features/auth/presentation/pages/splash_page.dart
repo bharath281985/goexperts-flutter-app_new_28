@@ -149,7 +149,7 @@ class _SplashPageState extends State<SplashPage>
                   children: [
                     const Spacer(),
                     Image.asset(
-                      AppAssets.fullBannerImage,
+                      AppAssets.logo,
                       width: MediaQuery.of(context).size.width * 0.65,
                       fit: BoxFit.contain,
                     ),

@@ -59,7 +59,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
       parser: (env) {
         return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
           final raw = Map<String, dynamic>.from(rawRaw as Map);
-          final ideaDetails = raw['ideaDetails'] as Map?;
+          final ideaDetails =
+              raw['startupDetails'] as Map? ?? raw['ideaDetails'] as Map?;
+          final userDetails = ideaDetails?['user'] as Map?;
           final startupId =
               raw['startup']?.toString() ??
               ideaDetails?['id']?.toString() ??
@@ -95,6 +97,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
                 raw['name']?.toString() ??
                 'Startup',
             founderName:
+                userDetails?['fullName']?.toString() ??
                 ideaDetails?['founder']?.toString() ??
                 raw['founderName']?.toString() ??
                 'Founder',
@@ -121,6 +124,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
             documentsCount: parsedDocsCount,
             documents: actualDocs,
             founderId:
+                userDetails?['id']?.toString() ??
                 ideaDetails?['userId']?.toString() ??
                 ideaDetails?['founderId']?.toString() ??
                 raw['founderId']?.toString() ??

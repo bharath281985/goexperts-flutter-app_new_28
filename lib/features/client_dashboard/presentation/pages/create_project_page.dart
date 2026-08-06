@@ -44,6 +44,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   final _title = TextEditingController();
   final _desc = TextEditingController();
+  String? _industryId;
+  String _industryName = '';
+  String? _industryError;
   String? _categoryId;
   String _categoryName = '';
   String _budgetType = 'Fixed';
@@ -141,6 +144,8 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       (project) {
         _title.text = project.title;
         _desc.text = project.description;
+        _industryId = project.industryId;
+        _industryName = project.industryName;
         _categoryId = project.categoryId;
         _categoryName = project.category;
         _skillIds
@@ -190,6 +195,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   bool _validateCategoryStep() {
     var valid = true;
+    if (_industryId == null) {
+      _industryError = 'Industry is required';
+      valid = false;
+    } else {
+      _industryError = null;
+    }
     if (_categoryId == null) {
       _categoryError = 'Category is required';
       valid = false;
@@ -400,6 +411,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     final body = {
       'title': _title.text.trim(),
       'description': _desc.text.trim(),
+      'industryId': _industryId,
       'categoryId': _categoryId,
       'skillIds': _skillIds.toList(),
       'budget': budgetRange.max,
@@ -524,13 +536,24 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         );
       case 1:
         return CategorySkillsPicker(
+          selectedIndustryId: _industryId,
           selectedCategoryId: _categoryId,
           selectedSkillIds: _skillIds,
+          industryLabel: 'Industry',
+          industrySubtitle: 'Choose an industry for your project',
           categorySubtitle: 'Choose a category for your project',
           skillsLabel: 'Skills',
           skillsSubtitle: 'Select skills needed for this project (optional)',
+          industryError: _industryError,
           categoryError: _categoryError,
           skillsError: _skillsError,
+          onIndustryChanged: (id, name) {
+            setState(() {
+              _industryId = id;
+              _industryName = name;
+              _industryError = null;
+            });
+          },
           onCategoryChanged: (id, name) {
             setState(() {
               _categoryId = id;
@@ -677,6 +700,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         Text('Review & Publish', style: context.text.titleMedium),
         AppSizes.vGapMd,
         _row('Title', _title.text.isEmpty ? '—' : _title.text),
+        _row('Industry', _industryName.isEmpty ? '—' : _industryName),
         _row('Category', _categoryName.isEmpty ? '—' : _categoryName),
         _row('Skills', _skillLabels()),
         _row('Level', _experienceLevelLabel(_experienceLevel)),

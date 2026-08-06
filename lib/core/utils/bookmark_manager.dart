@@ -41,6 +41,21 @@ class BookmarkManager extends ChangeNotifier {
     return !isSaved;
   }
 
+  /// Sync the local bookmark state with API truth.
+  Future<void> syncItem(String category, String id, bool isSaved) async {
+    final list = getIds(category);
+    final currentlySaved = list.contains(id);
+    if (isSaved && !currentlySaved) {
+      list.add(id);
+      await _storage.setStringList('bookmarks_$category', list);
+      notifyListeners();
+    } else if (!isSaved && currentlySaved) {
+      list.remove(id);
+      await _storage.setStringList('bookmarks_$category', list);
+      notifyListeners();
+    }
+  }
+
   /// Check if an item is bookmarked.
   bool isBookmarked(String category, String id) {
     return getIds(category).contains(id);
@@ -48,18 +63,7 @@ class BookmarkManager extends ChangeNotifier {
 
   /// Get all bookmarked item IDs for a category.
   List<String> getIds(String category) {
-    final list = _storage.getStringList('bookmarks_$category');
-    if (list.isEmpty) {
-      if (category == categoryProjects) return ['p1', 'p3'];
-      if (category == categoryFreelancers) return ['f1'];
-      if (category == categoryStartups) return ['s1'];
-      if (category == categoryCompanies) return ['co1'];
-      if (category == categoryInvestors) return ['i1'];
-      if (category == categoryServices) return ['sv1'];
-      if (category == categoryTechnologies) return ['tech_flutter'];
-      if (category == categoryCategories) return ['cat_mobile'];
-    }
-    return list;
+    return _storage.getStringList('bookmarks_$category');
   }
 
   // --- Collections & Bookmark Folders ---

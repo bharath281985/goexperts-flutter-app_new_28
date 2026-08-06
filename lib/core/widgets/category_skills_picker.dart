@@ -8,38 +8,50 @@ import '../../features/master_data/domain/entities/skill_option.dart';
 import '../../features/master_data/domain/repositories/master_data_repository.dart';
 import '../extensions/context_extensions.dart';
 
-/// Loads categories/skills from the catalog API.
-/// Selection values are always IDs; chips display human-readable names.
+/// Loads industries/categories/skills from the catalog API.
 class CategorySkillsPicker extends StatefulWidget {
   const CategorySkillsPicker({
     super.key,
+    this.selectedIndustryId,
     required this.selectedCategoryId,
     required this.selectedSkillIds,
+    this.onIndustryChanged,
     required this.onCategoryChanged,
     required this.onSkillsChanged,
     this.onSkillOptionsLoaded,
+    this.industryLabel = 'Industry',
+    this.industrySubtitle,
     this.categoryLabel = 'Category',
     this.categorySubtitle,
     this.skillsLabel = 'Skills',
     this.skillsSubtitle,
-    this.initialSkillsVisible = 8,
+    this.initialSkillsVisible = 10,
     this.clearSkillsOnCategoryChange = true,
+    this.industryError,
     this.categoryError,
     this.skillsError,
   });
 
+  final String? selectedIndustryId;
   final String? selectedCategoryId;
   final Set<String> selectedSkillIds;
+
+  final void Function(String? industryId, String industryName)?
+  onIndustryChanged;
   final void Function(String? categoryId, String categoryName)
   onCategoryChanged;
   final ValueChanged<Set<String>> onSkillsChanged;
   final void Function(List<SkillOption> skills)? onSkillOptionsLoaded;
+
+  final String industryLabel;
+  final String? industrySubtitle;
   final String categoryLabel;
   final String? categorySubtitle;
   final String skillsLabel;
   final String? skillsSubtitle;
   final int initialSkillsVisible;
   final bool clearSkillsOnCategoryChange;
+  final String? industryError;
   final String? categoryError;
   final String? skillsError;
 
@@ -48,39 +60,147 @@ class CategorySkillsPicker extends StatefulWidget {
 }
 
 class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
+  final Map<String, List<SkillCategory>> _categoriesByIndustryId = {};
   final Map<String, List<SkillOption>> _skillsByCategoryId = {};
 
-  bool _loadingCategories = true;
+  bool _loadingIndustries = true;
+  bool _loadingCategories = false;
   bool _loadingSkills = false;
   bool _skillsExpanded = false;
-  String? _loadError;
 
-  List<SkillCategory> _categories = [];
+  String? _industryLoadError;
+  String? _categoryLoadError;
+  String? _skillsLoadError;
+
+  List<SkillCategory> _industries = [];
+  List<SkillCategory> _visibleCategories = [];
   List<SkillOption> _visibleSkills = [];
+
+  String? _currentIndustryId;
+  String? _currentCategoryId;
 
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _currentIndustryId = widget.selectedIndustryId;
+    _currentCategoryId = widget.selectedCategoryId;
+    _loadIndustries();
   }
 
-  Future<void> _loadCategories() async {
+  @override
+  void didUpdateWidget(CategorySkillsPicker oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedIndustryId != oldWidget.selectedIndustryId) {
+      _currentIndustryId = widget.selectedIndustryId;
+    }
+    if (widget.selectedCategoryId != oldWidget.selectedCategoryId) {
+      _currentCategoryId = widget.selectedCategoryId;
+      if (_currentCategoryId != null && _currentCategoryId!.isNotEmpty) {
+        _loadSkillsForCategory(_currentCategoryId!, notifyCategory: false);
+      }
+    }
+  }
+
+  Future<void> _loadIndustries() async {
     setState(() {
-      _loadingCategories = true;
-      _loadError = null;
+      _loadingIndustries = true;
+      _industryLoadError = null;
     });
 
-    final result = await sl<MasterDataRepository>().getSkillCategories(
+    final repo = sl<MasterDataRepository>();
+    final result = await repo.getIndustries();
+
+    if (!mounted) return;
+
+    if (result.isFailure) {
+      setState(() {
+        _loadingIndustries = false;
+        _industryLoadError =
+            result.failureOrNull?.message ?? 'Failed to load industries';
+      });
+      return;
+    }
+
+    final industries = result.valueOrNull ?? [];
+    setState(() {
+      _industries = industries;
+      _loadingIndustries = false;
+      if (industries.isEmpty) {
+        _industryLoadError = 'No industries available';
+      }
+    });
+
+    if (_currentIndustryId != null &&
+        industries.any((i) => i.id == _currentIndustryId)) {
+      await _loadCategoriesForIndustry(
+        _currentIndustryId!,
+        notifyIndustry: false,
+      );
+    } else if (_currentCategoryId != null && _currentCategoryId!.isNotEmpty) {
+      final catsRes = await repo.getSkillCategories(
+        page: 1,
+        pageSize: 1000,
+        search: '',
+      );
+      if (catsRes.isSuccess && mounted) {
+        final cats = catsRes.valueOrNull ?? [];
+        final matched = cats.cast<SkillCategory?>().firstWhere(
+          (c) => c?.id == _currentCategoryId,
+          orElse: () => null,
+        );
+        if (matched != null && matched.industryId != null) {
+          _currentIndustryId = matched.industryId;
+          await _loadCategoriesForIndustry(
+            _currentIndustryId!,
+            notifyIndustry: true,
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _loadCategoriesForIndustry(
+    String industryId, {
+    bool notifyIndustry = true,
+  }) async {
+    if (_categoriesByIndustryId.containsKey(industryId)) {
+      setState(() {
+        _visibleCategories = _categoriesByIndustryId[industryId] ?? [];
+        _visibleSkills = [];
+      });
+      if (notifyIndustry) {
+        final name = _industryName(industryId);
+        widget.onIndustryChanged?.call(industryId, name);
+      }
+      return;
+    }
+
+    setState(() {
+      _loadingCategories = true;
+      _categoryLoadError = null;
+      _currentCategoryId = null;
+      _visibleSkills = [];
+    });
+
+    if (notifyIndustry) {
+      final name = _industryName(industryId);
+      widget.onIndustryChanged?.call(industryId, name);
+    }
+
+    final repo = sl<MasterDataRepository>();
+    final result = await repo.getSkillCategories(
+      industryId: industryId,
       page: 1,
       pageSize: 200,
       search: '',
     );
+
     if (!mounted) return;
 
     if (result.isFailure) {
       setState(() {
         _loadingCategories = false;
-        _loadError =
+        _categoryLoadError =
             result.failureOrNull?.message ?? 'Failed to load categories';
       });
       return;
@@ -88,17 +208,10 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
 
     final categories = result.valueOrNull ?? [];
     setState(() {
-      _categories = categories;
+      _categoriesByIndustryId[industryId] = categories;
+      _visibleCategories = categories;
       _loadingCategories = false;
-      if (categories.isEmpty) {
-        _loadError = 'No categories available';
-      }
     });
-
-    final selectedId = widget.selectedCategoryId;
-    if (selectedId != null && categories.any((c) => c.id == selectedId)) {
-      await _loadSkillsForCategory(selectedId, notifyCategory: false);
-    }
   }
 
   Future<void> _loadSkillsForCategory(
@@ -119,9 +232,10 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
 
     setState(() {
       _loadingSkills = true;
-      _loadError = null;
+      _skillsLoadError = null;
       _skillsExpanded = false;
     });
+
     if (notifyCategory) {
       widget.onCategoryChanged(categoryId, _categoryName(categoryId));
     }
@@ -143,7 +257,8 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
       if (result.isFailure) {
         setState(() {
           _loadingSkills = false;
-          _loadError = result.failureOrNull?.message ?? 'Failed to load skills';
+          _skillsLoadError =
+              result.failureOrNull?.message ?? 'Failed to load skills';
         });
         return;
       }
@@ -171,15 +286,39 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
     });
   }
 
+  String _industryName(String id) {
+    for (final industry in _industries) {
+      if (industry.id == id) return industry.name;
+    }
+    return '';
+  }
+
   String _categoryName(String categoryId) {
-    for (final category in _categories) {
+    for (final category in _visibleCategories) {
       if (category.id == categoryId) return category.name;
     }
     return '';
   }
 
+  void _onIndustrySelected(String id) {
+    if (id == _currentIndustryId) return;
+    setState(() {
+      _currentIndustryId = id;
+    });
+
+    if (widget.clearSkillsOnCategoryChange) {
+      widget.onCategoryChanged('', '');
+      widget.onSkillsChanged({});
+    }
+
+    _loadCategoriesForIndustry(id);
+  }
+
   void _onCategorySelected(String categoryId) {
-    if (categoryId == widget.selectedCategoryId) return;
+    if (categoryId == _currentCategoryId) return;
+    setState(() {
+      _currentCategoryId = categoryId;
+    });
 
     if (widget.clearSkillsOnCategoryChange) {
       widget.onSkillsChanged({});
@@ -211,26 +350,26 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
     );
   }
 
-  Widget _buildCategorySection() {
-    if (_loadingCategories) {
+  Widget _buildIndustrySection() {
+    if (_loadingIndustries) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: AppSizes.lg),
         child: Center(child: CircularProgressIndicator()),
       );
     }
 
-    if (_loadError != null && _categories.isEmpty) {
+    if (_industryLoadError != null && _industries.isEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle(widget.categoryLabel),
+          _buildSectionTitle(widget.industryLabel),
           AppSizes.vGapSm,
           Text(
-            _loadError!,
+            _industryLoadError!,
             style: context.text.bodyMedium?.copyWith(color: AppColors.danger),
           ),
           TextButton(
-            onPressed: _loadCategories,
+            onPressed: _loadIndustries,
             child: Text(context.tr('Retry')),
           ),
         ],
@@ -241,6 +380,96 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildSectionTitle(
+          widget.industryLabel,
+          subtitle: widget.industrySubtitle,
+        ),
+        AppSizes.vGapMd,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final industry in _industries)
+                Padding(
+                  padding: const EdgeInsets.only(right: AppSizes.sm),
+                  child: ChoiceChip(
+                    label: Text(industry.name),
+                    selected: industry.id == _currentIndustryId,
+                    showCheckmark: false,
+                    onSelected: (_) => _onIndustrySelected(industry.id),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (widget.industryError != null) ...[
+          AppSizes.vGapXs,
+          Text(
+            widget.industryError!,
+            style: context.text.bodySmall?.copyWith(color: AppColors.danger),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCategorySection() {
+    if (_loadingIndustries) return const SizedBox.shrink();
+    if (_currentIndustryId == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppSizes.vGapLg,
+          _buildSectionTitle(
+            widget.categoryLabel,
+            subtitle: 'Choose an industry first',
+          ),
+        ],
+      );
+    }
+
+    if (_loadingCategories) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: AppSizes.lg),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_categoryLoadError != null && _visibleCategories.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppSizes.vGapLg,
+          _buildSectionTitle(widget.categoryLabel),
+          AppSizes.vGapSm,
+          Text(
+            _categoryLoadError!,
+            style: context.text.bodyMedium?.copyWith(color: AppColors.danger),
+          ),
+          TextButton(
+            onPressed: () => _loadCategoriesForIndustry(_currentIndustryId!),
+            child: Text(context.tr('Retry')),
+          ),
+        ],
+      );
+    }
+
+    if (_visibleCategories.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppSizes.vGapLg,
+          _buildSectionTitle(widget.categoryLabel),
+          AppSizes.vGapSm,
+          Text('No categories available', style: context.text.bodyMedium),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSizes.vGapLg,
+        _buildSectionTitle(
           widget.categoryLabel,
           subtitle: widget.categorySubtitle,
         ),
@@ -249,12 +478,12 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final category in _categories)
+              for (final category in _visibleCategories)
                 Padding(
                   padding: const EdgeInsets.only(right: AppSizes.sm),
                   child: ChoiceChip(
                     label: Text(category.name),
-                    selected: category.id == widget.selectedCategoryId,
+                    selected: category.id == _currentCategoryId,
                     showCheckmark: false,
                     onSelected: (_) => _onCategorySelected(category.id),
                   ),
@@ -294,7 +523,7 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
   Widget _buildSkillsSection() {
     if (_loadingCategories) return const SizedBox.shrink();
 
-    if (widget.selectedCategoryId == null) {
+    if (_currentCategoryId == null) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -307,9 +536,9 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
       );
     }
 
-    final categoryName = _categoryName(widget.selectedCategoryId!) == ''
+    final categoryName = _categoryName(_currentCategoryId!) == ''
         ? 'this category'
-        : _categoryName(widget.selectedCategoryId!);
+        : _categoryName(_currentCategoryId!);
     final shouldLimit =
         _visibleSkills.length > widget.initialSkillsVisible && !_skillsExpanded;
     final skillsToShow = shouldLimit
@@ -343,19 +572,18 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
             padding: EdgeInsets.symmetric(vertical: AppSizes.md),
             child: LinearProgressIndicator(minHeight: 2),
           )
-        else if (_loadError != null && _visibleSkills.isEmpty)
+        else if (_skillsLoadError != null && _visibleSkills.isEmpty)
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _loadError!,
+                _skillsLoadError!,
                 style: context.text.bodyMedium?.copyWith(
                   color: AppColors.danger,
                 ),
               ),
               TextButton(
-                onPressed: () =>
-                    _loadSkillsForCategory(widget.selectedCategoryId!),
+                onPressed: () => _loadSkillsForCategory(_currentCategoryId!),
                 child: Text(context.tr('Retry')),
               ),
             ],
@@ -395,7 +623,11 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [_buildCategorySection(), _buildSkillsSection()],
+      children: [
+        _buildIndustrySection(),
+        _buildCategorySection(),
+        _buildSkillsSection(),
+      ],
     );
   }
 }

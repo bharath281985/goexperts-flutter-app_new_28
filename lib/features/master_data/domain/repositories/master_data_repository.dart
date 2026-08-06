@@ -4,6 +4,7 @@ import '../entities/skill_option.dart';
 
 abstract class MasterDataRepository {
   Future<Result<List<SkillCategory>>> getSkillCategories({
+    String? industryId,
     int page,
     int pageSize,
     String search,

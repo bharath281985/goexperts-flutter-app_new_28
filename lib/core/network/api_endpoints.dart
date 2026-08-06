@@ -59,6 +59,7 @@ class ApiEndpoints {
   static String publicClient(String id) => '/public/clients/$id';
   static String publicInvestor(String id) => '/public/investors/$id';
   static String publicStartup(String id) => '/public/startups/$id';
+  static String publicFounder(String id) => '/public/founders/$id';
 
   // ── Shared ────────────────────────────────────────────────────────────────
   static const notifications = '/notifications';
@@ -292,6 +293,7 @@ class ApiEndpoints {
   static String investorStartupSave(String id) => '/investor/startups/$id/save';
   static String investorFounderSave(String id) => '/investor/founders/$id/save';
   static const investorWatchlist = '/investor/watchlist';
+  static const investorWatchlistFounders = '/investor/watchlist/founders';
   static String investorWatchlistItem(String id) => '/investor/watchlist/$id';
   static String investorWatchlistNotes(String id) =>
       '/investor/watchlist/$id/notes';

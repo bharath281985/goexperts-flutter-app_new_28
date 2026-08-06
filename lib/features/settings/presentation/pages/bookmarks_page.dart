@@ -8,6 +8,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
@@ -29,7 +30,9 @@ import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
+import '../../../startup_ideas/presentation/widgets/investment_offer_sheet.dart';
 import '../../../startup_ideas/presentation/widgets/startup_card.dart';
+import '../../../../core/bloc/list_bloc.dart';
 
 class BookmarksPage extends StatelessWidget {
   const BookmarksPage({super.key});
@@ -78,24 +81,37 @@ class BookmarksPage extends StatelessWidget {
   }
 
   Future<Result<Paginated<Startup>>> _fetchStartups(QueryParams params) async {
-    final res = await sl<StartupRepository>().getStartups(params);
-    return res.fold((f) => Err(f), (paginated) {
-      final savedIds = BookmarkManager.instance.getIds(
-        BookmarkManager.categoryStartups,
-      );
-      final filtered = paginated.items
-          .where((x) => savedIds.contains(x.id))
-          .map((x) => x.copyWith(isSaved: true))
-          .toList();
-      return Success(
-        Paginated(
-          items: filtered,
-          page: paginated.page,
+    final client = sl<ApiClientHelper>();
+    final query = params.toApiQuery();
+
+    return client.getEnvelope<Paginated<Startup>>(
+      ApiEndpoints.investorWatchlist,
+      query: query,
+      parser: (env) {
+        final list = env.data as List? ?? [];
+        final items = list
+            .map(
+              (e) => Startup.fromApiJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList();
+
+        for (final s in items) {
+          // Sync backend state into BookmarkManager
+          BookmarkManager.instance.syncItem(
+            BookmarkManager.categoryStartups,
+            s.id,
+            s.isSaved,
+          );
+        }
+
+        return Paginated(
+          items: items,
+          page: params.page,
           totalPages: 1,
-          totalItems: filtered.length,
-        ),
-      );
-    });
+          totalItems: list.length,
+        );
+      },
+    );
   }
 
   Future<Result<Paginated<Investor>>> _fetchInvestors(
@@ -173,21 +189,28 @@ class BookmarksPage extends StatelessWidget {
   Future<Result<Paginated<Founder>>> _fetchFounders(QueryParams params) async {
     final client = sl<ApiClientHelper>();
     final query = params.toApiQuery();
-    query['entityType'] = 'investor';
 
     return client.getEnvelope<Paginated<Founder>>(
-      '/favorites',
+      ApiEndpoints.investorWatchlistFounders,
       query: query,
       parser: (env) {
         final list = env.data as List? ?? [];
+        final items = list
+            .map(
+              (e) => Founder.fromApiJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .toList();
+
+        for (final f in items) {
+          BookmarkManager.instance.syncItem(
+            BookmarkManager.categoryFounders,
+            f.id,
+            f.isSaved,
+          );
+        }
+
         return Paginated(
-          items: list
-              .map(
-                (e) => Founder.fromApiJson(
-                  Map<String, dynamic>.from(e as Map),
-                ).copyWith(isSaved: true),
-              )
-              .toList(),
+          items: items,
           page: params.page,
           totalPages: 1,
           totalItems: list.length,
@@ -241,24 +264,111 @@ class BookmarksPage extends StatelessWidget {
   }
 
   Widget _startupsView(BuildContext context) {
+    final repo = sl<StartupRepository>();
     return CatalogView<Startup>(
       fetcher: _fetchStartups,
       showSearch: false,
       emptyTitle: 'No saved startups',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, s, _) => AppStartupCard(
-        startup: s.copyWith(
-          isSaved: BookmarkManager.instance.isBookmarked(
-            BookmarkManager.categoryStartups,
-            s.id,
+      itemBuilder: (context, s, _) {
+        final bloc = context.read<ListBloc<Startup>>();
+        return AppStartupCard(
+          startup: s.copyWith(
+            isSaved: BookmarkManager.instance.isBookmarked(
+              BookmarkManager.categoryStartups,
+              s.id,
+            ),
           ),
-        ),
-        onTap: () => context.push('${Routes.startupDetails}/${s.id}'),
-        onSave: () => BookmarkManager.instance.toggle(
-          BookmarkManager.categoryStartups,
-          s.id,
-        ),
-      ),
+          onTap: () => context.push('${Routes.startupDetails}/${s.id}'),
+          onSave: () async {
+            final res = await repo.toggleSave(s.id);
+            res.fold((f) => context.showSnack(f.message, isError: true), (
+              success,
+            ) {
+              if (success) {
+                final isSavedNow = !BookmarkManager.instance.isBookmarked(
+                  BookmarkManager.categoryStartups,
+                  s.id,
+                );
+                BookmarkManager.instance.syncItem(
+                  BookmarkManager.categoryStartups,
+                  s.id,
+                  isSavedNow,
+                );
+
+                final updated = s.copyWith(isSaved: isSavedNow);
+                bloc.add(
+                  ListItemUpdated(updated, (old, newI) => old.id == newI.id),
+                );
+                context.showSnack(
+                  isSavedNow ? 'Saved startup' : 'Removed from saved',
+                );
+              }
+            });
+          },
+          onInterest: () async {
+            if (s.hasInvested) {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Withdraw Interest'),
+                  content: const Text(
+                    'Are you sure you want to withdraw your interest in this startup?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text(
+                        'Withdraw',
+                        style: TextStyle(color: AppColors.danger),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+              if (confirm != true) return;
+
+              final res = await repo.withdrawInterest(s.id);
+              res.fold((f) => context.showSnack(f.message, isError: true), (
+                success,
+              ) {
+                if (success) {
+                  final updated = s.copyWith(hasInvested: false);
+                  bloc.add(
+                    ListItemUpdated(
+                      updated,
+                      (existing, newItem) => existing.id == newItem.id,
+                    ),
+                  );
+                  context.showSnack('Withdrew interest successfully');
+                }
+              });
+            } else {
+              final submitted = await showInvestmentOfferSheet(
+                context,
+                startupId: s.id,
+                startupName: s.name,
+              );
+              if (submitted == true) {
+                final updated = s.copyWith(hasInvested: true);
+                bloc.add(
+                  ListItemUpdated(
+                    updated,
+                    (existing, newItem) => existing.id == newItem.id,
+                  ),
+                );
+                if (context.mounted) {
+                  context.push('${Routes.startupDetails}/${s.id}');
+                }
+              }
+            }
+          },
+        );
+      },
     );
   }
 
@@ -308,42 +418,80 @@ class BookmarksPage extends StatelessWidget {
       showSearch: false,
       emptyTitle: 'No saved founders',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, f, _) => AppCard(
-        onTap: () => context.push('${Routes.publicFounder}/${f.id}'),
-        child: Row(
-          children: [
-            AppAvatar(name: f.name, imageUrl: f.avatarUrl, size: 48),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(f.name, style: context.text.titleSmall),
-                  Text(
-                    '${f.founderType} · ${f.startupName}',
-                    style: context.text.labelSmall,
-                  ),
-                ],
+      itemBuilder: (context, f, _) {
+        final bloc = context.read<ListBloc<Founder>>();
+        return AppCard(
+          onTap: () => context.push('${Routes.publicFounder}/${f.id}'),
+          child: Row(
+            children: [
+              AppAvatar(name: f.name, imageUrl: f.avatarUrl, size: 48),
+              AppSizes.hGapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(f.name, style: context.text.titleSmall),
+                    Text(
+                      '${f.founderType} · ${f.startupName}',
+                      style: context.text.labelSmall,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: Icon(
-                BookmarkManager.instance.isBookmarked(
-                      BookmarkManager.categoryFounders,
-                      f.id,
-                    )
-                    ? Icons.bookmark_rounded
-                    : Icons.bookmark_outline_rounded,
-                color: AppColors.primary,
+              IconButton(
+                icon: Icon(
+                  BookmarkManager.instance.isBookmarked(
+                        BookmarkManager.categoryFounders,
+                        f.id,
+                      )
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_outline_rounded,
+                  color: AppColors.primary,
+                ),
+                onPressed: () async {
+                  final isCurrentlySaved = BookmarkManager.instance
+                      .isBookmarked(BookmarkManager.categoryFounders, f.id);
+
+                  final Result<dynamic> res;
+                  if (isCurrentlySaved) {
+                    res = await sl<ApiClientHelper>().deleteAction(
+                      ApiEndpoints.investorFounderSave(f.id),
+                    );
+                  } else {
+                    res = await sl<ApiClientHelper>().postAction(
+                      ApiEndpoints.investorFounderSave(f.id),
+                      body: {},
+                    );
+                  }
+
+                  res.fold(
+                    (err) => context.showSnack(err.message, isError: true),
+                    (success) {
+                      final isSavedNow = !isCurrentlySaved;
+                      BookmarkManager.instance.syncItem(
+                        BookmarkManager.categoryFounders,
+                        f.id,
+                        isSavedNow,
+                      );
+
+                      final updated = f.copyWith(isSaved: isSavedNow);
+                      bloc.add(
+                        ListItemUpdated(
+                          updated,
+                          (old, newI) => old.id == newI.id,
+                        ),
+                      );
+                      context.showSnack(
+                        isSavedNow ? 'Saved founder' : 'Removed from saved',
+                      );
+                    },
+                  );
+                },
               ),
-              onPressed: () => BookmarkManager.instance.toggle(
-                BookmarkManager.categoryFounders,
-                f.id,
-              ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 

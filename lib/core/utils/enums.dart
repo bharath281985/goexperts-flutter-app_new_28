@@ -112,6 +112,7 @@ enum EntityStatus {
   underReview,
   interview,
   shortlisted,
+  offer,
   accepted,
   rejected,
   completed,
@@ -139,6 +140,8 @@ enum EntityStatus {
         return 'Shortlisted';
       case EntityStatus.accepted:
         return 'Accepted';
+      case EntityStatus.offer:
+        return 'Offer';
       case EntityStatus.rejected:
         return 'Rejected';
       case EntityStatus.completed:

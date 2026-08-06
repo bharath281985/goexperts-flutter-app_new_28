@@ -149,7 +149,12 @@ class Startup extends Equatable {
         json['fullName']?.toString() ??
         'Founder';
 
+    final metrics = json['metrics'] as Map<String, dynamic>?;
+    final progress = json['fundingProgress'] as Map<String, dynamic>?;
+
     final fundingRequired =
+        (metrics?['fundingGoal'] as num?)?.toDouble() ??
+        (progress?['goal'] as num?)?.toDouble() ??
         (json['fundingRequired'] as num?)?.toDouble() ??
         (json['funding'] as num?)?.toDouble() ??
         (profile?['raised'] as num?)?.toDouble() ??
@@ -157,6 +162,7 @@ class Startup extends Equatable {
         0.0;
 
     final equityOffered =
+        (metrics?['equityOffered'] as num?)?.toDouble() ??
         (json['equityOffered'] as num?)?.toDouble() ??
         (json['equity'] as num?)?.toDouble() ??
         (profile?['equityOffered'] as num?)?.toDouble() ??
@@ -248,6 +254,7 @@ class Startup extends Equatable {
           (profile?['raised'] as num?)?.toDouble() ??
           0.0,
       fundingRaised:
+          (progress?['raised'] as num?)?.toDouble() ??
           (json['fundingRaised'] as num?)?.toDouble() ??
           (profile?['fundingRaised'] as num?)?.toDouble() ??
           (profile?['raised'] as num?)?.toDouble() ??

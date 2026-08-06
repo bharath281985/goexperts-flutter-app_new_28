@@ -33,6 +33,10 @@ class ProfileViewData {
     this.type = PublicProfileType.freelancer,
     this.phone = '+91 98765 43210',
     this.email = 'info@goexperts.example',
+    this.experience = '',
+    this.education = '',
+    this.linkedin = '',
+    this.website = '',
   });
 
   final String name;
@@ -53,6 +57,10 @@ class ProfileViewData {
   final PublicProfileType type;
   final String phone;
   final String email;
+  final String experience;
+  final String education;
+  final String linkedin;
+  final String website;
 }
 
 class ProfileView extends StatelessWidget {
@@ -174,6 +182,194 @@ class ProfileView extends StatelessWidget {
                     spacing: AppSizes.sm,
                     runSpacing: AppSizes.sm,
                     children: [for (final s in data.skills) _chip(context, s)],
+                  ),
+                ],
+                if (data.experience.isNotEmpty ||
+                    data.education.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  const AppSectionHeader(title: 'Background & Expertise'),
+                  AppSizes.vGapSm,
+                  AppCard(
+                    padding: const EdgeInsets.all(AppSizes.lg),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (data.experience.isNotEmpty) ...[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.work_rounded,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                              ),
+                              AppSizes.hGapMd,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.background,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.border,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Experience',
+                                          style: context.text.labelSmall
+                                              ?.copyWith(
+                                                color: AppColors.primary,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.5,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      data.experience,
+                                      style: context.text.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                        if (data.experience.isNotEmpty &&
+                            data.education.isNotEmpty) ...[
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              left: 24.0,
+                              top: 12,
+                              bottom: 12,
+                            ),
+                            child: Container(
+                              width: 2,
+                              height: 24,
+                              color: AppColors.border,
+                            ),
+                          ),
+                        ],
+                        if (data.education.isNotEmpty) ...[
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: AppColors.warning.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(
+                                  Icons.school_rounded,
+                                  color: AppColors.warning,
+                                  size: 24,
+                                ),
+                              ),
+                              AppSizes.hGapMd,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Align(
+                                      alignment: Alignment.centerLeft,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.background,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                          border: Border.all(
+                                            color: AppColors.border,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Education',
+                                          style: context.text.labelSmall
+                                              ?.copyWith(
+                                                color: AppColors.warning,
+                                                fontWeight: FontWeight.w700,
+                                                letterSpacing: 0.5,
+                                              ),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      data.education,
+                                      style: context.text.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                if (data.linkedin.isNotEmpty || data.website.isNotEmpty) ...[
+                  AppSizes.vGapXl,
+                  const AppSectionHeader(title: 'Connect & Explore'),
+                  AppSizes.vGapMd,
+                  Row(
+                    children: [
+                      if (data.linkedin.isNotEmpty)
+                        Expanded(
+                          child: _linkCard(
+                            context,
+                            'LinkedIn',
+                            'Professional Network',
+                            Icons.link_rounded,
+                            data.linkedin,
+                          ),
+                        ),
+                      if (data.linkedin.isNotEmpty && data.website.isNotEmpty)
+                        AppSizes.hGapMd,
+                      if (data.website.isNotEmpty)
+                        Expanded(
+                          child: _linkCard(
+                            context,
+                            'Website',
+                            'Visit Platform',
+                            Icons.language_rounded,
+                            data.website,
+                          ),
+                        ),
+                    ],
                   ),
                 ],
                 if (reviews.isNotEmpty) ...[
@@ -355,6 +551,75 @@ class ProfileView extends StatelessWidget {
         color: AppColors.primary,
         fontWeight: FontWeight.w600,
         fontSize: 12,
+      ),
+    ),
+  );
+
+  Widget _linkCard(
+    BuildContext context,
+    String title,
+    String subtitle,
+    IconData icon,
+    String url,
+  ) => InkWell(
+    onTap: () {
+      context.showSnack('Opening $title...');
+    },
+    borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+    child: Container(
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.shadow.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.border.withValues(alpha: 0.5),
+                  ),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 18),
+              ),
+              const Icon(
+                Icons.arrow_outward_rounded,
+                size: 16,
+                color: AppColors.mutedText,
+              ),
+            ],
+          ),
+          AppSizes.vGapMd,
+          Text(
+            title,
+            style: context.text.titleSmall?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: context.text.labelSmall?.copyWith(
+              color: AppColors.mutedText,
+            ),
+          ),
+        ],
       ),
     ),
   );

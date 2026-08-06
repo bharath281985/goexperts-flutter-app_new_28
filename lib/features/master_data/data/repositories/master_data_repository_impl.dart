@@ -13,6 +13,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   @override
   Future<Result<List<SkillCategory>>> getSkillCategories({
+    String? industryId,
     int page = 1,
     int pageSize = 50,
     String search = '',
@@ -20,6 +21,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     final result = await _client.getList<SkillCategory>(
       path: ApiEndpoints.publicCategories,
       query: {
+        if (industryId != null) 'industryId': industryId,
         'page': page,
         'pageSize': pageSize,
         if (search.trim().isNotEmpty) 'search': search.trim(),
@@ -35,7 +37,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   @override
   Future<Result<List<SkillCategory>>> getIndustries() async {
     final result = await _client.getList<SkillCategory>(
-      path: ApiEndpoints.publicCategories,
+      path: ApiEndpoints.publicIndustries,
       query: const {'page': 1, 'pageSize': 100},
       itemParser: SkillCategory.fromJson,
     );

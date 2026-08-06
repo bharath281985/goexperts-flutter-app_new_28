@@ -68,21 +68,35 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     );
     _bioController = TextEditingController(text: widget.startup.tagline);
 
+    final rawInd = widget.rawStartup?['industry'];
+    final rawCat = widget.rawStartup?['category'];
+    final rawStage = widget.rawStartup?['stage'];
+
     _initialIndustry =
         widget.rawStartup?['industryId']?.toString() ??
-        widget.rawStartup?['industry']?.toString() ??
+        (rawInd is Map
+            ? (rawInd['id'] ?? rawInd['name'])?.toString()
+            : rawInd?.toString()) ??
         widget.startup.industry;
 
     _initialCategory =
         widget.rawStartup?['categoryId']?.toString() ??
-        widget.rawStartup?['category']?.toString() ??
+        (rawCat is Map
+            ? (rawCat['id'] ?? rawCat['name'])?.toString()
+            : rawCat?.toString()) ??
         (widget.startup.tags.isNotEmpty
             ? widget.startup.tags.first
             : widget.startup.industry);
 
     _stage =
         widget.rawStartup?['stageId']?.toString() ??
-        widget.rawStartup?['stage']?.toString() ??
+        (rawStage is Map
+            ? (rawStage['id'] ??
+                      rawStage['value'] ??
+                      rawStage['label'] ??
+                      rawStage['name'])
+                  ?.toString()
+            : rawStage?.toString()) ??
         widget.startup.stage;
 
     _fundingController = TextEditingController(
@@ -109,19 +123,19 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   Future<void> _loadOptions() async {
     final futures = await Future.wait([
       sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicStartupStages,
+        '${ApiEndpoints.publicStartupStages}?limit=250',
         parser: (raw) => (raw as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
       ),
       sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicCategories,
+        '${ApiEndpoints.publicCategories}?limit=250',
         parser: (raw) => (raw as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
       ),
       sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicIndustries,
+        '${ApiEndpoints.publicIndustries}?limit=250',
         parser: (raw) => (raw as List)
             .map((e) => Map<String, dynamic>.from(e as Map))
             .toList(),
@@ -132,69 +146,59 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
 
     if (futures[0].isSuccess) {
       _stagesList = futures[0].valueOrNull ?? [];
-      final stageStr = _stage ?? '';
-      _stageId =
-          _stagesList.any(
-            (e) =>
-                e['id'] == stageStr ||
-                e['value'] == stageStr ||
-                e['label'] == stageStr ||
-                e['name'] == stageStr,
-          )
-          ? _stagesList
-                .firstWhere(
-                  (e) =>
-                      e['id'] == stageStr ||
-                      e['value'] == stageStr ||
-                      e['label'] == stageStr ||
-                      e['name'] == stageStr,
-                )['id']
-                ?.toString()
-          : null;
+      final stageStr = (_stage ?? '').trim().toLowerCase();
+      _stageId = _stagesList.firstWhere((e) {
+        final id = e['id']?.toString().trim().toLowerCase();
+        final val = e['value']?.toString().trim().toLowerCase();
+        final lbl = e['label']?.toString().trim().toLowerCase();
+        final nm = e['name']?.toString().trim().toLowerCase();
+        return id == stageStr ||
+            val == stageStr ||
+            lbl == stageStr ||
+            nm == stageStr;
+      }, orElse: () => {})['id']?.toString();
+      if (_stageId == null && _stage != null && _stage!.isNotEmpty) {
+        _stagesList.insert(0, {'id': _stage!, 'label': _stage!});
+        _stageId = _stage;
+      }
     }
 
     if (futures[1].isSuccess) {
       _categoriesList = futures[1].valueOrNull ?? [];
-      _categoryId =
-          _categoriesList.any(
-            (e) =>
-                e['id'] == _initialCategory ||
-                e['value'] == _initialCategory ||
-                e['label'] == _initialCategory ||
-                e['name'] == _initialCategory,
-          )
-          ? _categoriesList
-                .firstWhere(
-                  (e) =>
-                      e['id'] == _initialCategory ||
-                      e['value'] == _initialCategory ||
-                      e['label'] == _initialCategory ||
-                      e['name'] == _initialCategory,
-                )['id']
-                ?.toString()
-          : null;
+      final catStr = _initialCategory.trim().toLowerCase();
+      _categoryId = _categoriesList.firstWhere((e) {
+        final id = e['id']?.toString().trim().toLowerCase();
+        final val = e['value']?.toString().trim().toLowerCase();
+        final lbl = e['label']?.toString().trim().toLowerCase();
+        final nm = e['name']?.toString().trim().toLowerCase();
+        return id == catStr || val == catStr || lbl == catStr || nm == catStr;
+      }, orElse: () => {})['id']?.toString();
+      if (_categoryId == null && _initialCategory.isNotEmpty) {
+        _categoriesList.insert(0, {
+          'id': _initialCategory,
+          'name': _initialCategory,
+        });
+        _categoryId = _initialCategory;
+      }
     }
 
     if (futures[2].isSuccess) {
       _industriesList = futures[2].valueOrNull ?? [];
-      _industryId =
-          _industriesList.any(
-            (e) =>
-                e['id'] == _initialIndustry ||
-                e['value'] == _initialIndustry ||
-                e['label'] == _initialIndustry ||
-                e['name'] == _initialIndustry,
-          )
-          ? _industriesList
-                .firstWhere(
-                  (e) =>
-                      e['id'] == _initialIndustry ||
-                      e['value'] == _initialIndustry ||
-                      e['label'] == _initialIndustry ||
-                      e['name'] == _initialIndustry,
-                )['id']
-                ?.toString()
-          : null;
+      final indStr = _initialIndustry.trim().toLowerCase();
+      _industryId = _industriesList.firstWhere((e) {
+        final id = e['id']?.toString().trim().toLowerCase();
+        final val = e['value']?.toString().trim().toLowerCase();
+        final lbl = e['label']?.toString().trim().toLowerCase();
+        final nm = e['name']?.toString().trim().toLowerCase();
+        return id == indStr || val == indStr || lbl == indStr || nm == indStr;
+      }, orElse: () => {})['id']?.toString();
+      if (_industryId == null && _initialIndustry.isNotEmpty) {
+        _industriesList.insert(0, {
+          'id': _initialIndustry,
+          'name': _initialIndustry,
+        });
+        _industryId = _initialIndustry;
+      }
     }
 
     setState(() {

@@ -56,8 +56,8 @@ class Founder extends Equatable {
   );
 
   factory Founder.fromApiJson(Map<String, dynamic> json) => Founder(
-    id: json['id']?.toString() ?? '',
-    name: json['name'] as String? ?? 'Founder',
+    id: json['id']?.toString() ?? json['founderId']?.toString() ?? '',
+    name: json['name']?.toString() ?? json['fullName']?.toString() ?? 'Founder',
     founderType: json['founderType'] as String? ?? 'Founder',
     location: json['location'] as String? ?? 'N/A',
     avatarUrl: json['avatarUrl'] as String?,

@@ -37,6 +37,21 @@ class FollowManager extends ChangeNotifier {
     return !isFollowing;
   }
 
+  /// Sync follow state for an item in a category.
+  Future<void> syncItem(String category, String id, bool isFollowing) async {
+    final list = getFollowing(category);
+    final currentlyFollowing = list.contains(id);
+    if (isFollowing && !currentlyFollowing) {
+      list.add(id);
+      await _storage.setStringList('following_$category', list);
+      notifyListeners();
+    } else if (!isFollowing && currentlyFollowing) {
+      list.remove(id);
+      await _storage.setStringList('following_$category', list);
+      notifyListeners();
+    }
+  }
+
   /// Check if following an item.
   bool isFollowing(String category, String id) {
     return getFollowing(category).contains(id);
@@ -44,17 +59,7 @@ class FollowManager extends ChangeNotifier {
 
   /// Get list of followed item IDs.
   List<String> getFollowing(String category) {
-    final list = _storage.getStringList('following_$category');
-    if (list.isEmpty) {
-      // Set defaults for rich initial experience
-      if (category == categoryFreelancers) return ['f1'];
-      if (category == categoryCompanies) return ['co1'];
-      if (category == categoryInvestors) return ['i1'];
-      if (category == categoryTechnologies) return ['tech_flutter'];
-      if (category == categoryCommunities)
-        return ['comm_flutter_devs', 'comm_investors_club'];
-    }
-    return list;
+    return _storage.getStringList('following_$category');
   }
 
   /// Get followers list (mocked).

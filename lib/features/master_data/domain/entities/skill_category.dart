@@ -5,17 +5,20 @@ class SkillCategory extends Equatable {
     required this.id,
     required this.name,
     this.sortOrder = 0,
+    this.industryId,
   });
 
   final String id;
   final String name;
   final int sortOrder;
+  final String? industryId;
 
   factory SkillCategory.fromJson(Map<String, dynamic> json) {
     return SkillCategory(
       id: json['id']?.toString() ?? '',
       name: json['name'] as String? ?? '',
       sortOrder: json['sortOrder'] as int? ?? json['sort_order'] as int? ?? 0,
+      industryId: json['industryId']?.toString(),
     );
   }
 

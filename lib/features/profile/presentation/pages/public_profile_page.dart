@@ -102,6 +102,24 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     final email = raw['email']?.toString() ?? '';
     final phone = raw['phone']?.toString() ?? '';
 
+    bool toBool(dynamic val) {
+      if (val == null) return false;
+      if (val is bool) return val;
+      if (val is num) return val != 0;
+      if (val is String) {
+        final s = val.trim().toLowerCase();
+        return s == 'true' || s == '1' || s == 'yes';
+      }
+      return false;
+    }
+
+    final apiIsSaved = toBool(raw['isSaved']) || toBool(raw['is_saved']);
+    BookmarkManager.instance.syncItem(_bookmarkCategory, id, apiIsSaved);
+
+    final apiIsFollowing =
+        toBool(raw['isFollowing']) || toBool(raw['is_following']);
+    FollowManager.instance.syncItem(_followCategory, id, apiIsFollowing);
+
     switch (widget.type) {
       case PublicProfileType.freelancer:
         {
@@ -128,14 +146,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             isVerified: isVerified,
             about: bio,
             skills: skills,
-            isFollowing: FollowManager.instance.isFollowing(
-              _followCategory,
-              id,
-            ),
-            isSaved: BookmarkManager.instance.isBookmarked(
-              _bookmarkCategory,
-              id,
-            ),
+            isFollowing: apiIsFollowing,
+            isSaved: apiIsSaved,
             type: PublicProfileType.freelancer,
             primaryActionLabel: 'Hire Now',
             primaryActionIcon: Icons.handshake_outlined,
@@ -162,14 +174,8 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             avatarUrl: avatarUrl,
             isVerified: isVerified,
             about: bio,
-            isFollowing: FollowManager.instance.isFollowing(
-              _followCategory,
-              id,
-            ),
-            isSaved: BookmarkManager.instance.isBookmarked(
-              _bookmarkCategory,
-              id,
-            ),
+            isFollowing: apiIsFollowing,
+            isSaved: apiIsSaved,
             type: PublicProfileType.company,
             primaryActionLabel: 'Post a Job',
             primaryActionIcon: Icons.work_outline_rounded,
@@ -211,10 +217,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               _followCategory,
               id,
             ),
-            isSaved: BookmarkManager.instance.isBookmarked(
-              _bookmarkCategory,
-              id,
-            ),
+            isSaved: apiIsSaved,
             type: PublicProfileType.investor,
             primaryActionLabel: 'Connect',
             primaryActionIcon: Icons.handshake_outlined,
@@ -235,20 +238,54 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         {
           final fp = raw['founderProfile'] as Map? ?? raw;
           final founderName = fp['founder']?.toString() ?? fullName;
+
+          final startupMap = fp['startup'] is Map
+              ? (fp['startup'] as Map)
+              : null;
           final startupName =
               fp['startupName']?.toString() ??
-              fp['startup']?.toString() ??
+              startupMap?['startup']?.toString() ??
+              startupMap?['name']?.toString() ??
+              (fp['startup'] is String ? fp['startup'].toString() : null) ??
               fullName;
-          final industry = fp['industry']?.toString() ?? '';
-          final stage = fp['stage']?.toString() ?? '';
-          final teamSize = (fp['teamSize'] as num?)?.toInt() ?? 0;
-          final raised = (fp['raised'] as num?)?.toDouble() ?? 0.0;
+
+          final industry =
+              fp['industry']?.toString() ??
+              startupMap?['industry']?.toString() ??
+              '';
+          final stage =
+              fp['stage']?.toString() ?? startupMap?['stage']?.toString() ?? '';
+          final teamSize =
+              (fp['teamSize'] as num?)?.toInt() ??
+              (startupMap?['teamSize'] as num?)?.toInt() ??
+              0;
+          final raised =
+              (fp['raised'] as num?)?.toDouble() ??
+              (startupMap?['fundingRaised'] as num?)?.toDouble() ??
+              (startupMap?['funding'] as num?)?.toDouble() ??
+              0.0;
+
+          final skillsRaw = raw['skills']?.toString() ?? '';
+          final skills = skillsRaw.isNotEmpty
+              ? skillsRaw
+                    .split(',')
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList()
+              : <String>[];
+          final experience = raw['experience']?.toString() ?? '';
+          final education = raw['education']?.toString() ?? '';
+          final linkedin = raw['linkedin']?.toString() ?? '';
+          final website = raw['website']?.toString() ?? '';
+          final founderType = raw['founderType']?.toString() ?? '';
+
           return ProfileViewData(
             name: founderName.isNotEmpty && founderName != 'User'
                 ? founderName
                 : startupName,
             headline: [
-              startupName,
+              founderType.isNotEmpty ? founderType : 'Founder',
+              if (startupName.isNotEmpty && startupName != 'User') startupName,
               if (industry.isNotEmpty) industry,
               if (stage.isNotEmpty) stage,
             ].join(' · '),
@@ -256,14 +293,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             avatarUrl: avatarUrl,
             isVerified: isVerified,
             about: bio,
+            skills: skills,
+            experience: experience,
+            education: education,
+            linkedin: linkedin,
+            website: website,
             isFollowing: FollowManager.instance.isFollowing(
               _followCategory,
               id,
             ),
-            isSaved: BookmarkManager.instance.isBookmarked(
-              _bookmarkCategory,
-              id,
-            ),
+            isSaved: apiIsSaved,
             type: PublicProfileType.founder,
             primaryActionLabel:
                 FollowManager.instance.isFollowing(_followCategory, id)
@@ -300,7 +339,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
         endpoint = ApiEndpoints.publicInvestor(widget.id);
         break;
       case PublicProfileType.founder:
-        endpoint = ApiEndpoints.publicStartup(widget.id);
+        endpoint = ApiEndpoints.publicFounder(widget.id);
         break;
     }
 
@@ -550,14 +589,19 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       );
                     } else if (widget.type == PublicProfileType.founder) {
                       final api = sl<ApiClientHelper>();
-                      final post = await api.postAction(
-                        ApiEndpoints.investorFounderSave(widget.id),
+                      final isSaved = BookmarkManager.instance.isBookmarked(
+                        _bookmarkCategory,
+                        widget.id,
                       );
-                      final res = post.isSuccess
-                          ? post
-                          : await api.deleteAction(
+
+                      final res = isSaved
+                          ? await api.deleteAction(
+                              ApiEndpoints.investorFounderSave(widget.id),
+                            )
+                          : await api.postAction(
                               ApiEndpoints.investorFounderSave(widget.id),
                             );
+
                       res.fold(
                         (f) {
                           context.showSnack(f.message, isError: true);
@@ -573,16 +617,17 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                         },
                       );
                     } else {
-                      // fallback for others, we can assume API might be favorites or similar but for now we follow the toggle.
-                      // Depending on what API exists for freelancer etc., we could add here.
-                      // For now, toggle and refresh:
                       final api = sl<ApiClientHelper>();
-                      final post = await api.postAction(
-                        '${ApiEndpoints.favorites}/${widget.id}',
+                      final isSaved = BookmarkManager.instance.isBookmarked(
+                        _bookmarkCategory,
+                        widget.id,
                       );
-                      final res = post.isSuccess
-                          ? post
-                          : await api.deleteAction(
+
+                      final res = isSaved
+                          ? await api.deleteAction(
+                              '${ApiEndpoints.favorites}/${widget.id}',
+                            )
+                          : await api.postAction(
                               '${ApiEndpoints.favorites}/${widget.id}',
                             );
 

@@ -36,6 +36,7 @@ class AppStatusChip extends StatelessWidget {
       case EntityStatus.inProgress:
       case EntityStatus.shortlisted:
       case EntityStatus.interview:
+      case EntityStatus.offer:
         return AppColors.warning;
       case EntityStatus.rejected:
       case EntityStatus.cancelled:
