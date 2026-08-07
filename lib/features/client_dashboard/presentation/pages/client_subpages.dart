@@ -400,8 +400,8 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
 
   ClientProjectOption? _project;
   DateTime? _dueDate;
-  String _priority = 'Medium';
-  String _status = 'In Progress';
+  String? _priority;
+  String? _status;
   bool _saving = false;
 
   bool get _isEditing => widget.task != null;
@@ -467,9 +467,16 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate() || _project == null) {
+    if (!_formKey.currentState!.validate() ||
+        _project == null ||
+        _priority == null ||
+        _status == null) {
       if (_project == null) {
         context.showSnack('Please select a project', isError: true);
+      } else if (_priority == null) {
+        context.showSnack('Please select priority', isError: true);
+      } else if (_status == null) {
+        context.showSnack('Please select status', isError: true);
       }
       return;
     }
@@ -479,8 +486,8 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
     final body = <String, dynamic>{
       'title': _titleController.text.trim(),
       'projectId': _project!.id,
-      'priority': _priority,
-      'status': _status,
+      'priority': _priority!,
+      'status': _status!,
       'progress': progress.clamp(0, 100),
       if (_assigneeController.text.trim().isNotEmpty)
         'assignee': _assigneeController.text.trim(),
@@ -585,10 +592,12 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                         AppDropdown<String>(
                           label: 'Priority',
                           value: _priority,
+                          hint: 'Select priority',
                           items: _priorities,
                           itemLabel: (v) => v,
-                          onChanged: (v) =>
-                              setState(() => _priority = v ?? _priority),
+                          validator: (v) =>
+                              v == null ? 'Priority is required' : null,
+                          onChanged: (v) => setState(() => _priority = v),
                         ),
                       ),
                       _fieldBox(
@@ -597,10 +606,12 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                         AppDropdown<String>(
                           label: 'Status',
                           value: _status,
+                          hint: 'Select status',
                           items: _statuses,
                           itemLabel: (v) => v,
-                          onChanged: (v) =>
-                              setState(() => _status = v ?? _status),
+                          validator: (v) =>
+                              v == null ? 'Status is required' : null,
+                          onChanged: (v) => setState(() => _status = v),
                         ),
                       ),
                       _fieldBox(

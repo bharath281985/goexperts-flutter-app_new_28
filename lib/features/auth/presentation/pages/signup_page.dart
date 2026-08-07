@@ -405,8 +405,8 @@ class _SignupPageState extends State<SignupPage> {
           _stagePreferenceOptions = items;
         },
       ),
-      _loadPublicRootStringOptions(
-        ApiEndpoints.publicRootInvestorTypes,
+      _loadPublicStringOptions(
+        ApiEndpoints.publicInvestorTypes,
         (item) => item['value']?.toString() ?? item['label']?.toString(),
         (items) => _investorTypeOptions = items,
       ),
