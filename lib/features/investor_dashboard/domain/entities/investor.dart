@@ -79,8 +79,17 @@ class Investor extends Equatable {
     final profileId =
         (profile['id']?.toString() ?? json['investorId']?.toString() ?? '');
     final name =
-        json['fullName']?.toString() ?? json['name']?.toString() ?? 'Investor';
-    final bio = json['bio']?.toString() ?? json['thesis']?.toString() ?? '';
+        json['fullName']?.toString() ??
+        json['name']?.toString() ??
+        profile['fullName']?.toString() ??
+        profile['name']?.toString() ??
+        'Investor';
+    final bio =
+        json['bio']?.toString() ??
+        json['thesis']?.toString() ??
+        profile['bio']?.toString() ??
+        profile['thesis']?.toString() ??
+        '';
     final avatarUrl =
         json['avatarUrl'] as String? ?? profile['avatarUrl'] as String?;
 

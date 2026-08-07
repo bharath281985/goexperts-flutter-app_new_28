@@ -54,12 +54,19 @@ class FreelancerProfile extends Equatable {
   final int experienceYears;
 
   factory FreelancerProfile.fromApiJson(Map<String, dynamic> json) {
-    List<String> toStrings(dynamic raw) {
-      if (raw is List) {
-        return raw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+    final raw = (json['data'] is Map)
+        ? Map<String, dynamic>.from(json['data'] as Map)
+        : json;
+
+    List<String> toStrings(dynamic rawValue) {
+      if (rawValue is List) {
+        return rawValue
+            .map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList();
       }
-      if (raw is String && raw.isNotEmpty) {
-        return raw
+      if (rawValue is String && rawValue.isNotEmpty) {
+        return rawValue
             .split(',')
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
@@ -68,77 +75,76 @@ class FreelancerProfile extends Equatable {
       return const [];
     }
 
-    final user = (json['user'] is Map)
-        ? Map<String, dynamic>.from(json['user'])
+    final user = (raw['user'] is Map)
+        ? Map<String, dynamic>.from(raw['user'])
         : null;
 
     return FreelancerProfile(
       // The API returns 'skillIds' as an array of strings, or 'skills' as a comma-separated string
-      skills: toStrings(json['skills']),
+      skills: toStrings(raw['skills']),
       experience:
-          json['experienceYears']?.toString() ??
-          json['experience']?.toString() ??
+          raw['experienceYears']?.toString() ??
+          raw['experience']?.toString() ??
           '',
-      education: json['education']?.toString() ?? '',
-      languages: toStrings(json['languages']),
+      education: raw['education']?.toString() ?? '',
+      languages: toStrings(raw['languages']),
       hourlyRate:
-          (json['hourlyRate'] as num?)?.toDouble() ??
-          (json['hourly_rate'] as num?)?.toDouble() ??
+          (raw['hourlyRate'] as num?)?.toDouble() ??
+          (raw['hourly_rate'] as num?)?.toDouble() ??
           0,
       bio:
-          json['bio'] as String? ??
-          json['overview'] as String? ??
+          raw['bio'] as String? ??
+          raw['overview'] as String? ??
           user?['bio'] as String? ??
           '',
       availability:
-          json['status'] as String? ?? json['availability'] as String? ?? '',
+          raw['status'] as String? ?? raw['availability'] as String? ?? '',
       avatarUrl:
           user?['avatarUrl'] as String? ??
-          json['avatarUrl'] as String? ??
-          json['avatar'] as String?,
-      resumeUrl: json['resume'] as String? ?? json['resumeUrl'] as String?,
+          raw['avatarUrl'] as String? ??
+          raw['avatar'] as String?,
+      resumeUrl: raw['resume'] as String? ?? raw['resumeUrl'] as String?,
       fullName:
-          json['fullName'] as String? ??
-          json['name'] as String? ??
+          raw['fullName'] as String? ??
+          raw['name'] as String? ??
           user?['fullName'] as String? ??
           user?['name'] as String? ??
           '',
       phone:
-          json['phone'] as String? ??
-          json['mobile'] as String? ??
-          json['phoneNumber'] as String? ??
+          raw['phone'] as String? ??
+          raw['mobile'] as String? ??
+          raw['phoneNumber'] as String? ??
           user?['phone'] as String? ??
           user?['mobile'] as String? ??
           '',
       title:
-          json['headline'] as String? ??
-          json['title'] as String? ??
-          json['professionalTitle'] as String? ??
+          raw['headline'] as String? ??
+          raw['title'] as String? ??
+          raw['professionalTitle'] as String? ??
           user?['title'] as String? ??
           '',
-      city: json['city'] as String? ?? user?['city'] as String? ?? '',
-      state: json['state'] as String? ?? user?['state'] as String? ?? '',
+      city: raw['city'] as String? ?? user?['city'] as String? ?? '',
+      state: raw['state'] as String? ?? user?['state'] as String? ?? '',
       country:
-          json['countryId'] as String? ??
-          json['country'] as String? ??
+          raw['countryId'] as String? ??
+          raw['country'] as String? ??
           user?['countryId'] as String? ??
           user?['country'] as String? ??
           '',
-      githubUrl:
-          json['github'] as String? ?? json['githubUrl'] as String? ?? '',
+      githubUrl: raw['github'] as String? ?? raw['githubUrl'] as String? ?? '',
       portfolioUrl:
-          json['portfolio'] as String? ?? json['portfolioUrl'] as String? ?? '',
-      linkedin: json['linkedin'] as String? ?? '',
-      website: json['website'] as String? ?? '',
-      panNumber: json['panNumber'] as String? ?? '',
-      aadhaarNumber: json['aadhaarNumber'] as String? ?? '',
+          raw['portfolio'] as String? ?? raw['portfolioUrl'] as String? ?? '',
+      linkedin: raw['linkedin'] as String? ?? '',
+      website: raw['website'] as String? ?? '',
+      panNumber: raw['panNumber'] as String? ?? '',
+      aadhaarNumber: raw['aadhaarNumber'] as String? ?? '',
       phoneCode:
-          json['phoneCode'] as String? ?? user?['phoneCode'] as String? ?? '',
+          raw['phoneCode'] as String? ?? user?['phoneCode'] as String? ?? '',
       countryCode:
-          json['countryCode'] as String? ??
+          raw['countryCode'] as String? ??
           user?['countryCode'] as String? ??
           '',
-      experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
+      experienceYears: (raw['experienceYears'] as num?)?.toInt() ?? 0,
     );
   }
 

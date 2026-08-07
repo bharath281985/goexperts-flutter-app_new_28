@@ -172,12 +172,13 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     if (!mounted) return;
     result.fold(
       (failure) => context.showSnack(failure.message, isError: true),
-      (url) {
+      (url) async {
         setState(() {
           _localLogoPath = null;
         });
         context.read<AuthBloc>().add(const AuthRefreshUser());
         context.showSnack('Company logo updated');
+        await _load();
       },
     );
   }

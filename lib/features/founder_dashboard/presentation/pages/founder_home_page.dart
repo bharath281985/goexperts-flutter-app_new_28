@@ -15,6 +15,7 @@ import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
+import '../../../meetings/domain/entities/meeting.dart';
 
 class FounderHomePage extends StatelessWidget {
   const FounderHomePage({super.key});
@@ -69,9 +70,9 @@ class FounderHomePage extends StatelessWidget {
   }
 
   Widget _buildHeroBanner(BuildContext context, DashboardState state) {
-    final raised = state.monthlyEarnings;
-    final goal = state.fundingGoal > 0 ? state.fundingGoal : 0.0;
-    final pitchViews = state.pendingProposalsCount;
+    final raised = state.founderFundingRaised;
+    final goal = state.founderFundingGoal > 0 ? state.founderFundingGoal : 0.0;
+    final pitchViews = state.founderPitchDeckViews;
     final meetings = state.upcomingMeetingsCount;
 
     return Padding(
@@ -105,7 +106,7 @@ class FounderHomePage extends StatelessWidget {
                   const SizedBox(width: 8),
                   _buildBannerTag(
                     Icons.health_and_safety,
-                    'Health Score ${state.profileCompletionPercent}%',
+                    'Health Score ${state.founderProfileStrength}%',
                     AppColors.subtleText,
                   ),
                 ],
@@ -331,7 +332,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'STARTUP PROFILE STATUS',
-                'Active',
+                state.founderStartupStatus,
                 AppColors.primary,
                 onTap: () => context.push(Routes.founderStartup),
               ),
@@ -340,7 +341,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'INVESTOR VIEWS',
-                '${state.profileCompletionPercent}',
+                state.founderInvestorViews,
                 AppColors.success,
                 onTap: () => context.push(Routes.founderInvestors),
               ),
@@ -349,7 +350,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'INVESTOR INTERESTS',
-                '${state.activeProjectsCount}',
+                state.founderInvestorInterests,
                 AppColors.warning,
                 onTap: () => context.push(Routes.founderInvestors),
               ),
@@ -358,7 +359,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'CONTACT REQUESTS',
-                '0',
+                state.founderContactRequests,
                 AppColors.info,
                 onTap: () => context.push(Routes.founderInvestors),
               ),
@@ -367,7 +368,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'PITCH DECK DOWNLOADS',
-                '${state.pendingProposalsCount}',
+                state.founderPitchDeckViews,
                 AppColors.primary,
                 onTap: () => context.push(Routes.founderPitchDeck),
               ),
@@ -394,7 +395,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'SUBSCRIPTION STATUS',
-                'Free Founder Plan',
+                state.founderSubscriptionStatus,
                 AppColors.primary,
                 onTap: () => context.push(Routes.subscriptionsManage),
               ),
@@ -403,7 +404,7 @@ class FounderHomePage extends StatelessWidget {
               width: width,
               child: _buildMetricCard(
                 'PROFILE STRENGTH SCORE',
-                '${state.profileCompletionPercent}%',
+                '${state.founderProfileStrength}%',
                 AppColors.success,
                 onTap: () => context.push(Routes.founderProfile),
               ),
@@ -604,13 +605,88 @@ class FounderHomePage extends StatelessWidget {
           icon: Icons.history,
           onTap: () => context.push(Routes.founderInvestors),
         ),
-        'Upcoming Meetings': _buildEmptyStateCard(
-          'Upcoming Meetings',
-          '',
-          'No meetings scheduled',
-          icon: Icons.calendar_today,
-          onTap: () => context.push(Routes.meetings),
-        ),
+        'Upcoming Meetings': state.meetings.isEmpty
+            ? _buildEmptyStateCard(
+                'Upcoming Meetings',
+                '',
+                'No meetings scheduled',
+                icon: Icons.calendar_today,
+                onTap: () => context.push(Routes.meetings),
+              )
+            : _buildMeetingsList(context, state.meetings),
+      },
+    );
+  }
+
+  Widget _buildMeetingsList(BuildContext context, List<Meeting> meetings) {
+    return ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: meetings.length > 3 ? 3 : meetings.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      itemBuilder: (context, index) {
+        final meeting = meetings[index];
+        return Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 8,
+            ),
+            leading: CircleAvatar(
+              radius: 24,
+              backgroundColor: AppColors.background,
+              backgroundImage: meeting.withAvatar != null
+                  ? NetworkImage(meeting.withAvatar!)
+                  : null,
+              child: meeting.withAvatar == null
+                  ? const Icon(Icons.person, color: AppColors.subtleText)
+                  : null,
+            ),
+            title: Text(
+              meeting.title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 4.0),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.calendar_today,
+                    size: 12,
+                    color: AppColors.subtleText,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    Formatters.dateTime(meeting.startTime),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.subtleText,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(
+                    meeting.isVideo ? Icons.videocam : Icons.phone,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: AppColors.subtleText,
+            ),
+            onTap: () {
+              // Eventually navigate to meeting details
+              context.push(Routes.meetings);
+            },
+          ),
+        );
       },
     );
   }

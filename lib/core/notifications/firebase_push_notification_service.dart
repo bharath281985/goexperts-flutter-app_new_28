@@ -22,6 +22,20 @@ class FirebasePushNotificationService implements PushNotificationService {
 
   @override
   Future<void> initialize() async {
+    const channel = AndroidNotificationChannel(
+      'goexperts_default',
+      'Go Experts',
+      description: 'Used for important alerts and incoming notifications',
+      importance: Importance.high,
+    );
+
+    // Create the channel on the device (if a channel with an id already exists, it will be updated)
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(channel);
+
     await _localNotifications.initialize(
       const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
@@ -39,6 +53,13 @@ class FirebasePushNotificationService implements PushNotificationService {
         }
       },
     );
+
+    // Request permissions for Android 13+ locally and iOS via FCM
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
 
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
 

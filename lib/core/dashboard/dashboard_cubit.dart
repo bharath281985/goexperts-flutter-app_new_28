@@ -38,7 +38,7 @@ class DashboardState extends Equatable {
     this.unreadNotificationsCount = 0,
     this.upcomingMeetingsCount = 0,
     this.unreadMessagesCount = 0,
-    this.investorData = const {},
+    this.dashboardData = const {},
   });
 
   final ViewStatus status;
@@ -59,7 +59,7 @@ class DashboardState extends Equatable {
   final int unreadNotificationsCount;
   final int upcomingMeetingsCount;
   final int unreadMessagesCount;
-  final Map<String, dynamic> investorData;
+  final Map<String, dynamic> dashboardData;
 
   DashboardState copyWith({
     ViewStatus? status,
@@ -80,7 +80,7 @@ class DashboardState extends Equatable {
     int? unreadNotificationsCount,
     int? upcomingMeetingsCount,
     int? unreadMessagesCount,
-    Map<String, dynamic>? investorData,
+    Map<String, dynamic>? dashboardData,
   }) {
     return DashboardState(
       status: status ?? this.status,
@@ -105,13 +105,13 @@ class DashboardState extends Equatable {
       upcomingMeetingsCount:
           upcomingMeetingsCount ?? this.upcomingMeetingsCount,
       unreadMessagesCount: unreadMessagesCount ?? this.unreadMessagesCount,
-      investorData: investorData ?? this.investorData,
+      dashboardData: dashboardData ?? this.dashboardData,
     );
   }
 
   // --- Investor Dashboard Getters ---
   String get investorName {
-    final profile = investorData['profile'] as Map? ?? {};
+    final profile = dashboardData['profile'] as Map? ?? {};
     return profile['firstName']?.toString() ??
         profile['fullName']?.toString() ??
         profile['name']?.toString() ??
@@ -119,20 +119,20 @@ class DashboardState extends Equatable {
   }
 
   String get investorPendingDeals =>
-      (investorData['pendingInvestments'] ?? 0).toString();
+      (dashboardData['pendingInvestments'] ?? 0).toString();
   String get investorDealsClosed =>
-      (investorData['closedInvestments'] ?? 0).toString();
+      (dashboardData['closedInvestments'] ?? 0).toString();
   String get investorTotalInvestments =>
-      (investorData['totalInvestments'] ?? 0).toString();
+      (dashboardData['totalInvestments'] ?? 0).toString();
 
   double get investorDeployedRaw {
-    final val = investorData['portfolioValue'] ?? 0.0;
+    final val = dashboardData['portfolioValue'] ?? 0.0;
     if (val is num) return val.toDouble();
     return 0.0;
   }
 
   String get investorWalletBalance {
-    final balanceObj = investorData['walletBalance'] ?? 0.0;
+    final balanceObj = dashboardData['walletBalance'] ?? 0.0;
     return '${balanceObj is num ? balanceObj.toStringAsFixed(0) : '0'}';
   }
 
@@ -141,7 +141,79 @@ class DashboardState extends Equatable {
   }
 
   String get investorStartupsFollowing =>
-      (investorData['watchlistCount'] ?? 0).toString();
+      (dashboardData['watchlistCount'] ?? 0).toString();
+
+  // --- Founder Dashboard Getters ---
+  String get founderProfileStrength =>
+      (dashboardData['profileCompletion'] ?? 0).toString();
+  String get founderSubscriptionStatus =>
+      (dashboardData['subscription']?['planName']?.toString() ??
+      'Free Founder Plan');
+  String get founderAiSuggestions =>
+      (dashboardData['widgets']?['aiSuggestions']?.toString() ?? '');
+  String get founderStartupStatus =>
+      (dashboardData['startupVerificationStatus']?.toString() ?? 'Pending')
+          .toUpperCase();
+  String get founderInvestorViews =>
+      (dashboardData['profileViews'] ?? 0).toString();
+  String get founderInvestorInterests =>
+      (dashboardData['investorInterests'] ?? 0).toString();
+  String get founderPitchDeckViews =>
+      (dashboardData['pitchDeckViews'] ?? 0).toString();
+  String get founderContactRequests =>
+      (dashboardData['unreadMessages'] ?? 0).toString();
+  double get founderFundingRaised =>
+      (dashboardData['fundingRaised'] as num?)?.toDouble() ?? 0.0;
+  double get founderFundingGoal =>
+      (dashboardData['fundingGoal'] as num?)?.toDouble() ?? 0.0;
+
+  // --- Freelancer Dashboard Getters ---
+  String get freelancerProfileCompletion =>
+      (dashboardData['profileCompletion'] ?? 0).toString();
+  double get freelancerWalletBalance =>
+      (dashboardData['walletBalance'] as num?)?.toDouble() ?? 0.0;
+  double get freelancerMonthlyEarnings =>
+      (dashboardData['monthlyEarnings'] as num?)?.toDouble() ?? 0.0;
+  double get freelancerLifetimeEarnings =>
+      (dashboardData['lifetimeEarnings'] as num?)?.toDouble() ?? 0.0;
+  String get freelancerAverageRating =>
+      (dashboardData['averageRating'] ?? '0.0').toString();
+  String get freelancerReviewCount =>
+      (dashboardData['reviewCount'] ?? 0).toString();
+  String get freelancerActiveContracts =>
+      (dashboardData['currentContracts'] ?? 0).toString();
+  String get freelancerPendingProposals =>
+      (dashboardData['pendingProposals'] ?? 0).toString();
+  String get freelancerCompletedProjects =>
+      (dashboardData['completedProjects'] ?? 0).toString();
+  String get freelancerTotalProjects =>
+      (dashboardData['projectStatistics']?['total'] ?? 0).toString();
+  String get freelancerTodaysTasks =>
+      (dashboardData['todaysTasks'] ?? 0).toString();
+
+  // --- Client Dashboard Getters ---
+  String get clientProfileCompletion =>
+      (dashboardData['profileCompletion'] ?? 0).toString();
+  double get clientWalletBalance =>
+      (dashboardData['walletBalance'] as num?)?.toDouble() ?? 0.0;
+  String get clientActiveProjects =>
+      (dashboardData['activeProjects'] ?? 0).toString();
+  String get clientDraftProjects =>
+      (dashboardData['draftProjects'] ?? 0).toString();
+  String get clientCompletedProjects =>
+      (dashboardData['completedProjects'] ?? 0).toString();
+  String get clientPendingProposals =>
+      (dashboardData['pendingProposals'] ?? 0).toString();
+  String get clientShortlistedFreelancers =>
+      (dashboardData['shortlistedFreelancers'] ?? 0).toString();
+  String get clientActiveContracts =>
+      (dashboardData['activeContracts'] ?? 0).toString();
+  String get clientPendingPayments =>
+      (dashboardData['pendingPayments'] ?? 0).toString();
+  double get clientMonthlySpend =>
+      (dashboardData['monthlySpend'] as num?)?.toDouble() ?? 0.0;
+  double get clientTotalSpend =>
+      (dashboardData['totalSpend'] as num?)?.toDouble() ?? 0.0;
 
   @override
   List<Object?> get props => [
@@ -163,7 +235,7 @@ class DashboardState extends Equatable {
     upcomingMeetingsCount,
     unreadNotificationsCount,
     unreadMessagesCount,
-    investorData,
+    dashboardData,
   ];
 }
 
@@ -235,6 +307,7 @@ class DashboardCubit extends Cubit<DashboardState> {
             unreadNotificationsCount:
                 (data['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount: (data['unreadMessages'] as num?)?.toInt() ?? 0,
+            dashboardData: data,
           );
         });
       }
@@ -267,6 +340,7 @@ class DashboardCubit extends Cubit<DashboardState> {
             unreadNotificationsCount:
                 (data['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount: (data['unreadMessages'] as num?)?.toInt() ?? 0,
+            dashboardData: data,
           );
         });
       }
@@ -338,6 +412,54 @@ class DashboardCubit extends Cubit<DashboardState> {
 
           final walletBal =
               (summaryData['walletBalance'] as num?)?.toDouble() ?? 0;
+          final upcomingMeetingsList =
+              summaryData['widgets']?['upcomingMeetingsList'] as List? ??
+              summaryData['upcomingMeetingsList'] as List?;
+          final parsedMeetings = <Meeting>[];
+          if (upcomingMeetingsList != null) {
+            for (final e in upcomingMeetingsList) {
+              final m = e as Map;
+              final details = m['investorDetails'] ?? m['founderDetails'] ?? {};
+              final name = details['fullName'] ?? details['name'] ?? 'Unknown';
+              final avatar = details['avatarUrl'];
+              final dateStr = m['date'] ?? '';
+              final timeStr = m['time'] ?? '00:00';
+              DateTime startTime = DateTime.now();
+              try {
+                if (dateStr.isNotEmpty) {
+                  final ds = DateTime.parse(dateStr.toString());
+                  final parts = timeStr.toString().split(':');
+                  startTime = DateTime(
+                    ds.year,
+                    ds.month,
+                    ds.day,
+                    int.tryParse(parts[0]) ?? 0,
+                    int.tryParse(parts[1]) ?? 0,
+                  );
+                }
+              } catch (_) {}
+
+              parsedMeetings.add(
+                Meeting(
+                  id: m['id']?.toString() ?? '',
+                  title: 'Meeting with $name',
+                  withId: details['id']?.toString() ?? '',
+                  withName: name.toString(),
+                  withAvatar: avatar?.toString(),
+                  startTime: startTime,
+                  durationMinutes: (m['duration'] as num?)?.toInt() ?? 45,
+                  status: EntityStatus.fromString(
+                    m['status']?.toString() ?? 'pending',
+                  ),
+                  isVideo: m['mode'] == 'Online',
+                  meetingLink:
+                      m['meetingLink']?.toString() ??
+                      'https://meet.goexperts.example/room',
+                ),
+              );
+            }
+          }
+
           next = next.copyWith(
             monthlyEarnings: portfolioValue,
             walletBalance: walletBal,
@@ -346,11 +468,13 @@ class DashboardCubit extends Cubit<DashboardState> {
             profileCompletionPercent: profileCompletion,
             earningsChart: chart,
             startups: startupsList,
+            meetings: parsedMeetings,
+            upcomingMeetingsCount: parsedMeetings.length,
             unreadNotificationsCount:
                 (summaryData['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount:
                 (summaryData['unreadMessages'] as num?)?.toInt() ?? 0,
-            investorData: summaryData as Map<String, dynamic>,
+            dashboardData: summaryData as Map<String, dynamic>,
           );
         });
       }
@@ -379,9 +503,58 @@ class DashboardCubit extends Cubit<DashboardState> {
           List<Investor>? investorsList;
           if (recommendedList != null) {
             investorsList = recommendedList.map((item) {
-              final nested = (item as Map)['investorProfile'] as Map? ?? item;
-              return Investor.fromApiJson(Map<String, dynamic>.from(nested));
+              return Investor.fromApiJson(
+                Map<String, dynamic>.from(item as Map),
+              );
             }).toList();
+          }
+
+          final upcomingMeetingsList =
+              data['widgets']?['upcomingMeetingsList'] as List? ??
+              data['upcomingMeetingsList'] as List?;
+          final parsedMeetings = <Meeting>[];
+          if (upcomingMeetingsList != null) {
+            for (final e in upcomingMeetingsList) {
+              final m = e as Map;
+              final details = m['investorDetails'] ?? m['founderDetails'] ?? {};
+              final name = details['fullName'] ?? details['name'] ?? 'Unknown';
+              final avatar = details['avatarUrl'];
+              final dateStr = m['date'] ?? '';
+              final timeStr = m['time'] ?? '00:00';
+              DateTime startTime = DateTime.now();
+              try {
+                if (dateStr.isNotEmpty) {
+                  final ds = DateTime.parse(dateStr.toString());
+                  final parts = timeStr.toString().split(':');
+                  startTime = DateTime(
+                    ds.year,
+                    ds.month,
+                    ds.day,
+                    int.tryParse(parts[0]) ?? 0,
+                    int.tryParse(parts[1]) ?? 0,
+                  );
+                }
+              } catch (_) {}
+
+              parsedMeetings.add(
+                Meeting(
+                  id: m['id']?.toString() ?? '',
+                  title: 'Meeting with $name',
+                  withId: details['id']?.toString() ?? '',
+                  withName: name.toString(),
+                  withAvatar: avatar?.toString(),
+                  startTime: startTime,
+                  durationMinutes: (m['duration'] as num?)?.toInt() ?? 45,
+                  status: EntityStatus.fromString(
+                    m['status']?.toString() ?? 'pending',
+                  ),
+                  isVideo: m['mode'] == 'Online',
+                  meetingLink:
+                      m['meetingLink']?.toString() ??
+                      'https://meet.goexperts.example/room',
+                ),
+              );
+            }
           }
 
           final walletBal = (data['walletBalance'] as num?)?.toDouble() ?? 0;
@@ -396,9 +569,11 @@ class DashboardCubit extends Cubit<DashboardState> {
             topSkills: ['$meetings'],
             earningsChart: fundingChart,
             investors: investorsList ?? next.investors,
+            meetings: parsedMeetings,
             unreadNotificationsCount:
                 (data['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount: (data['unreadMessages'] as num?)?.toInt() ?? 0,
+            dashboardData: data,
           );
         });
       }

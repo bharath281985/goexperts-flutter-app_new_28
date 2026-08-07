@@ -82,8 +82,9 @@ class ClientHomePage extends StatelessWidget {
         'Monthly Hiring': _buildEmptyStateCard(
           'Monthly Hiring',
           'Applications vs. hires across the year',
-          state.pendingProposalsCount > 0 || state.profileCompletionPercent > 0
-              ? '${state.pendingProposalsCount} applications, ${state.profileCompletionPercent} hires.'
+          int.parse(state.clientPendingProposals) > 0 ||
+                  int.parse(state.clientShortlistedFreelancers) > 0
+              ? '${state.clientPendingProposals} applications, ${state.clientShortlistedFreelancers} hires.'
               : 'No hiring data yet.',
         ),
         'Hiring Pipeline': _buildEmptyStateCard(
@@ -331,12 +332,12 @@ class ClientHomePage extends StatelessWidget {
                 text: 'You have ',
                 children: [
                   TextSpan(
-                    text: '${state.pendingProposalsCount} approvals',
+                    text: '${state.clientPendingProposals} approvals',
                     style: const TextStyle(color: Color(0xFFEF4444)),
                   ),
                   const TextSpan(text: ', '),
                   TextSpan(
-                    text: '${state.activeProjectsCount} pending payments',
+                    text: '${state.clientPendingPayments} pending payments',
                     style: const TextStyle(color: Color(0xFFEF4444)),
                   ),
                   const TextSpan(text: ' and 0 new applications waiting.'),
@@ -365,7 +366,7 @@ class ClientHomePage extends StatelessWidget {
                 ),
                 _pillTag(
                   Icons.work_outline_rounded,
-                  '${state.activeProjectsCount} active projects',
+                  '${state.clientActiveProjects} active projects',
                   AppColors.primary,
                 ),
               ],
@@ -485,7 +486,6 @@ class ClientHomePage extends StatelessWidget {
 
   Widget _buildMetricsGrid(BuildContext context, DashboardState state) {
     if (context.isMobile) {
-      // 2 columns per row via Wrap
       return LayoutBuilder(
         builder: (context, constraints) {
           final width = (constraints.maxWidth - 16) / 2;
@@ -498,31 +498,39 @@ class ClientHomePage extends StatelessWidget {
                 child: _projCard(
                   context,
                   'TOTAL PROJECTS',
-                  '${state.activeProjectsCount + state.pendingProposalsCount}',
+                  '${int.tryParse(state.clientActiveProjects)! + int.tryParse(state.clientDraftProjects)! + int.tryParse(state.clientCompletedProjects)!}',
                 ),
               ),
               SizedBox(
                 width: width,
-                child: _projCard(context, 'OPEN PROJECTS', '0'),
+                child: _projCard(
+                  context,
+                  'DRAFT PROJECTS',
+                  state.clientDraftProjects,
+                ),
               ),
               SizedBox(
                 width: width,
                 child: _projCard(
                   context,
                   'ACTIVE PROJECTS',
-                  '${state.activeProjectsCount}',
+                  state.clientActiveProjects,
                 ),
               ),
               SizedBox(
                 width: width,
-                child: _projCard(context, 'COMPLETED PROJECTS', '0'),
+                child: _projCard(
+                  context,
+                  'COMPLETED',
+                  state.clientCompletedProjects,
+                ),
               ),
               SizedBox(
                 width: width,
                 child: _spendCard(
                   context,
                   'TOTAL SPEND',
-                  Formatters.compactCurrency(state.monthlyEarnings),
+                  Formatters.compactCurrency(state.clientTotalSpend),
                 ),
               ),
               SizedBox(
@@ -530,7 +538,7 @@ class ClientHomePage extends StatelessWidget {
                 child: _spendCard(
                   context,
                   'WALLET BALANCE',
-                  Formatters.compactCurrency(state.wallet?.available ?? 0),
+                  Formatters.compactCurrency(state.clientWalletBalance),
                 ),
               ),
             ],
@@ -547,27 +555,35 @@ class ClientHomePage extends StatelessWidget {
           child: _projCard(
             context,
             'TOTAL PROJECTS',
-            '${state.activeProjectsCount + state.pendingProposalsCount}',
+            '${int.tryParse(state.clientActiveProjects)! + int.tryParse(state.clientDraftProjects)! + int.tryParse(state.clientCompletedProjects)!}',
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(child: _projCard(context, 'OPEN PROJECTS', '0')),
+        Expanded(
+          child: _projCard(
+            context,
+            'DRAFT PROJECTS',
+            state.clientDraftProjects,
+          ),
+        ),
         const SizedBox(width: 16),
         Expanded(
           child: _projCard(
             context,
             'ACTIVE PROJECTS',
-            '${state.activeProjectsCount}',
+            state.clientActiveProjects,
           ),
         ),
         const SizedBox(width: 16),
-        Expanded(child: _projCard(context, 'COMPLETED PROJECTS', '0')),
+        Expanded(
+          child: _projCard(context, 'COMPLETED', state.clientCompletedProjects),
+        ),
         const SizedBox(width: 16),
         Expanded(
           child: _spendCard(
             context,
             'TOTAL SPEND',
-            Formatters.compactCurrency(state.monthlyEarnings),
+            Formatters.compactCurrency(state.clientTotalSpend),
           ),
         ),
         const SizedBox(width: 16),
@@ -575,7 +591,7 @@ class ClientHomePage extends StatelessWidget {
           child: _spendCard(
             context,
             'WALLET BALANCE',
-            Formatters.compactCurrency(state.wallet?.available ?? 0),
+            Formatters.compactCurrency(state.clientWalletBalance),
           ),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -759,9 +760,31 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
     String url,
   ) => AppCard(
     margin: const EdgeInsets.only(bottom: AppSizes.sm),
-    onTap: () => context.push(
-      '${Routes.documentViewer}?url=${Uri.encodeComponent(url)}&name=${Uri.encodeComponent(name)}',
-    ),
+    onTap: () async {
+      final uri = Uri.tryParse(url);
+      if (uri != null) {
+        try {
+          final launched = await launchUrl(
+            uri,
+            mode: LaunchMode.externalApplication,
+          );
+          if (!launched && context.mounted) {
+            // Fallback to in-app viewer
+            context.push(
+              '${Routes.documentViewer}?url=${Uri.encodeComponent(url)}&name=${Uri.encodeComponent(name)}&type=PDF',
+            );
+          }
+        } catch (_) {
+          if (context.mounted) {
+            context.push(
+              '${Routes.documentViewer}?url=${Uri.encodeComponent(url)}&name=${Uri.encodeComponent(name)}&type=PDF',
+            );
+          }
+        }
+      } else {
+        context.showSnack('Invalid document URL', isError: true);
+      }
+    },
     child: Row(
       children: [
         Container(
@@ -789,7 +812,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
             border: Border.all(color: AppColors.border),
           ),
           child: const Icon(
-            Icons.download_rounded,
+            Icons.open_in_new_rounded,
             size: 16,
             color: AppColors.mutedText,
           ),

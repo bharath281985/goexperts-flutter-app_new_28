@@ -216,10 +216,11 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final res = await sl<FreelancerProfileRepository>().uploadAvatar(path);
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
-    res.fold((f) => context.showSnack(f.message), (_) {
-      setState(() => _localAvatarPath = path);
+    res.fold((f) => context.showSnack(f.message), (_) async {
+      setState(() => _localAvatarPath = null);
       context.read<AuthBloc>().add(const AuthRefreshUser());
       context.showSnack('Avatar updated!');
+      await _load();
     });
   }
 

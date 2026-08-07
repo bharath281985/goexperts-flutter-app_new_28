@@ -20,6 +20,7 @@ import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../domain/entities/review.dart';
 import '../../domain/repositories/review_repository.dart';
 import '../../../investor_dashboard/domain/repositories/investor_repository.dart';
+import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 import '../widgets/profile_view.dart';
 
 export '../widgets/profile_view.dart' show PublicProfileType;
@@ -544,6 +545,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       setState(() {
                         _future = _loadAll();
                       });
+                    } else if (profile.primaryActionLabel == 'Connect') {
+                      ScheduleMeetingSheet.show(
+                        context,
+                        targetId: widget.id,
+                        targetName: profile.name,
+                        targetAvatar: profile.avatarUrl,
+                      );
                     } else {
                       context.showSnack(
                         '${profile.primaryActionLabel} · ${profile.name}',

@@ -27,7 +27,13 @@ class _SplashPageState extends State<SplashPage>
   late bool _isFirstLaunch;
 
   late final AnimationController _animController;
-  late final Animation<double> _fadeAnim;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _logoFade;
+  late final Animation<Offset> _textSlide;
+  late final Animation<double> _textFade;
+  late final Animation<Offset> _taglineSlide;
+  late final Animation<double> _taglineFade;
+  late final Animation<double> _progressFade;
 
   @override
   void initState() {
@@ -35,12 +41,56 @@ class _SplashPageState extends State<SplashPage>
 
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 1400),
     );
-    _fadeAnim = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeIn));
+
+    _logoScale = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+      ),
+    );
+    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+
+    _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _animController,
+            curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
+          ),
+        );
+    _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.3, 0.7, curve: Curves.easeIn),
+      ),
+    );
+
+    _taglineSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+          CurvedAnimation(
+            parent: _animController,
+            curve: const Interval(0.5, 0.9, curve: Curves.easeOutCubic),
+          ),
+        );
+    _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.5, 0.9, curve: Curves.easeIn),
+      ),
+    );
+
+    _progressFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _animController,
+        curve: const Interval(0.6, 1.0, curve: Curves.easeIn),
+      ),
+    );
 
     final storage = sl<LocalStorage>();
     _isFirstLaunch = !storage.getBool('splash_video_played');
@@ -141,31 +191,39 @@ class _SplashPageState extends State<SplashPage>
               ),
             )
           else if (!_isFirstLaunch)
-            FadeTransition(
-              opacity: _fadeAnim,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Spacer(),
-                    Image.asset(
-                      AppAssets.logo,
-                      width: MediaQuery.of(context).size.width * 0.65,
-                      fit: BoxFit.contain,
-                    ),
-                    const Spacer(),
-                    SizedBox(
-                      width: MediaQuery.of(context).size.width * 0.65,
-                      height: 5,
-                      child: LinearProgressIndicator(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(5),
+            Stack(
+              fit: StackFit.expand,
+              children: [
+                FadeTransition(
+                  opacity: _logoFade,
+                  child: ScaleTransition(
+                    scale: _logoScale,
+                    child: SizedBox(
+                      width: MediaQuery.of(context).size.width,
+                      height: double.infinity,
+                      child: Image.asset(
+                        AppAssets.splashImage,
+                        fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 80),
-                  ],
+                  ),
                 ),
-              ),
+                Positioned(
+                  bottom: 60,
+                  left: MediaQuery.of(context).size.width * 0.175,
+                  right: MediaQuery.of(context).size.width * 0.175,
+                  child: FadeTransition(
+                    opacity: _progressFade,
+                    child: SizedBox(
+                      height: 4,
+                      child: LinearProgressIndicator(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
         ],
       ),

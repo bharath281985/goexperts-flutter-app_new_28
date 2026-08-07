@@ -536,7 +536,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'TOTAL EARNINGS',
-                value: Formatters.currency(state.monthlyEarnings),
+                value: Formatters.currency(state.freelancerMonthlyEarnings),
                 lineColor: AppColors.primary,
                 tagLabel: 'Lifetime stats',
                 tagColor: AppColors.info,
@@ -548,7 +548,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'AVAILABLE BALANCE',
-                value: Formatters.currency(state.wallet?.available ?? 0),
+                value: Formatters.currency(state.freelancerWalletBalance),
                 lineColor: AppColors.success,
                 tagLabel: 'Ready to withdraw',
                 tagColor: AppColors.success,
@@ -560,9 +560,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'PROJECTS WON',
-                value: state.activeProjectsCount == 0
-                    ? '0'
-                    : '${state.activeProjectsCount}',
+                value: state.freelancerTotalProjects,
                 lineColor: AppColors.info,
                 tagLabel: '1 active now',
                 tagColor: AppColors.info,
@@ -574,7 +572,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'CONTRACTS ACTIVE',
-                value: '${state.activeProjectsCount}',
+                value: state.freelancerActiveContracts,
                 lineColor: AppColors.warning,
                 tagLabel: 'In delivery',
                 tagColor: AppColors.warning,
@@ -586,7 +584,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'PENDING PROPOSALS',
-                value: '${state.pendingProposalsCount}',
+                value: state.freelancerPendingProposals,
                 lineColor: AppColors.info,
                 tagLabel: state.pendingProposalsCount == 0
                     ? 'No proposals yet'
@@ -600,7 +598,7 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'TASKS DUE TODAY',
-                value: '0',
+                value: state.freelancerTodaysTasks,
                 lineColor: AppColors.primary,
                 tagLabel: 'None urgent',
                 tagColor: AppColors.success,
@@ -626,9 +624,9 @@ class FreelancerHomePage extends StatelessWidget {
               width: width,
               child: DashboardMetricCard(
                 title: 'AVERAGE RATING',
-                value: '4.26',
+                value: state.freelancerAverageRating,
                 lineColor: AppColors.success,
-                tagLabel: '4 reviews',
+                tagLabel: '${state.freelancerReviewCount} reviews',
                 tagColor: AppColors.success,
                 showIcon: false,
                 onTap: () => context.push(Routes.freelancerProfile),
@@ -664,23 +662,35 @@ class FreelancerHomePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildStatText('122', 'OPEN MATCHES'),
-                _buildStatText('0', 'PENDING PROPOSALS'),
+                _buildStatText(
+                  state.freelancerPendingProposals,
+                  'PENDING PROPOSALS',
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatText('1', 'ACTIVE CONTRACTS'),
-                _buildStatText('1', 'TOTAL CONTRACTS'),
+                _buildStatText(
+                  state.freelancerActiveContracts,
+                  'ACTIVE CONTRACTS',
+                ),
+                _buildStatText(
+                  state.freelancerCompletedProjects,
+                  'COMPLETED PROJECTS',
+                ),
               ],
             ),
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatText('4', 'REVIEWS'),
-                _buildStatText('95%', 'JOB SUCCESS'),
+                _buildStatText(state.freelancerReviewCount, 'REVIEWS'),
+                _buildStatText(
+                  '${state.freelancerProfileCompletion}%',
+                  'PROFILE COMPLETION',
+                ),
               ],
             ),
           ],
@@ -754,8 +764,11 @@ class FreelancerHomePage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildStatText('4.26', 'RATING'),
-                _buildStatText('₹26,525', 'BALANCE'),
+                _buildStatText(state.freelancerAverageRating, 'RATING'),
+                _buildStatText(
+                  Formatters.compactCurrency(state.freelancerWalletBalance),
+                  'BALANCE',
+                ),
               ],
             ),
           ],

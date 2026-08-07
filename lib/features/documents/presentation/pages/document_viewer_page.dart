@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/share_sheet.dart';
 
-/// A reusable document viewer shell with type-aware preview placeholders.
+/// A reusable document viewer shell with type-aware preview.
 ///
-/// Supports PDF, DOCX, Excel, PowerPoint, Image, Video, Audio and ZIP.
-/// Swap the preview area for real renderers (e.g. `syncfusion_flutter_pdfviewer`,
-/// `video_player`, `just_audio`) when wiring live files.
+/// For images, renders the actual image from the URL.
+/// For PDFs and other document types, provides an option to open externally.
 class DocumentViewerPage extends StatelessWidget {
   const DocumentViewerPage({
     super.key,
@@ -23,18 +25,25 @@ class DocumentViewerPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final meta = _metaFor(type);
+    final meta = _metaFor(type, url);
     return AppScaffold(
       appBar: AppBar(
         title: Text(name ?? '$type Viewer'),
         actions: [
           IconButton(
-            onPressed: () => context.showSnack('Downloading…'),
-            icon: const Icon(Icons.download_rounded),
+            onPressed: () => _share(context),
+            icon: const Icon(Icons.share_outlined),
+            tooltip: 'Share',
           ),
           IconButton(
-            onPressed: () => context.showSnack('Sharing…'),
-            icon: const Icon(Icons.share_outlined),
+            onPressed: () => _openExternal(context),
+            icon: const Icon(Icons.download_rounded),
+            tooltip: 'Download',
+          ),
+          IconButton(
+            onPressed: () => _openExternal(context),
+            icon: const Icon(Icons.open_in_browser_rounded),
+            tooltip: 'Open in browser',
           ),
         ],
       ),
@@ -47,103 +56,161 @@ class DocumentViewerPage extends StatelessWidget {
     );
   }
 
+  Future<void> _openExternal(BuildContext context) async {
+    if (url == null || url!.isEmpty) {
+      context.showSnack('No document URL available', isError: true);
+      return;
+    }
+    final uri = Uri.tryParse(url!);
+    if (uri == null) {
+      context.showSnack('Invalid document URL', isError: true);
+      return;
+    }
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && context.mounted) {
+        context.showSnack('Could not open document', isError: true);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnack('Could not open document: $e', isError: true);
+      }
+    }
+  }
+
+  void _share(BuildContext context) {
+    if (url == null || url!.isEmpty) {
+      context.showSnack('No document URL to share', isError: true);
+      return;
+    }
+    ShareSheet.show(
+      context,
+      title: name ?? 'Document',
+      subtitle: '$type document',
+      link: url!,
+    );
+  }
+
   Widget _preview(BuildContext context, _DocMeta meta) {
-    switch (meta.kind) {
-      case _DocKind.image:
-        return Container(
+    // If we have a URL and it's an image, show the actual image
+    if (meta.kind == _DocKind.image && url != null && url!.isNotEmpty) {
+      return InteractiveViewer(
+        minScale: 0.5,
+        maxScale: 4.0,
+        child: Container(
           color: Colors.black,
           alignment: Alignment.center,
-          child: const Icon(
-            Icons.image_outlined,
-            size: 96,
-            color: Colors.white54,
-          ),
-        );
-      case _DocKind.video:
-        return Container(
-          color: Colors.black,
-          alignment: Alignment.center,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Icon(
-                Icons.play_circle_outline_rounded,
-                size: 88,
-                color: Colors.white,
-              ),
-              SizedBox(height: 8),
-              Text('Tap to play', style: TextStyle(color: Colors.white70)),
-            ],
-          ),
-        );
-      case _DocKind.audio:
-        return Center(
+          child: CustomCachedImage(imageUrl: url!, fit: BoxFit.contain),
+        ),
+      );
+    }
+
+    // For documents with a URL, show an action-oriented preview
+    if (url != null && url!.isNotEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                padding: const EdgeInsets.all(AppSizes.xxl),
+                padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   color: meta.color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  Icons.graphic_eq_rounded,
-                  size: 64,
+                child: Icon(meta.icon, size: 64, color: meta.color),
+              ),
+              AppSizes.vGapXl,
+              Text(
+                name ?? '$type Document',
+                style: context.text.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              AppSizes.vGapSm,
+              Text(
+                type.toUpperCase(),
+                style: context.text.labelMedium?.copyWith(
                   color: meta.color,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.2,
                 ),
               ),
+              AppSizes.vGapXl,
               AppSizes.vGapLg,
-              Text(name ?? 'audio.mp3', style: context.text.titleMedium),
+              FilledButton.icon(
+                onPressed: () => _openExternal(context),
+                icon: const Icon(Icons.open_in_new_rounded),
+                label: const Text('Open Document'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: meta.color,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              AppSizes.vGapMd,
+              Text(
+                'Tap to open in your device\'s default viewer',
+                style: context.text.bodySmall?.copyWith(
+                  color: AppColors.subtleText,
+                ),
+              ),
             ],
           ),
-        );
-      case _DocKind.pages:
-        return ListView.separated(
-          padding: const EdgeInsets.all(AppSizes.lg),
-          itemCount: 4,
-          separatorBuilder: (_, __) => AppSizes.vGapLg,
-          itemBuilder: (_, i) => AspectRatio(
-            aspectRatio: 1 / 1.3,
-            child: Container(
+        ),
+      );
+    }
+
+    // Fallback: no URL provided
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSizes.xl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                color: context.theme.cardColor,
-                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                border: Border.all(color: context.theme.dividerColor),
+                color: AppColors.mutedText.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
               ),
-              alignment: Alignment.center,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(meta.icon, size: 48, color: meta.color),
-                  AppSizes.vGapSm,
-                  Text('Page ${i + 1}', style: context.text.bodySmall),
-                ],
+              child: const Icon(
+                Icons.insert_drive_file_outlined,
+                size: 64,
+                color: AppColors.mutedText,
               ),
             ),
-          ),
-        );
-      case _DocKind.archive:
-        return ListView(
-          padding: const EdgeInsets.all(AppSizes.lg),
-          children: [
-            Text('Archive contents', style: context.text.titleMedium),
-            AppSizes.vGapMd,
-            for (final f in [
-              'README.md',
-              'assets/logo.png',
-              'src/main.dart',
-              'docs/spec.pdf',
-            ])
-              ListTile(
-                leading: const Icon(Icons.insert_drive_file_outlined),
-                title: Text(f),
-                trailing: const Icon(Icons.download_rounded, size: 18),
-                onTap: () => context.showSnack('Extracting $f'),
+            AppSizes.vGapXl,
+            Text(
+              'No document URL available',
+              style: context.text.titleMedium?.copyWith(
+                color: AppColors.subtleText,
               ),
+            ),
+            AppSizes.vGapSm,
+            Text(
+              'This document may not have been uploaded yet.',
+              style: context.text.bodySmall?.copyWith(
+                color: AppColors.mutedText,
+              ),
+              textAlign: TextAlign.center,
+            ),
           ],
-        );
-    }
+        ),
+      ),
+    );
   }
 
   Widget _toolbar(BuildContext context, _DocMeta meta) {
@@ -172,26 +239,55 @@ class DocumentViewerPage extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  Text('$type · preview', style: context.text.labelSmall),
+                  Text(
+                    url != null && url!.isNotEmpty
+                        ? type.toUpperCase()
+                        : '$type · no URL',
+                    style: context.text.labelSmall,
+                  ),
                 ],
               ),
             ),
-            IconButton(
-              onPressed: () => context.showSnack('Zoom'),
-              icon: const Icon(Icons.zoom_in_rounded),
-            ),
-            IconButton(
-              onPressed: () => context.showSnack('Open externally'),
-              icon: const Icon(Icons.open_in_new_rounded),
-            ),
+            if (url != null && url!.isNotEmpty) ...[
+              IconButton(
+                onPressed: () => _openExternal(context),
+                icon: const Icon(Icons.open_in_new_rounded),
+                tooltip: 'Open externally',
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  _DocMeta _metaFor(String type) {
-    switch (type.toLowerCase()) {
+  _DocMeta _metaFor(String type, String? url) {
+    // First check the explicit type parameter
+    final lower = type.toLowerCase();
+
+    // If type is generic or 'pdf', also check the URL for file extension hints
+    final urlLower = (url ?? '').toLowerCase();
+
+    String effectiveType = lower;
+    if (lower == 'pdf' || lower == 'document') {
+      // Keep as-is
+    } else if (urlLower.contains('.png') ||
+        urlLower.contains('.jpg') ||
+        urlLower.contains('.jpeg') ||
+        urlLower.contains('.gif') ||
+        urlLower.contains('.webp')) {
+      effectiveType = 'image';
+    } else if (urlLower.contains('.mp4') ||
+        urlLower.contains('.mov') ||
+        urlLower.contains('.avi')) {
+      effectiveType = 'video';
+    } else if (urlLower.contains('.mp3') ||
+        urlLower.contains('.wav') ||
+        urlLower.contains('.aac')) {
+      effectiveType = 'audio';
+    }
+
+    switch (effectiveType) {
       case 'pdf':
         return const _DocMeta(
           _DocKind.pages,

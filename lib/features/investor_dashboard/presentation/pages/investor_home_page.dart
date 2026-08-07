@@ -785,62 +785,85 @@ class InvestorHomePage extends StatelessWidget {
         ),
         AppSizes.vGapMd,
         if (state.meetings.isEmpty)
-          Center(
-            child: const Text(
+          const Center(
+            child: Text(
               'No upcoming meetings.',
               style: TextStyle(color: AppColors.subtleText),
             ),
           )
         else
-          ...state.meetings
-              .take(3)
-              .map(
-                (m) => InkWell(
-                  onTap: () => context.push(Routes.meetings),
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.border),
-                      borderRadius: BorderRadius.circular(8),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: state.meetings.length > 3 ? 3 : state.meetings.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              final meeting = state.meetings[index];
+              return Container(
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  leading: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: AppColors.background,
+                    backgroundImage: meeting.withAvatar != null
+                        ? NetworkImage(meeting.withAvatar!)
+                        : null,
+                    child: meeting.withAvatar == null
+                        ? const Icon(Icons.person, color: AppColors.subtleText)
+                        : null,
+                  ),
+                  title: Text(
+                    meeting.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
                     ),
+                  ),
+                  subtitle: Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
                     child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.warning,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.calendar_today,
-                            color: AppColors.warning,
-                            size: 16,
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 12,
+                          color: AppColors.subtleText,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          Formatters.dateTime(meeting.startTime),
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.subtleText,
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                m.title,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              // Text(Formatters.formatDateTime(m.startTime), style: const TextStyle(color: AppColors.subtleText, fontSize: 11)),
-                            ],
-                          ),
+                        Icon(
+                          meeting.isVideo ? Icons.videocam : Icons.phone,
+                          size: 14,
+                          color: AppColors.primary,
                         ),
                       ],
                     ),
                   ),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: AppColors.subtleText,
+                  ),
+                  onTap: () {
+                    context.push(Routes.meetings);
+                  },
                 ),
-              ),
+              );
+            },
+          ),
       ],
     );
   }

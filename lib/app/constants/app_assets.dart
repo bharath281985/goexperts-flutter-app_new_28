@@ -6,4 +6,5 @@ class AppAssets {
   static const String bannerImage = 'assets/images/banner.png';
   static const String fullBannerImage = 'assets/images/full_banner.png';
   static const String splashVideo = 'assets/videos/video.mp4';
+  static const String splashImage = 'assets/images/splash_screen.png';
 }

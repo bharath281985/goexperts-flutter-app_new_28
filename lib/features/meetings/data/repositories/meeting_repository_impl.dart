@@ -107,7 +107,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
         '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
     final withUserId = meeting.participants.isNotEmpty
         ? meeting.participants.first
-        : null;
+        : (meeting.withId.isNotEmpty ? meeting.withId : null);
 
     final body = <String, dynamic>{
       'date': date,

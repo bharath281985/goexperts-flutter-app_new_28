@@ -9,7 +9,7 @@ class Meeting extends Equatable {
     this.withId = '',
     required this.withName,
     required this.startTime,
-    required this.durationMinutes,
+   this.durationMinutes,
     required this.status,
     this.withAvatar,
     this.hostId,
@@ -30,14 +30,14 @@ class Meeting extends Equatable {
   final String? hostName;
   final String? hostAvatar;
   final DateTime startTime;
-  final int durationMinutes;
+  final int? durationMinutes;
   final EntityStatus status;
   final bool isVideo;
   final String meetingLink;
   final String agenda;
   final List<String> participants;
 
-  DateTime get endTime => startTime.add(Duration(minutes: durationMinutes));
+  DateTime get endTime => startTime.add(Duration(minutes: durationMinutes??0));
   bool get isUpcoming => startTime.isAfter(DateTime.now());
 
   @override
