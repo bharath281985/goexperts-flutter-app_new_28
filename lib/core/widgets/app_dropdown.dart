@@ -37,9 +37,11 @@ class AppDropdown<T> extends StatelessWidget {
         DropdownButtonFormField<T>(
           initialValue: value,
           isExpanded: true,
+          style: context.text.bodyMedium,
           validator: validator,
           decoration: InputDecoration(
             hintText: hint == null ? null : context.tr(hint!),
+            hintStyle: context.theme.inputDecorationTheme.hintStyle,
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: AppSizes.iconMd)
                 : null,

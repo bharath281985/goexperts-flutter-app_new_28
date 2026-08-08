@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Goexperts App</string>
+	<string>Go Experts</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -27,11 +27,11 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>GoExperts needs camera access so you can take a profile photo.</string>
+	<string>Go Experts needs camera access so you can take a profile photo.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>GoExperts uses your location to help select your profile location.</string>
+	<string>Go Experts uses your location to help select your profile location.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>GoExperts needs photo library access so you can choose a profile photo.</string>
+	<string>Go Experts needs photo library access so you can choose a profile photo.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

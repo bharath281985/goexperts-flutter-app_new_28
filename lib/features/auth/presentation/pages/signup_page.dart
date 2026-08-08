@@ -138,7 +138,7 @@ class _SignupPageState extends State<SignupPage> {
   bool _isProcessingPayment = false;
   String? _businessType;
   String? _teamSize;
-  String? _portfolioStatus = 'Draft';
+  String? _portfolioStatus;
   String? _portfolioTeamSize;
   _PublicOption? _clientProjectCategory;
   String? _remoteType;
@@ -2792,7 +2792,7 @@ class _AccountStep extends StatelessWidget {
             AppTextField(
               controller: name,
               label: 'Full name',
-              hint: 'Enter name',
+              hint: 'Enter full name',
               prefixIcon: Icons.person_outline_rounded,
               validator: (v) => Validators.minLength(v, 3, field: 'Name'),
             ),
@@ -2800,7 +2800,7 @@ class _AccountStep extends StatelessWidget {
             AppTextField(
               controller: email,
               label: 'Email',
-              hint: 'Enter email address',
+              hint: 'Enter email',
               prefixIcon: Icons.alternate_email_rounded,
               keyboardType: TextInputType.emailAddress,
               onChanged: onEmailChanged,
@@ -2883,7 +2883,8 @@ class _BasicRoleAccountStep extends StatelessWidget {
             AppTextField(
               controller: name,
               label: 'Full name',
-              hint: 'Enter name',
+              hint: 'Enter full name',
+              prefixIcon: Icons.person_outline_rounded,
               validator: (v) => Validators.minLength(v, 3, field: 'Name'),
             ),
             AppSizes.vGapLg,
@@ -2891,6 +2892,7 @@ class _BasicRoleAccountStep extends StatelessWidget {
               controller: email,
               label: 'Email',
               hint: 'Enter email',
+              prefixIcon: Icons.alternate_email_rounded,
               keyboardType: TextInputType.emailAddress,
               onChanged: onEmailChanged,
               validator: Validators.email,
@@ -2972,7 +2974,8 @@ class _FounderAccountStep extends StatelessWidget {
             AppTextField(
               controller: name,
               label: 'Full name',
-              hint: 'Enter name',
+              hint: 'Enter full name',
+              prefixIcon: Icons.person_outline_rounded,
               validator: (v) => Validators.minLength(v, 3, field: 'Name'),
             ),
             AppSizes.vGapLg,
@@ -2980,6 +2983,7 @@ class _FounderAccountStep extends StatelessWidget {
               controller: email,
               label: 'Email',
               hint: 'Enter email',
+              prefixIcon: Icons.alternate_email_rounded,
               keyboardType: TextInputType.emailAddress,
               onChanged: onEmailChanged,
               validator: Validators.email,
@@ -3173,7 +3177,8 @@ class _ClientAccountStep extends StatelessWidget {
             AppTextField(
               controller: name,
               label: 'Full name',
-              hint: 'Enter name',
+              hint: 'Enter full name',
+              prefixIcon: Icons.person_outline_rounded,
               validator: (v) => Validators.minLength(v, 3, field: 'Name'),
             ),
             AppSizes.vGapLg,
@@ -3181,6 +3186,7 @@ class _ClientAccountStep extends StatelessWidget {
               controller: email,
               label: 'Work email',
               hint: 'Enter work email',
+              prefixIcon: Icons.alternate_email_rounded,
               keyboardType: TextInputType.emailAddress,
               onChanged: onEmailChanged,
               validator: Validators.email,
@@ -3296,7 +3302,7 @@ class _ClientProfileStep extends StatelessWidget {
           AppTextField(
             controller: businessName,
             label: 'Company Name / Business Name *',
-            hint: 'e.g. Acme Corp',
+            hint: 'Enter company name',
             validator: (v) => Validators.required(v, field: 'Business name'),
           ),
           AppSizes.vGapLg,
@@ -3310,7 +3316,7 @@ class _ClientProfileStep extends StatelessWidget {
           AppTextField(
             controller: website,
             label: 'Website',
-            hint: 'https://...',
+            hint: 'Enter website url',
             keyboardType: TextInputType.url,
           ),
           AppSizes.vGapLg,
@@ -3326,7 +3332,7 @@ class _ClientProfileStep extends StatelessWidget {
           AppTextField(
             controller: gstNumber,
             label: 'GST Number (Optional)',
-            hint: 'Enter GST Number',
+            hint: 'Enter GST number',
           ),
           AppSizes.vGapLg,
           AppDropdown<String>(
@@ -3341,13 +3347,13 @@ class _ClientProfileStep extends StatelessWidget {
           AppTextField(
             controller: annualRequirement,
             label: 'Annual Requirement',
-            hint: 'e.g. ₹10 Lakhs',
+            hint: 'Enter annual requirement',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: serviceLocation,
             label: 'Service Location',
-            hint: 'e.g. Global, India, Regional',
+            hint: 'Enter service location (e.g. Global, India, Regional)',
           ),
         ],
       ),
@@ -3398,7 +3404,7 @@ class _ClientServiceStep extends StatelessWidget {
           else
             AppDropdown<_PublicOption>(
               label: 'Category / Primary Service *',
-              hint: 'Select a category',
+              hint: 'Select category',
               value: categories.contains(category) ? category : null,
               items: categories,
               itemLabel: (item) => item.label,
@@ -3554,13 +3560,13 @@ class _ClientProjectsStep extends StatelessWidget {
           AppTextField(
             controller: title,
             label: 'Project Title',
-            hint: 'Enter Project Title',
+            hint: 'Enter project title',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: description,
             label: 'Description',
-            hint: 'Enter Project Decription',
+            hint: 'Enter project description',
             maxLines: 4,
           ),
           AppSizes.vGapLg,
@@ -3602,14 +3608,14 @@ class _ClientProjectsStep extends StatelessWidget {
           AppTextField(
             controller: budget,
             label: 'Budget',
-            hint: 'Enter Budget (e.g. ₹50,000)',
+            hint: 'Enter budget',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: timeline,
             label: 'Timeline',
-            hint: 'Enter Timeline (e.g. 2 months)',
+            hint: 'Enter timeline',
           ),
           AppSizes.vGapLg,
           _TitledFileUpload(
@@ -3625,7 +3631,7 @@ class _ClientProjectsStep extends StatelessWidget {
           AppTextField(
             controller: locationPreference,
             label: 'Location Preference',
-            hint: 'Enter Location Preference',
+            hint: 'Enter location preference',
           ),
           AppSizes.vGapMd,
           Row(
@@ -3942,7 +3948,7 @@ class _ProfileStep extends StatelessWidget {
           AppTextField(
             controller: linkedin,
             label: 'LinkedIn URL',
-            hint: 'Enter LinkedIn URL',
+            hint: 'Enter linkedIn url',
             prefixIcon: Icons.link_rounded,
             keyboardType: TextInputType.url,
           ),
@@ -3950,7 +3956,7 @@ class _ProfileStep extends StatelessWidget {
           AppTextField(
             controller: github,
             label: 'GitHub URL',
-            hint: 'Enter GitHub URL',
+            hint: 'Enter gitHub url',
             prefixIcon: Icons.code_rounded,
             keyboardType: TextInputType.url,
           ),
@@ -3958,7 +3964,7 @@ class _ProfileStep extends StatelessWidget {
           AppTextField(
             controller: portfolioUrl,
             label: 'Portfolio URL',
-            hint: 'Enter portfolio URL',
+            hint: 'Enter portfolio url',
             prefixIcon: Icons.language_rounded,
             keyboardType: TextInputType.url,
           ),
@@ -4481,26 +4487,26 @@ class _EducationSignupRow extends StatelessWidget {
               AppTextField(
                 controller: institution,
                 label: 'Institution *',
-                hint: 'Enter Institution',
+                hint: 'Enter institution',
                 prefixIcon: Icons.school_outlined,
               ),
               AppSizes.vGapLg,
               AppTextField(
                 controller: qualification,
                 label: 'Qualification *',
-                hint: 'Enter Qualification',
+                hint: 'Enter qualification',
               ),
               AppSizes.vGapLg,
               AppTextField(
                 controller: specialization,
                 label: 'Specialization *',
-                hint: 'Enter Specialization',
+                hint: 'Enter specialization',
               ),
               AppSizes.vGapLg,
               AppTextField(
                 controller: year,
                 label: 'Year *',
-                hint: 'Enter Passing Year',
+                hint: 'Enter passing year',
                 keyboardType: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
@@ -4556,7 +4562,7 @@ class _EducationSignupRow extends StatelessWidget {
                   flex: 3,
                   child: AppTextField(
                     controller: institution,
-                    hint: 'Enter Institution',
+                    hint: 'Enter institution',
                     prefixIcon: Icons.school_outlined,
                   ),
                 ),
@@ -4565,7 +4571,7 @@ class _EducationSignupRow extends StatelessWidget {
                   flex: 2,
                   child: AppTextField(
                     controller: qualification,
-                    hint: 'Enter Qualification',
+                    hint: 'Enter qualification',
                   ),
                 ),
                 AppSizes.hGapMd,
@@ -4573,7 +4579,7 @@ class _EducationSignupRow extends StatelessWidget {
                   flex: 2,
                   child: AppTextField(
                     controller: specialization,
-                    hint: 'Enter Specialization',
+                    hint: 'Enter specialization',
                   ),
                 ),
                 AppSizes.hGapMd,
@@ -4953,7 +4959,7 @@ class _PortfolioUploadsStep extends StatelessWidget {
             ),
           ),
           AppSizes.vGapLg,
-          AppTextField(controller: title, label: 'Title'),
+          AppTextField(controller: title, label: 'Title', hint: 'Enter title'),
           AppSizes.vGapLg,
           AppDropdown<_PublicOption>(
             label: 'Industry',
@@ -5010,7 +5016,11 @@ class _PortfolioUploadsStep extends StatelessWidget {
                 itemLabel: (item) => item,
                 onChanged: onStatusChanged,
               ),
-              AppTextField(controller: client, label: 'Client'),
+              AppTextField(
+                controller: client,
+                label: 'Client',
+                hint: 'Enter client',
+              ),
             ],
           ),
           AppSizes.vGapLg,
@@ -5019,7 +5029,7 @@ class _PortfolioUploadsStep extends StatelessWidget {
               AppTextField(
                 controller: duration,
                 label: 'Duration',
-                hint: 'Enter Duration',
+                hint: 'Enter duration',
               ),
               AppDropdown<String>(
                 label: 'Team size',
@@ -5029,17 +5039,21 @@ class _PortfolioUploadsStep extends StatelessWidget {
                 itemLabel: (item) => item,
                 onChanged: onTeamSizeChanged,
               ),
-              AppTextField(controller: role, label: 'Your role'),
+              AppTextField(
+                controller: role,
+                label: 'Your role',
+                hint: 'Enter role/desgination',
+              ),
               AppTextField(
                 controller: githubUrl,
                 label: 'Github URL',
-                hint: 'Enter Github URL',
+                hint: 'Enter github url',
                 keyboardType: TextInputType.url,
               ),
               AppTextField(
                 controller: liveUrl,
                 label: 'Live URL',
-                hint: 'Enter Live URL',
+                hint: 'Enter live url',
                 keyboardType: TextInputType.url,
               ),
             ],
@@ -5049,7 +5063,7 @@ class _PortfolioUploadsStep extends StatelessWidget {
             controller: overview,
             label: 'Overview',
             maxLines: 4,
-            hint: 'Enter Overview',
+            hint: 'Enter overview',
           ),
           AppSizes.vGapLg,
           _ResponsiveFieldGrid(
@@ -5167,17 +5181,17 @@ class _BadgesStep extends StatelessWidget {
               AppTextField(
                 controller: certificateName,
                 label: 'Name',
-                hint: 'Enter Certificate name',
+                hint: 'Enter certificate name',
               ),
               AppTextField(
                 controller: certificateIssuer,
                 label: 'Issuer',
-                hint: 'Enter Issuer name',
+                hint: 'Enter issuer name',
               ),
               AppTextField(
                 controller: certificateIssueDate,
                 label: 'Issue date',
-                hint: 'Select Date',
+                hint: 'Select date',
                 readOnly: true,
                 suffixIcon: const Icon(Icons.calendar_today_outlined),
                 onTap: onPickCertificateIssueDate,
@@ -5185,7 +5199,7 @@ class _BadgesStep extends StatelessWidget {
               AppTextField(
                 controller: certificateUrl,
                 label: 'Certificate Url',
-                hint: 'Enter Certificate Url',
+                hint: 'Enter certificate url',
                 keyboardType: TextInputType.url,
               ),
             ],
@@ -5605,7 +5619,7 @@ class _VerificationStep extends StatelessWidget {
               final stacked = constraints.maxWidth < 760;
               final otpField = AppTextField(
                 controller: emailOtp,
-                hint: 'Enter Email OTP',
+                hint: 'Enter email OTP',
                 prefixIcon: Icons.password_rounded,
                 keyboardType: TextInputType.number,
                 enabled: !isEmailVerified,
@@ -5722,7 +5736,7 @@ class _VerificationStep extends StatelessWidget {
           AppTextField(
             controller: aadhaar,
             label: 'Aadhaar Card Number *',
-            hint: 'Enter 12-digit Aadhaar Number (e.g. 1234 5678 9012)',
+            hint: 'Enter Aadhaar number',
             prefixIcon: Icons.badge_outlined,
             keyboardType: TextInputType.number,
             inputFormatters: [
@@ -5734,7 +5748,7 @@ class _VerificationStep extends StatelessWidget {
           AppTextField(
             controller: pan,
             label: 'PAN Card Number *',
-            hint: 'Enter 10-character PAN Number (e.g. ABCDE1234F)',
+            hint: 'Enter PAN number',
             prefixIcon: Icons.credit_card_rounded,
             inputFormatters: [
               LengthLimitingTextInputFormatter(10),
@@ -5846,25 +5860,25 @@ class _InvestorProfileStep extends StatelessWidget {
           AppTextField(
             controller: companyFund,
             label: 'Company/Fund Name *',
-            hint: 'Enter Company Name',
+            hint: 'Enter company name',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: linkedin,
             label: 'LinkedIn Profile',
-            hint: 'Enter LinkedIn Url',
+            hint: 'Enter linkedIn url',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: website,
             label: 'Website URL',
-            hint: 'Enter Website Url',
+            hint: 'Enter website url',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: bio,
-            label: 'Bio (Thesis)',
-            hint: 'Enter Bio / Investment Thesis',
+            label: 'Bio',
+            hint: 'Enter bio',
             maxLines: 5,
           ),
           AppSizes.vGapLg,
@@ -5987,7 +6001,7 @@ class _FounderProfileStep extends StatelessWidget {
           AppTextField(
             controller: skills,
             label: 'Skills',
-            hint: 'Select Skills',
+            hint: 'Select skills',
             onChanged: onManualSkillsChanged,
           ),
           AppSizes.vGapSm,
@@ -6003,7 +6017,7 @@ class _FounderProfileStep extends StatelessWidget {
           AppTextField(
             controller: experience,
             label: 'Experience *',
-            hint: 'Enter Years of experience',
+            hint: 'Enter years of experience',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
@@ -6013,19 +6027,19 @@ class _FounderProfileStep extends StatelessWidget {
           AppTextField(
             controller: education,
             label: 'Education',
-            hint: 'Enter Your Education',
+            hint: 'Enter your education',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: linkedin,
             label: 'LinkedIn',
-            hint: 'Enter LinkedIn Url',
+            hint: 'Enter linkedIn url',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: portfolioUrl,
             label: 'Website / Portfolio',
-            hint: 'Enter Portfolio Url',
+            hint: 'Enter portfolio url',
           ),
           AppSizes.vGapLg,
           AppDropdown<String>(
@@ -6111,7 +6125,7 @@ class _FounderStartupDetailsStep extends StatelessWidget {
           AppTextField(
             controller: shortPitch,
             label: 'Short Pitch (One-liner) *',
-            hint: 'Enter Short Pitch',
+            hint: 'Enter short pitch',
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -6144,19 +6158,19 @@ class _FounderStartupDetailsStep extends StatelessWidget {
           AppTextField(
             controller: marketSize,
             label: 'Market Size',
-            hint: 'Enter Market Size (e.g. 10B TAM)',
+            hint: 'Enter market size',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: businessModel,
             label: 'Business Model',
-            hint: 'Enter Model like B2B, B2C, Marketplace...',
+            hint: 'Enter model like B2B, B2C, Marketplace...',
           ),
           AppSizes.vGapLg,
           AppTextField(
             controller: revenueModel,
             label: 'Revenue Model',
-            hint: 'Enter Model like SaaS, Transactional, Ads...',
+            hint: 'Enter model like SaaS, Transactional, Ads...',
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -6176,7 +6190,7 @@ class _FounderStartupDetailsStep extends StatelessWidget {
           AppTextField(
             controller: equityOffered,
             label: 'Equity Offered',
-            hint: 'Enter Equity Offered',
+            hint: 'Enter equity offered',
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
           ),
           AppSizes.vGapLg,
@@ -6193,7 +6207,7 @@ class _FounderStartupDetailsStep extends StatelessWidget {
           AppTextField(
             controller: demoLink,
             label: 'Demo Video / App / Website Link',
-            hint: 'Enter Demo Link',
+            hint: 'Enter demo link',
           ),
         ],
       ),
@@ -6227,7 +6241,7 @@ class _FounderTaxonomyStep extends StatelessWidget {
         children: [
           AppDropdown<_PublicOption>(
             label: 'Primary Category *',
-            hint: 'Select a category',
+            hint: 'Select category',
             value: categories.contains(category) ? category : null,
             items: categories,
             itemLabel: (item) => item.label,
@@ -6374,13 +6388,14 @@ class _SimpleVerificationStep extends StatelessWidget {
           AppSizes.vGapSm,
           AppTextField(
             controller: email,
-            hint: 'Enter email address',
+            hint: 'Enter email',
+            prefixIcon: Icons.alternate_email_rounded,
             suffixIcon: isEmailVerified
                 ? const Icon(Icons.verified_rounded, color: AppColors.success)
                 : null,
           ),
           AppSizes.vGapMd,
-          AppTextField(controller: emailOtp, hint: 'Enter Email OTP'),
+          AppTextField(controller: emailOtp, hint: 'Enter email OTP'),
           AppSizes.vGapMd,
           Row(
             children: [
@@ -6433,7 +6448,7 @@ class _SimpleVerificationStep extends StatelessWidget {
           AppTextField(
             controller: aadhaar,
             label: 'Aadhaar Card Number *',
-            hint: 'Enter 12-digit Aadhaar Number (e.g. 1234 5678 9012)',
+            hint: 'Enter Aadhaar number',
             prefixIcon: Icons.badge_outlined,
             keyboardType: TextInputType.number,
             inputFormatters: [
@@ -6445,7 +6460,7 @@ class _SimpleVerificationStep extends StatelessWidget {
           AppTextField(
             controller: pan,
             label: 'PAN Card Number *',
-            hint: 'Enter 10-character PAN Number (e.g. ABCDE1234F)',
+            hint: 'Enter PAN number',
             prefixIcon: Icons.credit_card_rounded,
             inputFormatters: [
               LengthLimitingTextInputFormatter(10),
