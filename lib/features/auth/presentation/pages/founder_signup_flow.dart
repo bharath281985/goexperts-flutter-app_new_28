@@ -23,7 +23,11 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   final _emailController = TextEditingController();
   final _mobileController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _otpController = TextEditingController();
   bool _termsAccepted = false;
+  bool _isEmailVerified = false;
+  bool _isSendingOtp = false;
+  bool _isOtpSent = false;
 
   // Step 2 Startup Details
   final _startupNameController = TextEditingController();
@@ -68,11 +72,54 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     'Mentorship & Strategic Advisors',
   ];
 
+  void _sendOtp() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid email address first')),
+      );
+      return;
+    }
+    setState(() => _isSendingOtp = true);
+    await Future.delayed(const Duration(milliseconds: 600));
+    setState(() {
+      _isSendingOtp = false;
+      _isOtpSent = true;
+    });
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP sent to $email')),
+      );
+    }
+  }
+
+  void _verifyOtp() {
+    if (_otpController.text.trim().length != 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter 6-digit OTP code')),
+      );
+      return;
+    }
+    setState(() {
+      _isEmailVerified = true;
+      _isOtpSent = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Email verified successfully! ✓')),
+    );
+  }
+
   void _onContinue() async {
     if (_currentStep == 1) {
       if (_fullNameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty || !_termsAccepted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please fill all required fields and accept terms')),
+        );
+        return;
+      }
+      if (!_isEmailVerified) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please click Verify to verify your email address via OTP')),
         );
         return;
       }
@@ -167,6 +214,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     switch (_currentStep) {
       case 1:
         return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TextField(
               controller: _fullNameController,
@@ -175,8 +223,70 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             const SizedBox(height: 16),
             TextField(
               controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email Address *', border: OutlineInputBorder()),
+              enabled: !_isEmailVerified,
+              onChanged: (v) {
+                if (_isEmailVerified) setState(() => _isEmailVerified = false);
+              },
+              decoration: InputDecoration(
+                labelText: 'Email Address *',
+                border: const OutlineInputBorder(),
+                suffixIcon: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  child: _isEmailVerified
+                      ? const Chip(
+                          avatar: Icon(Icons.check_circle, color: Colors.green, size: 16),
+                          label: Text('Verified', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11)),
+                          backgroundColor: Color(0xFFE8F5E9),
+                          visualDensity: VisualDensity.compact,
+                        )
+                      : TextButton(
+                          onPressed: _isSendingOtp ? null : _sendOtp,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                          child: Text(_isSendingOtp ? 'Sending...' : (_isOtpSent ? 'Resend' : 'Verify')),
+                        ),
+                ),
+              ),
             ),
+            if (!_isEmailVerified && _isOtpSent) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        decoration: const InputDecoration(
+                          hintText: 'Enter 6-digit OTP',
+                          counterText: '',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: _verifyOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Verify OTP'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _mobileController,
