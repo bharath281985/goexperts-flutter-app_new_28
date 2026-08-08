@@ -26,10 +26,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
     final String path;
     if (role == UserRole.client) {
       path = ApiEndpoints.clientProjects;
-    } else if (role == UserRole.freelancer) {
-      path = (params.search?.trim().isNotEmpty ?? false)
-          ? ApiEndpoints.freelancerProjectsSearch
-          : ApiEndpoints.freelancerProjects;
     } else {
       path = ApiEndpoints.publicProjects;
     }
@@ -52,9 +48,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role == UserRole.freelancer
-        ? ApiEndpoints.freelancerProject(id)
-        : role == UserRole.client
+    final path = role ==UserRole.client
         ? ApiEndpoints.clientProject(id)
         : '${ApiEndpoints.publicProjects}/$id';
 

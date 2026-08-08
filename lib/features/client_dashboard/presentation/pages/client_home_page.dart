@@ -592,6 +592,7 @@ class ClientHomePage extends StatelessWidget {
             context,
             'WALLET BALANCE',
             Formatters.compactCurrency(state.clientWalletBalance),
+
           ),
         ),
       ],

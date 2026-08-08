@@ -61,6 +61,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   bool _uploadingAvatar = false;
   FreelancerProfile? _profile;
   String? _localAvatarPath;
+  String? _currentAvatarUrl;
+  String? _currentResumeUrl;
   String? _pendingResumePath; // staged resume, uploaded on Save
 
   @override
@@ -102,6 +104,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     if (!mounted) return;
     res.fold((f) => context.showSnack(f.message), (p) {
       _profile = p;
+      _currentAvatarUrl = p.avatarUrl;
+      _currentResumeUrl = p.resumeUrl;
       _bio.text = p.bio;
       _hourlyRate.text = p.hourlyRate > 0
           ? p.hourlyRate.toStringAsFixed(0)
@@ -154,13 +158,15 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
           'Resume upload failed: ${f.message}',
           isError: true,
         ),
-        (_) {
-          // Reload profile to get new resumeUrl
+        (url) {
           _pendingResumePath = null;
+          _currentResumeUrl = url;
         },
       );
     }
 
+    // Notice we do NOT send _localAvatarPath here if it was a File path.
+    // The avatar URL is exclusively from _currentAvatarUrl after it uploads.
     final payload = {
       // ── Personal ──────────────────────────────────────────────────────────
       'fullName': _fullName.text.trim(),
@@ -196,9 +202,11 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       // ── KYC ───────────────────────────────────────────────────────────────
       'panNumber': _panNumber.text.trim(),
       'aadhaarNumber': _aadhaarNumber.text.trim(),
-      // ── Avatar ────────────────────────────────────────────────────────────
-      if (_localAvatarPath != null || _profile?.avatarUrl != null)
-        'avatarUrl': _localAvatarPath ?? _profile?.avatarUrl,
+      // ── Avatar & Resume ───────────────────────────────────────────────────
+      if (_currentAvatarUrl != null) 'avatarUrl': _currentAvatarUrl,
+      if (_currentAvatarUrl != null) 'avatar': _currentAvatarUrl,
+      if (_currentResumeUrl != null) 'resumeUrl': _currentResumeUrl,
+      if (_currentResumeUrl != null) 'resume': _currentResumeUrl,
     };
 
     final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
@@ -212,12 +220,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   Future<void> _uploadAvatar(String path) async {
-    setState(() => _uploadingAvatar = true);
+    setState(() {
+      _localAvatarPath = path;
+      _uploadingAvatar = true;
+    });
     final res = await sl<FreelancerProfileRepository>().uploadAvatar(path);
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
-    res.fold((f) => context.showSnack(f.message), (_) async {
-      setState(() => _localAvatarPath = null);
+    res.fold((f) => context.showSnack(f.message), (url) async {
+      setState(() {
+        _localAvatarPath = null;
+        _currentAvatarUrl = url;
+      });
       context.read<AuthBloc>().add(const AuthRefreshUser());
       context.showSnack('Avatar updated!');
       await _load();
@@ -315,7 +329,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     children: [
                       ProfileAvatarEditor(
                         localPath: _localAvatarPath,
-                        networkUrl: _profile?.avatarUrl,
+                        networkUrl: _currentAvatarUrl,
                         onPathPicked: _uploadAvatar,
                         size: 110,
                       ),
@@ -566,7 +580,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                   _SectionLabel('Resume / CV'),
                   AppSizes.vGapSm,
                   _ResumeCard(
-                    networkUrl: _profile?.resumeUrl,
+                    networkUrl: _currentResumeUrl,
                     pendingPath: _pendingResumePath,
                     onPick: _pickResume,
                     onOpenUrl: _openResumeUrl,

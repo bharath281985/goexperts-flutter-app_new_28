@@ -101,9 +101,14 @@ class FreelancerProfile extends Equatable {
           raw['status'] as String? ?? raw['availability'] as String? ?? '',
       avatarUrl:
           user?['avatarUrl'] as String? ??
+          user?['avatar'] as String? ??
           raw['avatarUrl'] as String? ??
           raw['avatar'] as String?,
-      resumeUrl: raw['resume'] as String? ?? raw['resumeUrl'] as String?,
+      resumeUrl:
+          raw['resume'] as String? ??
+          raw['resumeUrl'] as String? ??
+          user?['resume'] as String? ??
+          user?['resumeUrl'] as String?,
       fullName:
           raw['fullName'] as String? ??
           raw['name'] as String? ??

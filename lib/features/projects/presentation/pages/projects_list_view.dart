@@ -85,7 +85,7 @@ class _ProjectsListViewState extends State<ProjectsListView> {
           ],
         ),
       FilterSection(
-        key: 'categoryIds',
+        key: 'categoryId',
         title: 'Category',
         searchable: true,
         searchHint: 'Search categories…',
@@ -131,8 +131,8 @@ class _ProjectsListViewState extends State<ProjectsListView> {
             sortBy: apiSort,
             filters: {
               for (final entry in params.filters.entries)
-                if (entry.key == 'categoryIds')
-                  'categoryIds': entry.value
+                if (entry.key == 'categoryId')
+                  'categoryId': entry.value
                 else if (entry.key == 'workModes')
                   'workModes': entry.value
                 else if (entry.key == 'experienceLevels')
