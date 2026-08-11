@@ -275,54 +275,11 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     return null;
   }
 
-  void _sendOtp() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty || !email.contains('@')) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid email address first')),
-      );
-      return;
-    }
-    setState(() => _isSendingOtp = true);
-    await Future.delayed(const Duration(milliseconds: 600));
-    setState(() {
-      _isSendingOtp = false;
-      _isOtpSent = true;
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP sent to $email')),
-      );
-    }
-  }
-
-  void _verifyOtp() {
-    if (_otpController.text.trim().length != 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter 6-digit OTP code')),
-      );
-      return;
-    }
-    setState(() {
-      _isEmailVerified = true;
-      _isOtpSent = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Email verified successfully! ✓')),
-    );
-  }
-
   void _onContinue() async {
     if (_currentStep == 1) {
       final validationMessage = _accountValidationMessage();
       if (validationMessage != null) {
         showSignupTopMessage(context, validationMessage, isSuccess: false);
-        return;
-      }
-      if (!_isEmailVerified) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please click Verify to verify your email address via OTP')),
-        );
         return;
       }
       setState(() => _isLoading = true);
@@ -476,7 +433,6 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           initialVerifiedEmail: _emailVerified
               ? _emailController.text.trim()
               : widget.verifiedEmail,
-        );
         );
       case 2:
         return Column(
