@@ -13,4 +13,6 @@ abstract class ProjectRepository {
   Future<Result<bool>> apply(String id);
   Future<Result<Paginated<Contract>>> getContracts(QueryParams params);
   Future<Result<Contract>> getContract(String id);
+  Future<Result<Contract>> createContract(Map<String, dynamic> data);
+  Future<Result<Contract>> updateContract(String id, Map<String, dynamic> data);
 }

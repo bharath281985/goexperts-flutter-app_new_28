@@ -28,7 +28,9 @@ class AuthScaffold extends StatelessWidget {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      backgroundColor: isDark ? AppColors.darkBackground : const Color(0xFFF4F6FB),
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : const Color(0xFFF4F6FB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -177,7 +179,9 @@ class AuthScaffold extends StatelessWidget {
                       context.tr(subtitle),
                       textAlign: TextAlign.center,
                       style: context.text.bodyMedium?.copyWith(
-                        color: isDark ? AppColors.subtleText : AppColors.mutedText,
+                        color: isDark
+                            ? AppColors.subtleText
+                            : AppColors.mutedText,
                         fontSize: 14,
                       ),
                     ),
@@ -218,4 +222,3 @@ class AuthScaffold extends StatelessWidget {
     );
   }
 }
-

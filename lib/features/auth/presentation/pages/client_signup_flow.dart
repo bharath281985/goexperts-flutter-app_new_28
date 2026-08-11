@@ -1,13 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../app/router/route_names.dart';
+import '../../../../core/utils/enums.dart';
+import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
+import '../utils/signup_progress_store.dart';
+import '../widgets/signup_account_step.dart';
+import '../widgets/signup_multi_select_sheet.dart';
 import '../widgets/signup_scaffold.dart';
-import '../widgets/signup_search_dropdown.dart';
 import '../widgets/signup_success_view.dart';
+import '../widgets/signup_top_message.dart';
 
 class ClientSignupFlow extends StatefulWidget {
-  const ClientSignupFlow({super.key});
+  final VoidCallback? onBackToRoleSelection;
+  final int initialStep;
+  final String? verifiedEmail;
+  const ClientSignupFlow({
+    super.key,
+    this.onBackToRoleSelection,
+    this.initialStep = 1,
+    this.verifiedEmail,
+  });
 
   @override
   State<ClientSignupFlow> createState() => _ClientSignupFlowState();
@@ -21,65 +40,282 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _mobileController = TextEditingController();
+  String _selectedMobileCountryCode = '+91';
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _cityController = TextEditingController();
   bool _termsAccepted = false;
+  bool _emailVerified = false;
+  String? _registeredEmail;
 
   // Step 2 Business
   final _businessNameController = TextEditingController();
-  String? _selectedIndustry = 'Software & Technology';
-  String? _selectedCompanySize = '11-50 employees';
-  String? _selectedCountry = 'India';
-  String? _selectedCity = 'Mumbai';
+  final _companySiteController = TextEditingController();
+  String? _selectedIndustry;
+  String? _selectedCompanySize;
+  String? _selectedCountry;
+  String? _selectedState;
 
   // Step 3 Profile
-  String? _selectedDesignation = 'Founder / CEO';
+  final _jobRoleController = TextEditingController();
+  List<String> _selectedHiringGoals = [];
 
   // Step 4 Team (Optional)
-  final _teamEmailController = TextEditingController();
+  String? _selectedTeamSize;
+  String? _selectedBudgetRange;
 
-  final List<String> _industries = [
-    'Software & Technology',
-    'Financial Services & FinTech',
-    'Healthcare & HealthTech',
-    'E-Commerce & Retail',
-    'Education & EdTech',
-  ];
-  final List<String> _companySizes = ['1-10 employees', '11-50 employees', '51-200 employees', '201-500 employees', '500+ employees'];
-  final List<String> _designations = ['Founder / CEO', 'CTO / Engineering VP', 'Product Manager', 'HR Manager', 'Business Owner'];
-  final List<String> _countries = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia'];
-  final List<String> _cities = ['Mumbai', 'Bengaluru', 'Delhi', 'Hyderabad', 'Pune', 'Chennai'];
+  // Dynamic API Master lists (100% Sourced from Backend APIs)
+  List<String> _industries = [];
+  List<String> _companySizes = [];
+  List<String> _hiringGoals = [];
+  List<String> _budgetRanges = [];
+  List<String> _countries = [];
+  List<String> _states = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStep = widget.initialStep.clamp(1, 4).toInt();
+    if (widget.verifiedEmail != null && widget.verifiedEmail!.isNotEmpty) {
+      _emailController.text = widget.verifiedEmail!;
+      _emailVerified = true;
+    }
+    final progress = SignupProgressStore.read();
+    if (progress?.role == UserRole.client) {
+      _registeredEmail = progress!.registeredEmail;
+      _restoreFields(progress.fields);
+    }
+    for (final controller in [
+      _fullNameController,
+      _emailController,
+      _passwordController,
+      _confirmPasswordController,
+      _cityController,
+      _businessNameController,
+      _companySiteController,
+      _jobRoleController,
+    ]) {
+      controller.addListener(_persistCurrentProgress);
+    }
+    _loadMasterData();
+  }
+
+  Future<void> _saveProgress(int step) {
+    return SignupProgressStore.save(
+      role: UserRole.client,
+      step: step,
+      verifiedEmail: _emailController.text.trim(),
+      registeredEmail: _registeredEmail,
+      fields: _fields(),
+    );
+  }
+
+  void _persistCurrentProgress() {
+    if (_currentStep <= 1 && _registeredEmail == null) return;
+    _saveProgress(_currentStep);
+  }
+
+  List<String> _stringList(dynamic value) {
+    if (value is List) return value.map((e) => e.toString()).toList();
+    return const [];
+  }
+
+  void _restoreFields(Map<String, dynamic> fields) {
+    _fullNameController.text = fields['fullName']?.toString() ?? '';
+    _passwordController.text = fields['password']?.toString() ?? '';
+    _confirmPasswordController.text =
+        fields['confirmPassword']?.toString() ?? '';
+    _cityController.text = fields['city']?.toString() ?? '';
+    _selectedCountry = fields['country']?.toString();
+    _selectedState = fields['state']?.toString();
+    _termsAccepted = fields['termsAccepted'] == true;
+    _businessNameController.text = fields['companyName']?.toString() ?? '';
+    _companySiteController.text = fields['companySite']?.toString() ?? '';
+    final restoredIndustries = _stringList(fields['industry']);
+    _selectedIndustry = restoredIndustries.isNotEmpty
+        ? restoredIndustries.first
+        : fields['industry']?.toString();
+    _selectedCompanySize = fields['companySize']?.toString();
+    _jobRoleController.text = fields['jobRole']?.toString() ?? '';
+    _selectedHiringGoals = _stringList(fields['hiringGoal']);
+    _selectedTeamSize = fields['currentTeam']?.toString();
+    _selectedBudgetRange = fields['projectHireBudget']?.toString();
+  }
+
+  Map<String, dynamic> _fields({bool completed = false}) => {
+    'step': _currentStep,
+    'completed': completed,
+    'fullName': _fullNameController.text.trim(),
+    'email': _emailController.text.trim(),
+    'password': _passwordController.text,
+    'confirmPassword': _confirmPasswordController.text,
+    'country': _selectedCountry,
+    'state': _selectedState,
+    'city': _cityController.text.trim(),
+    'termsAccepted': _termsAccepted,
+    'companyName': _businessNameController.text.trim(),
+    'companySite': _companySiteController.text.trim(),
+    'companySize': _selectedCompanySize,
+    'companySizeId': _selectedCompanySize,
+    'currentTeam': _selectedTeamSize,
+    'currentTeamId': _selectedTeamSize,
+    'projectHireBudget': _selectedBudgetRange,
+    'projectHireBudgetId': _selectedBudgetRange,
+    'industry': _selectedIndustry == null ? [] : [_selectedIndustry],
+    'jobRole': _jobRoleController.text.trim(),
+    'hiringGoal': _selectedHiringGoals,
+    'hiringGoalIds': _selectedHiringGoals,
+  };
+
+  Future<bool> _registerIfNeeded() async {
+    final email = _emailController.text.trim();
+    if (_registeredEmail == email) return true;
+    final result = await sl<AuthRepository>().signup(
+      fullName: _fullNameController.text.trim(),
+      email: email,
+      password: _passwordController.text,
+      role: UserRole.client,
+      signupData: {
+        'country': _selectedCountry,
+        'state': _selectedState,
+        'city': _cityController.text.trim(),
+      },
+    );
+    if (result.isFailure) {
+      if (!mounted) return false;
+      showSignupTopMessage(
+        context,
+        result.failureOrNull!.message,
+        isSuccess: false,
+      );
+      return false;
+    }
+    _registeredEmail = email;
+    return true;
+  }
+
+  Future<bool> _submitDraft({required int step, bool completed = false}) async {
+    final data = {..._fields(completed: completed), 'step': step};
+    final result = await sl<AuthRepository>().saveOnboardingDraft(data);
+    if (result.isFailure) {
+      if (!mounted) return false;
+      showSignupTopMessage(
+        context,
+        result.failureOrNull!.message,
+        isSuccess: false,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _loadMasterData() async {
+    final repo = sl<MasterDataRepository>();
+    final indRes = await repo.getIndustries();
+    final csRes = await repo.getCompanySizes();
+    final hgRes = await repo.getHiringGoals();
+    final budgetRes = await repo.getHiringBudgetRanges();
+    final cRes = await repo.getCountries();
+
+    if (!mounted) return;
+    setState(() {
+      if (indRes.isSuccess && indRes.valueOrNull!.isNotEmpty) {
+        _industries = indRes.valueOrNull!.map((e) => e.name).toList();
+      }
+      if (csRes.isSuccess && csRes.valueOrNull!.isNotEmpty) {
+        _companySizes = csRes.valueOrNull!;
+      }
+      if (hgRes.isSuccess && hgRes.valueOrNull!.isNotEmpty) {
+        _hiringGoals = hgRes.valueOrNull!;
+      }
+      if (budgetRes.isSuccess && budgetRes.valueOrNull!.isNotEmpty) {
+        _budgetRanges = budgetRes.valueOrNull!;
+      }
+      if (cRes.isSuccess && cRes.valueOrNull!.isNotEmpty) {
+        _countries = cRes.valueOrNull!;
+      }
+
+      if (_hiringGoals.isEmpty) {
+        _hiringGoals = [
+          'Hire freelancers',
+          'Build project team',
+          'Consult experts',
+          'Long-term hiring',
+        ];
+      }
+    });
+  }
+
+  Future<void> _loadStatesForCountry(String country) async {
+    final res = await sl<MasterDataRepository>().getStates(country);
+    if (!mounted || res.isFailure) return;
+    setState(() {
+      _states = res.valueOrNull ?? [];
+      _selectedState = null;
+    });
+  }
+
+  String? _accountValidationMessage() {
+    final email = _emailController.text.trim();
+    if (_fullNameController.text.trim().isEmpty) {
+      return 'Please enter full name';
+    }
+    if (email.isEmpty ||
+        !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+      return 'Please enter a valid email';
+    }
+    if (!_emailVerified) return 'Please verify email OTP';
+    if (_passwordController.text.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      return 'Password and confirm password must match';
+    }
+    if (_selectedCountry == null) return 'Please select country';
+    if (_selectedState == null) return 'Please select state';
+    if (_cityController.text.trim().isEmpty) return 'Please select city';
+    if (!_termsAccepted) return 'Please accept terms and privacy policy';
+    return null;
+  }
 
   void _onContinue() async {
     if (_currentStep == 1) {
-      if (_fullNameController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty || !_termsAccepted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill all required fields and accept terms')),
-        );
+      final validationMessage = _accountValidationMessage();
+      if (validationMessage != null) {
+        showSignupTopMessage(context, validationMessage, isSuccess: false);
         return;
       }
       setState(() => _isLoading = true);
-      context.read<AuthBloc>().add(
-            SignupRequested(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-              fullName: _fullNameController.text.trim(),
-              role: 'client',
-            ),
-          );
-      await Future.delayed(const Duration(milliseconds: 800));
+      final registered = await _registerIfNeeded();
+      if (!mounted) return;
+      if (!registered) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      await _saveProgress(2);
       setState(() {
         _isLoading = false;
         _currentStep = 2;
       });
     } else if (_currentStep == 2) {
       if (_businessNameController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter Business / Company Name')));
+        showSignupTopMessage(
+          context,
+          'Please enter Business / Company Name',
+          isSuccess: false,
+        );
         return;
       }
+      if (!await _submitDraft(step: 2)) return;
+      await _saveProgress(3);
       setState(() => _currentStep = 3);
     } else if (_currentStep == 3) {
+      if (!await _submitDraft(step: 3)) return;
+      await _saveProgress(4);
       setState(() => _currentStep = 4);
     } else if (_currentStep == 4) {
+      if (!await _submitDraft(step: 4, completed: true)) return;
+      await SignupProgressStore.clear();
       setState(() => _currentStep = 5);
     }
   }
@@ -87,22 +323,33 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   void _onBack() {
     if (_currentStep > 1) {
       setState(() => _currentStep--);
+    } else if (widget.onBackToRoleSelection != null) {
+      widget.onBackToRoleSelection!();
+    } else if (context.canPop()) {
+      context.pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_currentStep == 5) {
+      SignupProgressStore.clear();
       return SignupSuccessView(
         roleTitle: 'Client / Business Owner',
-        dashboardRoute: '/client',
+        dashboardRoute: Routes.clientDashboard,
         completedSteps: const [
           'Client Account Created',
           'Business Profile Configured',
           'Designation Set',
           'Team Workspace Ready',
         ],
-        onGoToDashboard: () => context.go('/client'),
+        onGoToDashboard: () async {
+          await SignupProgressStore.clear();
+          if (context.mounted) {
+            context.read<AuthBloc>().add(const AuthCheckRequested());
+            context.go(Routes.clientDashboard);
+          }
+        },
       );
     }
 
@@ -119,12 +366,12 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         subtitle = 'Tell us about your company or organization.';
         break;
       case 3:
-        title = 'Professional Role';
-        subtitle = 'Specify your designation within the business.';
+        title = 'Profile & Role';
+        subtitle = 'Specify your job role and hiring goals.';
         break;
       case 4:
-        title = 'Invite Team (Optional)';
-        subtitle = 'Add team members to manage projects together.';
+        title = 'Team & Budget';
+        subtitle = 'Set your current team size and estimated project budget.';
         break;
     }
 
@@ -144,106 +391,131 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 1:
-        return Column(
-          children: [
-            TextField(
-              controller: _fullNameController,
-              decoration: const InputDecoration(labelText: 'Full Name *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email Address *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _mobileController,
-              decoration: const InputDecoration(labelText: 'Mobile Number', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            CheckboxListTile(
-              value: _termsAccepted,
-              title: const Text('I agree to the Terms of Service & Privacy Policy'),
-              onChanged: (val) => setState(() => _termsAccepted = val ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
+        return SignupAccountStep(
+          fullNameController: _fullNameController,
+          emailController: _emailController,
+          mobileController: _mobileController,
+          selectedMobileCountryCode: _selectedMobileCountryCode,
+          passwordController: _passwordController,
+          confirmPasswordController: _confirmPasswordController,
+          cityController: _cityController,
+          countries: _countries,
+          states: _states,
+          selectedCountry: _selectedCountry,
+          selectedState: _selectedState,
+          onCountryChanged: (val) {
+            setState(() {
+              _selectedCountry = val;
+              _selectedState = null;
+              _states = [];
+            });
+            _persistCurrentProgress();
+            _loadStatesForCountry(val);
+          },
+          onMobileCountryCodeChanged: (val) =>
+              setState(() => _selectedMobileCountryCode = val),
+          onStateChanged: (val) {
+            setState(() => _selectedState = val);
+            _persistCurrentProgress();
+          },
+          termsAccepted: _termsAccepted,
+          onTermsChanged: (val) {
+            setState(() => _termsAccepted = val);
+            _persistCurrentProgress();
+          },
+          onEmailVerificationChanged: (val) =>
+              setState(() => _emailVerified = val),
+          initialVerifiedEmail: _emailVerified
+              ? _emailController.text.trim()
+              : widget.verifiedEmail,
         );
       case 2:
         return Column(
           children: [
-            TextField(
+            AppTextField(
               controller: _businessNameController,
-              decoration: const InputDecoration(
-                labelText: 'Business / Company Name *',
-                border: OutlineInputBorder(),
-              ),
+              label: 'Company Name *',
+              hint: 'Enter company name',
             ),
             const SizedBox(height: 16),
-            SignupSearchDropdown(
+            AppDropdown<String>(
               label: 'Industry *',
+              hint: 'Select Industry',
               value: _selectedIndustry,
-              placeholder: 'Select Industry',
-              options: _industries,
-              onChanged: (val) => setState(() => _selectedIndustry = val),
+              items: _industries,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _selectedIndustry = val);
+                _persistCurrentProgress();
+              },
             ),
             const SizedBox(height: 16),
-            SignupSearchDropdown(
+            AppDropdown<String>(
               label: 'Company Size *',
+              hint: 'Select Company Size',
               value: _selectedCompanySize,
-              placeholder: 'Select Company Size',
-              options: _companySizes,
-              onChanged: (val) => setState(() => _selectedCompanySize = val),
+              items: _companySizes,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _selectedCompanySize = val);
+                _persistCurrentProgress();
+              },
             ),
             const SizedBox(height: 16),
-            SignupSearchDropdown(
-              label: 'Country *',
-              value: _selectedCountry,
-              placeholder: 'Select Country',
-              options: _countries,
-              onChanged: (val) => setState(() => _selectedCountry = val),
-            ),
-            const SizedBox(height: 16),
-            SignupSearchDropdown(
-              label: 'City *',
-              value: _selectedCity,
-              placeholder: 'Select City',
-              options: _cities,
-              onChanged: (val) => setState(() => _selectedCity = val),
+            AppTextField(
+              controller: _companySiteController,
+              label: 'Company Site Link',
+              hint: 'Enter company site link',
             ),
           ],
         );
       case 3:
-        return SignupSearchDropdown(
-          label: 'Designation *',
-          value: _selectedDesignation,
-          placeholder: 'Select Designation',
-          options: _designations,
-          onChanged: (val) => setState(() => _selectedDesignation = val),
+        return Column(
+          children: [
+            AppTextField(
+              controller: _jobRoleController,
+              label: 'Job Role',
+              hint: 'Enter job role',
+            ),
+            const SizedBox(height: 16),
+            SignupMultiSelectSheet(
+              label: 'Hiring Goal',
+              selectedItems: _selectedHiringGoals,
+              availableOptions: _hiringGoals,
+              minSelection: 1,
+              onChanged: (items) {
+                setState(() => _selectedHiringGoals = items);
+                _persistCurrentProgress();
+              },
+            ),
+          ],
         );
       case 4:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TextField(
-              controller: _teamEmailController,
-              decoration: const InputDecoration(
-                labelText: 'Team Member Email',
-                hintText: 'colleague@company.com',
-                border: OutlineInputBorder(),
-              ),
+            AppDropdown<String>(
+              label: 'Current Team Size',
+              hint: 'Select Team Size',
+              value: _selectedTeamSize,
+              items: _companySizes,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _selectedTeamSize = val);
+                _persistCurrentProgress();
+              },
             ),
-            const SizedBox(height: 12),
-            const Text(
-              'You can invite additional team members anytime from your dashboard settings.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            const SizedBox(height: 16),
+            AppDropdown<String>(
+              label: 'Project / Hiring Budget Range',
+              hint: 'Select Budget Range',
+              value: _selectedBudgetRange,
+              items: _budgetRanges,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _selectedBudgetRange = val);
+                _persistCurrentProgress();
+              },
             ),
           ],
         );

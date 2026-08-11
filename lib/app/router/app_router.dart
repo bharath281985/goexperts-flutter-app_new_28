@@ -20,6 +20,7 @@ import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/success_page.dart';
+import '../../features/auth/presentation/utils/signup_progress_store.dart';
 import '../../features/catalog/presentation/pages/business_plan_page.dart';
 import '../../features/catalog/presentation/pages/category_details_page.dart';
 import '../../features/catalog/presentation/pages/certificate_details_page.dart';
@@ -28,7 +29,9 @@ import '../../features/catalog/presentation/pages/pitch_deck_page.dart';
 import '../../features/catalog/presentation/pages/service_details_page.dart';
 import '../../features/catalog/presentation/pages/technology_details_page.dart';
 import '../../features/profile/presentation/pages/review_details_page.dart';
+import '../../features/projects/domain/entities/project.dart';
 import '../../features/projects/presentation/pages/contract_details_page.dart';
+import '../../features/projects/presentation/pages/contract_form_page.dart';
 import '../../features/wallet/presentation/pages/invoice_details_page.dart';
 import '../../features/wallet/presentation/pages/transaction_details_page.dart';
 import '../../features/applications/presentation/pages/apply_form_page.dart';
@@ -59,7 +62,6 @@ import '../../features/profile/presentation/pages/public_profile_page.dart';
 import '../../features/projects/presentation/pages/project_details_page.dart';
 import '../../features/proposals/presentation/pages/proposal_details_page.dart';
 import '../../features/role_selection/presentation/pages/role_selection_page.dart';
-import '../../features/settings/presentation/pages/legal_document_page.dart';
 import '../../features/settings/presentation/pages/bookmarks_page.dart';
 import '../../features/settings/presentation/pages/change_password_page.dart';
 import '../../features/settings/presentation/pages/delete_account_page.dart';
@@ -152,8 +154,13 @@ GoRouter createRouter(AuthBloc authBloc) {
       }
 
       final authed = auth.status == AuthStatus.authenticated;
+      final signupProgress = SignupProgressStore.read();
 
       if (!authed) {
+        if (signupProgress != null) {
+          if (loc == Routes.signup) return null;
+          return '${Routes.signup}?role=${signupProgress.role.name}';
+        }
         if (auth.pendingSignup != null) {
           if (loc == Routes.roleSelection || loc == Routes.signup) return null;
           return '${Routes.roleSelection}?from=signup';
@@ -165,21 +172,26 @@ GoRouter createRouter(AuthBloc authBloc) {
         return isPublic ? null : Routes.login;
       }
 
-      // Authenticated — enforce onboarding completeness.
+      // Authenticated — navigate directly to role dashboard after login
+      if (signupProgress != null) {
+        if (loc == Routes.signup) return null;
+        return '${Routes.signup}?role=${signupProgress.role.name}';
+      }
+      if (loc == Routes.signup) return null;
+
       if (!auth.hasRole) {
         return loc == Routes.roleSelection ? null : Routes.roleSelection;
       }
-      if (!auth.isProfileComplete) {
-        return loc == Routes.profileCompletion
-            ? null
-            : Routes.profileCompletion;
-      }
-      if (auth.needsSubscription) {
-        return loc == Routes.subscription ? null : Routes.subscription;
-      }
 
-      // Fully onboarded — keep them out of auth/onboarding routes ONLY.
+      // Fully onboarded or logging in — keep them out of auth/onboarding routes
+      // and navigate directly to their role dashboard.
       if (isAuthRoute || _onboardingRoutes.contains(loc)) {
+        final redirectTo = auth.user?.redirectTo;
+        if (redirectTo != null &&
+            redirectTo.startsWith('/') &&
+            redirectTo.contains('dashboard')) {
+          return redirectTo;
+        }
         return dashboardPathFor(auth.user!.role!);
       }
 
@@ -192,7 +204,11 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, __) => const OnboardingPage(),
       ),
       GoRoute(path: Routes.login, builder: (_, __) => const LoginPage()),
-      GoRoute(path: Routes.signup, builder: (_, __) => const SignupPage()),
+      GoRoute(
+        path: Routes.signup,
+        builder: (_, s) =>
+            SignupPage(initialRole: s.uri.queryParameters['role']),
+      ),
       GoRoute(
         path: Routes.forgotPassword,
         builder: (_, __) => const ForgotPasswordPage(),
@@ -402,7 +418,8 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.termsOfService,
-        builder: (_, __) => LegalDocumentPage.terms(),
+        builder: (_, __) =>
+            const PublicContentPage(title: 'Terms & Conditions', path: 'legal'),
       ),
       GoRoute(
         path: Routes.aboutGoExperts,
@@ -501,6 +518,15 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: '${Routes.contractDetails}/:id',
         builder: (_, s) => ContractDetailsPage(id: s.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: Routes.contractForm,
+        builder: (_, s) => ContractFormPage(
+          contract: s.extra is Contract ? s.extra as Contract : null,
+          initialProposalId: s.uri.queryParameters['proposalId'],
+          initialProjectId: s.uri.queryParameters['projectId'],
+          initialFreelancerName: s.uri.queryParameters['freelancerName'],
+        ),
       ),
       GoRoute(
         path: '${Routes.invoiceDetails}/:id',

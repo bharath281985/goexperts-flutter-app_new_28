@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../app/constants/app_colors.dart';
+import '../../../../core/widgets/app_text_field.dart';
 
 /// Searchable chip selection bottom sheet for Skills and Master Goals
 class SignupMultiSelectSheet extends StatelessWidget {
@@ -9,7 +10,6 @@ class SignupMultiSelectSheet extends StatelessWidget {
   final List<String> availableOptions;
   final ValueChanged<List<String>> onChanged;
   final int minSelection;
-  final int maxSelection;
   final Future<List<String>> Function(String query)? onSearchApi;
   final String? errorText;
 
@@ -20,7 +20,6 @@ class SignupMultiSelectSheet extends StatelessWidget {
     required this.availableOptions,
     required this.onChanged,
     this.minSelection = 1,
-    this.maxSelection = 10,
     this.onSearchApi,
     this.errorText,
   });
@@ -29,22 +28,30 @@ class SignupMultiSelectSheet extends StatelessWidget {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
-        return _MultiSelectContent(
-          title: label,
-          selectedItems: selectedItems,
-          initialOptions: availableOptions,
-          minSelection: minSelection,
-          maxSelection: maxSelection,
-          onSearchApi: onSearchApi,
-          onConfirm: (items) {
-            onChanged(items);
-            Navigator.pop(context);
-          },
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.viewInsetsOf(context).bottom,
+            ),
+            child: _MultiSelectContent(
+              title: label,
+              selectedItems: selectedItems,
+              initialOptions: availableOptions,
+              minSelection: minSelection,
+              onSearchApi: onSearchApi,
+              onConfirm: (items) {
+                onChanged(items);
+                Navigator.pop(context);
+              },
+            ),
+          ),
         );
       },
     );
@@ -67,64 +74,34 @@ class SignupMultiSelectSheet extends StatelessWidget {
               ),
             ),
             Text(
-              '${selectedItems.length}/$maxSelection Selected',
+              '${selectedItems.length} Selected',
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: selectedItems.length < minSelection ? Colors.red : const Color(0xFF64748B),
+                color: selectedItems.length < minSelection
+                    ? Colors.red
+                    : const Color(0xFF64748B),
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
 
-        // Selected Chips Display Area
-        InkWell(
+        AppTextField(
+          key: ValueKey(selectedItems.join('|')),
+          initialValue: selectedItems.join(', '),
+          hint: 'Tap to search & select $label...',
+          readOnly: true,
           onTap: () => _showSheet(context),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: errorText != null ? Colors.red : const Color(0xFFCBD5E1),
-              ),
-            ),
-            child: selectedItems.isEmpty
-                ? Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Tap to search & select $label...',
-                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 15),
-                    ),
-                  )
-                : Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: selectedItems.map((item) {
-                      return Chip(
-                        label: Text(
-                          item,
-                          style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
-                        ),
-                        backgroundColor: AppColors.primary.withOpacity(0.08),
-                        deleteIcon: const Icon(Icons.close, size: 16, color: AppColors.primary),
-                        onDeleted: () {
-                          final updated = List<String>.from(selectedItems)..remove(item);
-                          onChanged(updated);
-                        },
-                        side: BorderSide(color: AppColors.primary.withOpacity(0.2)),
-                      );
-                    }).toList(),
-                  ),
-          ),
+          suffixIcon: const Icon(Icons.search),
         ),
 
         if (errorText != null) ...[
           const SizedBox(height: 4),
-          Text(errorText!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          Text(
+            errorText!,
+            style: const TextStyle(color: Colors.red, fontSize: 12),
+          ),
         ],
       ],
     );
@@ -136,7 +113,6 @@ class _MultiSelectContent extends StatefulWidget {
   final List<String> selectedItems;
   final List<String> initialOptions;
   final int minSelection;
-  final int maxSelection;
   final Future<List<String>> Function(String query)? onSearchApi;
   final ValueChanged<List<String>> onConfirm;
 
@@ -145,7 +121,6 @@ class _MultiSelectContent extends StatefulWidget {
     required this.selectedItems,
     required this.initialOptions,
     required this.minSelection,
-    required this.maxSelection,
     this.onSearchApi,
     required this.onConfirm,
   });
@@ -214,16 +189,7 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
       if (_currentSelected.contains(item)) {
         _currentSelected.remove(item);
       } else {
-        if (_currentSelected.length < widget.maxSelection) {
-          _currentSelected.add(item);
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Maximum ${widget.maxSelection} selections allowed'),
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
+        _currentSelected.add(item);
       }
     });
   }
@@ -249,11 +215,19 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
             children: [
               Text(
                 'Select ${widget.title}',
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF0F172A),
+                ),
               ),
               Text(
-                '${_currentSelected.length}/${widget.maxSelection}',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                '${_currentSelected.length}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
               ),
             ],
           ),
@@ -269,12 +243,19 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
               suffixIcon: _isLoading
                   ? const Padding(
                       padding: EdgeInsets.all(12),
-                      child: SizedBox(height: 16, width: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                      child: SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
                     )
                   : null,
               filled: true,
               fillColor: const Color(0xFFF1F5F9),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -287,7 +268,8 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
           Expanded(
             child: ListView.separated(
               itemCount: _options.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
               itemBuilder: (context, index) {
                 final item = _options[index];
                 final isSelected = _currentSelected.contains(item);
@@ -297,8 +279,12 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
                     item,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? AppColors.primary : const Color(0xFF1E293B),
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? AppColors.primary
+                          : const Color(0xFF1E293B),
                     ),
                   ),
                   activeColor: AppColors.primary,
@@ -318,11 +304,17 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               child: Text(
                 'Apply (${_currentSelected.length} Selected)',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),

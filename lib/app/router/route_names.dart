@@ -83,6 +83,7 @@ class Routes {
   static const proposalDetails = '/proposal'; // /proposal/:id
   static const meetingDetails = '/meeting'; // /meeting/:id
   static const contractDetails = '/contract'; // /contract/:id
+  static const contractForm = '/contract-form';
   static const invoiceDetails = '/invoice'; // /invoice/:id
   static const transactionDetails = '/transaction'; // /transaction/:id
   static const certificateDetails = '/certificate'; // /certificate/:id

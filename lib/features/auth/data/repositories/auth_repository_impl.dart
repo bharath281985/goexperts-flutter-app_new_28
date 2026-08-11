@@ -1,4 +1,3 @@
-import '../../../../app/config/app_config.dart';
 import '../../../../core/errors/exceptions.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/realtime/chat_socket_service.dart';
@@ -67,8 +66,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<AppUser>> markSubscriptionActive({String? planId}) async {
-  
-
     AppUser? current = _readCachedUser();
     if (current == null) {
       try {
@@ -106,7 +103,6 @@ class AuthRepositoryImpl implements AuthRepository {
     required String oldPassword,
     required String newPassword,
   }) async {
-    
     try {
       final message = await _api.changePassword(
         oldPassword: oldPassword,
@@ -123,7 +119,6 @@ class AuthRepositoryImpl implements AuthRepository {
     required String email,
     required String password,
   }) async {
-   
     try {
       final user = await _api.login(email: email, password: password);
       final merged = _mergeWithCachedCompletion(user);
@@ -139,13 +134,12 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<AppUser>> signup({
     required String fullName,
     required String email,
-    required String phone,
-    required String countryCode,
+    String? phone,
+    String? countryCode,
     required String password,
     required UserRole role,
     Map<String, dynamic> signupData = const {},
   }) async {
-    
     try {
       final user = await _api.signup(
         fullName: fullName,
@@ -169,7 +163,6 @@ class AuthRepositoryImpl implements AuthRepository {
     String provider, {
     required UserRole role,
   }) async {
-   
     final social = _socialAuth;
     if (social == null) {
       return const Err(ServerFailure('Social login is not configured.'));
@@ -208,7 +201,6 @@ class AuthRepositoryImpl implements AuthRepository {
     required String phone,
     required String countryCode,
   }) async {
-   
     try {
       await _api.sendOtp(phone: phone, countryCode: countryCode);
       return const Success(true);
@@ -223,7 +215,6 @@ class AuthRepositoryImpl implements AuthRepository {
     String? phone,
     String? countryCode,
   }) async {
-    if (false) return _mockModeDisabled();
     try {
       await _api.verifyOtp(code: code, phone: phone, countryCode: countryCode);
       return const Success(true);
@@ -234,7 +225,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<bool>> forgotPassword(String email) async {
-    if (false) return _mockModeDisabled();
     try {
       await _api.forgotPassword(email);
       return const Success(true);
@@ -249,7 +239,6 @@ class AuthRepositoryImpl implements AuthRepository {
     required String otp,
     required String newPassword,
   }) async {
-    if (false) return _mockModeDisabled();
     try {
       await _api.resetPassword(
         email: email,
@@ -264,7 +253,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<AppUser>> selectRole(UserRole role) async {
-  
     try {
       final result = await _api.updateProfile({'role': role.apiValue});
       await _cacheUser(result.user);
@@ -279,7 +267,6 @@ class AuthRepositoryImpl implements AuthRepository {
     Map<String, dynamic> data, {
     List<int>? avatarBytes,
   }) async {
-   
     try {
       if (avatarBytes != null && avatarBytes.isNotEmpty) {
         await _api.uploadAvatarBytes(avatarBytes);
@@ -293,8 +280,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<bool>> saveOnboardingDraft(Map<String, dynamic> data) async {
+    try {
+      await _api.saveOnboardingDraft(data);
+      return const Success(true);
+    } catch (e) {
+      return Err(_mapError(e));
+    }
+  }
+
+  @override
   Future<Result<AppUser>> currentUser() async {
-    
     final token = await _secureStorage.accessToken;
     if (token == null || token.isEmpty) {
       return const Err(AuthFailure('No active session'));
@@ -321,7 +317,6 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-   
     try {
       await _api.logout();
     } catch (_) {
@@ -341,7 +336,4 @@ class AuthRepositoryImpl implements AuthRepository {
     final msg = e.toString().replaceFirst('Exception: ', '');
     return ServerFailure(msg);
   }
-
-  Future<Result<T>> _mockModeDisabled<T>() async =>
-      const Err(ServerFailure('Live API data is required for this screen.'));
 }

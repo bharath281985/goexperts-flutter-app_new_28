@@ -11,8 +11,8 @@ abstract class AuthRepository {
   Future<Result<AppUser>> signup({
     required String fullName,
     required String email,
-    required String phone,
-    required String countryCode,
+    String? phone,
+    String? countryCode,
     required String password,
     required UserRole role,
     Map<String, dynamic> signupData = const {},
@@ -41,6 +41,7 @@ abstract class AuthRepository {
     Map<String, dynamic> data, {
     List<int>? avatarBytes,
   });
+  Future<Result<bool>> saveOnboardingDraft(Map<String, dynamic> data);
 
   /// Persists a local "subscription active" flag so Skip / free activation
   /// survives router refreshes and re-login when the API has not caught up.

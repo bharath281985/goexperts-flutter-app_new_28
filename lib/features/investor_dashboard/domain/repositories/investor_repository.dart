@@ -9,4 +9,6 @@ abstract class InvestorRepository {
   Future<Result<Paginated<PortfolioItem>>> getPortfolio(QueryParams params);
   Future<Result<bool>> toggleFollow(String id);
   Future<Result<bool>> toggleSave(String id);
+  Future<Result<bool>> updateInvestment(String id, Map<String, dynamic> data);
+  Future<Result<bool>> updateInvestmentStatus(String id, String status);
 }

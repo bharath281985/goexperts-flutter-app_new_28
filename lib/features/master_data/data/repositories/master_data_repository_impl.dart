@@ -1,3 +1,7 @@
+import 'package:dio/dio.dart';
+
+import '../../../../app/config/app_config.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/public_catalog_client.dart';
 import '../../../../core/utils/result.dart';
@@ -10,6 +14,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     : _client = client ?? PublicCatalogClient();
 
   final PublicCatalogClient _client;
+  final Map<String, String> _countryCodesByName = {};
 
   @override
   Future<Result<List<SkillCategory>>> getSkillCategories({
@@ -38,7 +43,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   Future<Result<List<SkillCategory>>> getIndustries() async {
     final result = await _client.getList<SkillCategory>(
       path: ApiEndpoints.publicIndustries,
-      query: const {'page': 1, 'pageSize': 100},
+      query: const {'page': 1, 'pageSize': 200},
       itemParser: SkillCategory.fromJson,
     );
     if (result.isFailure) {
@@ -82,5 +87,210 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
       return Err(result.failureOrNull!);
     }
     return Success(result.valueOrNull!.total);
+  }
+
+  @override
+  Future<Result<List<String>>> getMasters(String type) async {
+    try {
+      final result = await _client.getList<String>(
+        path: '/public/masters',
+        query: {'type': type, 'limit': 200},
+        itemParser: (json) {
+          final val =
+              json['name'] ??
+              json['label'] ??
+              json['value'] ??
+              json['title'] ??
+              '';
+          return val.toString();
+        },
+      );
+      if (result.isSuccess) {
+        final list = result.valueOrNull!.rows
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+        return Success(list);
+      }
+    } catch (_) {}
+    return const Success([]);
+  }
+
+  @override
+  Future<Result<List<String>>> getCountries() async {
+    try {
+      final countryCodes = <String, String>{};
+      final result = await _client.getList<String>(
+        path: ApiEndpoints.publicCountries,
+        query: const {'limit': 250},
+        itemParser: (json) {
+          final val = json['name'] ?? json['countryName'] ?? json['code'] ?? '';
+          final name = val.toString();
+          final code = json['code']?.toString();
+          if (name.isNotEmpty && code != null && code.isNotEmpty) {
+            countryCodes[name] = code;
+          }
+          return name;
+        },
+      );
+      if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
+        _countryCodesByName
+          ..clear()
+          ..addAll(countryCodes);
+        final list = result.valueOrNull!.rows
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+        return Success(list);
+      }
+    } catch (_) {}
+    return getMasters('country');
+  }
+
+  @override
+  Future<Result<List<String>>> getStates(String countryName) async {
+    try {
+      if (_countryCodesByName.isEmpty) {
+        await getCountries();
+      }
+      final countryCode =
+          _countryCodesByName[countryName] ??
+          (countryName.toLowerCase() == 'india' ? 'IN' : countryName);
+      final dio = Dio(
+        BaseOptions(
+          baseUrl: AppConfig.publicBaseUrl,
+          connectTimeout: AppConfig.connectTimeout,
+          receiveTimeout: AppConfig.receiveTimeout,
+          headers: const {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        ),
+      );
+      final response = await dio.get<Map<String, dynamic>>(
+        ApiEndpoints.publicStates,
+        queryParameters: {'countryCode': countryCode},
+      );
+      final raw = response.data?['data'];
+      final list = (raw is List ? raw : const [])
+          .whereType<Map>()
+          .map((item) => item['name']?.toString() ?? '')
+          .where((name) => name.trim().isNotEmpty)
+          .toList();
+      return Success(list);
+    } catch (e) {
+      return Err(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Result<List<String>>> getExperienceLevels() {
+    return _getLabelValueOptions(ApiEndpoints.publicExperienceLevels);
+  }
+
+  @override
+  Future<Result<List<String>>> getWorkModes() {
+    return _getLabelValueOptions(ApiEndpoints.publicWorkModes);
+  }
+
+  @override
+  Future<Result<List<String>>> getHiringGoals() {
+    return _getLabelValueOptions(ApiEndpoints.publicHiringGoals);
+  }
+
+  @override
+  Future<Result<List<String>>> getHiringBudgetRanges() {
+    return _getLabelValueOptions(ApiEndpoints.publicHiringBudgetRanges);
+  }
+
+  @override
+  Future<Result<List<String>>> getInvestorTypes() {
+    return _getLabelValueOptions(ApiEndpoints.publicInvestorTypes);
+  }
+
+  @override
+  Future<Result<List<String>>> getInvestorStages() {
+    return _getLabelValueOptions(ApiEndpoints.publicInvestorStages);
+  }
+
+  @override
+  Future<Result<List<String>>> getStartupStages() {
+    return _getLabelValueOptions(ApiEndpoints.publicStartupStages);
+  }
+
+  @override
+  Future<Result<List<String>>> getStartupRoles() {
+    return _getLabelValueOptions(ApiEndpoints.publicStartupRoles);
+  }
+
+  Future<Result<List<String>>> _getLabelValueOptions(String path) async {
+    final result = await _client.getList<String>(
+      path: path,
+      itemParser: (json) {
+        final val = json['label'] ?? json['value'] ?? json['name'] ?? '';
+        return val.toString();
+      },
+    );
+    if (result.isFailure) {
+      return Err(result.failureOrNull!);
+    }
+    final list = result.valueOrNull!.rows
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<String>>> getCities() async {
+    try {
+      final result = await _client.getList<String>(
+        path: '/public/masters',
+        query: const {'type': 'city', 'limit': 200},
+        itemParser: (json) {
+          final val = json['name'] ?? json['label'] ?? json['value'] ?? '';
+          return val.toString();
+        },
+      );
+      if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
+        final list = result.valueOrNull!.rows
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+        return Success(list);
+      }
+    } catch (_) {}
+    return getMasters('city');
+  }
+
+  @override
+  Future<Result<List<String>>> getDesignations() async {
+    return getMasters('designation');
+  }
+
+  @override
+  Future<Result<List<String>>> getCompanySizes() async {
+    try {
+      final result = await _client.getList<String>(
+        path: ApiEndpoints.publicCompanySizes,
+        itemParser: (json) {
+          final val =
+              json['label'] ??
+              json['name'] ??
+              json['size'] ??
+              json['value'] ??
+              '';
+          return val.toString();
+        },
+      );
+      if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
+        final list = result.valueOrNull!.rows
+            .where((s) => s.trim().isNotEmpty)
+            .toList();
+        return Success(list);
+      }
+    } catch (_) {}
+    return getMasters('company_size');
+  }
+
+  @override
+  Future<Result<List<String>>> getStartupGoals() async {
+    return _getLabelValueOptions(ApiEndpoints.publicFounderGoals);
   }
 }

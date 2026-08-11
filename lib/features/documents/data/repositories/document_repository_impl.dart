@@ -33,10 +33,7 @@ class DocumentRepositoryImpl implements DocumentRepository {
       ),
     );
     return res.fold(
-      (f) {
-        if (_lastSuccess != null) return Success(_lastSuccess!);
-        return Err(f);
-      },
+      (f) => Err(f),
       (page) {
         _lastSuccess = page;
         return Success(page);

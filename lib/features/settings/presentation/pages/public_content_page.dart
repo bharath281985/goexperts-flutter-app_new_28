@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -41,11 +43,7 @@ class _PublicContentPageState extends State<PublicContentPage> {
       );
       final body = response.data ?? const <String, dynamic>{};
       final data = body['data'];
-      final content = data is Map
-          ? data['content']?.toString()
-          : data is String
-          ? data
-          : null;
+      final content = _extractContent(data);
       if (!mounted) return;
       setState(() {
         _content = content?.trim() ?? '';
@@ -125,6 +123,58 @@ class _PublicContentPageState extends State<PublicContentPage> {
     );
   }
 
+  String? _extractContent(dynamic data) {
+    if (data is String) return data;
+    if (data is! Map) return null;
+    final map = Map<String, dynamic>.from(data);
+    final content = map['content'];
+    final contentValue = _contentFromValue(content);
+    if (contentValue != null && contentValue.trim().isNotEmpty) {
+      return contentValue;
+    }
+
+    for (final key in const ['publishedJson', 'draftJson']) {
+      final raw = map[key];
+      if (raw is! String || raw.trim().isEmpty) continue;
+      try {
+        final decoded = jsonDecode(raw);
+        final value = _contentFromValue(decoded);
+        if (value != null && value.trim().isNotEmpty) return value;
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  String? _contentFromValue(dynamic value) {
+    if (value is String) return value;
+    if (value is! Map) return null;
+    final map = Map<String, dynamic>.from(value);
+    final sections = map['sections'];
+    if (sections is List) {
+      final buffer = StringBuffer();
+      final title = map['title']?.toString();
+      final subtitle = map['subtitle']?.toString();
+      if (title != null && title.trim().isNotEmpty) {
+        buffer.write('<h1>${_escape(title)}</h1>');
+      }
+      if (subtitle != null && subtitle.trim().isNotEmpty) {
+        buffer.write('<p>${_escape(subtitle)}</p>');
+      }
+      for (final section in sections.whereType<Map>()) {
+        final heading = section['title']?.toString();
+        final body = section['content']?.toString();
+        if (heading != null && heading.trim().isNotEmpty) {
+          buffer.write('<h2>${_escape(heading)}</h2>');
+        }
+        if (body != null && body.trim().isNotEmpty) {
+          buffer.write(body);
+        }
+      }
+      return buffer.toString();
+    }
+    return map['content']?.toString();
+  }
+
   String _markdownToHtml(String source) {
     if (source.trimLeft().startsWith('<')) return source;
     final lines = source.split('\n');
@@ -176,13 +226,16 @@ class _PublicContentPageState extends State<PublicContentPage> {
   }
 
   String _inline(String text) {
+    return _escape(text).replaceAllMapped(
+      RegExp(r'\*\*(.+?)\*\*'),
+      (match) => '<strong>${match.group(1)}</strong>',
+    );
+  }
+
+  String _escape(String text) {
     return text
         .replaceAll('&', '&amp;')
         .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAllMapped(
-          RegExp(r'\*\*(.+?)\*\*'),
-          (match) => '<strong>${match.group(1)}</strong>',
-        );
+        .replaceAll('>', '&gt;');
   }
 }

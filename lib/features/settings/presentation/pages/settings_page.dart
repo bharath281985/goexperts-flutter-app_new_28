@@ -225,7 +225,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => context.push(Routes.refundPolicy),
             ),
             AppListTile(
-              title: 'Terms of Service',
+              title: 'Terms & Conditions',
               leadingIcon: Icons.gavel_outlined,
               onTap: () => context.push(Routes.termsOfService),
             ),

@@ -184,6 +184,29 @@ class InvestorRepositoryImpl implements InvestorRepository {
     return _api.deleteAction(ApiEndpoints.investorWatchlistItem(id));
   }
 
+  @override
+  Future<Result<bool>> updateInvestment(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.putEnvelope<bool>(
+      ApiEndpoints.investorInvestment(id),
+      body: data,
+      parser: (_) => true,
+    );
+  }
+
+  @override
+  Future<Result<bool>> updateInvestmentStatus(String id, String status) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.putEnvelope<bool>(
+      ApiEndpoints.investorInvestmentStatus(id),
+      body: {'status': status},
+      parser: (_) => true,
+    );
+  }
+
   Investor _investorFromJson(Map<String, dynamic> json) =>
       Investor.fromApiJson(json);
 

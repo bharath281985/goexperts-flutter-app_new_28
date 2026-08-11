@@ -48,7 +48,9 @@ class _ClientProposalActionBarBody extends StatelessWidget {
         if (state.successMessage != null) {
           context.showSnack(state.successMessage!);
           if (state.successMessage == 'Proposal accepted' && context.mounted) {
-            context.push('${Routes.contractDetails}/new');
+            context.push(
+              '${Routes.contractForm}?proposalId=${proposal.id}&projectId=${proposal.projectId}&freelancerName=${Uri.encodeComponent(proposal.freelancerName ?? '')}',
+            );
           }
         }
       },

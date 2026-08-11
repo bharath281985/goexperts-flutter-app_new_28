@@ -1,17 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../bloc/auth_bloc.dart';
-import '../widgets/signup_scaffold.dart';
-import '../widgets/signup_search_dropdown.dart';
-import '../widgets/signup_multi_select_sheet.dart';
-import '../widgets/signup_success_view.dart';
-import '../../../../core/network/api_endpoints.dart';
+
 import '../../../../app/dependency_injection/service_locator.dart';
-import '../../../../core/network/api_client.dart';
+import '../../../../app/router/route_names.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/utils/enums.dart';
+import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/app_text_field.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
+import '../../domain/repositories/auth_repository.dart';
+import '../bloc/auth_bloc.dart';
+import '../utils/signup_progress_store.dart';
+import '../widgets/signup_account_step.dart';
+import '../widgets/signup_multi_select_sheet.dart';
+import '../widgets/signup_scaffold.dart';
+import '../widgets/signup_success_view.dart';
+import '../widgets/signup_top_message.dart';
 
 class FreelancerSignupFlow extends StatefulWidget {
-  const FreelancerSignupFlow({super.key});
+  final VoidCallback? onBackToRoleSelection;
+  final int initialStep;
+  final String? verifiedEmail;
+  const FreelancerSignupFlow({
+    super.key,
+    this.onBackToRoleSelection,
+    this.initialStep = 1,
+    this.verifiedEmail,
+  });
 
   @override
   State<FreelancerSignupFlow> createState() => _FreelancerSignupFlowState();
@@ -25,90 +43,321 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _mobileController = TextEditingController();
+  String _selectedMobileCountryCode = '+91';
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _cityController = TextEditingController();
   bool _termsAccepted = false;
+  bool _emailVerified = false;
+  String? _registeredEmail;
 
   // Step 2 Controllers
   final _headlineController = TextEditingController();
-  String? _selectedCountry = 'India';
-  String? _selectedCity = 'Mumbai';
+  String? _selectedCountry;
+  String? _selectedState;
   final _bioController = TextEditingController();
+  final _hourlyRateController = TextEditingController();
 
   // Step 3 Skills
+  List<String> _selectedIndustries = [];
   List<String> _selectedSkills = [];
 
   // Step 4 Experience
-  String? _experienceLevel = 'Intermediate';
-  String? _experienceRange = '3-5 years';
+  String? _experienceLevel;
+  List<String> _selectedWorkModes = [];
+  final _portfolioController = TextEditingController();
+  final _githubController = TextEditingController();
+  final _linkedinController = TextEditingController();
 
-  // Static options (for small masters)
-  final List<String> _countries = ['India', 'United States', 'United Kingdom', 'Canada', 'Australia'];
-  final List<String> _cities = ['Mumbai', 'Bengaluru', 'Delhi', 'Hyderabad', 'Pune', 'Chennai'];
-  final List<String> _expLevels = ['Entry Level', 'Intermediate', 'Expert', 'Lead'];
-  final List<String> _expRanges = ['0-2 years', '3-5 years', '5-8 years', '8+ years'];
+  // Dynamic API Master lists (100% Sourced from Backend APIs)
+  List<String> _countries = [];
+  List<String> _states = [];
+  List<String> _industries = [];
+  List<String> _expLevels = [];
+  List<String> _workModes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _currentStep = widget.initialStep.clamp(1, 4).toInt();
+    if (widget.verifiedEmail != null && widget.verifiedEmail!.isNotEmpty) {
+      _emailController.text = widget.verifiedEmail!;
+      _emailVerified = true;
+    }
+    final progress = SignupProgressStore.read();
+    if (progress?.role == UserRole.freelancer) {
+      _registeredEmail = progress!.registeredEmail;
+      _restoreFields(progress.fields);
+    }
+    for (final controller in [
+      _fullNameController,
+      _emailController,
+      _passwordController,
+      _confirmPasswordController,
+      _cityController,
+      _headlineController,
+      _bioController,
+      _hourlyRateController,
+      _portfolioController,
+      _githubController,
+      _linkedinController,
+    ]) {
+      controller.addListener(_persistCurrentProgress);
+    }
+    _loadMasterData();
+  }
+
+  Future<void> _saveProgress(int step) {
+    return SignupProgressStore.save(
+      role: UserRole.freelancer,
+      step: step,
+      verifiedEmail: _emailController.text.trim(),
+      registeredEmail: _registeredEmail,
+      fields: _fields(),
+    );
+  }
+
+  void _persistCurrentProgress() {
+    if (_currentStep <= 1 && _registeredEmail == null) return;
+    _saveProgress(_currentStep);
+  }
+
+  void _restoreFields(Map<String, dynamic> fields) {
+    _fullNameController.text = fields['fullName']?.toString() ?? '';
+    _passwordController.text = fields['password']?.toString() ?? '';
+    _confirmPasswordController.text =
+        fields['confirmPassword']?.toString() ?? '';
+    _cityController.text = fields['city']?.toString() ?? '';
+    _selectedCountry = fields['country']?.toString();
+    _selectedState = fields['state']?.toString();
+    _termsAccepted = fields['termsAccepted'] == true;
+    _headlineController.text = fields['titleHeadline']?.toString() ?? '';
+    _bioController.text = fields['bio']?.toString() ?? '';
+    _hourlyRateController.text = fields['hourlyRate']?.toString() ?? '';
+    _portfolioController.text = fields['portfolioUrl']?.toString() ?? '';
+    _githubController.text = fields['githubUrl']?.toString() ?? '';
+    _linkedinController.text = fields['linkedInUrl']?.toString() ?? '';
+    _experienceLevel = fields['experienceLevel']?.toString();
+    _selectedIndustries = _stringList(fields['industry']);
+    _selectedSkills = _stringList(fields['skills']);
+    _selectedWorkModes = _stringList(fields['workMode']);
+  }
+
+  List<String> _stringList(dynamic value) {
+    if (value is List) return value.map((e) => e.toString()).toList();
+    return const [];
+  }
+
+  Map<String, dynamic> _fields({bool completed = false}) => {
+    'step': _currentStep,
+    'completed': completed,
+    'fullName': _fullNameController.text.trim(),
+    'email': _emailController.text.trim(),
+    'password': _passwordController.text,
+    'confirmPassword': _confirmPasswordController.text,
+    'country': _selectedCountry,
+    'state': _selectedState,
+    'city': _cityController.text.trim(),
+    'termsAccepted': _termsAccepted,
+    'titleHeadline': _headlineController.text.trim(),
+    'bio': _bioController.text.trim(),
+    'experienceLevel': _experienceLevel,
+    'hourlyRate': double.tryParse(_hourlyRateController.text.trim()),
+    'portfolioUrl': _portfolioController.text.trim(),
+    'linkedInUrl': _linkedinController.text.trim(),
+    'githubUrl': _githubController.text.trim(),
+    'industry': _selectedIndustries,
+    'skills': _selectedSkills,
+    'workMode': _selectedWorkModes,
+  };
+
+  Future<bool> _registerIfNeeded() async {
+    final email = _emailController.text.trim();
+    if (_registeredEmail == email) return true;
+    final result = await sl<AuthRepository>().signup(
+      fullName: _fullNameController.text.trim(),
+      email: email,
+      password: _passwordController.text,
+      role: UserRole.freelancer,
+      signupData: {
+        'country': _selectedCountry,
+        'state': _selectedState,
+        'city': _cityController.text.trim(),
+      },
+    );
+    if (result.isFailure) {
+      if (!mounted) return false;
+      showSignupTopMessage(
+        context,
+        result.failureOrNull!.message,
+        isSuccess: false,
+      );
+      return false;
+    }
+    _registeredEmail = email;
+    return true;
+  }
+
+  Future<bool> _submitDraft({required int step, bool completed = false}) async {
+    final data = {..._fields(completed: completed), 'step': step};
+    final result = await sl<AuthRepository>().saveOnboardingDraft(data);
+    if (result.isFailure) {
+      if (!mounted) return false;
+      showSignupTopMessage(
+        context,
+        result.failureOrNull!.message,
+        isSuccess: false,
+      );
+      return false;
+    }
+    return true;
+  }
+
+  Future<void> _loadMasterData() async {
+    final repo = sl<MasterDataRepository>();
+    final cRes = await repo.getCountries();
+    final indRes = await repo.getIndustries();
+    final expRes = await repo.getExperienceLevels();
+    final workModeRes = await repo.getWorkModes();
+
+    if (!mounted) return;
+    setState(() {
+      if (cRes.isSuccess && cRes.valueOrNull!.isNotEmpty) {
+        _countries = cRes.valueOrNull!;
+      }
+      if (indRes.isSuccess && indRes.valueOrNull!.isNotEmpty) {
+        _industries = indRes.valueOrNull!.map((e) => e.name).toList();
+      }
+      if (expRes.isSuccess && expRes.valueOrNull!.isNotEmpty) {
+        _expLevels = expRes.valueOrNull!;
+      }
+      if (workModeRes.isSuccess && workModeRes.valueOrNull!.isNotEmpty) {
+        _workModes = workModeRes.valueOrNull!;
+      }
+    });
+  }
+
+  Future<void> _loadStatesForCountry(String country) async {
+    final res = await sl<MasterDataRepository>().getStates(country);
+    if (!mounted || res.isFailure) return;
+    setState(() {
+      _states = res.valueOrNull ?? [];
+      _selectedState = null;
+    });
+  }
+
+  String? _accountValidationMessage() {
+    final email = _emailController.text.trim();
+    if (_fullNameController.text.trim().isEmpty) {
+      return 'Please enter full name';
+    }
+    if (email.isEmpty ||
+        !RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email)) {
+      return 'Please enter a valid email';
+    }
+    if (!_emailVerified) return 'Please verify email OTP';
+    if (_passwordController.text.length < 8) {
+      return 'Password must be at least 8 characters';
+    }
+    if (_passwordController.text != _confirmPasswordController.text) {
+      return 'Password and confirm password must match';
+    }
+    if (_selectedCountry == null) return 'Please select country';
+    if (_selectedState == null) return 'Please select state';
+    if (_cityController.text.trim().isEmpty) return 'Please select city';
+    if (!_termsAccepted) return 'Please accept terms and privacy policy';
+    return null;
+  }
 
   Future<List<String>> _searchSkillsApi(String query) async {
     try {
-      final apiClient = sl<ApiClient>();
-      final response = await apiClient.get(
+      final res = await sl<ApiClientHelper>().getEnvelope<List<String>>(
         ApiEndpoints.publicSkills,
-        queryParameters: {'search': query, 'limit': 30},
+        query: {'search': query, 'limit': 30},
+        parser: (env) {
+          final list = env.data as List?;
+          if (list == null) return <String>[];
+          return list
+              .map(
+                (e) => (e is Map ? e['name']?.toString() : e.toString()) ?? '',
+              )
+              .where((e) => e.isNotEmpty)
+              .toList();
+        },
       );
-      if (response.statusCode == 200 && response.data != null) {
-        final List items = response.data['data'] ?? response.data['rows'] ?? [];
-        return items.map((e) => e['name']?.toString() ?? '').where((e) => e.isNotEmpty).toList();
+      if (res.isSuccess) {
+        return res.valueOrNull ?? [];
       }
     } catch (_) {}
-    return ['React.js', 'Node.js', 'Flutter', 'TypeScript', 'Python', 'Go', 'AWS', 'UI/UX Design', 'SQL']
-        .where((s) => s.toLowerCase().contains(query.toLowerCase()))
-        .toList();
+    return [
+      'React.js',
+      'Node.js',
+      'Flutter',
+      'TypeScript',
+      'Python',
+      'Go',
+      'AWS',
+      'UI/UX Design',
+      'SQL',
+    ].where((s) => s.toLowerCase().contains(query.toLowerCase())).toList();
   }
 
   void _onContinue() async {
     if (_currentStep == 1) {
-      if (_fullNameController.text.isEmpty ||
-          _emailController.text.isEmpty ||
-          _passwordController.text.isEmpty ||
-          !_termsAccepted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please fill all required fields and accept terms')),
-        );
+      final validationMessage = _accountValidationMessage();
+      if (validationMessage != null) {
+        showSignupTopMessage(context, validationMessage, isSuccess: false);
         return;
       }
 
       setState(() => _isLoading = true);
-      // Register account via AuthBloc / API
-      context.read<AuthBloc>().add(
-            SignupRequested(
-              email: _emailController.text.trim(),
-              password: _passwordController.text,
-              fullName: _fullNameController.text.trim(),
-              role: 'freelancer',
-            ),
-          );
-
-      await Future.delayed(const Duration(milliseconds: 800));
+      final registered = await _registerIfNeeded();
+      if (!mounted) return;
+      if (!registered) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      await _saveProgress(2);
       setState(() {
         _isLoading = false;
         _currentStep = 2;
       });
     } else if (_currentStep == 2) {
       if (_headlineController.text.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please enter your professional headline')),
+        showSignupTopMessage(
+          context,
+          'Please enter your professional headline',
+          isSuccess: false,
         );
         return;
       }
+      if (!await _submitDraft(step: 2)) return;
+      await _saveProgress(3);
       setState(() => _currentStep = 3);
     } else if (_currentStep == 3) {
-      if (_selectedSkills.length < 3) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Please select at least 3 skills')),
+      if (!await _submitDraft(step: 3)) return;
+      await _saveProgress(4);
+      setState(() => _currentStep = 4);
+    } else if (_currentStep == 4) {
+      final hourlyRate = _hourlyRateController.text.trim();
+      if (hourlyRate.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please enter hourly rate amount',
+          isSuccess: false,
         );
         return;
       }
-      setState(() => _currentStep = 4);
-    } else if (_currentStep == 4) {
+      if (!RegExp(r'^\d+(\.\d{1,2})?$').hasMatch(hourlyRate)) {
+        showSignupTopMessage(
+          context,
+          'Hourly rate can contain up to 2 decimals',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (!await _submitDraft(step: 4, completed: true)) return;
+      await SignupProgressStore.clear();
       setState(() => _currentStep = 5);
     }
   }
@@ -116,22 +365,33 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   void _onBack() {
     if (_currentStep > 1) {
       setState(() => _currentStep--);
+    } else if (widget.onBackToRoleSelection != null) {
+      widget.onBackToRoleSelection!();
+    } else if (context.canPop()) {
+      context.pop();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_currentStep == 5) {
+      SignupProgressStore.clear();
       return SignupSuccessView(
         roleTitle: 'Freelancer',
-        dashboardRoute: '/freelancer',
+        dashboardRoute: Routes.freelancerDashboard,
         completedSteps: const [
           'Account Registered',
           'Professional Profile Created',
           'Skills & Technologies Added',
           'Experience Level Configured',
         ],
-        onGoToDashboard: () => context.go('/freelancer'),
+        onGoToDashboard: () async {
+          await SignupProgressStore.clear();
+          if (context.mounted) {
+            context.read<AuthBloc>().add(const AuthCheckRequested());
+            context.go(Routes.freelancerDashboard);
+          }
+        },
       );
     }
 
@@ -149,11 +409,12 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         break;
       case 3:
         title = 'Skills & Technologies';
-        subtitle = 'Select your core technical and professional skills (Min 3).';
+        subtitle = 'Select your core technical and professional skills.';
         break;
       case 4:
         title = 'Experience & Level';
-        subtitle = 'Specify your overall experience range and work preferences.';
+        subtitle =
+            'Specify your overall experience range and work preferences.';
         break;
     }
 
@@ -172,104 +433,150 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 1:
-        return Column(
-          children: [
-            TextField(
-              controller: _fullNameController,
-              decoration: const InputDecoration(labelText: 'Full Name *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(labelText: 'Email Address *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _mobileController,
-              decoration: const InputDecoration(labelText: 'Mobile Number', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(labelText: 'Password *', border: OutlineInputBorder()),
-            ),
-            const SizedBox(height: 16),
-            CheckboxListTile(
-              value: _termsAccepted,
-              title: const Text('I agree to the Terms of Service & Privacy Policy'),
-              onChanged: (val) => setState(() => _termsAccepted = val ?? false),
-              controlAffinity: ListTileControlAffinity.leading,
-              contentPadding: EdgeInsets.zero,
-            ),
-          ],
+        return SignupAccountStep(
+          fullNameController: _fullNameController,
+          emailController: _emailController,
+          mobileController: _mobileController,
+          selectedMobileCountryCode: _selectedMobileCountryCode,
+          passwordController: _passwordController,
+          confirmPasswordController: _confirmPasswordController,
+          cityController: _cityController,
+          countries: _countries,
+          states: _states,
+          selectedCountry: _selectedCountry,
+          selectedState: _selectedState,
+          onCountryChanged: (val) {
+            setState(() {
+              _selectedCountry = val;
+              _selectedState = null;
+              _states = [];
+            });
+            _persistCurrentProgress();
+            _loadStatesForCountry(val);
+          },
+          onMobileCountryCodeChanged: (val) =>
+              setState(() => _selectedMobileCountryCode = val),
+          onStateChanged: (val) {
+            setState(() => _selectedState = val);
+            _persistCurrentProgress();
+          },
+          termsAccepted: _termsAccepted,
+          onTermsChanged: (val) {
+            setState(() => _termsAccepted = val);
+            _persistCurrentProgress();
+          },
+          onEmailVerificationChanged: (val) =>
+              setState(() => _emailVerified = val),
+          initialVerifiedEmail: _emailVerified
+              ? _emailController.text.trim()
+              : widget.verifiedEmail,
         );
       case 2:
         return Column(
           children: [
-            TextField(
+            AppTextField(
               controller: _headlineController,
-              decoration: const InputDecoration(
-                labelText: 'Professional Headline *',
-                hintText: 'e.g. Senior Full-Stack Engineer',
-                border: OutlineInputBorder(),
-              ),
+              label: 'Professional Title *',
+              hint: 'Enter your designation',
             ),
             const SizedBox(height: 16),
-            SignupSearchDropdown(
-              label: 'Country *',
-              value: _selectedCountry,
-              placeholder: 'Select Country',
-              options: _countries,
-              onChanged: (val) => setState(() => _selectedCountry = val),
-            ),
-            const SizedBox(height: 16),
-            SignupSearchDropdown(
-              label: 'City *',
-              value: _selectedCity,
-              placeholder: 'Select City',
-              options: _cities,
-              onChanged: (val) => setState(() => _selectedCity = val),
-            ),
-            const SizedBox(height: 16),
-            TextField(
+            AppTextField(
               controller: _bioController,
               maxLines: 3,
-              decoration: const InputDecoration(
-                labelText: 'Short Bio',
-                hintText: 'Describe your core expertise...',
-                border: OutlineInputBorder(),
-              ),
+              label: 'Brief Bio',
+              hint: 'Describe your core expertise...',
             ),
           ],
         );
       case 3:
-        return SignupMultiSelectSheet(
-          label: 'Skills & Technologies',
-          selectedItems: _selectedSkills,
-          availableOptions: const ['React.js', 'Node.js', 'Flutter', 'TypeScript', 'Python', 'Go', 'AWS'],
-          minSelection: 3,
-          maxSelection: 10,
-          onSearchApi: _searchSkillsApi,
-          onChanged: (items) => setState(() => _selectedSkills = items),
+        return Column(
+          children: [
+            SignupMultiSelectSheet(
+              label: 'Industry',
+              selectedItems: _selectedIndustries,
+              availableOptions: _industries,
+              minSelection: 1,
+              onChanged: (items) {
+                setState(() => _selectedIndustries = items);
+                _persistCurrentProgress();
+              },
+            ),
+            const SizedBox(height: 16),
+            SignupMultiSelectSheet(
+              label: 'Skills',
+              selectedItems: _selectedSkills,
+              availableOptions: const [
+                'React.js',
+                'Node.js',
+                'Flutter',
+                'TypeScript',
+                'Python',
+                'Go',
+                'AWS',
+              ],
+              minSelection: 0,
+              onSearchApi: _searchSkillsApi,
+              onChanged: (items) {
+                setState(() => _selectedSkills = items);
+                _persistCurrentProgress();
+              },
+            ),
+          ],
         );
       case 4:
         return Column(
           children: [
-            SignupSearchDropdown(
-              label: 'Experience Level *',
+            AppDropdown<String>(
+              label: 'Experience Year *',
+              hint: 'Select Experience Year',
               value: _experienceLevel,
-              placeholder: 'Select Experience Level',
-              options: _expLevels,
-              onChanged: (val) => setState(() => _experienceLevel = val),
+              items: _expLevels,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _experienceLevel = val);
+                _persistCurrentProgress();
+              },
             ),
             const SizedBox(height: 16),
-            SignupSearchDropdown(
-              label: 'Experience Range *',
-              value: _experienceRange,
-              placeholder: 'Select Experience Range',
-              options: _expRanges,
-              onChanged: (val) => setState(() => _experienceRange = val),
+            SignupMultiSelectSheet(
+              label: 'Preferred Work Mode',
+              selectedItems: _selectedWorkModes,
+              availableOptions: _workModes,
+              minSelection: 1,
+              onChanged: (items) {
+                setState(() => _selectedWorkModes = items);
+                _persistCurrentProgress();
+              },
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _hourlyRateController,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+              ],
+              label: 'Hourly Rate Amount *',
+              hint: 'Enter hourly rate',
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _portfolioController,
+              label: 'Portfolio Link',
+              hint: 'Enter portfolio link',
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _githubController,
+              label: 'Github Link',
+              hint: 'Enter Github link',
+            ),
+            const SizedBox(height: 16),
+            AppTextField(
+              controller: _linkedinController,
+              label: 'LinkedIn Link',
+              hint: 'Enter LinkedIn link',
             ),
           ],
         );

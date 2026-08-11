@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../domain/entities/investor.dart';
 import '../../domain/repositories/investor_repository.dart';
+import '../widgets/investment_edit_sheet.dart';
 import '../../../meetings/presentation/pages/meetings_list_view.dart';
 
 /// Embeddable deal-room catalog.
@@ -294,11 +295,10 @@ class _DealCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 0),
                       minimumSize: const Size(0, 42),
                     ),
-                    icon: const Icon(Icons.person_outline_rounded, size: 16),
-                    label: const Text('Founder'),
+                    icon: const Icon(Icons.edit_outlined, size: 16),
+                    label: const Text('Edit Offer'),
                     onPressed: () {
-                      final founderId = deal.founderId ?? deal.startupId;
-                      context.push('${Routes.publicFounder}/$founderId');
+                      showInvestmentEditSheet(context, deal: deal);
                     },
                   ),
                 ),

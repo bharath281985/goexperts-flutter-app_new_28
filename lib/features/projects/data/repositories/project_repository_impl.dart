@@ -156,6 +156,31 @@ class ProjectRepositoryImpl implements ProjectRepository {
     );
   }
 
+  @override
+  Future<Result<Contract>> createContract(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.postEnvelope<Contract>(
+      ApiEndpoints.clientContracts,
+      body: data,
+      parser: (envelope) =>
+          _contractFromJson(Map<String, dynamic>.from(envelope.data as Map)),
+    );
+  }
+
+  @override
+  Future<Result<Contract>> updateContract(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.putEnvelope<Contract>(
+      '${ApiEndpoints.clientContracts}/$id',
+      body: data,
+      parser: (envelope) =>
+          _contractFromJson(Map<String, dynamic>.from(envelope.data as Map)),
+    );
+  }
+
   static Contract _contractFromJson(Map<String, dynamic> json) {
     final milestonesRaw = json['milestones'] as List?;
     final milestones =

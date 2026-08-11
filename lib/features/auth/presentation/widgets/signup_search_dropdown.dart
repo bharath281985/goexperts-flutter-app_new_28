@@ -188,19 +188,29 @@ class _SearchSheetContentState extends State<_SearchSheetContent> {
                 final option = _filteredOptions[index];
                 final isSelected = option == widget.selected;
 
-                return ListTile(
-                  title: Text(
-                    option,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? const Color(0xFFE11D48) : const Color(0xFF1E293B),
+                return Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    title: Text(
+                      option,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? const Color(0xFFE11D48)
+                            : const Color(0xFF1E293B),
+                      ),
                     ),
+                    trailing: isSelected
+                        ? const Icon(
+                            Icons.check_circle,
+                            color: Color(0xFFE11D48),
+                          )
+                        : null,
+                    onTap: () => widget.onSelected(option),
                   ),
-                  trailing: isSelected
-                      ? const Icon(Icons.check_circle, color: Color(0xFFE11D48))
-                      : null,
-                  onTap: () => widget.onSelected(option),
                 );
               },
             ),

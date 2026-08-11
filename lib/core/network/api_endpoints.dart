@@ -19,6 +19,7 @@ class ApiEndpoints {
   static const sendEmailVerification = '/auth/send-email-verification';
   static const verifyEmailVerification = '/auth/verify-email';
   static const resendEmailVerification = '/auth/resend-email-verification';
+  static const onboardingDraft = '/auth/onboarding/draft';
 
   // ── Public ────────────────────────────────────────────────────────────────
   static const publicHome = '/public/home';
@@ -29,6 +30,11 @@ class ApiEndpoints {
   static const publicFounderTypes = '/public/founder-types';
   static const publicStartupStages = '/public/startup-stages';
   static const publicInvestorTypes = '/public/investor-types';
+  static const publicInvestorStages = '/public/investor-stages';
+  static const publicHiringGoals = '/public/hiring-goals';
+  static const publicHiringBudgetRanges = '/public/hiring-budget-ranges';
+  static const publicStartupRoles = '/public/start-roles';
+  static const publicFounderGoals = '/public/founder-goals';
   static const publicRootInvestorTypes = '/investor-types';
   static const publicMobileStartupStages = '/startup-stages';
   static const publicMobileCategories = '/categories';
@@ -36,6 +42,7 @@ class ApiEndpoints {
   static const publicInvestorGoals = '/investor-goals';
   static const publicMobileTicketSizes = '/ticket-sizes';
   static const publicMobileTeamSizes = '/team-sizes';
+  static const publicCompanySizes = '/public/company-sizes';
   static const publicTeamSizes = '/public/team-sizes';
   static const publicSkills = '/public/skills';
   static const publicFreelancers = '/public/freelancers';
@@ -54,6 +61,8 @@ class ApiEndpoints {
   static const publicClientGoals = '/client-goals';
   static const publicExpansionGoals = '/expansion-goals';
   static const publicStates = '/states';
+  static const publicExperienceLevels = '/public/experience-levels';
+  static const publicWorkModes = '/public/work-modes';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';
   static String publicClient(String id) => '/public/clients/$id';

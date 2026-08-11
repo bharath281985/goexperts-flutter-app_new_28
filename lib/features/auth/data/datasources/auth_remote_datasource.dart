@@ -1,3 +1,4 @@
+import '../../../../app/config/app_config.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/storage/secure_storage.dart';
@@ -34,11 +35,12 @@ class AuthRemoteDatasource {
     required String email,
     required String password,
     required UserRole role,
-    required String phone,
-    required String countryCode,
+    String? phone,
+    String? countryCode,
     Map<String, dynamic> signupData = const {},
   }) async {
     final device = await _deviceInfo.authPayload();
+    final trimmedPhone = phone?.trim() ?? '';
     final result = await _api.postPayload<Map<String, dynamic>>(
       ApiEndpoints.register,
       body: {
@@ -46,8 +48,11 @@ class AuthRemoteDatasource {
         'email': email,
         'password': password,
         'role': role.apiValue,
-        'phone': phone,
-        'countryCode': countryCode,
+        if (trimmedPhone.isNotEmpty) ...{
+          'phone': trimmedPhone,
+          if (countryCode != null && countryCode.trim().isNotEmpty)
+            'countryCode': countryCode.trim(),
+        },
         ...signupData,
         ...device,
       },
@@ -102,6 +107,15 @@ class AuthRemoteDatasource {
       },
     );
     return result.fold((f) => throw Exception(f.message), (value) => value);
+  }
+
+  Future<void> saveOnboardingDraft(Map<String, dynamic> data) async {
+    final result = await _api.putEnvelope<bool>(
+      '${AppConfig.authBaseUrl}${ApiEndpoints.onboardingDraft}',
+      body: data,
+      parser: (_) => true,
+    );
+    result.fold((f) => throw Exception(f.message), (_) => null);
   }
 
   Future<AppUser> uploadAvatarBytes(List<int> bytes) async {
@@ -232,16 +246,17 @@ class AuthRemoteDatasource {
   }
 
   Future<void> _persistTokens(Map<String, dynamic> data) async {
-    final access = data['accessToken'] as String?;
-    final refresh = data['refreshToken'] as String?;
-    final userJson = data['user'];
+    final access =
+        (data['token'] ?? data['accessToken']) as String?;
+    final refresh = (data['refreshToken'] ?? '') as String;
+    final userJson = data['user'] ?? data['data'];
     String? userId;
     String? role;
     if (userJson is Map<String, dynamic>) {
       userId = userJson['id']?.toString();
       role = userJson['role']?.toString();
     }
-    if (access != null && refresh != null) {
+    if (access != null && access.isNotEmpty) {
       await _secureStorage.saveSession(
         accessToken: access,
         refreshToken: refresh,
@@ -252,9 +267,10 @@ class AuthRemoteDatasource {
   }
 
   AppUser _userFromAuthPayload(Map<String, dynamic> data) {
-    final userRaw = data['user'];
-    if (userRaw is! Map)
+    final userRaw = data['user'] ?? data['data'];
+    if (userRaw is! Map) {
       throw Exception('User data missing from auth response');
+    }
     final userJson = Map<String, dynamic>.from(userRaw);
     // Merge top-level auth-response fields into the user map so AppUser
     // can read hasSubscription, isSubscribed, redirectTo, etc.

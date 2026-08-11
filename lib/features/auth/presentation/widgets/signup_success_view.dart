@@ -52,10 +52,7 @@ class SignupSuccessView extends StatelessWidget {
               Text(
                 'Your $roleTitle account has been created successfully.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 15,
-                  color: Color(0xFF64748B),
-                ),
+                style: const TextStyle(fontSize: 15, color: Color(0xFF64748B)),
               ),
               const SizedBox(height: 32),
 
@@ -85,11 +82,18 @@ class SignupSuccessView extends StatelessWidget {
                         padding: const EdgeInsets.only(bottom: 8.0),
                         child: Row(
                           children: [
-                            const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                            const Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 18,
+                            ),
                             const SizedBox(width: 10),
                             Text(
                               step,
-                              style: const TextStyle(fontSize: 14, color: Color(0xFF334155)),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF334155),
+                              ),
                             ),
                           ],
                         ),
@@ -108,11 +112,17 @@ class SignupSuccessView extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: const Text(
                     'Go to Dashboard',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
