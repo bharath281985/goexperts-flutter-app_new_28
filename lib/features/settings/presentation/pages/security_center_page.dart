@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_list_tile.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 class SecurityCenterPage extends StatefulWidget {
   const SecurityCenterPage({super.key});
@@ -23,7 +24,12 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Security Center')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Security Center'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [

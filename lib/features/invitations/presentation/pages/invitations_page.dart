@@ -9,6 +9,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 /// Invitation history with Sent / Received tabs and status filtering.
 class InvitationsPage extends StatefulWidget {
@@ -28,6 +29,9 @@ class _InvitationsPageState extends State<InvitationsPage> {
       length: 2,
       child: AppScaffold(
         appBar: AppBar(
+          leading: IconTapWidget(
+            onTap: () => Navigator.of(context).maybePop(),
+          ),
           title: const Text('Invitations'),
           bottom: const TabBar(
             tabs: [

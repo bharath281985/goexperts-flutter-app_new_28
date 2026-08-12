@@ -7,6 +7,7 @@ import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 
 /// Change password from Security Center.
@@ -50,7 +51,12 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Change Password')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Change Password'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(

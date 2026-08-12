@@ -21,7 +21,12 @@ class AuthRemoteDatasource {
     final device = await _deviceInfo.authPayload();
     final result = await _api.postPayload<Map<String, dynamic>>(
       ApiEndpoints.login,
-      body: {'email': email, 'password': password, ...device},
+      body: {
+        'email': email,
+        'password': password,
+        'deviceId': device['deviceId'] ?? '',
+        ...device,
+      },
       parser: (data) => Map<String, dynamic>.from(data as Map),
     );
     if (result.isFailure) throw Exception(result.failureOrNull!.message);
@@ -211,8 +216,14 @@ class AuthRemoteDatasource {
   }
 
   Future<void> logout() async {
+    final device = await _deviceInfo.authPayload();
     final refreshToken = await _secureStorage.refreshToken;
-    final body = refreshToken != null ? {'refreshToken': refreshToken} : null;
+    final body = <String, dynamic>{
+      'fcmToken': device['fcmToken'] ?? '',
+      'deviceId': device['deviceId'] ?? '',
+      if (refreshToken != null && refreshToken.isNotEmpty)
+        'refreshToken': refreshToken,
+    };
     await _api.postAction(ApiEndpoints.logout, body: body);
     await _secureStorage.deleteAll();
   }

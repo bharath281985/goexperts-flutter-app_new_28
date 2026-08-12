@@ -1,12 +1,12 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../app/constants/app_colors.dart';
-import '../../../../app/router/route_names.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
+import '../../../settings/presentation/pages/public_content_page.dart';
 import 'signup_email_otp_fields.dart';
 
 int signupMobileLengthForCountryCode(String countryCode) {
@@ -67,6 +67,15 @@ class SignupAccountStep extends StatelessWidget {
   final ValueChanged<bool> onTermsChanged;
   final ValueChanged<bool> onEmailVerificationChanged;
   final String? initialVerifiedEmail;
+
+  void _showContentDialog(BuildContext context, String title, String path) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) =>
+          _ContentDialogWidget(title: title, path: path),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -167,7 +176,11 @@ class SignupAccountStep extends StatelessWidget {
                         ),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
-                            context.push(Routes.termsOfService);
+                            _showContentDialog(
+                              context,
+                              'Terms & Conditions',
+                              'legal',
+                            );
                           },
                       ),
                       const TextSpan(text: ' & '),
@@ -180,7 +193,11 @@ class SignupAccountStep extends StatelessWidget {
                         ),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
-                            context.push(Routes.privacyPolicy);
+                            _showContentDialog(
+                              context,
+                              'Privacy Policy',
+                              'privacy',
+                            );
                           },
                       ),
                     ],
@@ -191,6 +208,106 @@ class SignupAccountStep extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ContentDialogWidget extends StatefulWidget {
+  final String title;
+  final String path;
+
+  const _ContentDialogWidget({required this.title, required this.path});
+
+  @override
+  State<_ContentDialogWidget> createState() => _ContentDialogWidgetState();
+}
+
+class _ContentDialogWidgetState extends State<_ContentDialogWidget> {
+  bool _hasScrolled = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final dialogHeight = mediaQuery.size.height * 0.70;
+    final dialogWidth = mediaQuery.size.width * 0.90;
+
+    return PopScope(
+      canPop: _hasScrolled,
+      child: Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        clipBehavior: Clip.antiAlias,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        child: SizedBox(
+          width: dialogWidth,
+          height: dialogHeight,
+          child: Stack(
+            children: [
+              Column(
+                children: [
+                  // Sticky Header with Title
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 56, 16),
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                      ),
+                    ),
+                    width: double.infinity,
+                    child: Text(
+                      widget.title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ),
+                  // Scrollable Content
+                  Expanded(
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (scrollNotification) {
+                        if (!_hasScrolled &&
+                            scrollNotification is ScrollUpdateNotification &&
+                            scrollNotification.scrollDelta != null &&
+                            scrollNotification.scrollDelta!.abs() > 0) {
+                          setState(() {
+                            _hasScrolled = true;
+                          });
+                        }
+                        return false;
+                      },
+                      child: PublicContentPage(
+                        title: widget.title,
+                        path: widget.path,
+                        showAppBar: false,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // Fixed top-right Close button: hidden initially, appears & activates only after scroll action
+              Positioned(
+                top: 3,
+                right: 12,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 250),
+                  opacity: _hasScrolled ? 1.0 : 0.0,
+                  child: IgnorePointer(
+                    ignoring: !_hasScrolled,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: CircleAvatar(
+                        backgroundColor: AppColors.border,
+                        child: Icon(Icons.close, size: 25),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

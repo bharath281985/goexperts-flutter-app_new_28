@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../../app/constants/app_assets.dart';
 import '../../../../app/constants/app_colors.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 /// Image 1 Mobile Reference Scaffold for Signup & Onboarding Flow
 class SignupScaffold extends StatelessWidget {
@@ -46,10 +48,10 @@ class SignupScaffold extends StatelessWidget {
                 color: AppColors.primary.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
-                Icons.flash_on,
-                color: AppColors.primary,
-                size: 18,
+              child: const IconTapWidget(
+                onTap: null,
+                iconImage: AppAssets.appLogo3,
+                isDecorate: false,
               ),
             ),
             const SizedBox(width: 8),
@@ -169,12 +171,35 @@ class SignupScaffold extends StatelessWidget {
                 child: Row(
                   children: [
                     if (onBack != null) ...[
-                      TextButton.icon(
-                        onPressed: isLoading ? null : onBack,
-                        icon: const Icon(Icons.arrow_back, size: 20),
-                        label: const Text(
-                          'Back',
-                          style: TextStyle(fontWeight: FontWeight.w700),
+                      GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: isLoading ? null : onBack,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 10,
+                            horizontal: 14,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconTapWidget(
+                                onTap: isLoading ? null : onBack,
+                                isDecorate: false,
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'Back',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),

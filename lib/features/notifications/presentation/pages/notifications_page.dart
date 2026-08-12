@@ -5,6 +5,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_notification_tile.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../domain/entities/app_notification.dart';
 import '../../domain/repositories/notification_repository.dart';
 
@@ -40,6 +41,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final repo = sl<NotificationRepository>();
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: Text('Notifications ($_unread)'),
         actions: [
           TextButton(

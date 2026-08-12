@@ -10,6 +10,7 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_list_tile.dart';
 import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/repositories/settings_repository.dart';
@@ -103,6 +104,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: Text(context.tr('Settings')),
         actions: [
           TextButton(

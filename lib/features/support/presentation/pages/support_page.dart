@@ -7,6 +7,7 @@ import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 class SupportPage extends StatefulWidget {
   const SupportPage({super.key});
@@ -96,7 +97,12 @@ class _SupportPageState extends State<SupportPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Help & Support')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Help & Support'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _createTicket,
         backgroundColor: const Color(0xFFFFDDDD),

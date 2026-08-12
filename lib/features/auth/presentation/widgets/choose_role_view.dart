@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../../../app/constants/app_assets.dart';
+import '../../../../app/constants/app_colors.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 /// Redesigned Role Selection View matching attached image reference
 class ChooseRoleView extends StatefulWidget {
@@ -28,15 +31,19 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(
-                      Icons.chevron_left_rounded,
-                      size: 32,
-                      color: Color(0xFF1F2937),
-                    ),
-                    onPressed: widget.onBack,
-                    tooltip: 'Back',
+                  IconTapWidget(
+                    onTap: () => widget.onBack?.call(),
+                    iconImage: AppAssets.backIcon,
                   ),
+                  // IconButton(
+                  //   icon: const Icon(
+                  //     Icons.chevron_left_rounded,
+                  //     size: 32,
+                  //     color: Color(0xFF1F2937),
+                  //   ),
+                  //   onPressed: widget.onBack,
+                  //   tooltip: 'Back',
+                  // ),
                   // IconButton(
                   //   icon: Icon(
                   //     Icons.chevron_right_rounded,

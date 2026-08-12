@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -15,6 +14,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../domain/entities/freelancer_credentials.dart';
 import '../../domain/repositories/freelancer_credentials_repository.dart';
 
@@ -139,7 +139,10 @@ class _FreelancerEducationApiPageState
   Widget build(BuildContext context) {
     final items = _filtered;
     return AppScaffold(
-      appBar: AppBar(title: const Text('Education')),
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: const Text('Education'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _saving ? null : () => _openForm(),
         icon: const Icon(Icons.add_rounded),
@@ -304,7 +307,10 @@ class _FreelancerCertificatesApiPageState
   Widget build(BuildContext context) {
     final items = _filtered;
     return AppScaffold(
-      appBar: AppBar(title: const Text('Certificates')),
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: const Text('Certificates'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _saving ? null : () => _openForm(),
         icon: const Icon(Icons.add_rounded),
@@ -751,6 +757,37 @@ class _EducationFormSheetState extends State<_EducationFormSheet> {
     super.dispose();
   }
 
+  Future<void> _pickYear() async {
+    final currentYear = DateTime.now().year;
+    final parsedYear = int.tryParse(_year.text.trim());
+    final initialDate = DateTime(parsedYear ?? currentYear);
+    final selectedDate = await showDialog<DateTime>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Select Year'),
+          content: SizedBox(
+            width: 300,
+            height: 300,
+            child: YearPicker(
+              firstDate: DateTime(1950),
+              lastDate: DateTime(currentYear + 10),
+              selectedDate: initialDate,
+              onChanged: (DateTime dateTime) {
+                Navigator.pop(context, dateTime);
+              },
+            ),
+          ),
+        );
+      },
+    );
+    if (selectedDate != null) {
+      setState(() {
+        _year.text = selectedDate.year.toString();
+      });
+    }
+  }
+
   Future<void> _pickFile() async {
     final file = await _pickCredentialFile(const [
       'pdf',
@@ -812,12 +849,13 @@ class _EducationFormSheetState extends State<_EducationFormSheet> {
           AppTextField(
             controller: _year,
             label: 'Year',
-            hint: 'YYYY',
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4),
-            ],
+            hint: 'Select Year (YYYY)',
+            readOnly: true,
+            onTap: _pickYear,
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.calendar_today_rounded),
+              onPressed: _pickYear,
+            ),
           ),
           AppSizes.vGapMd,
           _CredentialUploadField(
@@ -1059,7 +1097,7 @@ class _CredentialUploadField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Row(
           children: [

@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 class FounderPitchDeckEditorPage extends StatelessWidget {
   const FounderPitchDeckEditorPage({super.key});
@@ -15,6 +16,9 @@ class FounderPitchDeckEditorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Pitch Deck Editor'),
         actions: [
           TextButton(
@@ -43,6 +47,9 @@ class FounderBusinessPlanEditorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Business Plan Editor'),
         actions: [
           TextButton(
@@ -76,6 +83,9 @@ class FounderTeamPage extends StatelessWidget {
     ];
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Team'),
         actions: [
           IconButton(
@@ -122,7 +132,12 @@ class FounderHiringPage extends StatelessWidget {
       ('Product Designer', '21 applicants', 'Closed'),
     ];
     return AppScaffold(
-      appBar: AppBar(title: const Text('Hiring')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Hiring'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.showSnack('Post a role'),
         icon: const Icon(Icons.add_rounded),
@@ -166,7 +181,12 @@ class FounderMediaGalleryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Media Gallery')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Media Gallery'),
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.showSnack('Upload media'),
         icon: const Icon(Icons.upload_rounded),

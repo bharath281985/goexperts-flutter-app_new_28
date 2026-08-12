@@ -10,6 +10,8 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../master_data/domain/entities/skill_category.dart';
+import '../../../master_data/domain/entities/skill_option.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
@@ -72,7 +74,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   // Dynamic API Master lists (100% Sourced from Backend APIs)
   List<String> _countries = [];
   List<String> _states = [];
+  List<SkillCategory> _availableIndustries = [];
   List<String> _industries = [];
+  final Map<String, SkillOption> _skillsMap = {};
+  List<String> _availableSkillNames = [];
   List<String> _expLevels = [];
   List<String> _workModes = [];
 
@@ -144,7 +149,22 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   }
 
   List<String> _stringList(dynamic value) {
-    if (value is List) return value.map((e) => e.toString()).toList();
+    if (value is List) {
+      return value.map((e) {
+        if (e is Map) {
+          final name = e['value']?.toString() ??
+              e['name']?.toString() ??
+              e['id']?.toString() ??
+              '';
+          final id = e['id']?.toString() ?? '';
+          if (name.isNotEmpty) {
+            _skillsMap[name] = SkillOption(id: id, name: name);
+          }
+          return name;
+        }
+        return e.toString();
+      }).where((e) => e.isNotEmpty).toList();
+    }
     return const [];
   }
 
@@ -167,7 +187,17 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     'linkedInUrl': _linkedinController.text.trim(),
     'githubUrl': _githubController.text.trim(),
     'industry': _selectedIndustries,
-    'skills': _selectedSkills,
+    'skills': _selectedSkills.map((name) {
+      final option = _skillsMap[name];
+      final skillId =
+          option?.id ??
+          'static_${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
+      return {
+        'id': skillId,
+        'value': name,
+        'name': name,
+      };
+    }).toList(),
     'workMode': _selectedWorkModes,
   };
 
@@ -226,7 +256,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         _countries = cRes.valueOrNull!;
       }
       if (indRes.isSuccess && indRes.valueOrNull!.isNotEmpty) {
-        _industries = indRes.valueOrNull!.map((e) => e.name).toList();
+        _availableIndustries = indRes.valueOrNull!;
+        _industries = _availableIndustries.map((e) => e.name).toList();
       }
       if (expRes.isSuccess && expRes.valueOrNull!.isNotEmpty) {
         _expLevels = expRes.valueOrNull!;
@@ -234,6 +265,16 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       if (workModeRes.isSuccess && workModeRes.valueOrNull!.isNotEmpty) {
         _workModes = workModeRes.valueOrNull!;
       }
+    });
+
+    _fetchSkillsApi().then((skills) {
+      if (!mounted) return;
+      setState(() {
+        for (final s in skills) {
+          _skillsMap[s.name] = s;
+        }
+        _availableSkillNames = skills.map((s) => s.name).toList();
+      });
     });
   }
 
@@ -269,37 +310,77 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     return null;
   }
 
-  Future<List<String>> _searchSkillsApi(String query) async {
+  Future<List<SkillOption>> _fetchSkillsApi({String? query}) async {
+    String? industryId;
+    if (_selectedIndustries.isNotEmpty && _availableIndustries.isNotEmpty) {
+      final match = _availableIndustries.firstWhere(
+        (ind) => ind.name == _selectedIndustries.first,
+        orElse: () => const SkillCategory(id: '', name: ''),
+      );
+      if (match.id.isNotEmpty) {
+        industryId = match.id;
+      }
+    }
+
     try {
-      final res = await sl<ApiClientHelper>().getEnvelope<List<String>>(
+      final res = await sl<ApiClientHelper>().getEnvelope<List<SkillOption>>(
         ApiEndpoints.publicSkills,
-        query: {'search': query, 'limit': 30},
+        query: {
+          if (industryId != null && industryId.isNotEmpty)
+            'industryId': industryId,
+          'page': 1,
+          'limit': 20,
+          if (query != null && query.trim().isNotEmpty) 'search': query.trim(),
+        },
         parser: (env) {
           final list = env.data as List?;
-          if (list == null) return <String>[];
+          if (list == null) return <SkillOption>[];
           return list
               .map(
-                (e) => (e is Map ? e['name']?.toString() : e.toString()) ?? '',
+                (e) => SkillOption.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
               )
-              .where((e) => e.isNotEmpty)
               .toList();
         },
       );
-      if (res.isSuccess) {
-        return res.valueOrNull ?? [];
+      if (res.isSuccess &&
+          res.valueOrNull != null &&
+          res.valueOrNull!.isNotEmpty) {
+        return res.valueOrNull!;
       }
     } catch (_) {}
-    return [
-      'React.js',
-      'Node.js',
-      'Flutter',
-      'TypeScript',
-      'Python',
-      'Go',
-      'AWS',
-      'UI/UX Design',
-      'SQL',
-    ].where((s) => s.toLowerCase().contains(query.toLowerCase())).toList();
+
+    // Static fallback if skills API is empty or returns an error response
+    const staticSkills = [
+      SkillOption(id: 'static_1', name: 'React.js'),
+      SkillOption(id: 'static_2', name: 'Node.js'),
+      SkillOption(id: 'static_3', name: 'Flutter'),
+      SkillOption(id: 'static_4', name: 'TypeScript'),
+      SkillOption(id: 'static_5', name: 'Python'),
+      SkillOption(id: 'static_6', name: 'Go'),
+      SkillOption(id: 'static_7', name: 'AWS'),
+      SkillOption(id: 'static_8', name: 'UI/UX Design'),
+      SkillOption(id: 'static_9', name: 'SQL'),
+      SkillOption(id: 'static_10', name: '.NET'),
+      SkillOption(id: 'static_11', name: 'Java'),
+      SkillOption(id: 'static_12', name: 'C#'),
+    ];
+
+    if (query != null && query.trim().isNotEmpty) {
+      return staticSkills
+          .where((s) => s.name.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    }
+    return staticSkills;
+  }
+
+  Future<List<String>> _searchSkillsApi(String query) async {
+    final skills = await _fetchSkillsApi(query: query);
+    for (final s in skills) {
+      _skillsMap[s.name] = s;
+    }
+    return skills.map((s) => s.name).toList();
   }
 
   void _onContinue() async {
@@ -499,21 +580,37 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
               onChanged: (items) {
                 setState(() => _selectedIndustries = items);
                 _persistCurrentProgress();
+                _fetchSkillsApi().then((skills) {
+                  if (!mounted) return;
+                  setState(() {
+                    for (final s in skills) {
+                      _skillsMap[s.name] = s;
+                    }
+                    _availableSkillNames = skills.map((s) => s.name).toList();
+                  });
+                });
               },
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
               label: 'Skills',
               selectedItems: _selectedSkills,
-              availableOptions: const [
-                'React.js',
-                'Node.js',
-                'Flutter',
-                'TypeScript',
-                'Python',
-                'Go',
-                'AWS',
-              ],
+              availableOptions: _availableSkillNames.isNotEmpty
+                  ? _availableSkillNames
+                  : const [
+                      'React.js',
+                      'Node.js',
+                      'Flutter',
+                      'TypeScript',
+                      'Python',
+                      'Go',
+                      'AWS',
+                      'UI/UX Design',
+                      'SQL',
+                      '.NET',
+                      'Java',
+                      'C#',
+                    ],
               minSelection: 0,
               onSearchApi: _searchSkillsApi,
               onChanged: (items) {
@@ -585,3 +682,4 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     }
   }
 }
+

@@ -8,6 +8,7 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class ForgotPasswordPage extends StatefulWidget {
@@ -81,9 +82,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         elevation: 0,
         toolbarHeight: 40,
         automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () {
+        leading: IconTapWidget(
+          onTap: () {
             if (_codeSent) {
               setState(() => _codeSent = false);
             } else {

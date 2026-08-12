@@ -3,6 +3,7 @@ import '../../../../app/constants/app_assets.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 
 /// Shared scaffold for auth screens: branded header + card body.
@@ -39,9 +40,8 @@ class AuthScaffold extends StatelessWidget {
         leading: showBack
             ? Align(
                 alignment: backAlignment,
-                child: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  onPressed: () => Navigator.of(context).maybePop(),
+                child: IconTapWidget(
+                  onTap: () => Navigator.of(context).maybePop(),
                 ),
               )
             : null,
@@ -98,9 +98,10 @@ class AuthScaffold extends StatelessWidget {
                   children: [
                     // Branded Logo Badge Container
                     Container(
-                      padding: const EdgeInsets.all(12),
+                      width: 90,
+                      height: 90,
                       decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.white,
+                        color: Colors.transparent,
                         borderRadius: BorderRadius.circular(22),
                         border: Border.all(
                           color: isDark
@@ -108,23 +109,20 @@ class AuthScaffold extends StatelessWidget {
                               : AppColors.primary.withValues(alpha: 0.12),
                           width: 1.5,
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.12),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(16),
-                        child: Image.asset(
-                          AppAssets.logo,
-                          width: 80,
-                          height: 52,
+                        image: DecorationImage(
+                          image: AssetImage(AppAssets.logo2),
                           fit: BoxFit.contain,
                         ),
                       ),
+                      // child: ClipRRect(
+                      //   borderRadius: BorderRadius.circular(16),
+                      //   child: Image.asset(
+                      //     AppAssets.logo2,
+                      //     width: 80,
+                      //     height: 52,
+                      //     fit: BoxFit.contain,
+                      //   ),
+                      // ),
                     ),
                     const SizedBox(height: 18),
 
@@ -150,15 +148,34 @@ class AuthScaffold extends StatelessWidget {
                             color: AppColors.primary,
                           ),
                           const SizedBox(width: 5),
-                          Text(
-                            'GO EXPERTS PORTAL',
-                            style: context.text.labelSmall?.copyWith(
-                              color: AppColors.primary,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.1,
-                              fontSize: 10,
-                            ),
+                          Column(
+                            children: [
+                              Text(
+                                'GO EXPERTS PORTAL',
+                                style: context.text.labelLarge?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.1,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              Text(
+                                'Working With You. For You..',
+                                style: context.text.labelSmall?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 1.1,
+                                  fontSize: 10,
+                                ),
+                              ),
+                            ],
                           ),
+                          const Icon(
+                            Icons.auto_awesome_rounded,
+                            size: 13,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 5),
                         ],
                       ),
                     ),

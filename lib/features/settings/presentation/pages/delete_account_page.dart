@@ -12,6 +12,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class DeleteAccountPage extends StatefulWidget {
@@ -51,7 +52,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
     setState(() => _sending = true);
     try {
       final response = await Dio().post<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}/public/delete-account/send-otp',
+        '${AppConfig.authBaseUrl}/public/delete-account/request-otp',
         data: {'email': email},
         options: Options(headers: {'Content-Type': 'application/json'}),
       );
@@ -64,10 +65,17 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
         );
       } else {
         setState(() => _otpSent = true);
-        context.showSnack('OTP sent to your email');
+        context.showSnack(
+          body['message']?.toString() ??
+              'OTP sent successfully. Check your email inbox/spam.',
+        );
       }
-    } catch (_) {
-      if (mounted) context.showSnack('Failed to send OTP', isError: true);
+    } catch (e) {
+      if (!mounted) return;
+      context.showSnack(
+        'Failed to send OTP. Please try again.',
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -76,6 +84,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   Future<void> _submit() async {
     final email = _emailController.text.trim();
     final otp = _otpController.text.trim();
+
     if (email.isEmpty || !email.contains('@')) {
       context.showSnack('Enter a valid email', isError: true);
       return;
@@ -87,10 +96,10 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
 
     final confirm = await AppConfirmDialog.show(
       context,
-      title: 'Delete account?',
+      title: 'Confirm Account Deletion',
       message:
-          'This will submit your account deletion request. This action cannot be undone from the app.',
-      confirmLabel: 'Yes, Delete',
+          'Are you sure you want to permanently submit a delete request for $email? This action cannot be undone.',
+      confirmLabel: 'Submit Request',
       isDestructive: true,
       icon: Icons.delete_forever_outlined,
     );
@@ -114,12 +123,14 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
         context.showSnack(
           body['message']?.toString() ?? 'Delete account request submitted',
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).maybePop();
       }
-    } catch (_) {
-      if (mounted) {
-        context.showSnack('Failed to submit request', isError: true);
-      }
+    } catch (e) {
+      if (!mounted) return;
+      context.showSnack(
+        'Verification failed. Check your OTP and try again.',
+        isError: true,
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -128,7 +139,12 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Delete Account')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Delete Account'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [

@@ -17,6 +17,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
@@ -319,7 +320,12 @@ class _FreelancerVerificationPageState
 
     return AppScaffold(
       constrainWidth: false,
-      appBar: AppBar(title: const Text('Verification Center')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Verification Center'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [

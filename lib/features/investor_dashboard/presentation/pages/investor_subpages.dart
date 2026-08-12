@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_multi_select.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../wallet/domain/entities/wallet.dart';
 import '../../../wallet/domain/repositories/wallet_repository.dart';
 
@@ -58,6 +59,9 @@ class _InvestorPreferencesPageState extends State<InvestorPreferencesPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Investment Preferences'),
         actions: [
           TextButton(
@@ -136,7 +140,12 @@ class _InvestorDueDiligencePageState extends State<InvestorDueDiligencePage> {
   Widget build(BuildContext context) {
     final done = _items.values.where((v) => v).length;
     return AppScaffold(
-      appBar: AppBar(title: const Text('Due Diligence')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Due Diligence'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
@@ -190,7 +199,12 @@ class InvestorOffersPage extends StatelessWidget {
       ('EduSpark', '₹5Cr for 10%', 'Accepted'),
     ];
     return AppScaffold(
-      appBar: AppBar(title: const Text('Offers')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Offers'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
@@ -242,7 +256,12 @@ class InvestorDocumentsPage extends StatelessWidget {
       ('Term Sheet.docx', 'DOCX'),
     ];
     return AppScaffold(
-      appBar: AppBar(title: const Text('Documents')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Documents'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
@@ -279,7 +298,12 @@ class InvestorTransactionsPage extends StatelessWidget {
   const InvestorTransactionsPage({super.key});
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(title: const Text('Transactions')),
+    appBar: AppBar(
+      leading: IconTapWidget(
+        onTap: () => Navigator.of(context).maybePop(),
+      ),
+      title: const Text('Transactions'),
+    ),
     body: CatalogView<WalletTransaction>(
       fetcher: (q) => sl<WalletRepository>().getTransactions(q),
       searchHint: 'Search transactions…',

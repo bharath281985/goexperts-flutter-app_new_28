@@ -17,6 +17,7 @@ import '../../features/messages/domain/repositories/message_repository.dart';
 import '../../features/messages/presentation/pages/conversations_list_view.dart';
 import '../../features/profile/presentation/pages/my_profile_page.dart';
 import '../../features/projects/domain/repositories/project_repository.dart';
+import '../../app/constants/app_assets.dart';
 import '../../features/projects/presentation/pages/projects_list_view.dart';
 import '../../features/startup_ideas/domain/repositories/startup_repository.dart';
 import '../../features/startup_ideas/presentation/pages/startups_list_view.dart';
@@ -28,6 +29,7 @@ import '../extensions/context_extensions.dart';
 import '../utils/enums.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/icon_widget.dart';
 import 'dashboard_cubit.dart';
 
 /// A single tab within a role shell.
@@ -312,7 +314,16 @@ class _RoleShellState extends State<RoleShell> {
             ),
             appBar: current.title == null
                 ? null
-                : AppBar(title: Text(context.tr(current.title!))),
+                : AppBar(
+                    leading: Builder(
+                      builder: (scaffoldContext) => IconTapWidget(
+                        onTap: () => Scaffold.of(scaffoldContext).openDrawer(),
+                        iconImage: AppAssets.menuIcon,
+                        padding: 8,
+                      ),
+                    ),
+                    title: Text(context.tr(current.title!)),
+                  ),
             body: current.body,
             bottomNavigationBar: AppBottomNavigation(
               items: _navItems(tabs, state.unreadMessagesCount),

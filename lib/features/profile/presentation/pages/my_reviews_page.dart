@@ -8,6 +8,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../domain/entities/review.dart';
 import '../../domain/repositories/review_repository.dart';
@@ -58,7 +59,12 @@ class _MyReviewsPageState extends State<MyReviewsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('My Reviews')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('My Reviews'),
+      ),
       body: RefreshIndicator(onRefresh: _fetch, child: _buildBody()),
     );
   }

@@ -9,6 +9,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/subscription_status.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../../core/widgets/safe_bottom.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -94,6 +95,9 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         title: Text(

@@ -27,7 +27,10 @@ class DeviceInfoHelper {
     }
 
     final packageInfo = await PackageInfo.fromPlatform();
-    final fcmToken = await _push?.getToken();
+    String? fcmToken;
+    try {
+      fcmToken = await _push?.getToken();
+    } catch (_) {}
 
     return {
       'deviceId': deviceId,

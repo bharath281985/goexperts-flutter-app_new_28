@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 /// In-app legal document (Privacy / Terms). Content is store-compliance oriented.
 class LegalDocumentPage extends StatelessWidget {
@@ -93,7 +94,12 @@ class LegalDocumentPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(title),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [

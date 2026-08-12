@@ -33,6 +33,7 @@ import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../../../startup_ideas/presentation/widgets/investment_offer_sheet.dart';
 import '../../../startup_ideas/presentation/widgets/startup_card.dart';
 import '../../../../core/bloc/list_bloc.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 class BookmarksPage extends StatelessWidget {
   const BookmarksPage({super.key});
@@ -661,6 +662,9 @@ class BookmarksPage extends StatelessWidget {
           length: tabs.length,
           child: Scaffold(
             appBar: AppBar(
+              leading: IconTapWidget(
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
               title: const Text('Bookmarks'),
               bottom: TabBar(
                 isScrollable: true,

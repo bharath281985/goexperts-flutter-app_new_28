@@ -8,6 +8,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../models/otp_verification_args.dart';
 
@@ -124,10 +125,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
         elevation: 0,
         toolbarHeight: 40,
         automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.xl),

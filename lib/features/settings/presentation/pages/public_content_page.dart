@@ -9,12 +9,19 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_error_state.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 class PublicContentPage extends StatefulWidget {
-  const PublicContentPage({super.key, required this.title, required this.path});
+  const PublicContentPage({
+    super.key,
+    required this.title,
+    required this.path,
+    this.showAppBar = true,
+  });
 
   final String title;
   final String path;
+  final bool showAppBar;
 
   @override
   State<PublicContentPage> createState() => _PublicContentPageState();
@@ -60,66 +67,82 @@ class _PublicContentPageState extends State<PublicContentPage> {
 
   @override
   Widget build(BuildContext context) {
+    final body = _loading
+        ? const Center(child: CircularProgressIndicator())
+        : _error != null
+        ? AppErrorState(message: _error, onRetry: _load)
+        : ListView(
+            padding: const EdgeInsets.all(AppSizes.screenPadding),
+            children: [
+              Html(
+                data: _markdownToHtml(_content),
+                style: {
+                  'body': Style(
+                    fontSize: FontSize(16),
+                    lineHeight: const LineHeight(1.6),
+                    color: context.colors.onSurface,
+                  ),
+                  'h1': Style(
+                    fontSize: FontSize(24),
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                    margin: Margins.only(bottom: 16),
+                  ),
+                  'h2': Style(
+                    fontSize: FontSize(20),
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.primary,
+                    margin: Margins.only(top: 24, bottom: 12),
+                  ),
+                  'h3': Style(
+                    fontSize: FontSize(18),
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.onSurface,
+                    margin: Margins.only(top: 20, bottom: 10),
+                  ),
+                  'p': Style(
+                    fontSize: FontSize(16),
+                    margin: Margins.only(bottom: 12),
+                    lineHeight: const LineHeight(1.6),
+                    color: context.colors.onSurface,
+                  ),
+                  'ul': Style(margin: Margins.only(bottom: 16, left: 16)),
+                  'li': Style(
+                    fontSize: FontSize(16),
+                    margin: Margins.only(bottom: 8),
+                    lineHeight: const LineHeight(1.6),
+                    color: context.colors.onSurface,
+                  ),
+                  'strong': Style(
+                    fontWeight: FontWeight.w600,
+                    color: context.colors.onSurface,
+                  ),
+                  'a': Style(
+                    color: AppColors.primary,
+                    textDecoration: TextDecoration.underline,
+                  ),
+                },
+              ),
+            ],
+          );
+
+    if (!widget.showAppBar) {
+      return body;
+    }
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? AppErrorState(message: _error, onRetry: _load)
-          : ListView(
-              padding: const EdgeInsets.all(AppSizes.screenPadding),
-              children: [
-                Html(
-                  data: _markdownToHtml(_content),
-                  style: {
-                    'body': Style(
-                      fontSize: FontSize(16),
-                      lineHeight: const LineHeight(1.6),
-                      color: context.colors.onSurface,
-                    ),
-                    'h1': Style(
-                      fontSize: FontSize(24),
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                      margin: Margins.only(bottom: 16),
-                    ),
-                    'h2': Style(
-                      fontSize: FontSize(20),
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
-                      margin: Margins.only(top: 24, bottom: 12),
-                    ),
-                    'h3': Style(
-                      fontSize: FontSize(18),
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.onSurface,
-                      margin: Margins.only(top: 20, bottom: 10),
-                    ),
-                    'p': Style(
-                      fontSize: FontSize(16),
-                      margin: Margins.only(bottom: 12),
-                      lineHeight: const LineHeight(1.6),
-                      color: context.colors.onSurface,
-                    ),
-                    'ul': Style(margin: Margins.only(bottom: 16, left: 16)),
-                    'li': Style(
-                      fontSize: FontSize(16),
-                      margin: Margins.only(bottom: 8),
-                      lineHeight: const LineHeight(1.6),
-                      color: context.colors.onSurface,
-                    ),
-                    'strong': Style(
-                      fontWeight: FontWeight.w600,
-                      color: context.colors.onSurface,
-                    ),
-                    'a': Style(
-                      color: AppColors.primary,
-                      textDecoration: TextDecoration.underline,
-                    ),
-                  },
-                ),
-              ],
-            ),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: Center(
+          child: IconTapWidget(
+            onTap: () {
+              Navigator.of(context).maybePop();
+            },
+          ),
+        ),
+        title: Text(widget.title),
+      ),
+      body: body,
     );
   }
 

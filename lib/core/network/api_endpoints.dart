@@ -107,7 +107,7 @@ class ApiEndpoints {
   static const appVersion = '/app/version';
   static const appMaintenance = '/app/maintenance';
   static const appFeatureFlags = '/app/feature-flags';
-  static const appDeviceToken = '/app/device-token';
+  static const appDeviceToken = '/app-config/device-token';
 
   // ── Payments ──────────────────────────────────────────────────────────────
   static const paymentsGateways = '/payments/gateways';

@@ -6,7 +6,7 @@ import '../constants/app_colors.dart';
 class AppTextStyles {
   AppTextStyles._();
 
-  static const String fontFamily = 'Roboto';
+  static const String fontFamily = 'Poppins';
 
   static TextTheme textTheme(Color primaryText, Color secondaryText) {
     return TextTheme(

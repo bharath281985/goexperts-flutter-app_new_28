@@ -5,6 +5,7 @@ import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/share_sheet.dart';
 
 /// A reusable document viewer shell with type-aware preview.
@@ -28,6 +29,9 @@ class DocumentViewerPage extends StatelessWidget {
     final meta = _metaFor(type, url);
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: Text(name ?? '$type Viewer'),
         actions: [
           IconButton(

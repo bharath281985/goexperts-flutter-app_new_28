@@ -8,6 +8,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_search_bar.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 class GlobalSearchPage extends StatefulWidget {
   const GlobalSearchPage({super.key});
@@ -53,6 +54,9 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         titleSpacing: 0,
         title: Padding(
           padding: const EdgeInsets.only(right: AppSizes.md),

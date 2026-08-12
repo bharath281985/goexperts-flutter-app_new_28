@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -89,7 +90,30 @@ class FirebasePushNotificationService implements PushNotificationService {
   }
 
   @override
-  Future<String?> getToken() => _messaging.getToken();
+  Future<String?> getToken() async {
+    try {
+      if (Platform.isIOS || Platform.isMacOS) {
+        String? apnsToken = await _messaging.getAPNSToken();
+        var attempts = 0;
+        // Wait up to 3 seconds for iOS APNS token to finish background registration
+        while (apnsToken == null && attempts < 10) {
+          await Future.delayed(const Duration(milliseconds: 300));
+          apnsToken = await _messaging.getAPNSToken();
+          attempts++;
+        }
+        if (apnsToken == null) {
+          try {
+            return await _messaging.getToken();
+          } catch (_) {
+            return null;
+          }
+        }
+      }
+      return await _messaging.getToken();
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void setOnMessageOpenedHandler(

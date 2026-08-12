@@ -27,7 +27,7 @@ class _OnboardingPageState extends State<OnboardingPage>
       title: AppStrings.onboarding[0]['title'] ?? 'Hire & Get Hired',
       description:
           AppStrings.onboarding[0]['subtitle'] ??
-          'Connect with top freelancers and businesses to deliver world-class projects.',
+          'Connect with Top Freelancers and Businesses to deliver World-Class Projects.',
       image: 'assets/images/1.png',
       icon: Icons.work_outline_rounded,
     ),
@@ -35,7 +35,7 @@ class _OnboardingPageState extends State<OnboardingPage>
       title: AppStrings.onboarding[1]['title'] ?? 'Fund & Get Funded',
       description:
           AppStrings.onboarding[1]['subtitle'] ??
-          'Investors discover high-potential startups and founders raise capital with ease.',
+          'Investors discover High-Potential Startups and Founders Raise Capital with ease.',
       image: 'assets/images/2.png',
       icon: Icons.trending_up_rounded,
     ),

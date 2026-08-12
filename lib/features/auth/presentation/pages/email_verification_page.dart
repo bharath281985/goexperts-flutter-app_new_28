@@ -8,6 +8,7 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 
 /// Email verification entry screen before OTP.
 class EmailVerificationPage extends StatefulWidget {
@@ -46,9 +47,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
         elevation: 0,
         toolbarHeight: 40,
         automaticallyImplyLeading: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          onPressed: () => Navigator.of(context).maybePop(),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop(),
         ),
       ),
       body: SingleChildScrollView(

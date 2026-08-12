@@ -6,6 +6,7 @@ import 'app_empty_state.dart';
 import 'app_error_state.dart';
 import 'app_loading_shimmer.dart';
 import 'app_scaffold.dart';
+import 'icon_widget.dart';
 
 /// A reusable scaffold for every standalone detail page.
 ///
@@ -40,7 +41,13 @@ class DetailView<T> extends StatelessWidget {
       child: BlocBuilder<DetailCubit<T>, DetailState<T>>(
         builder: (context, state) {
           return AppScaffold(
-            appBar: AppBar(title: Text(title), actions: actions),
+            appBar: AppBar(
+              leading: IconTapWidget(
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+              title: Text(title),
+              actions: actions,
+            ),
             bottomNavigationBar:
                 state.status == ViewStatus.success && bottomBar != null
                 ? SafeArea(child: bottomBar!(context, state.item as T))

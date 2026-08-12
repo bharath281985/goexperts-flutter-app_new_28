@@ -34,7 +34,7 @@ class AppColors {
 
   // Utility
   static const Color white = Color(0xFFFFFFFF);
-  static const Color black = Color(0xFF000000);
+  static const Color black = Color(0xFF091C47);
   static const Color shadow = Color(0x14000000);
 
   // Project card accents

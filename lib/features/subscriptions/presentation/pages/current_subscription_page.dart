@@ -7,6 +7,7 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../../core/widgets/safe_bottom.dart';
 import '../../domain/entities/current_subscription.dart';
@@ -70,6 +71,9 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Subscription'),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,

@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/wallet.dart';
 import '../../domain/repositories/wallet_repository.dart';
@@ -82,7 +83,12 @@ class _WalletPageState extends State<WalletPage> {
     );
     if (widget.embedded) return body;
     return AppScaffold(
-      appBar: AppBar(title: Text(context.tr('Wallet'))),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(context.tr('Wallet')),
+      ),
       body: body,
     );
   }

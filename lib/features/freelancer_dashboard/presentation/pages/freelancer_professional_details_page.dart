@@ -14,6 +14,7 @@ import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
 
@@ -185,6 +186,9 @@ class _FreelancerProfessionalDetailsPageState
     return AppScaffold(
       constrainWidth: false,
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Professional details'),
         actions: [
           Padding(

@@ -26,6 +26,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../../../core/widgets/category_skills_picker.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
 import '../../domain/entities/freelancer_task.dart';
 import '../../domain/entities/portfolio_item.dart';
@@ -45,7 +46,12 @@ class _ListScaffold extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(title: Text(title)),
+    appBar: AppBar(
+      leading: IconTapWidget(
+        onTap: () => Navigator.of(context).maybePop(),
+      ),
+      title: Text(title),
+    ),
     body: child,
   );
 }
@@ -1032,7 +1038,12 @@ class _FreelancerWithdrawalsPageState extends State<FreelancerWithdrawalsPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Withdrawals')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Withdrawals'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -1367,7 +1378,12 @@ class _FreelancerTasksPageState extends State<FreelancerTasksPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Tasks')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Tasks'),
+      ),
       body: CatalogView<FreelancerTask>(
         fetcher: (q) => sl<FreelancerTaskRepository>().getTasks(q),
         searchHint: 'Search tasks…',
@@ -3519,7 +3535,12 @@ class _FreelancerPortfolioDetailsPageState
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Portfolio Details')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Portfolio Details'),
+      ),
       body: FutureBuilder<Result<PortfolioItem>>(
         future: _future,
         builder: (context, snapshot) {
@@ -3974,7 +3995,12 @@ class _FreelancerPortfolioFormPageState
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: Text(_isEdit ? 'Edit Portfolio' : 'New Portfolio')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(_isEdit ? 'Edit Portfolio' : 'New Portfolio'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(

@@ -87,10 +87,13 @@ flutter:
     - assets/icons/
     - assets/logo/
     - assets/videos/
+    - assets/new/
 
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo/logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  image_path: "assets/logo/logo2.png"
+  adaptive_icon_foreground: "assets/logo/logo2.png"  
   macos:
     generate: true

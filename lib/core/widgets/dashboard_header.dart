@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:goexperts_app/app/constants/app_assets.dart';
+import 'package:goexperts_app/core/widgets/icon_widget.dart';
 import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../../app/router/route_names.dart';
@@ -40,11 +42,10 @@ class DashboardHeader extends StatelessWidget {
           Row(
             children: [
               if (onMenu != null)
-                IconButton(
-                  onPressed: onMenu,
-                  icon: const Icon(Icons.menu_rounded, color: AppColors.white),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
+                IconTapWidget(
+                  onTap: onMenu,
+                  iconImage: AppAssets.menuIcon,
+                  padding: 8,
                 ),
               if (onMenu != null) AppSizes.hGapMd,
               Expanded(

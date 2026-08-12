@@ -14,14 +14,21 @@ class DeviceTokenRegistrationService {
   final PushNotificationService _push;
 
   Future<void> registerIfPossible() async {
-    final token = await _push.getToken();
-    if (token == null || token.isEmpty) return;
+    try {
+      final token = await _push.getToken();
+      if (token == null || token.isEmpty) return;
 
-    final device = await _deviceInfo.devicePayload();
-    await _api.postAction(
-      ApiEndpoints.appDeviceToken,
-      body: {'fcmToken': token, ...device},
-    );
+      final device = await _deviceInfo.devicePayload();
+      await _api.postAction(
+        ApiEndpoints.appDeviceToken,
+        body: {
+          'fcmToken': token,
+          'deviceId': device['deviceId'] ?? '',
+          'platform': device['platform'] ?? '',
+          'deviceName': device['deviceName'] ?? '',
+        },
+      );
+    } catch (_) {}
   }
 
   void listenForTokenRefresh() {

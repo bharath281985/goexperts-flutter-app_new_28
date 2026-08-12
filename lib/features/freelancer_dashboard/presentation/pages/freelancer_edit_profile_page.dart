@@ -10,6 +10,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/entities/freelancer_profile.dart';
@@ -289,6 +290,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final colors = context.colors;
     return AppScaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Edit Profile'),
         actions: [
           if (!_saving)
