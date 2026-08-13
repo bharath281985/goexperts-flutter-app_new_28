@@ -230,7 +230,7 @@ class AuthRemoteDatasource {
 
   Future<AppUser> socialLogin({
     required String endpoint,
-    required UserRole role,
+    UserRole? role,
     required String idToken,
     String? accessToken,
     String? email,
@@ -238,7 +238,7 @@ class AuthRemoteDatasource {
   }) async {
     final device = await _deviceInfo.authPayload();
     final body = <String, dynamic>{
-      'role': role.apiValue,
+      if (role != null) 'role': role.apiValue,
       'idToken': idToken,
       if (accessToken != null) 'accessToken': accessToken,
       if (email != null) 'email': email,

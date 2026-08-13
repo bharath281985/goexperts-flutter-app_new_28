@@ -19,7 +19,7 @@ abstract class AuthRepository {
   });
   Future<Result<AppUser>> socialLogin(
     String provider, {
-    required UserRole role,
+    UserRole? role,
     required String idToken,
     String? accessToken,
     String? email,

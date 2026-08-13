@@ -48,7 +48,7 @@ class AuthSignupDraftSaved extends AuthEvent {
 class AuthSocialLoginRequested extends AuthEvent {
   const AuthSocialLoginRequested({
     required this.provider,
-    required this.role,
+    this.role,
     required this.idToken,
     this.accessToken,
     this.email,
@@ -56,7 +56,7 @@ class AuthSocialLoginRequested extends AuthEvent {
   });
 
   final String provider;
-  final UserRole role;
+  final UserRole? role;
   final String idToken;
   final String? accessToken;
   final String? email;

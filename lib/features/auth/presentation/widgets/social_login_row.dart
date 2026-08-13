@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -9,6 +7,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../data/datasources/social_auth_service.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
 import 'choose_role_view.dart';
 
@@ -17,13 +16,54 @@ class SocialLoginRow extends StatelessWidget {
 
   Future<void> _startSocial(BuildContext context, String provider) async {
     try {
-      final socialAuth = sl<SocialAuthService>();
+      final sl = ServiceLocator.instance;
+      final socialAuth = sl.get<SocialAuthService>();
       final creds = provider == 'google'
           ? await socialAuth.signInWithGoogle()
           : await socialAuth.signInWithApple();
 
       if (!context.mounted) return;
 
+      // Show temporary loading UI while checking existing user
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final repo = sl.get<AuthRepository>();
+      final checkResult = await repo.socialLogin(
+        provider,
+        role: null, // Try without role first
+        idToken: creds.idToken,
+        accessToken: creds.accessToken,
+        email: creds.email,
+        fullName: creds.fullName,
+      );
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // dismiss loading
+
+      // If backend logged us in (returning user OR role implicitly generated), just let BLoC handle standard state updates!
+      if (checkResult.isSuccess) {
+        context.read<AuthBloc>().add(
+          AuthSocialLoginRequested(
+            provider: provider,
+            role: null,
+            idToken: creds.idToken,
+            accessToken: creds.accessToken,
+            email: creds.email,
+            fullName: creds.fullName,
+          ),
+        );
+        return;
+      } else {
+        debugPrint(
+          'Bypass social login check failed: ${checkResult.failureOrNull?.message}',
+        );
+      }
+
+      // Existing user check failed (likely Server requires a role for a NEW user)
       final UserRole? selectedRole = await showModalBottomSheet<UserRole>(
         context: context,
         isScrollControlled: true,
@@ -43,6 +83,7 @@ class SocialLoginRow extends StatelessWidget {
       if (selectedRole == null) return;
       if (!context.mounted) return;
 
+      // Submit fully to AuthBloc
       context.read<AuthBloc>().add(
         AuthSocialLoginRequested(
           provider: provider,
@@ -65,7 +106,6 @@ class SocialLoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
@@ -133,17 +173,16 @@ class SocialLoginRow extends StatelessWidget {
                 onTap: () => _startSocial(context, 'google'),
               ),
             ),
-            
-              AppSizes.hGapMd,
-              Expanded(
-                child: _SocialButton(
-                  icon: Icons.apple,
-                  label: 'Login with Apple',
-                  onTap: () => _startSocial(context, 'apple'),
-                ),
+
+            AppSizes.hGapMd,
+            Expanded(
+              child: _SocialButton(
+                icon: Icons.apple,
+                label: 'Login with Apple',
+                onTap: () => _startSocial(context, 'apple'),
               ),
-            ],
-         
+            ),
+          ],
         ),
       ],
     );

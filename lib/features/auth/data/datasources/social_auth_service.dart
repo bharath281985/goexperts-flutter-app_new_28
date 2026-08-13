@@ -74,7 +74,7 @@ class SocialAuthService {
           ? null
           : WebAuthenticationOptions(
               // TODO: Replace with your actual Apple Service ID (usually com.doorstephub.goexperts.service)
-              clientId: 'com.doorstephub.goexperts.service',
+              clientId: 'com.doorstephub.goexpertsapps',
               // TODO: Replace with your actual registered Redirect URI in Apple Developer Portal
               redirectUri: Uri.parse(
                 'https://apiai.goexperts.in/api/v1/mobile/auth/apple/callback',
