@@ -63,15 +63,23 @@ class SocialAuthService {
   }
 
   Future<SocialAuthResult> signInWithApple() async {
-    if (!Platform.isIOS && !Platform.isMacOS) {
-      throw Exception('Apple Sign-In is only available on Apple platforms');
-    }
+    final bool isApplePlatform = Platform.isIOS || Platform.isMacOS;
 
     final credential = await SignInWithApple.getAppleIDCredential(
       scopes: [
         AppleIDAuthorizationScopes.email,
         AppleIDAuthorizationScopes.fullName,
       ],
+      webAuthenticationOptions: isApplePlatform
+          ? null
+          : WebAuthenticationOptions(
+              // TODO: Replace with your actual Apple Service ID (usually com.doorstephub.goexperts.service)
+              clientId: 'com.doorstephub.goexperts.service',
+              // TODO: Replace with your actual registered Redirect URI in Apple Developer Portal
+              redirectUri: Uri.parse(
+                'https://apiai.goexperts.in/api/v1/mobile/auth/apple/callback',
+              ),
+            ),
     );
     final idToken = credential.identityToken;
     if (idToken == null || idToken.isEmpty) {

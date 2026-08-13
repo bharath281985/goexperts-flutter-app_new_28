@@ -242,7 +242,8 @@ class AuthRemoteDatasource {
       'idToken': idToken,
       if (accessToken != null) 'accessToken': accessToken,
       if (email != null) 'email': email,
-      if (fullName != null) 'fullName': fullName,
+      if (fullName != null && fullName.isNotEmpty) 'fullName': fullName,
+      if (endpoint.contains('apple')) 'platform': 'ios',
       ...device,
     };
     final result = await _api.postPayload<Map<String, dynamic>>(
@@ -257,8 +258,7 @@ class AuthRemoteDatasource {
   }
 
   Future<void> _persistTokens(Map<String, dynamic> data) async {
-    final access =
-        (data['token'] ?? data['accessToken']) as String?;
+    final access = (data['token'] ?? data['accessToken']) as String?;
     final refresh = (data['refreshToken'] ?? '') as String;
     final userJson = data['user'] ?? data['data'];
     String? userId;

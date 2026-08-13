@@ -65,7 +65,7 @@ class SocialLoginRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final showApple = Platform.isIOS || Platform.isMacOS;
+    
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
@@ -133,7 +133,7 @@ class SocialLoginRow extends StatelessWidget {
                 onTap: () => _startSocial(context, 'google'),
               ),
             ),
-            if (showApple) ...[
+            
               AppSizes.hGapMd,
               Expanded(
                 child: _SocialButton(
@@ -143,7 +143,7 @@ class SocialLoginRow extends StatelessWidget {
                 ),
               ),
             ],
-          ],
+         
         ),
       ],
     );
