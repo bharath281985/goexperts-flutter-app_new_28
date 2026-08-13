@@ -20,6 +20,10 @@ abstract class AuthRepository {
   Future<Result<AppUser>> socialLogin(
     String provider, {
     required UserRole role,
+    required String idToken,
+    String? accessToken,
+    String? email,
+    String? fullName,
   });
   Future<Result<bool>> sendOtp({
     required String phone,

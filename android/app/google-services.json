@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "817575811603-9u7p66h38chir8ko3nkf6rvpae4r64sn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.doorstephub.goexperts",
+            "certificate_hash": "d4403a2e9f4613457261abc876f24acab048c7dc"
+          }
+        },
+        {
           "client_id": "817575811603-m2jfe6l1lunbiunjvmlrilj7p6ig25kt.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {

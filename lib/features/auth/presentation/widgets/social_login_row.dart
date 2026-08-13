@@ -5,21 +5,62 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
+import '../../data/datasources/social_auth_service.dart';
 import '../bloc/auth_bloc.dart';
+import 'choose_role_view.dart';
 
 class SocialLoginRow extends StatelessWidget {
   const SocialLoginRow({super.key});
 
-  void _startSocial(BuildContext context, String provider) {
-    // Directly trigger social login without showing the role picker dialog
-    context.read<AuthBloc>().add(
-      AuthSocialLoginRequested(
-        provider: provider,
-        role: UserRole.freelancer,
-      ),
-    );
+  Future<void> _startSocial(BuildContext context, String provider) async {
+    try {
+      final socialAuth = sl<SocialAuthService>();
+      final creds = provider == 'google'
+          ? await socialAuth.signInWithGoogle()
+          : await socialAuth.signInWithApple();
+
+      if (!context.mounted) return;
+
+      final UserRole? selectedRole = await showModalBottomSheet<UserRole>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.white,
+        builder: (ctx) {
+          return FractionallySizedBox(
+            heightFactor: 0.9,
+            child: ChooseRoleView(
+              onRoleSelected: (role) => Navigator.of(ctx).pop(role),
+              onBack: () => Navigator.of(ctx).pop(),
+            ),
+          );
+        },
+      );
+
+      if (selectedRole == null) return;
+      if (!context.mounted) return;
+
+      context.read<AuthBloc>().add(
+        AuthSocialLoginRequested(
+          provider: provider,
+          role: selectedRole,
+          idToken: creds.idToken,
+          accessToken: creds.accessToken,
+          email: creds.email,
+          fullName: creds.fullName,
+        ),
+      );
+    } catch (e) {
+      if (e is SocialAuthCancelledException) return;
+      if (!context.mounted) return;
+      context.showSnack(
+        'Login failed: ${e.toString().replaceAll('Exception: ', '')}',
+        isError: true,
+      );
+    }
   }
 
   @override
@@ -137,9 +178,7 @@ class _SocialButton extends StatelessWidget {
             color: isDark ? AppColors.darkCard : AppColors.card,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isDark
-                  ? AppColors.darkBorder
-                  : const Color(0xFFE5E7EB),
+              color: isDark ? AppColors.darkBorder : const Color(0xFFE5E7EB),
               width: 1.2,
             ),
             boxShadow: [
@@ -200,4 +239,3 @@ class _GoogleLogo extends StatelessWidget {
     );
   }
 }
-

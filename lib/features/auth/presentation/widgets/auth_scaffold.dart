@@ -32,20 +32,7 @@ class AuthScaffold extends StatelessWidget {
       backgroundColor: isDark
           ? AppColors.darkBackground
           : const Color(0xFFF4F6FB),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 48,
-        automaticallyImplyLeading: false,
-        leading: showBack
-            ? Align(
-                alignment: backAlignment,
-                child: IconTapWidget(
-                  onTap: () => Navigator.of(context).maybePop(),
-                ),
-              )
-            : null,
-      ),
+
       body: Stack(
         children: [
           // Background ambient gradient glows
@@ -93,44 +80,28 @@ class AuthScaffold extends StatelessWidget {
                   horizontal: AppSizes.lg,
                   vertical: AppSizes.md,
                 ),
+
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Branded Logo Badge Container
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(22),
-                        border: Border.all(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : AppColors.primary.withValues(alpha: 0.12),
-                          width: 1.5,
-                        ),
-                        image: DecorationImage(
-                          image: AssetImage(AppAssets.logo2),
+                    const SizedBox(height: 10),
+                    // Branded App Logo
+                    SizedBox(
+                      height:
+                          50, // Shaves off the invisible vertical padding of the image file
+                      child: OverflowBox(
+                        maxHeight: 150,
+                        child: Image.asset(
+                          AppAssets.logo,
+                          width: 100, // Keeps the logo visually this wide
                           fit: BoxFit.contain,
                         ),
                       ),
-                      // child: ClipRRect(
-                      //   borderRadius: BorderRadius.circular(16),
-                      //   child: Image.asset(
-                      //     AppAssets.logo2,
-                      //     width: 80,
-                      //     height: 52,
-                      //     fit: BoxFit.contain,
-                      //   ),
-                      // ),
                     ),
-                    const SizedBox(height: 18),
-
-                    // Portal Badge Chip
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 4,
+                        vertical: 6,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(alpha: 0.08),
@@ -147,18 +118,10 @@ class AuthScaffold extends StatelessWidget {
                             size: 13,
                             color: AppColors.primary,
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 6),
                           Column(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                'GO EXPERTS PORTAL',
-                                style: context.text.labelLarge?.copyWith(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.1,
-                                  fontSize: 12,
-                                ),
-                              ),
                               Text(
                                 'Working With You. For You..',
                                 style: context.text.labelSmall?.copyWith(
@@ -170,16 +133,16 @@ class AuthScaffold extends StatelessWidget {
                               ),
                             ],
                           ),
+                          const SizedBox(width: 6),
                           const Icon(
                             Icons.auto_awesome_rounded,
                             size: 13,
                             color: AppColors.primary,
                           ),
-                          const SizedBox(width: 5),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
 
                     // Page Header Title & Subtitle
                     Text(
@@ -207,25 +170,7 @@ class AuthScaffold extends StatelessWidget {
                     // Main Elevated Card Container
                     Container(
                       padding: const EdgeInsets.all(AppSizes.lg),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.darkCard : AppColors.white,
-                        borderRadius: BorderRadius.circular(28),
-                        border: Border.all(
-                          color: isDark
-                              ? AppColors.darkBorder
-                              : const Color(0xFFEBEFF8),
-                          width: 1.2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(
-                              alpha: isDark ? 0.35 : 0.06,
-                            ),
-                            blurRadius: 28,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
+
                       child: child,
                     ),
                     const SizedBox(height: 24),

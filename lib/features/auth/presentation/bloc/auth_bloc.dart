@@ -140,6 +140,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final result = await _repository.socialLogin(
       event.provider,
       role: event.role,
+      idToken: event.idToken,
+      accessToken: event.accessToken,
+      email: event.email,
+      fullName: event.fullName,
     );
     if (result.isFailure) {
       final msg = result.failureOrNull!.message;

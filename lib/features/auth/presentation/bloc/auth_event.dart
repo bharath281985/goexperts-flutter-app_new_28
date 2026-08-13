@@ -46,11 +46,31 @@ class AuthSignupDraftSaved extends AuthEvent {
 }
 
 class AuthSocialLoginRequested extends AuthEvent {
-  const AuthSocialLoginRequested({required this.provider, required this.role});
+  const AuthSocialLoginRequested({
+    required this.provider,
+    required this.role,
+    required this.idToken,
+    this.accessToken,
+    this.email,
+    this.fullName,
+  });
+
   final String provider;
   final UserRole role;
+  final String idToken;
+  final String? accessToken;
+  final String? email;
+  final String? fullName;
+
   @override
-  List<Object?> get props => [provider, role];
+  List<Object?> get props => [
+    provider,
+    role,
+    idToken,
+    accessToken,
+    email,
+    fullName,
+  ];
 }
 
 class AuthRoleSelected extends AuthEvent {

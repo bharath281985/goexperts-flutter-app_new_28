@@ -162,28 +162,23 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<AppUser>> socialLogin(
     String provider, {
     required UserRole role,
+    required String idToken,
+    String? accessToken,
+    String? email,
+    String? fullName,
   }) async {
     final social = _socialAuth;
     if (social == null) {
       return const Err(ServerFailure('Social login is not configured.'));
     }
     try {
-      final SocialAuthResult credentials;
-      switch (provider) {
-        case 'google':
-          credentials = await social.signInWithGoogle();
-        case 'apple':
-          credentials = await social.signInWithApple();
-        default:
-          return Err(ServerFailure('Unsupported provider: $provider'));
-      }
       final user = await _api.socialLogin(
         endpoint: social.endpointForProvider(provider),
         role: role,
-        idToken: credentials.idToken,
-        accessToken: credentials.accessToken,
-        email: credentials.email,
-        fullName: credentials.fullName,
+        idToken: idToken,
+        accessToken: accessToken,
+        email: email,
+        fullName: fullName,
       );
       final merged = _mergeWithCachedCompletion(user);
       await _cacheUser(merged);
