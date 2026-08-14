@@ -162,17 +162,22 @@ class _FreelancerVerificationPageState
             ? Map<String, dynamic>.from(data['data'] as Map)
             : data;
 
-          final rawItems = payload['items'] as List?;
-          if (rawItems != null && rawItems.isNotEmpty) {
-            _items = rawItems
-                .map((e) => VerificationItem.fromJson(
-                    Map<String, dynamic>.from(e as Map)))
-                .where((item) =>
+        final rawItems = payload['items'] as List?;
+        if (rawItems != null && rawItems.isNotEmpty) {
+          _items = rawItems
+              .map(
+                (e) => VerificationItem.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .where(
+                (item) =>
                     item.key != 'selfie' &&
                     item.key != 'address' &&
                     item.key != 'gst' &&
-                    item.key != 'company')
-                .toList();
+                    item.key != 'company',
+              )
+              .toList();
 
           for (final item in _items) {
             if (item.value.isNotEmpty && item.value != 'Not submitted') {
@@ -331,16 +336,13 @@ class _FreelancerVerificationPageState
       _editingPhone = false;
     });
 
-    updateRes.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : 'Phone number submitted for verification';
-        context.showSnack(displayMsg);
-        _load();
-      },
-    );
+    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : 'Phone number submitted for verification';
+      context.showSnack(displayMsg);
+      _load();
+    });
   }
 
   Future<void> _pickFile(String key) async {
@@ -420,18 +422,15 @@ class _FreelancerVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-    updateRes.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : '${item.label} submitted for verification';
-        context.showSnack(displayMsg);
-        _selectedFilePaths.remove(item.key);
-        _selectedFileNames.remove(item.key);
-        _load();
-      },
-    );
+    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : '${item.label} submitted for verification';
+      context.showSnack(displayMsg);
+      _selectedFilePaths.remove(item.key);
+      _selectedFileNames.remove(item.key);
+      _load();
+    });
   }
 
   Future<void> _deleteItem(VerificationItem item) async {
@@ -476,18 +475,15 @@ class _FreelancerVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : '${item.label} submission deleted';
-        context.showSnack(displayMsg);
-        _selectedFilePaths.remove(item.key);
-        _selectedFileNames.remove(item.key);
-        _load();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : '${item.label} submission deleted';
+      context.showSnack(displayMsg);
+      _selectedFilePaths.remove(item.key);
+      _selectedFileNames.remove(item.key);
+      _load();
+    });
   }
 
   IconData _iconForKey(String key) {
