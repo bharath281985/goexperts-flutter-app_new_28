@@ -54,9 +54,7 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         titleSpacing: 0,
         title: Padding(
           padding: const EdgeInsets.only(right: AppSizes.md),

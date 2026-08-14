@@ -130,8 +130,9 @@ class _LeftPanelSmall extends StatelessWidget {
               ? CachedNetworkImage(
                   imageUrl: startup.coverUrl!,
                   fit: BoxFit.cover,
-                  placeholder: (context, _) =>
-                      Container(color: AppColors.primary.withOpacity(0.1)),
+                  placeholder: (context, _) => Container(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                  ),
                   errorWidget: (context, _, __) =>
                       Container(color: const Color(0xFF1E1E2C)),
                 )
@@ -145,8 +146,8 @@ class _LeftPanelSmall extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.2),
-                  Colors.black.withOpacity(0.6),
+                  Colors.black.withValues(alpha: 0.2),
+                  Colors.black.withValues(alpha: 0.6),
                 ],
               ),
             ),
@@ -244,7 +245,7 @@ class _LeftPanelSmall extends StatelessWidget {
                           ? startup.problem
                           : startup.tagline,
                       style: context.text.titleSmall?.copyWith(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w500,
                       ),
                       maxLines: 2,
@@ -261,9 +262,11 @@ class _LeftPanelSmall extends StatelessWidget {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: Colors.white.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.5)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Center(
                       child: Icon(
@@ -292,7 +295,7 @@ class _LeftPanelSmall extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -614,7 +617,7 @@ class _StatBlock extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -868,7 +871,7 @@ class _SolidBtnSmall extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF3B30).withOpacity(0.2),
+              color: const Color(0xFFFF3B30).withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

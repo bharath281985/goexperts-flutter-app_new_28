@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/constants/app_colors.dart';
@@ -14,7 +13,6 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/project_repository.dart';
-import '../bloc/contract_bloc.dart';
 
 class ContractFormPage extends StatefulWidget {
   const ContractFormPage({
@@ -100,7 +98,9 @@ class _ContractFormPageState extends State<ContractFormPage> {
       _milestones.add({
         'title': 'Milestone ${_milestones.length + 1}',
         'amount': 5000.0,
-        'dueDate': DateTime.now().add(Duration(days: (_milestones.length + 1) * 7)),
+        'dueDate': DateTime.now().add(
+          Duration(days: (_milestones.length + 1) * 7),
+        ),
       });
     });
   }
@@ -126,11 +126,13 @@ class _ContractFormPageState extends State<ContractFormPage> {
       'terms': _termsCtrl.text.trim(),
       'proposalId': widget.initialProposalId,
       'milestones': _milestones
-          .map((m) => {
-                'title': m['title'],
-                'amount': m['amount'],
-                'dueDate': (m['dueDate'] as DateTime?)?.toIso8601String(),
-              })
+          .map(
+            (m) => {
+              'title': m['title'],
+              'amount': m['amount'],
+              'dueDate': (m['dueDate'] as DateTime?)?.toIso8601String(),
+            },
+          )
           .toList(),
     };
 
@@ -184,7 +186,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           children: [
             // Section 1: Overview
-            _SectionHeader(title: 'Contract Overview', icon: Icons.description_outlined),
+            _SectionHeader(
+              title: 'Contract Overview',
+              icon: Icons.description_outlined,
+            ),
             AppSizes.vGapSm,
             AppCard(
               child: Column(
@@ -193,7 +198,8 @@ class _ContractFormPageState extends State<ContractFormPage> {
                     controller: _titleCtrl,
                     label: 'Contract Title',
                     hint: 'e.g. Mobile App Development Contract',
-                    validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Required' : null,
                   ),
                   AppSizes.vGapMd,
                   AppTextField(
@@ -213,7 +219,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
             AppSizes.vGapLg,
 
             // Section 2: Pricing & Dates
-            _SectionHeader(title: 'Financials & Schedule', icon: Icons.payments_outlined),
+            _SectionHeader(
+              title: 'Financials & Schedule',
+              icon: Icons.payments_outlined,
+            ),
             AppSizes.vGapSm,
             AppCard(
               child: Column(
@@ -225,7 +234,8 @@ class _ContractFormPageState extends State<ContractFormPage> {
                     keyboardType: TextInputType.number,
                     validator: (v) {
                       if (v == null || v.trim().isEmpty) return 'Required';
-                      if ((double.tryParse(v.trim()) ?? 0) <= 0) return 'Must be > 0';
+                      if ((double.tryParse(v.trim()) ?? 0) <= 0)
+                        return 'Must be > 0';
                       return null;
                     },
                   ),
@@ -281,7 +291,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
                 margin: const EdgeInsets.only(bottom: AppSizes.sm),
                 child: Row(
                   children: [
-                    const Icon(Icons.drag_indicator, color: AppColors.mutedText),
+                    const Icon(
+                      Icons.drag_indicator,
+                      color: AppColors.mutedText,
+                    ),
                     AppSizes.hGapMd,
                     Expanded(
                       child: Column(
@@ -299,7 +312,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete_outline, color: AppColors.danger),
+                      icon: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.danger,
+                      ),
                       onPressed: () => _removeMilestone(i),
                     ),
                   ],
@@ -308,7 +324,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
             AppSizes.vGapLg,
 
             // Section 4: Terms
-            _SectionHeader(title: 'Terms & Conditions', icon: Icons.gavel_outlined),
+            _SectionHeader(
+              title: 'Terms & Conditions',
+              icon: Icons.gavel_outlined,
+            ),
             AppSizes.vGapSm,
             AppCard(
               child: AppTextField(

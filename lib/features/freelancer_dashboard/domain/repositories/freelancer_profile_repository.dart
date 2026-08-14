@@ -16,9 +16,7 @@ abstract class FreelancerProfileRepository {
     String? status,
     String? documentUrl,
   });
-  Future<Result<bool>> deleteVerificationDetail({
-    required String key,
-  });
+  Future<Result<bool>> deleteVerificationDetail({required String key});
   Future<Result<String>> uploadAvatar(String filePath);
   Future<Result<String>> uploadResume(String filePath);
   Future<Result<String>> uploadCertificate(String filePath);

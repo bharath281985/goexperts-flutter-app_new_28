@@ -122,9 +122,7 @@ class _CalendarPageState extends State<CalendarPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Calendar'),
         actions: [
           IconButton(

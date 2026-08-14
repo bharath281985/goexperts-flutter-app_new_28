@@ -255,7 +255,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                 end: Alignment.bottomCenter,
                 colors: [
                   Colors.transparent,
-                  Theme.of(context).scaffoldBackgroundColor.withOpacity(0.4),
+                  Theme.of(
+                    context,
+                  ).scaffoldBackgroundColor.withValues(alpha: 0.4),
                   Theme.of(context).scaffoldBackgroundColor,
                 ],
                 stops: const [0.4, 0.8, 1.0],
@@ -351,13 +353,13 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                     borderRadius: BorderRadius.circular(AppSizes.radiusXl),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.06),
+                        color: AppColors.primary.withValues(alpha: 0.06),
                         blurRadius: 24,
                         offset: const Offset(0, 12),
                       ),
                     ],
                     border: Border.all(
-                      color: AppColors.primary.withOpacity(0.08),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                     ),
                   ),
                   child: Column(
@@ -376,7 +378,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                           Container(
                             width: 1,
                             height: 48,
-                            color: AppColors.border.withOpacity(0.5),
+                            color: AppColors.border.withValues(alpha: 0.5),
                           ),
                           Expanded(
                             child: _financialStat(
@@ -390,7 +392,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                           Container(
                             width: 1,
                             height: 48,
-                            color: AppColors.border.withOpacity(0.5),
+                            color: AppColors.border.withValues(alpha: 0.5),
                           ),
                           Expanded(
                             child: _financialStat(
@@ -422,7 +424,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                                   vertical: 4,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: AppColors.primary.withOpacity(0.12),
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.12,
+                                  ),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
@@ -441,7 +445,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                               Container(
                                 height: 10,
                                 decoration: BoxDecoration(
-                                  color: AppColors.border.withOpacity(0.4),
+                                  color: AppColors.border.withValues(
+                                    alpha: 0.4,
+                                  ),
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                               ),
@@ -457,8 +463,8 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                                       borderRadius: BorderRadius.circular(999),
                                       boxShadow: [
                                         BoxShadow(
-                                          color: AppColors.primary.withOpacity(
-                                            0.4,
+                                          color: AppColors.primary.withValues(
+                                            alpha: 0.4,
                                           ),
                                           blurRadius: 8,
                                           offset: const Offset(0, 2),
@@ -490,7 +496,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                               Icon(
                                 Icons.favorite_rounded,
                                 size: 14,
-                                color: AppColors.danger.withOpacity(0.8),
+                                color: AppColors.danger.withValues(alpha: 0.8),
                               ),
                               const SizedBox(width: 4),
                               Text(
@@ -648,9 +654,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
       Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.08),
+          color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.12)),
+          border: Border.all(color: color.withValues(alpha: 0.12)),
         ),
         child: Icon(icon, color: color, size: 24),
       ),

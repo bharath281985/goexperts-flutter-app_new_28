@@ -59,7 +59,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
   final _agendaCtrl = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
-  int _durationMinutes = 30;
+  final int _durationMinutes = 30;
   bool _isLoading = false;
 
   Future<void> _pickDate() async {
@@ -112,7 +112,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
       withId: widget.targetId,
       withAvatar: widget.targetAvatar,
       startTime: startTime,
-   
+
       status: EntityStatus.pending,
       agenda: _agendaCtrl.text.trim(),
       participants: [widget.targetId],
@@ -236,7 +236,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
                 ),
               ],
             ),
-          
+
             AppSizes.vGapLg,
             AppTextField(
               controller: _agendaCtrl,

@@ -49,11 +49,7 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
     final path = id != null && id.isNotEmpty
         ? ApiEndpoints.freelancerProfessionalDetailsItem(id)
         : ApiEndpoints.freelancerProfessionalDetails;
-    return _api.putEnvelope<bool>(
-      path,
-      body: data,
-      parser: (env) => true,
-    );
+    return _api.putEnvelope<bool>(path, body: data, parser: (env) => true);
   }
 
   @override
@@ -89,14 +85,10 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
   }
 
   @override
-  Future<Result<bool>> deleteVerificationDetail({
-    required String key,
-  }) {
+  Future<Result<bool>> deleteVerificationDetail({required String key}) {
     return _api.deleteEnvelope<bool>(
       ApiEndpoints.freelancerVerification,
-      body: {
-        'key': key,
-      },
+      body: {'key': key},
       parser: (env) => true,
     );
   }

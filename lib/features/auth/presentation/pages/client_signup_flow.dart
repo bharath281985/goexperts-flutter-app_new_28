@@ -380,7 +380,11 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       subtitle: subtitle,
       currentStep: _currentStep,
       totalSteps: 5,
-      onBack: _onBack,
+      onBack:
+          (_currentStep > widget.initialStep) ||
+              (widget.initialStep == 1 && _currentStep == 1)
+          ? _onBack
+          : null,
       onContinue: _onContinue,
       isLoading: _isLoading,
       continueLabel: _currentStep == 4 ? 'Skip or Continue' : 'Continue',

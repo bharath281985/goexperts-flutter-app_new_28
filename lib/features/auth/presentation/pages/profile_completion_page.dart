@@ -28,9 +28,12 @@ class ProfileCompletionPage extends StatefulWidget {
 
 class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
+  final _fullName = TextEditingController();
   final _headline = TextEditingController();
   final _location = TextEditingController();
   final _bio = TextEditingController();
+  final _categorySearch = TextEditingController();
+  final _skillSearch = TextEditingController();
   final _imagePicker = ImagePicker();
 
   final Set<String> _selectedSkillIds = {};
@@ -54,6 +57,18 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   @override
   void initState() {
     super.initState();
+    final user = context.read<AuthBloc>().state.user;
+    if (user != null) {
+      if (user.fullName.isNotEmpty) _fullName.text = user.fullName;
+      if (user.categoryId != null && user.categoryId!.isNotEmpty) {
+        _selectedCategoryId = user.categoryId;
+      } else if (user.industryId != null && user.industryId!.isNotEmpty) {
+        _selectedCategoryId = user.industryId;
+      }
+      if (user.skillIds.isNotEmpty) {
+        _selectedSkillIds.addAll(user.skillIds);
+      }
+    }
     _loadCategories();
   }
 
@@ -63,8 +78,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       _loadError = null;
     });
 
-    // Profile "Category" is sourced from industries API.
-    final result = await sl<MasterDataRepository>().getIndustries();
+    // Profile "Category" is sourced from categories API.
+    final result = await sl<MasterDataRepository>().getSkillCategories();
     if (!mounted) return;
 
     if (result.isFailure) {
@@ -87,10 +102,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
     setState(() {
       _categories = categories;
-      _selectedCategoryId = null;
-      _visibleSkills = [];
       _loadingCategories = false;
     });
+
+    if (_selectedCategoryId != null) {
+      _loadSkillsForCategory(_selectedCategoryId!);
+    } else {
+      _visibleSkills = [];
+    }
   }
 
   Future<void> _loadSkillsForCategory(String categoryId) async {
@@ -105,6 +124,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     }
 
     setState(() {
+      // Keep existing selected ID to correctly highlight the chip early
       _selectedCategoryId = categoryId;
       _loadingSkills = true;
       _loadError = null;
@@ -184,9 +204,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   @override
   void dispose() {
+    _fullName.dispose();
     _headline.dispose();
     _location.dispose();
     _bio.dispose();
+    _categorySearch.dispose();
+    _skillSearch.dispose();
     super.dispose();
   }
 
@@ -216,14 +239,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
     context.read<AuthBloc>().add(
       AuthProfileCompleted({
+        'fullName': _fullName.text.trim(),
         'headline': _headline.text.trim(),
         'location': _location.text.trim(),
         'city': _location.text.trim(),
         'bio': _bio.text.trim(),
         'categoryId': _selectedCategoryId,
         // Skills are optional.
-        if (_selectedSkillIds.isNotEmpty)
-          'skillIds': _selectedSkillIds.toList(),
+        if (_selectedSkillIds.isNotEmpty) 'skills': _selectedSkillIds.toList(),
       }, avatarBytes: _avatarBytes?.toList()),
     );
   }
@@ -354,6 +377,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       );
     }
 
+    final search = _categorySearch.text.trim().toLowerCase();
+    final filteredCategories = search.isEmpty
+        ? _categories
+        : _categories
+              .where((c) => c.name.toLowerCase().contains(search))
+              .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -362,11 +392,18 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           subtitle: 'Choose your industry / category',
         ),
         AppSizes.vGapMd,
+        AppTextField(
+          controller: _categorySearch,
+          hint: 'Search categories...',
+          onChanged: (val) => setState(() {}),
+          prefixIcon: Icons.search,
+        ),
+        AppSizes.vGapMd,
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
             children: [
-              for (final category in _categories)
+              for (final category in filteredCategories)
                 Padding(
                   padding: const EdgeInsets.only(right: AppSizes.sm),
                   child: ChoiceChip(
@@ -425,11 +462,18 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     }
 
     final categoryName = _selectedCategory?.name ?? 'this category';
+    final search = _skillSearch.text.trim().toLowerCase();
+    final filteredSkills = search.isEmpty
+        ? _visibleSkills
+        : _visibleSkills
+              .where((s) => s.name.toLowerCase().contains(search))
+              .toList();
+
     final shouldLimit =
-        _visibleSkills.length > _initialSkillsVisible && !_skillsExpanded;
+        filteredSkills.length > _initialSkillsVisible && !_skillsExpanded;
     final skillsToShow = shouldLimit
-        ? _visibleSkills.take(_initialSkillsVisible).toList()
-        : _visibleSkills;
+        ? filteredSkills.take(_initialSkillsVisible).toList()
+        : filteredSkills;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -438,6 +482,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         _buildSectionTitle(
           'Skills (optional)',
           subtitle: 'Select skills that apply to you (you can skip this)',
+        ),
+        AppSizes.vGapMd,
+        AppTextField(
+          controller: _skillSearch,
+          hint: 'Search skills...',
+          onChanged: (val) => setState(() {}),
+          prefixIcon: Icons.search,
         ),
         if (_selectedSkillIds.isNotEmpty) ...[
           AppSizes.vGapSm,
@@ -482,14 +533,40 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             style: context.text.bodyMedium,
           )
         else ...[
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.sm,
-            children: [
-              for (final skill in skillsToShow) _buildSkillChip(skill),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: skillsToShow
+                      .take((skillsToShow.length + 1) ~/ 2)
+                      .map(
+                        (s) => Padding(
+                          padding: const EdgeInsets.only(right: AppSizes.sm),
+                          child: _buildSkillChip(s),
+                        ),
+                      )
+                      .toList(),
+                ),
+                if (skillsToShow.length > 1) ...[
+                  const SizedBox(height: AppSizes.sm),
+                  Row(
+                    children: skillsToShow
+                        .skip((skillsToShow.length + 1) ~/ 2)
+                        .map(
+                          (s) => Padding(
+                            padding: const EdgeInsets.only(right: AppSizes.sm),
+                            child: _buildSkillChip(s),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ],
+            ),
           ),
-          if (_visibleSkills.length > _initialSkillsVisible) ...[
+          if (filteredSkills.length > _initialSkillsVisible) ...[
             AppSizes.vGapSm,
             Align(
               alignment: Alignment.centerLeft,
@@ -603,6 +680,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     Text(
                       'Setting up your ${role.shortLabel} profile',
                       style: context.text.titleMedium,
+                    ),
+                    AppSizes.vGapLg,
+                    AppTextField(
+                      controller: _fullName,
+                      label: 'Full Name',
+                      hint: 'Enter your full name',
+                      validator: (v) =>
+                          Validators.minLength(v, 2, field: 'Full Name'),
                     ),
                     AppSizes.vGapLg,
                     AppTextField(

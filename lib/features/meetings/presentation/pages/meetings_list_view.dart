@@ -25,7 +25,7 @@ class MeetingsListView extends StatefulWidget {
 }
 
 class _MeetingsListViewState extends State<MeetingsListView> {
-  int _refreshKey = 0;
+  final int _refreshKey = 0;
 
   @override
   Widget build(BuildContext context) {

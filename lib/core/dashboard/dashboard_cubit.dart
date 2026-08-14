@@ -133,7 +133,7 @@ class DashboardState extends Equatable {
 
   String get investorWalletBalance {
     final balanceObj = dashboardData['walletBalance'] ?? 0.0;
-    return '${balanceObj is num ? balanceObj.toStringAsFixed(0) : '0'}';
+    return balanceObj is num ? balanceObj.toStringAsFixed(0) : '0';
   }
 
   List<Map<dynamic, dynamic>> get investorRecentMessages {

@@ -63,7 +63,8 @@ class ContractDetailsPage extends StatelessWidget {
                       onPressed: () => _confirmAndExecute(
                         context,
                         title: 'Cancel Contract?',
-                        message: 'Are you sure you want to cancel this contract?',
+                        message:
+                            'Are you sure you want to cancel this contract?',
                         confirmLabel: 'Cancel Contract',
                         isDestructive: true,
                         endpoint: ApiEndpoints.clientContractCancel(c.id),
@@ -78,7 +79,8 @@ class ContractDetailsPage extends StatelessWidget {
                       onPressed: () => _confirmAndExecute(
                         context,
                         title: 'Activate Contract?',
-                        message: 'This will mark the contract active and notify the freelancer.',
+                        message:
+                            'This will mark the contract active and notify the freelancer.',
                         confirmLabel: 'Activate',
                         endpoint: ApiEndpoints.clientContractActivate(c.id),
                         successMsg: 'Contract activated',
@@ -92,7 +94,8 @@ class ContractDetailsPage extends StatelessWidget {
                       onPressed: () => _confirmAndExecute(
                         context,
                         title: 'Complete Contract?',
-                        message: 'Mark this contract as completed and release remaining milestones?',
+                        message:
+                            'Mark this contract as completed and release remaining milestones?',
                         confirmLabel: 'Complete',
                         endpoint: ApiEndpoints.clientContractComplete(c.id),
                         successMsg: 'Contract completed',

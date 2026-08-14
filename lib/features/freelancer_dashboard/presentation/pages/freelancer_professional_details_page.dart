@@ -65,8 +65,7 @@ class _FreelancerProfessionalDetailsPageState
   bool _loadingSkills = false;
   bool _saving = false;
 
-  FreelancerProfileRepository get _repo =>
-      sl<FreelancerProfileRepository>();
+  FreelancerProfileRepository get _repo => sl<FreelancerProfileRepository>();
 
   @override
   void initState() {
@@ -89,18 +88,12 @@ class _FreelancerProfessionalDetailsPageState
     // 1. Fetch categories & experience levels master data
     try {
       final catRes = await sl<MasterDataRepository>().getIndustries();
-      catRes.fold(
-        (f) {},
-        (list) => _categories = list,
-      );
+      catRes.fold((f) {}, (list) => _categories = list);
 
       final expRes = await sl<MasterDataRepository>().getExperienceLevels();
-      expRes.fold(
-        (f) {},
-        (list) {
-          if (list.isNotEmpty) _experienceLevels = list;
-        },
-      );
+      expRes.fold((f) {}, (list) {
+        if (list.isNotEmpty) _experienceLevels = list;
+      });
       if (_experienceLevels.isEmpty) {
         _experienceLevels = ['Entry Level', 'Intermediate', 'Expert'];
       }
@@ -111,56 +104,59 @@ class _FreelancerProfessionalDetailsPageState
     final res = await _repo.getProfessionalDetails();
     if (!mounted) return;
 
-    res.fold(
-      (f) => _loadFallbackProfile(),
-      (data) {
-        if (data.isNotEmpty) {
-          _detailId = data['id']?.toString() ?? data['_id']?.toString();
-          _selectedCategoryId =
-              data['categoryId']?.toString() ?? data['category_id']?.toString();
-          _selectedCategoryName = data['categoryName']?.toString() ??
-              data['category']?.toString();
-          _headline.text = data['heading']?.toString() ??
-              data['headline']?.toString() ??
-              data['title']?.toString() ??
-              '';
-          _bio.text = data['bio']?.toString() ??
-              data['description']?.toString() ??
-              '';
-          final rateVal = data['hourlyRate'] ?? data['hourly_rate'];
-          _hourlyRate.text = rateVal != null ? rateVal.toString() : '';
-          _selectedExperienceId = data['experienceId']?.toString() ??
-              data['experience_id']?.toString() ??
-              data['experienceLevel']?.toString();
-          _selectedAvailabilityId = data['availabilityId']?.toString() ??
-              data['availability_id']?.toString() ??
-              data['availability']?.toString();
-          _location.text =
-              data['location']?.toString() ?? data['city']?.toString() ?? '';
+    res.fold((f) => _loadFallbackProfile(), (data) {
+      if (data.isNotEmpty) {
+        _detailId = data['id']?.toString() ?? data['_id']?.toString();
+        _selectedCategoryId =
+            data['categoryId']?.toString() ?? data['category_id']?.toString();
+        _selectedCategoryName =
+            data['categoryName']?.toString() ?? data['category']?.toString();
+        _headline.text =
+            data['heading']?.toString() ??
+            data['headline']?.toString() ??
+            data['title']?.toString() ??
+            '';
+        _bio.text =
+            data['bio']?.toString() ?? data['description']?.toString() ?? '';
+        final rateVal = data['hourlyRate'] ?? data['hourly_rate'];
+        _hourlyRate.text = rateVal != null ? rateVal.toString() : '';
+        _selectedExperienceId =
+            data['experienceId']?.toString() ??
+            data['experience_id']?.toString() ??
+            data['experienceLevel']?.toString();
+        _selectedAvailabilityId =
+            data['availabilityId']?.toString() ??
+            data['availability_id']?.toString() ??
+            data['availability']?.toString();
+        _location.text =
+            data['location']?.toString() ?? data['city']?.toString() ?? '';
 
-          dynamic rawSkills =
-              data['skillsId'] ?? data['skills'] ?? data['skillIds'];
-          if (rawSkills is List) {
-            _selectedSkillNames = rawSkills.map((e) {
-              if (e is Map) {
-                final name = e['name']?.toString() ??
-                    e['value']?.toString() ??
-                    e['id']?.toString() ??
-                    '';
-                final id = e['id']?.toString() ?? '';
-                if (name.isNotEmpty) {
-                  _skillsMap[name] = SkillOption(id: id, name: name);
+        dynamic rawSkills =
+            data['skillsId'] ?? data['skills'] ?? data['skillIds'];
+        if (rawSkills is List) {
+          _selectedSkillNames = rawSkills
+              .map((e) {
+                if (e is Map) {
+                  final name =
+                      e['name']?.toString() ??
+                      e['value']?.toString() ??
+                      e['id']?.toString() ??
+                      '';
+                  final id = e['id']?.toString() ?? '';
+                  if (name.isNotEmpty) {
+                    _skillsMap[name] = SkillOption(id: id, name: name);
+                  }
+                  return name;
                 }
-                return name;
-              }
-              return e.toString();
-            }).where((s) => s.isNotEmpty).toList();
-          }
-        } else {
-          _loadFallbackProfile();
+                return e.toString();
+              })
+              .where((s) => s.isNotEmpty)
+              .toList();
         }
-      },
-    );
+      } else {
+        _loadFallbackProfile();
+      }
+    });
 
     if (_selectedCategoryId != null && _selectedCategoryId!.isNotEmpty) {
       await _fetchSkillsForCategory(_selectedCategoryId!);
@@ -258,13 +254,10 @@ class _FreelancerProfessionalDetailsPageState
     if (!mounted) return;
     setState(() => _saving = false);
 
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (success) {
-        context.read<AuthBloc>().add(const AuthRefreshUser());
-        context.showSnack('Professional details saved');
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (success) {
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+      context.showSnack('Professional details saved');
+    });
   }
 
   int _completion() {
@@ -289,9 +282,7 @@ class _FreelancerProfessionalDetailsPageState
     return AppScaffold(
       constrainWidth: false,
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Professional details'),
         actions: [
           Padding(
@@ -323,8 +314,9 @@ class _FreelancerProfessionalDetailsPageState
                       children: [
                         Text(
                           'Category & focus',
-                          style: context.text.titleSmall
-                              ?.copyWith(fontWeight: FontWeight.w800),
+                          style: context.text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                         Text(
                           'Where you show up in the marketplace',
@@ -342,7 +334,8 @@ class _FreelancerProfessionalDetailsPageState
                           AppDropdown<SkillCategory>(
                             label: 'Category *',
                             hint: 'Select value',
-                            value: _selectedCategoryId == null ||
+                            value:
+                                _selectedCategoryId == null ||
                                     _selectedCategoryId!.isEmpty
                                 ? null
                                 : _categories.firstWhere(
@@ -371,8 +364,11 @@ class _FreelancerProfessionalDetailsPageState
                         AppDropdown<String>(
                           label: 'Experience level',
                           hint: 'Select value',
-                          value: _selectedExperienceId == null ||
-                                  !_experienceLevels.contains(_selectedExperienceId)
+                          value:
+                              _selectedExperienceId == null ||
+                                  !_experienceLevels.contains(
+                                    _selectedExperienceId,
+                                  )
                               ? null
                               : _selectedExperienceId!,
                           items: _experienceLevels,
@@ -412,7 +408,9 @@ class _FreelancerProfessionalDetailsPageState
                             decimal: true,
                           ),
                           inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9.]'),
+                            ),
                           ],
                           textInputAction: TextInputAction.next,
                           onChanged: (_) => setState(() {}),
@@ -428,9 +426,11 @@ class _FreelancerProfessionalDetailsPageState
                         AppDropdown<String>(
                           label: 'Availability',
                           hint: 'Select value',
-                          value: _selectedAvailabilityId == null ||
-                                  !_availabilityOptions
-                                      .contains(_selectedAvailabilityId)
+                          value:
+                              _selectedAvailabilityId == null ||
+                                  !_availabilityOptions.contains(
+                                    _selectedAvailabilityId,
+                                  )
                               ? null
                               : _selectedAvailabilityId!,
                           items: _availabilityOptions,

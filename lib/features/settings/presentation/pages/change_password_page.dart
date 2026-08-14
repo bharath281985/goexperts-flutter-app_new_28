@@ -52,9 +52,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Change Password'),
       ),
       body: Form(

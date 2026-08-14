@@ -484,7 +484,11 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       subtitle: subtitle,
       currentStep: _currentStep,
       totalSteps: 5,
-      onBack: _onBack,
+      onBack:
+          (_currentStep > widget.initialStep) ||
+              (widget.initialStep == 1 && _currentStep == 1)
+          ? _onBack
+          : null,
       onContinue: _onContinue,
       isLoading: _isLoading,
       child: _buildStepContent(),

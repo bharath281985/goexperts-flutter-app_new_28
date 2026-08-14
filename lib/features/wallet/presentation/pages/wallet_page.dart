@@ -84,9 +84,7 @@ class _WalletPageState extends State<WalletPage> {
     if (widget.embedded) return body;
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: Text(context.tr('Wallet')),
       ),
       body: body,

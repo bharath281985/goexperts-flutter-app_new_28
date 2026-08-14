@@ -98,9 +98,7 @@ class _SupportPageState extends State<SupportPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Help & Support'),
       ),
       floatingActionButton: FloatingActionButton.extended(

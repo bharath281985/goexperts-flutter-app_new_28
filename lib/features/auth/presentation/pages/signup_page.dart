@@ -14,8 +14,9 @@ import 'founder_signup_flow.dart';
 /// Main Mobile Signup Page Delegator (Asks role 1st then continues signup steps)
 class SignupPage extends StatefulWidget {
   final String? initialRole;
+  final int? initialStep;
 
-  const SignupPage({super.key, this.initialRole});
+  const SignupPage({super.key, this.initialRole, this.initialStep});
 
   @override
   State<SignupPage> createState() => _SignupPageState();
@@ -86,7 +87,9 @@ class _SignupPageState extends State<SignupPage> {
       case UserRole.client:
         return ClientSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.client ? progress!.step : 1,
+          initialStep: progress?.role == UserRole.client
+              ? progress!.step
+              : (widget.initialStep ?? 1),
           verifiedEmail: progress?.role == UserRole.client
               ? progress!.verifiedEmail
               : null,
@@ -94,7 +97,9 @@ class _SignupPageState extends State<SignupPage> {
       case UserRole.investor:
         return InvestorSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.investor ? progress!.step : 1,
+          initialStep: progress?.role == UserRole.investor
+              ? progress!.step
+              : (widget.initialStep ?? 1),
           verifiedEmail: progress?.role == UserRole.investor
               ? progress!.verifiedEmail
               : null,
@@ -102,7 +107,9 @@ class _SignupPageState extends State<SignupPage> {
       case UserRole.founder:
         return FounderSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.founder ? progress!.step : 1,
+          initialStep: progress?.role == UserRole.founder
+              ? progress!.step
+              : (widget.initialStep ?? 1),
           verifiedEmail: progress?.role == UserRole.founder
               ? progress!.verifiedEmail
               : null,
@@ -112,7 +119,7 @@ class _SignupPageState extends State<SignupPage> {
           onBackToRoleSelection: _onBackToRoleSelection,
           initialStep: progress?.role == UserRole.freelancer
               ? progress!.step
-              : 1,
+              : (widget.initialStep ?? 1),
           verifiedEmail: progress?.role == UserRole.freelancer
               ? progress!.verifiedEmail
               : null,

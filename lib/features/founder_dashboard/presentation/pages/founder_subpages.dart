@@ -16,9 +16,7 @@ class FounderPitchDeckEditorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Pitch Deck Editor'),
         actions: [
           TextButton(
@@ -47,9 +45,7 @@ class FounderBusinessPlanEditorPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Business Plan Editor'),
         actions: [
           TextButton(
@@ -83,9 +79,7 @@ class FounderTeamPage extends StatelessWidget {
     ];
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Team'),
         actions: [
           IconButton(
@@ -133,9 +127,7 @@ class FounderHiringPage extends StatelessWidget {
     ];
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Hiring'),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -182,9 +174,7 @@ class FounderMediaGalleryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Media Gallery'),
       ),
       floatingActionButton: FloatingActionButton.extended(

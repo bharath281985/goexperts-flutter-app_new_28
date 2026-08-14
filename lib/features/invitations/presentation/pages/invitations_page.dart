@@ -29,9 +29,7 @@ class _InvitationsPageState extends State<InvitationsPage> {
       length: 2,
       child: AppScaffold(
         appBar: AppBar(
-          leading: IconTapWidget(
-            onTap: () => Navigator.of(context).maybePop(),
-          ),
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
           title: const Text('Invitations'),
           bottom: const TabBar(
             tabs: [

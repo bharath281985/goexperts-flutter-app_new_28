@@ -9,7 +9,7 @@ class Meeting extends Equatable {
     this.withId = '',
     required this.withName,
     required this.startTime,
-   this.durationMinutes,
+    this.durationMinutes,
     required this.status,
     this.withAvatar,
     this.hostId,
@@ -37,7 +37,8 @@ class Meeting extends Equatable {
   final String agenda;
   final List<String> participants;
 
-  DateTime get endTime => startTime.add(Duration(minutes: durationMinutes??0));
+  DateTime get endTime =>
+      startTime.add(Duration(minutes: durationMinutes ?? 0));
   bool get isUpcoming => startTime.isAfter(DateTime.now());
 
   @override

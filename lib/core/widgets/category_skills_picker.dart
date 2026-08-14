@@ -7,6 +7,7 @@ import '../../features/master_data/domain/entities/skill_category.dart';
 import '../../features/master_data/domain/entities/skill_option.dart';
 import '../../features/master_data/domain/repositories/master_data_repository.dart';
 import '../extensions/context_extensions.dart';
+import '../widgets/app_text_field.dart';
 
 /// Loads industries/categories/skills from the catalog API.
 class CategorySkillsPicker extends StatefulWidget {
@@ -72,6 +73,8 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
   String? _categoryLoadError;
   String? _skillsLoadError;
 
+  final TextEditingController _skillSearch = TextEditingController();
+
   List<SkillCategory> _industries = [];
   List<SkillCategory> _visibleCategories = [];
   List<SkillOption> _visibleSkills = [];
@@ -99,6 +102,12 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
         _loadSkillsForCategory(_currentCategoryId!, notifyCategory: false);
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _skillSearch.dispose();
+    super.dispose();
   }
 
   Future<void> _loadIndustries() async {
@@ -539,17 +548,32 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
     final categoryName = _categoryName(_currentCategoryId!) == ''
         ? 'this category'
         : _categoryName(_currentCategoryId!);
+
+    final search = _skillSearch.text.trim().toLowerCase();
+    final filteredSkills = search.isEmpty
+        ? _visibleSkills
+        : _visibleSkills
+              .where((s) => s.name.toLowerCase().contains(search))
+              .toList();
+
     final shouldLimit =
-        _visibleSkills.length > widget.initialSkillsVisible && !_skillsExpanded;
+        filteredSkills.length > widget.initialSkillsVisible && !_skillsExpanded;
     final skillsToShow = shouldLimit
-        ? _visibleSkills.take(widget.initialSkillsVisible).toList()
-        : _visibleSkills;
+        ? filteredSkills.take(widget.initialSkillsVisible).toList()
+        : filteredSkills;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSizes.vGapLg,
         _buildSectionTitle(widget.skillsLabel, subtitle: widget.skillsSubtitle),
+        AppSizes.vGapMd,
+        AppTextField(
+          controller: _skillSearch,
+          hint: 'Search skills...',
+          onChanged: (val) => setState(() {}),
+          prefixIcon: Icons.search,
+        ),
         if (widget.selectedSkillIds.isNotEmpty) ...[
           AppSizes.vGapSm,
           Text(
@@ -603,7 +627,7 @@ class _CategorySkillsPickerState extends State<CategorySkillsPicker> {
               for (final skill in skillsToShow) _buildSkillChip(skill),
             ],
           ),
-          if (_visibleSkills.length > widget.initialSkillsVisible) ...[
+          if (filteredSkills.length > widget.initialSkillsVisible) ...[
             AppSizes.vGapSm,
             Align(
               alignment: Alignment.centerLeft,

@@ -5,7 +5,6 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_text_field.dart';
-import '../../../../core/widgets/icon_widget.dart';
 import '../../../settings/presentation/pages/public_content_page.dart';
 import 'signup_email_otp_fields.dart';
 

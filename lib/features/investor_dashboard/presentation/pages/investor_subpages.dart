@@ -59,9 +59,7 @@ class _InvestorPreferencesPageState extends State<InvestorPreferencesPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Investment Preferences'),
         actions: [
           TextButton(
@@ -141,9 +139,7 @@ class _InvestorDueDiligencePageState extends State<InvestorDueDiligencePage> {
     final done = _items.values.where((v) => v).length;
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Due Diligence'),
       ),
       body: ListView(
@@ -200,9 +196,7 @@ class InvestorOffersPage extends StatelessWidget {
     ];
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Offers'),
       ),
       body: ListView(
@@ -257,9 +251,7 @@ class InvestorDocumentsPage extends StatelessWidget {
     ];
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Documents'),
       ),
       body: ListView(
@@ -299,9 +291,7 @@ class InvestorTransactionsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppScaffold(
     appBar: AppBar(
-      leading: IconTapWidget(
-        onTap: () => Navigator.of(context).maybePop(),
-      ),
+      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
       title: const Text('Transactions'),
     ),
     body: CatalogView<WalletTransaction>(

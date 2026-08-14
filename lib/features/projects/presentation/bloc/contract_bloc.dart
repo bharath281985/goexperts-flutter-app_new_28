@@ -1,6 +1,5 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/utils/enums.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/project_repository.dart';
 
@@ -119,7 +118,12 @@ class ContractBloc extends Bloc<ContractEvent, ContractState> {
     final res = await _repository.createContract(event.data);
     res.fold(
       (f) => emit(ContractActionFailure(f.message)),
-      (contract) => emit(ContractActionSuccess('Contract created successfully', contract: contract)),
+      (contract) => emit(
+        ContractActionSuccess(
+          'Contract created successfully',
+          contract: contract,
+        ),
+      ),
     );
   }
 
@@ -131,7 +135,12 @@ class ContractBloc extends Bloc<ContractEvent, ContractState> {
     final res = await _repository.updateContract(event.id, event.data);
     res.fold(
       (f) => emit(ContractActionFailure(f.message)),
-      (contract) => emit(ContractActionSuccess('Contract updated successfully', contract: contract)),
+      (contract) => emit(
+        ContractActionSuccess(
+          'Contract updated successfully',
+          contract: contract,
+        ),
+      ),
     );
   }
 }

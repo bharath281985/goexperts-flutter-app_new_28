@@ -32,13 +32,10 @@ class DocumentRepositoryImpl implements DocumentRepository {
         fallbackPage: params.page,
       ),
     );
-    return res.fold(
-      (f) => Err(f),
-      (page) {
-        _lastSuccess = page;
-        return Success(page);
-      },
-    );
+    return res.fold((f) => Err(f), (page) {
+      _lastSuccess = page;
+      return Success(page);
+    });
   }
 
   @override

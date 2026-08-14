@@ -185,6 +185,19 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       // Fully onboarded or logging in — keep them out of auth/onboarding routes
       // and navigate directly to their role dashboard.
+      final isProfileComplete = auth.user?.isProfileComplete ?? false;
+      final profileCompletion = auth.user?.profileCompletion ?? 0;
+
+      if (!isProfileComplete) {
+        if (profileCompletion < 30) {
+          if (loc == Routes.signup) return null;
+          return '${Routes.signup}?role=${auth.user?.role?.name ?? ''}&step=2';
+        }
+        return loc == Routes.profileCompletion
+            ? null
+            : Routes.profileCompletion;
+      }
+
       if (isAuthRoute || _onboardingRoutes.contains(loc)) {
         final redirectTo = auth.user?.redirectTo;
         if (redirectTo != null &&
@@ -206,8 +219,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(path: Routes.login, builder: (_, __) => const LoginPage()),
       GoRoute(
         path: Routes.signup,
-        builder: (_, s) =>
-            SignupPage(initialRole: s.uri.queryParameters['role']),
+        builder: (_, s) => SignupPage(
+          initialRole: s.uri.queryParameters['role'],
+          initialStep: int.tryParse(s.uri.queryParameters['step'] ?? ''),
+        ),
       ),
       GoRoute(
         path: Routes.forgotPassword,

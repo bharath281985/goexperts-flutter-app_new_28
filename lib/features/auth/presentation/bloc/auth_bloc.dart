@@ -224,7 +224,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     final completion = result.valueOrNull!;
     final user = completion.user;
-    final subStatus = await _fetchSubscriptionStatus(user.role);
+    final subStatus = await _fetchSubscriptionStatus(user?.role);
     emit(
       state.copyWith(
         isSubmitting: false,

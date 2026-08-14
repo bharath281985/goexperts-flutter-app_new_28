@@ -47,8 +47,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
         elevation: 0,
         toolbarHeight: 40,
         automaticallyImplyLeading: false,
-        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSizes.xl),

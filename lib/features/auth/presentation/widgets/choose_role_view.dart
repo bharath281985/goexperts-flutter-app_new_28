@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../app/constants/app_assets.dart';
-import '../../../../app/constants/app_colors.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/icon_widget.dart';
 

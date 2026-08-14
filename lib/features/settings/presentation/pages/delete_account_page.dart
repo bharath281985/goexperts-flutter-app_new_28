@@ -72,10 +72,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      context.showSnack(
-        'Failed to send OTP. Please try again.',
-        isError: true,
-      );
+      context.showSnack('Failed to send OTP. Please try again.', isError: true);
     } finally {
       if (mounted) setState(() => _sending = false);
     }
@@ -140,9 +137,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Delete Account'),
       ),
       body: ListView(

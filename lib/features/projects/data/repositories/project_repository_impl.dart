@@ -1,4 +1,3 @@
-
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
@@ -48,7 +47,7 @@ class ProjectRepositoryImpl implements ProjectRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role ==UserRole.client
+    final path = role == UserRole.client
         ? ApiEndpoints.clientProject(id)
         : '${ApiEndpoints.publicProjects}/$id';
 

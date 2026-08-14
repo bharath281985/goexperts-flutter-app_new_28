@@ -290,9 +290,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final colors = context.colors;
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Edit Profile'),
         actions: [
           if (!_saving)

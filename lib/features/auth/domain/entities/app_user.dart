@@ -20,6 +20,9 @@ class AppUser extends Equatable {
     this.profileCompletion = 0,
     this.redirectTo,
     this.serverHasSubscription,
+    this.categoryId,
+    this.industryId,
+    this.skillIds = const [],
   });
 
   final String id;
@@ -45,6 +48,10 @@ class AppUser extends Equatable {
   /// `hasSubscription` / `isSubscribed` flag as returned directly by the API.
   final bool? serverHasSubscription;
 
+  final String? categoryId;
+  final String? industryId;
+  final List<String> skillIds;
+
   AppUser copyWith({
     String? fullName,
     UserRole? role,
@@ -60,6 +67,9 @@ class AppUser extends Equatable {
     String? countryCode,
     String? redirectTo,
     bool? serverHasSubscription,
+    String? categoryId,
+    String? industryId,
+    List<String>? skillIds,
   }) {
     return AppUser(
       id: id,
@@ -79,6 +89,9 @@ class AppUser extends Equatable {
       redirectTo: redirectTo ?? this.redirectTo,
       serverHasSubscription:
           serverHasSubscription ?? this.serverHasSubscription,
+      categoryId: categoryId ?? this.categoryId,
+      industryId: industryId ?? this.industryId,
+      skillIds: skillIds ?? this.skillIds,
     );
   }
 
@@ -137,6 +150,25 @@ class AppUser extends Equatable {
         json['isSubscribed'] as bool? ??
         json['has_subscription'] as bool?;
 
+    final rawSkills = json['skills'] ?? json['skillIds'];
+    final parsedSkills = <String>[];
+    if (rawSkills is List) {
+      parsedSkills.addAll(
+        rawSkills
+            .map((e) {
+              if (e is Map) {
+                return (e['id'] ?? e['name'] ?? e['value'])?.toString() ?? '';
+              }
+              return e.toString();
+            })
+            .where((e) => e.isNotEmpty),
+      );
+    } else if (rawSkills is String && rawSkills.isNotEmpty) {
+      parsedSkills.addAll(
+        rawSkills.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty),
+      );
+    }
+
     return AppUser(
       id: str('id', 'id') ?? '',
       fullName: str('fullName', 'full_name') ?? '',
@@ -162,6 +194,9 @@ class AppUser extends Equatable {
       location: str('location', 'location') ?? joinedLocation,
       redirectTo: str('redirectTo', 'redirect_to'),
       serverHasSubscription: serverHasSubscription,
+      categoryId: str('categoryId', 'category_id'),
+      industryId: str('industryId', 'industry_id'),
+      skillIds: parsedSkills,
     );
   }
 
@@ -183,6 +218,9 @@ class AppUser extends Equatable {
     if (redirectTo != null) 'redirect_to': redirectTo,
     if (serverHasSubscription != null)
       'has_subscription': serverHasSubscription,
+    'category_id': categoryId,
+    'industry_id': industryId,
+    'skill_ids': skillIds,
   };
 
   @override
@@ -196,5 +234,8 @@ class AppUser extends Equatable {
     isProfileComplete,
     subscriptionPlan,
     subscriptionStatus,
+    categoryId,
+    industryId,
+    skillIds,
   ];
 }

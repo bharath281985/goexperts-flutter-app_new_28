@@ -77,7 +77,9 @@ class SignupSearchDropdown extends StatelessWidget {
                     hasValue ? value! : placeholder,
                     style: TextStyle(
                       fontSize: 15,
-                      color: hasValue ? const Color(0xFF0F172A) : const Color(0xFF94A3B8),
+                      color: hasValue
+                          ? const Color(0xFF0F172A)
+                          : const Color(0xFF94A3B8),
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -172,7 +174,10 @@ class _SearchSheetContentState extends State<_SearchSheetContent> {
               prefixIcon: const Icon(Icons.search, color: Color(0xFF64748B)),
               filled: true,
               fillColor: const Color(0xFFF1F5F9),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 12,
+              ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -183,7 +188,8 @@ class _SearchSheetContentState extends State<_SearchSheetContent> {
           Expanded(
             child: ListView.separated(
               itemCount: _filteredOptions.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
+              separatorBuilder: (_, __) =>
+                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
               itemBuilder: (context, index) {
                 final option = _filteredOptions[index];
                 final isSelected = option == widget.selected;

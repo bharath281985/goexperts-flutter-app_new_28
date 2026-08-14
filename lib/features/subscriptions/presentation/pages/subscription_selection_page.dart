@@ -95,9 +95,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         title: Text(

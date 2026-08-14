@@ -29,9 +29,7 @@ class DocumentViewerPage extends StatelessWidget {
     final meta = _metaFor(type, url);
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: Text(name ?? '$type Viewer'),
         actions: [
           IconButton(

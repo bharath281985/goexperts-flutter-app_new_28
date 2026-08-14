@@ -71,9 +71,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Subscription'),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,

@@ -60,9 +60,7 @@ class _MyReviewsPageState extends State<MyReviewsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('My Reviews'),
       ),
       body: RefreshIndicator(onRefresh: _fetch, child: _buildBody()),

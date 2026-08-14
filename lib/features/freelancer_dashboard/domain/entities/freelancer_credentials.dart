@@ -130,7 +130,8 @@ class FreelancerExperience {
     Map<String, dynamic> json, {
     String? responseMessage,
   }) {
-    final rawSkillIds = json['skillIds'] ?? json['skills'] ?? json['skillsUsed'];
+    final rawSkillIds =
+        json['skillIds'] ?? json['skills'] ?? json['skillsUsed'];
     List<String> parsedSkillIds = [];
     if (rawSkillIds is List) {
       parsedSkillIds = rawSkillIds
@@ -165,8 +166,7 @@ class FreelancerExperience {
           json['achievements']?.toString() ??
           '',
       industryId:
-          json['industryId']?.toString() ??
-          json['industry']?['id']?.toString(),
+          json['industryId']?.toString() ?? json['industry']?['id']?.toString(),
       industryName:
           json['industryName']?.toString() ??
           json['industry']?['name']?.toString() ??

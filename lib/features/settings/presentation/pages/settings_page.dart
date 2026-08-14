@@ -104,9 +104,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: Text(context.tr('Settings')),
         actions: [
           TextButton(

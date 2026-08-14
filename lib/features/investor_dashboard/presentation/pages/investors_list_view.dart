@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
-import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../domain/entities/investor.dart';

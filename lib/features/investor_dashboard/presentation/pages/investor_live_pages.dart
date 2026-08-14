@@ -14,7 +14,6 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
-import '../../../../core/utils/result.dart';
 
 class InvestorProfilePage extends StatefulWidget {
   const InvestorProfilePage({super.key});

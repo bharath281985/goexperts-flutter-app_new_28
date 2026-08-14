@@ -72,13 +72,10 @@ class _InvestmentEditSheetState extends State<InvestmentEditSheet> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    result.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (_) {
-        context.showSnack('Investment offer updated');
-        Navigator.pop(context, true);
-      },
-    );
+    result.fold((f) => context.showSnack(f.message, isError: true), (_) {
+      context.showSnack('Investment offer updated');
+      Navigator.pop(context, true);
+    });
   }
 
   Future<void> _cancelOffer() async {
@@ -93,18 +90,18 @@ class _InvestmentEditSheetState extends State<InvestmentEditSheet> {
 
     setState(() => _saving = true);
     final repo = sl<InvestorRepository>();
-    final result = await repo.updateInvestmentStatus(widget.deal.id, 'cancelled');
+    final result = await repo.updateInvestmentStatus(
+      widget.deal.id,
+      'cancelled',
+    );
 
     if (!mounted) return;
     setState(() => _saving = false);
 
-    result.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (_) {
-        context.showSnack('Investment offer withdrawn');
-        Navigator.pop(context, true);
-      },
-    );
+    result.fold((f) => context.showSnack(f.message, isError: true), (_) {
+      context.showSnack('Investment offer withdrawn');
+      Navigator.pop(context, true);
+    });
   }
 
   @override
@@ -182,14 +179,17 @@ class _InvestmentEditSheetState extends State<InvestmentEditSheet> {
                       ),
                       validator: (v) {
                         if (v == null || v.trim().isEmpty) return 'Required';
-                        if ((double.tryParse(v.trim()) ?? 0) <= 0) return 'Must be > 0';
+                        if ((double.tryParse(v.trim()) ?? 0) <= 0)
+                          return 'Must be > 0';
                         return null;
                       },
                     ),
                     AppSizes.vGapMd,
                     TextFormField(
                       controller: _equityCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
                       decoration: const InputDecoration(
                         labelText: 'Equity Percentage (%)',
                         prefixIcon: Icon(Icons.pie_chart_outline_rounded),

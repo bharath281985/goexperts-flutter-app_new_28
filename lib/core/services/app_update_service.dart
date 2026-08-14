@@ -49,8 +49,9 @@ class AppUpdateService {
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     final versionData = versionRes.valueOrNull;
-    if (versionData == null)
+    if (versionData == null) {
       return const AppUpdateCheck(action: AppUpdateAction.none);
+    }
 
     final packageInfo = await PackageInfo.fromPlatform();
     final current = packageInfo.version;

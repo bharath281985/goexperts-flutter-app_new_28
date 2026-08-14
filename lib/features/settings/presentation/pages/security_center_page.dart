@@ -25,9 +25,7 @@ class _SecurityCenterPageState extends State<SecurityCenterPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Security Center'),
       ),
       body: ListView(

@@ -250,8 +250,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<Result<AppUser>> selectRole(UserRole role) async {
     try {
       final result = await _api.updateProfile({'role': role.apiValue});
-      await _cacheUser(result.user);
-      return Success(result.user);
+      await _cacheUser(result.user!);
+      return Success(result.user!);
     } catch (e) {
       return Err(_mapError(e));
     }
@@ -267,7 +267,9 @@ class AuthRepositoryImpl implements AuthRepository {
         await _api.uploadAvatarBytes(avatarBytes);
       }
       final result = await _api.updateProfile(data);
-      await _cacheUser(result.user);
+      if (result.user != null) {
+        await _cacheUser(result.user!);
+      }
       return Success(result);
     } catch (e) {
       return Err(_mapError(e));

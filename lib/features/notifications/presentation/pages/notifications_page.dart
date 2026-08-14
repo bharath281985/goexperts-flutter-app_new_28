@@ -41,9 +41,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
     final repo = sl<NotificationRepository>();
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: Text('Notifications ($_unread)'),
         actions: [
           TextButton(

@@ -2376,14 +2376,14 @@ class _FreelancerExperienceFormPageState
                 label: 'Industry *',
                 value:
                     _selectedIndustryId == null || _selectedIndustryId!.isEmpty
-                        ? null
-                        : _industries.firstWhere(
-                            (x) => x.id == _selectedIndustryId,
-                            orElse: () => SkillCategory(
-                              id: _selectedIndustryId!,
-                              name: _selectedIndustryName ?? '',
-                            ),
-                          ),
+                    ? null
+                    : _industries.firstWhere(
+                        (x) => x.id == _selectedIndustryId,
+                        orElse: () => SkillCategory(
+                          id: _selectedIndustryId!,
+                          name: _selectedIndustryName ?? '',
+                        ),
+                      ),
                 items: _industries,
                 itemLabel: (ind) => ind.name,
                 onChanged: (val) {

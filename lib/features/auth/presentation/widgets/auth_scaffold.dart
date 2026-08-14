@@ -3,7 +3,6 @@ import '../../../../app/constants/app_assets.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 
 /// Shared scaffold for auth screens: branded header + card body.
