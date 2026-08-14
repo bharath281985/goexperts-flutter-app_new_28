@@ -6,7 +6,8 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/services/google_places_service.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dropdown.dart';
@@ -16,6 +17,10 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/widgets/signup_multi_select_sheet.dart';
+import '../../../master_data/domain/entities/skill_category.dart';
+import '../../../master_data/domain/entities/skill_option.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
 
 class FreelancerProfessionalDetailsPage extends StatefulWidget {
@@ -28,9 +33,7 @@ class FreelancerProfessionalDetailsPage extends StatefulWidget {
 
 class _FreelancerProfessionalDetailsPageState
     extends State<FreelancerProfessionalDetailsPage> {
-  static const _experienceLevels = ['Entry Level', 'Intermediate', 'Expert'];
-
-  static const _availabilityOptions = [
+  static const _defaultAvailabilityOptions = [
     'Available for work',
     'Part-time availability',
     'Booked this month',
@@ -38,142 +41,242 @@ class _FreelancerProfessionalDetailsPageState
   ];
 
   final _formKey = GlobalKey<FormState>();
-  final _category = TextEditingController(text: 'Cyber Security');
   final _headline = TextEditingController();
   final _bio = TextEditingController();
   final _hourlyRate = TextEditingController();
   final _location = TextEditingController();
-  final _skills = TextEditingController();
 
-  String _experienceLevel = _experienceLevels.first;
-  String _availability = _availabilityOptions.first;
-  SelectedPlace? _selectedPlace;
+  String? _detailId;
+  String? _selectedCategoryId;
+  String? _selectedCategoryName;
+  String? _selectedExperienceId;
+  String? _selectedAvailabilityId;
+
+  List<SkillCategory> _categories = [];
+  List<String> _experienceLevels = [];
+  final List<String> _availabilityOptions = _defaultAvailabilityOptions;
+
+  List<String> _availableSkillNames = [];
+  List<String> _selectedSkillNames = [];
+  final Map<String, SkillOption> _skillsMap = {};
+
   bool _loading = true;
+  bool _loadingCategories = true;
+  bool _loadingSkills = false;
   bool _saving = false;
+
+  FreelancerProfileRepository get _repo =>
+      sl<FreelancerProfileRepository>();
 
   @override
   void initState() {
     super.initState();
-    _skills.addListener(_refreshSkillPreview);
     _load();
   }
 
   @override
   void dispose() {
-    _category.dispose();
     _headline.dispose();
     _bio.dispose();
     _hourlyRate.dispose();
     _location.dispose();
-    _skills
-      ..removeListener(_refreshSkillPreview)
-      ..dispose();
     super.dispose();
   }
 
-  void _refreshSkillPreview() => setState(() {});
-
   Future<void> _load() async {
-    final authUser = context.read<AuthBloc>().state.user;
-    _headline.text = authUser?.headline ?? '';
-    _location.text = authUser?.location ?? '';
+    setState(() => _loading = true);
 
-    final res = await sl<FreelancerProfileRepository>().getProfile();
+    // 1. Fetch categories & experience levels master data
+    try {
+      final catRes = await sl<MasterDataRepository>().getIndustries();
+      catRes.fold(
+        (f) {},
+        (list) => _categories = list,
+      );
+
+      final expRes = await sl<MasterDataRepository>().getExperienceLevels();
+      expRes.fold(
+        (f) {},
+        (list) {
+          if (list.isNotEmpty) _experienceLevels = list;
+        },
+      );
+      if (_experienceLevels.isEmpty) {
+        _experienceLevels = ['Entry Level', 'Intermediate', 'Expert'];
+      }
+    } catch (_) {}
+    setState(() => _loadingCategories = false);
+
+    // 2. Fetch professional details
+    final res = await _repo.getProfessionalDetails();
     if (!mounted) return;
 
-    res.fold((f) => context.showSnack(f.message, isError: true), (profile) {
-      _bio.text = profile.bio;
-      _hourlyRate.text = profile.hourlyRate > 0
-          ? profile.hourlyRate.toStringAsFixed(2)
-          : '';
-      _skills.text = profile.skills.join(', ');
-      _availability = _availabilityFromApi(profile.availability);
-    });
+    res.fold(
+      (f) => _loadFallbackProfile(),
+      (data) {
+        if (data.isNotEmpty) {
+          _detailId = data['id']?.toString() ?? data['_id']?.toString();
+          _selectedCategoryId =
+              data['categoryId']?.toString() ?? data['category_id']?.toString();
+          _selectedCategoryName = data['categoryName']?.toString() ??
+              data['category']?.toString();
+          _headline.text = data['heading']?.toString() ??
+              data['headline']?.toString() ??
+              data['title']?.toString() ??
+              '';
+          _bio.text = data['bio']?.toString() ??
+              data['description']?.toString() ??
+              '';
+          final rateVal = data['hourlyRate'] ?? data['hourly_rate'];
+          _hourlyRate.text = rateVal != null ? rateVal.toString() : '';
+          _selectedExperienceId = data['experienceId']?.toString() ??
+              data['experience_id']?.toString() ??
+              data['experienceLevel']?.toString();
+          _selectedAvailabilityId = data['availabilityId']?.toString() ??
+              data['availability_id']?.toString() ??
+              data['availability']?.toString();
+          _location.text =
+              data['location']?.toString() ?? data['city']?.toString() ?? '';
+
+          dynamic rawSkills =
+              data['skillsId'] ?? data['skills'] ?? data['skillIds'];
+          if (rawSkills is List) {
+            _selectedSkillNames = rawSkills.map((e) {
+              if (e is Map) {
+                final name = e['name']?.toString() ??
+                    e['value']?.toString() ??
+                    e['id']?.toString() ??
+                    '';
+                final id = e['id']?.toString() ?? '';
+                if (name.isNotEmpty) {
+                  _skillsMap[name] = SkillOption(id: id, name: name);
+                }
+                return name;
+              }
+              return e.toString();
+            }).where((s) => s.isNotEmpty).toList();
+          }
+        } else {
+          _loadFallbackProfile();
+        }
+      },
+    );
+
+    if (_selectedCategoryId != null && _selectedCategoryId!.isNotEmpty) {
+      await _fetchSkillsForCategory(_selectedCategoryId!);
+    }
 
     if (mounted) setState(() => _loading = false);
+  }
+
+  Future<void> _loadFallbackProfile() async {
+    final authUser = context.read<AuthBloc>().state.user;
+    if (_headline.text.isEmpty) _headline.text = authUser?.headline ?? '';
+    if (_location.text.isEmpty) _location.text = authUser?.location ?? '';
+
+    final profileRes = await _repo.getProfile();
+    if (!mounted) return;
+    profileRes.fold((f) {}, (profile) {
+      if (_bio.text.isEmpty) _bio.text = profile.bio;
+      if (_hourlyRate.text.isEmpty && profile.hourlyRate > 0) {
+        _hourlyRate.text = profile.hourlyRate.toStringAsFixed(2);
+      }
+      if (_selectedSkillNames.isEmpty) {
+        _selectedSkillNames = List<String>.from(profile.skills);
+      }
+    });
+  }
+
+  Future<void> _fetchSkillsForCategory(String categoryId) async {
+    setState(() => _loadingSkills = true);
+    try {
+      final res = await sl<ApiClientHelper>().getEnvelope<List<SkillOption>>(
+        ApiEndpoints.publicSkills,
+        query: {
+          'categoryId': categoryId,
+          'industryId': categoryId,
+          'page': 1,
+          'limit': 50,
+        },
+        parser: (env) {
+          dynamic list = env.data;
+          if (list is Map) {
+            final map = Map<String, dynamic>.from(list);
+            list = map['data'] ?? map['items'] ?? map['skills'] ?? const [];
+          }
+          if (list is! List) return <SkillOption>[];
+          return list
+              .map(
+                (e) =>
+                    SkillOption.fromJson(Map<String, dynamic>.from(e as Map)),
+              )
+              .toList();
+        },
+      );
+      if (!mounted) return;
+      if (res.isSuccess && res.valueOrNull != null) {
+        final skills = res.valueOrNull!;
+        setState(() {
+          for (final s in skills) {
+            _skillsMap[s.name] = s;
+          }
+          _availableSkillNames = skills.map((s) => s.name).toList();
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingSkills = false);
   }
 
   Future<void> _save() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
-    setState(() => _saving = true);
-    final skills = _skillList();
-    final locationText = _location.text.trim();
+    if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
+      context.showSnack('Please select a category', isError: true);
+      return;
+    }
+
+    final skillIds = _selectedSkillNames
+        .map((name) => _skillsMap[name]?.id ?? name)
+        .where((id) => id.isNotEmpty)
+        .toList();
+
     final payload = {
-      'category': _category.text.trim(),
-      'primaryCategory': _category.text.trim(),
-      'headline': _headline.text.trim(),
+      'categoryId': _selectedCategoryId,
+      'heading': _headline.text.trim(),
       'bio': _bio.text.trim(),
       'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0,
-      'experienceLevel': _experienceLevel,
-      'availability': _availabilityToApi(_availability),
-      'location': locationText,
-      'city': locationText,
-      'skills': skills,
-      if (_selectedPlace != null) ...{
-        'googlePlaceId': _selectedPlace!.placeId,
-        'latitude': _selectedPlace!.latitude,
-        'longitude': _selectedPlace!.longitude,
-      },
+      'availabilityId': _selectedAvailabilityId ?? _availabilityOptions.first,
+      'experienceId': _selectedExperienceId ?? _experienceLevels.first,
+      'skillsId': skillIds,
+      'location': _location.text.trim(),
     };
 
-    final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
+    setState(() => _saving = true);
+
+    final res = await _repo.updateProfessionalDetails(payload, id: _detailId);
+
     if (!mounted) return;
-
     setState(() => _saving = false);
-    res.fold((f) => context.showSnack(f.message, isError: true), (profile) {
-      context.read<AuthBloc>().add(const AuthRefreshUser());
-      context.showSnack('Professional details saved');
-      setState(() {});
-    });
-  }
 
-  String _availabilityFromApi(String value) {
-    switch (value) {
-      case 'available':
-        return 'Available for work';
-      case 'part-time':
-        return 'Part-time availability';
-      case 'booked':
-        return 'Booked this month';
-      case 'not-available':
-        return 'Not available';
-      default:
-        return _availabilityOptions.first;
-    }
+    res.fold(
+      (f) => context.showSnack(f.message, isError: true),
+      (success) {
+        context.read<AuthBloc>().add(const AuthRefreshUser());
+        context.showSnack('Professional details saved');
+      },
+    );
   }
-
-  String _availabilityToApi(String value) {
-    switch (value) {
-      case 'Available for work':
-        return 'available';
-      case 'Part-time availability':
-        return 'part-time';
-      case 'Booked this month':
-        return 'booked';
-      case 'Not available':
-        return 'not-available';
-      default:
-        return 'available';
-    }
-  }
-
-  List<String> _skillList() => _skills.text
-      .split(',')
-      .map((skill) => skill.trim())
-      .where((skill) => skill.isNotEmpty)
-      .toList();
 
   int _completion() {
     final checks = [
-      _category.text.trim().isNotEmpty,
-      _experienceLevel.isNotEmpty,
+      _selectedCategoryId != null && _selectedCategoryId!.isNotEmpty,
+      _selectedExperienceId != null && _selectedExperienceId!.isNotEmpty,
       _headline.text.trim().isNotEmpty,
       _bio.text.trim().isNotEmpty,
       _hourlyRate.text.trim().isNotEmpty,
-      _availability.isNotEmpty,
+      _selectedAvailabilityId != null && _selectedAvailabilityId!.isNotEmpty,
       _location.text.trim().isNotEmpty,
-      _skillList().isNotEmpty,
+      _selectedSkillNames.isNotEmpty,
     ];
     return ((checks.where((check) => check).length / checks.length) * 100)
         .round();
@@ -215,25 +318,152 @@ class _FreelancerProfessionalDetailsPageState
                   AppSizes.vGapMd,
                   AppCard(
                     radius: AppSizes.radiusMd,
-                    child: _CategoryFocusForm(
-                      category: _category,
-                      headline: _headline,
-                      bio: _bio,
-                      hourlyRate: _hourlyRate,
-                      location: _location,
-                      skills: _skills,
-                      experienceLevel: _experienceLevel,
-                      availability: _availability,
-                      experienceLevels: _experienceLevels,
-                      availabilityOptions: _availabilityOptions,
-                      onExperienceChanged: (value) =>
-                          setState(() => _experienceLevel = value!),
-                      onAvailabilityChanged: (value) =>
-                          setState(() => _availability = value!),
-                      onPlaceSelected: (place) =>
-                          setState(() => _selectedPlace = place),
-                      onRateChanged: (_) => setState(() {}),
-                      skillList: _skillList(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Category & focus',
+                          style: context.text.titleSmall
+                              ?.copyWith(fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          'Where you show up in the marketplace',
+                          style: context.text.bodySmall?.copyWith(
+                            color: context.colors.onSurfaceVariant,
+                          ),
+                        ),
+                        AppSizes.vGapMd,
+                        if (_loadingCategories)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else
+                          AppDropdown<SkillCategory>(
+                            label: 'Category *',
+                            hint: 'Select value',
+                            value: _selectedCategoryId == null ||
+                                    _selectedCategoryId!.isEmpty
+                                ? null
+                                : _categories.firstWhere(
+                                    (x) => x.id == _selectedCategoryId,
+                                    orElse: () => SkillCategory(
+                                      id: _selectedCategoryId!,
+                                      name: _selectedCategoryName ?? '',
+                                    ),
+                                  ),
+                            items: _categories,
+                            itemLabel: (cat) => cat.name,
+                            prefixIcon: Icons.layers_outlined,
+                            onChanged: (val) {
+                              if (val == null) return;
+                              setState(() {
+                                _selectedCategoryId = val.id;
+                                _selectedCategoryName = val.name;
+                                _selectedSkillNames.clear();
+                                _availableSkillNames.clear();
+                                _skillsMap.clear();
+                              });
+                              _fetchSkillsForCategory(val.id);
+                            },
+                          ),
+                        AppSizes.vGapMd,
+                        AppDropdown<String>(
+                          label: 'Experience level',
+                          hint: 'Select value',
+                          value: _selectedExperienceId == null ||
+                                  !_experienceLevels.contains(_selectedExperienceId)
+                              ? null
+                              : _selectedExperienceId!,
+                          items: _experienceLevels,
+                          itemLabel: (item) => item,
+                          prefixIcon: Icons.badge_outlined,
+                          onChanged: (val) =>
+                              setState(() => _selectedExperienceId = val),
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _headline,
+                          label: 'Headline',
+                          hint: 'Short pitch clients see first',
+                          prefixIcon: Icons.auto_awesome_outlined,
+                          textInputAction: TextInputAction.next,
+                          validator: (value) =>
+                              value?.trim().isEmpty == true ? 'Required' : null,
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _bio,
+                          label: 'About / bio',
+                          hint:
+                              'Describe your expertise, industries, and delivery style',
+                          maxLines: 4,
+                          textInputAction: TextInputAction.newline,
+                          validator: (value) =>
+                              value?.trim().isEmpty == true ? 'Required' : null,
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _hourlyRate,
+                          label: 'Hourly rate',
+                          hint: '250.00',
+                          prefixIcon: Icons.attach_money_rounded,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                          ],
+                          textInputAction: TextInputAction.next,
+                          onChanged: (_) => setState(() {}),
+                          validator: (value) {
+                            final rate = double.tryParse(value?.trim() ?? '');
+                            if (rate == null || rate <= 0) {
+                              return 'Enter a valid rate';
+                            }
+                            return null;
+                          },
+                        ),
+                        AppSizes.vGapMd,
+                        AppDropdown<String>(
+                          label: 'Availability',
+                          hint: 'Select value',
+                          value: _selectedAvailabilityId == null ||
+                                  !_availabilityOptions
+                                      .contains(_selectedAvailabilityId)
+                              ? null
+                              : _selectedAvailabilityId!,
+                          items: _availabilityOptions,
+                          itemLabel: (item) => item,
+                          prefixIcon: Icons.schedule_outlined,
+                          onChanged: (val) =>
+                              setState(() => _selectedAvailabilityId = val),
+                        ),
+                        AppSizes.vGapMd,
+                        AppLocationField(
+                          controller: _location,
+                          label: 'Location',
+                          hint: 'Search and select location',
+                          validator: (value) =>
+                              value?.trim().isEmpty == true ? 'Required' : null,
+                        ),
+                        AppSizes.vGapMd,
+                        if (_loadingSkills)
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8),
+                            child: Center(child: CircularProgressIndicator()),
+                          )
+                        else
+                          SignupMultiSelectSheet(
+                            label: 'Skills',
+                            minSelection: 0,
+                            selectedItems: _selectedSkillNames,
+                            availableOptions: _availableSkillNames,
+                            onChanged: (items) {
+                              setState(() => _selectedSkillNames = items);
+                            },
+                          ),
+                      ],
                     ),
                   ),
                   AppSizes.vGapMd,
@@ -250,7 +480,7 @@ class _FreelancerProfessionalDetailsPageState
                         onSave: _save,
                       );
                       final distribution = _SkillDistributionCard(
-                        skills: _skillList(),
+                        skills: _selectedSkillNames,
                       );
                       if (!wide) {
                         return Column(
@@ -352,163 +582,6 @@ class _HeaderCard extends StatelessWidget {
   }
 }
 
-class _CategoryFocusForm extends StatelessWidget {
-  const _CategoryFocusForm({
-    required this.category,
-    required this.headline,
-    required this.bio,
-    required this.hourlyRate,
-    required this.location,
-    required this.skills,
-    required this.experienceLevel,
-    required this.availability,
-    required this.experienceLevels,
-    required this.availabilityOptions,
-    required this.onExperienceChanged,
-    required this.onAvailabilityChanged,
-    required this.onPlaceSelected,
-    required this.onRateChanged,
-    required this.skillList,
-  });
-
-  final TextEditingController category;
-  final TextEditingController headline;
-  final TextEditingController bio;
-  final TextEditingController hourlyRate;
-  final TextEditingController location;
-  final TextEditingController skills;
-  final String experienceLevel;
-  final String availability;
-  final List<String> experienceLevels;
-  final List<String> availabilityOptions;
-  final ValueChanged<String?> onExperienceChanged;
-  final ValueChanged<String?> onAvailabilityChanged;
-  final ValueChanged<SelectedPlace> onPlaceSelected;
-  final ValueChanged<String> onRateChanged;
-  final List<String> skillList;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Category & focus',
-          style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w800),
-        ),
-        Text(
-          'Where you show up in the marketplace',
-          style: context.text.bodySmall?.copyWith(
-            color: context.colors.onSurfaceVariant,
-          ),
-        ),
-        AppSizes.vGapMd,
-        AppTextField(
-          controller: category,
-          label: 'Primary category / title',
-          hint: 'e.g. Cyber Security',
-          prefixIcon: Icons.layers_outlined,
-          textInputAction: TextInputAction.next,
-          validator: (value) =>
-              value?.trim().isEmpty == true ? 'Required' : null,
-        ),
-        AppDropdown<String>(
-          label: 'Experience level',
-          value: experienceLevel,
-          items: experienceLevels,
-          itemLabel: (item) => item,
-          prefixIcon: Icons.badge_outlined,
-          onChanged: onExperienceChanged,
-        ),
-        AppSizes.vGapMd,
-        AppTextField(
-          controller: headline,
-          label: 'Headline',
-          hint: 'Short pitch clients see first',
-          prefixIcon: Icons.auto_awesome_outlined,
-          textInputAction: TextInputAction.next,
-          validator: (value) =>
-              value?.trim().isEmpty == true ? 'Required' : null,
-        ),
-        AppSizes.vGapMd,
-        AppTextField(
-          controller: bio,
-          label: 'About / bio',
-          hint: 'Describe your expertise, industries, and delivery style',
-          maxLines: 4,
-          textInputAction: TextInputAction.newline,
-          validator: (value) =>
-              value?.trim().isEmpty == true ? 'Required' : null,
-        ),
-        AppSizes.vGapMd,
-        AppTextField(
-          controller: hourlyRate,
-          label: 'Hourly rate',
-          hint: '7235.48',
-          prefixIcon: Icons.attach_money_rounded,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-          ],
-          textInputAction: TextInputAction.next,
-          onChanged: onRateChanged,
-          validator: (value) {
-            final rate = double.tryParse(value?.trim() ?? '');
-            if (rate == null || rate <= 0) return 'Enter a valid rate';
-            return null;
-          },
-        ),
-        AppDropdown<String>(
-          label: 'Availability',
-          value: availability,
-          items: availabilityOptions,
-          itemLabel: (item) => item,
-          prefixIcon: Icons.schedule_outlined,
-          onChanged: onAvailabilityChanged,
-        ),
-        AppSizes.vGapMd,
-        AppLocationField(
-          controller: location,
-          label: 'Location',
-          hint: 'City, Country',
-          onPlaceSelected: onPlaceSelected,
-          validator: (value) =>
-              value?.trim().isEmpty == true ? 'Required' : null,
-        ),
-        AppSizes.vGapMd,
-        AppTextField(
-          controller: skills,
-          label: 'Skills (comma-separated)',
-          hint: 'NodeJs, Figma, Flutter, Java',
-          maxLines: 3,
-          textInputAction: TextInputAction.done,
-          validator: (value) =>
-              value?.trim().isEmpty == true ? 'Add at least one skill' : null,
-        ),
-        if (skillList.isNotEmpty) ...[
-          AppSizes.vGapSm,
-          Wrap(
-            spacing: AppSizes.xs,
-            runSpacing: AppSizes.xs,
-            children: [
-              for (final skill in skillList)
-                Chip(
-                  label: Text(skill),
-                  labelStyle: context.text.labelSmall?.copyWith(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  side: BorderSide.none,
-                ),
-            ],
-          ),
-        ],
-      ],
-    );
-  }
-}
-
 class _SkillDistributionCard extends StatelessWidget {
   const _SkillDistributionCard({required this.skills});
 
@@ -518,76 +591,54 @@ class _SkillDistributionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final displaySkills = skills.isEmpty
         ? const ['Profile setup']
-        : skills.take(5).toList();
+        : skills.take(4).toList();
+
     return AppCard(
       radius: AppSizes.radiusMd,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Skill distribution',
+            'Specialization breakdown',
             style: context.text.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
           Text(
-            'Preview based on your saved skills',
+            'Estimated marketplace fit based on active skills',
             style: context.text.bodySmall?.copyWith(
               color: context.colors.onSurfaceVariant,
             ),
           ),
           AppSizes.vGapMd,
-          for (var i = 0; i < displaySkills.length; i++) ...[
-            _SkillBar(
-              label: displaySkills[i],
-              value: skills.isEmpty ? 0.12 : (0.25 - (i * 0.02)).clamp(0.1, 1),
+          for (final skill in displaySkills) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(skill, style: context.text.bodyMedium),
+                Text(
+                  'Primary',
+                  style: context.text.labelSmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
             ),
-            if (i != displaySkills.length - 1) AppSizes.vGapSm,
+            AppSizes.vGapXs,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: const LinearProgressIndicator(
+                value: 0.85,
+                minHeight: 6,
+                backgroundColor: AppColors.border,
+                valueColor: AlwaysStoppedAnimation(AppColors.primary),
+              ),
+            ),
+            AppSizes.vGapSm,
           ],
         ],
       ),
-    );
-  }
-}
-
-class _SkillBar extends StatelessWidget {
-  const _SkillBar({required this.label, required this.value});
-
-  final String label;
-  final double value;
-
-  @override
-  Widget build(BuildContext context) {
-    final percent = (value * 100).round();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: context.text.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-            Text('$percent%', style: context.text.labelSmall),
-          ],
-        ),
-        AppSizes.vGapXs,
-        ClipRRect(
-          borderRadius: BorderRadius.circular(99),
-          child: LinearProgressIndicator(
-            value: value,
-            minHeight: 7,
-            backgroundColor: context.theme.dividerColor,
-            valueColor: const AlwaysStoppedAnimation(AppColors.primary),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -619,28 +670,35 @@ class _SnapshotCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Snapshot',
+            'Profile snapshot',
             style: context.text.titleSmall?.copyWith(
               fontWeight: FontWeight.w800,
             ),
           ),
           AppSizes.vGapMd,
-          _SnapshotRow(label: 'Profile completion', value: '$completion%'),
-          _SnapshotRow(label: 'Job success', value: '$completion%'),
-          _SnapshotRow(label: 'Rating', value: rating.toStringAsFixed(2)),
-          _SnapshotRow(label: 'Reviews', value: '$reviews'),
-          _SnapshotRow(
-            label: 'Location',
-            value: location.isEmpty ? '-' : location,
+          _MetricRow(
+            icon: Icons.pie_chart_outline_rounded,
+            label: 'Profile completion',
+            value: '$completion%',
           ),
-          _SnapshotRow(
-            label: 'Rate',
-            value: rate <= 0 ? '-' : '\$${rate.toStringAsFixed(2)}/hr',
+          _MetricRow(
+            icon: Icons.star_rounded,
+            label: 'Client rating',
+            value: '$rating ($reviews)',
+          ),
+          _MetricRow(
+            icon: Icons.location_on_outlined,
+            label: 'Location',
+            value: location.isEmpty ? 'Not set' : location,
+          ),
+          _MetricRow(
+            icon: Icons.attach_money_rounded,
+            label: 'Hourly rate',
+            value: rate > 0 ? '\$${rate.toStringAsFixed(2)}/hr' : 'Not set',
           ),
           AppSizes.vGapMd,
           AppPrimaryButton(
             label: 'Save changes',
-            icon: Icons.save_outlined,
             isLoading: saving,
             onPressed: saving ? null : onSave,
           ),
@@ -650,36 +708,30 @@ class _SnapshotCard extends StatelessWidget {
   }
 }
 
-class _SnapshotRow extends StatelessWidget {
-  const _SnapshotRow({required this.label, required this.value});
+class _MetricRow extends StatelessWidget {
+  const _MetricRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
+  final IconData icon;
   final String label;
   final String value;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSizes.sm),
+      padding: const EdgeInsets.symmetric(vertical: AppSizes.xs),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              label,
-              style: context.text.bodySmall?.copyWith(
-                color: context.colors.onSurfaceVariant,
-              ),
-            ),
-          ),
-          AppSizes.hGapMd,
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              overflow: TextOverflow.ellipsis,
-              style: context.text.bodySmall?.copyWith(
-                fontWeight: FontWeight.w800,
-              ),
+          Icon(icon, size: 18, color: AppColors.primary),
+          AppSizes.hGapSm,
+          Expanded(child: Text(label, style: context.text.bodyMedium)),
+          Text(
+            value,
+            style: context.text.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

@@ -19,4 +19,14 @@ abstract class FreelancerCredentialsRepository {
     Map<String, dynamic> data,
   );
   Future<Result<String>> deleteCertificate(String id);
+
+  Future<Result<List<FreelancerExperience>>> getExperiences();
+  Future<Result<FreelancerExperience>> addExperience(
+    Map<String, dynamic> data,
+  );
+  Future<Result<FreelancerExperience>> updateExperience(
+    String id,
+    Map<String, dynamic> data,
+  );
+  Future<Result<String>> deleteExperience(String id);
 }

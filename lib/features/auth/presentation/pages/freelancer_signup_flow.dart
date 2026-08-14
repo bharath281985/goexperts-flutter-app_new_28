@@ -150,20 +150,24 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
 
   List<String> _stringList(dynamic value) {
     if (value is List) {
-      return value.map((e) {
-        if (e is Map) {
-          final name = e['value']?.toString() ??
-              e['name']?.toString() ??
-              e['id']?.toString() ??
-              '';
-          final id = e['id']?.toString() ?? '';
-          if (name.isNotEmpty) {
-            _skillsMap[name] = SkillOption(id: id, name: name);
-          }
-          return name;
-        }
-        return e.toString();
-      }).where((e) => e.isNotEmpty).toList();
+      return value
+          .map((e) {
+            if (e is Map) {
+              final name =
+                  e['value']?.toString() ??
+                  e['name']?.toString() ??
+                  e['id']?.toString() ??
+                  '';
+              final id = e['id']?.toString() ?? '';
+              if (name.isNotEmpty) {
+                _skillsMap[name] = SkillOption(id: id, name: name);
+              }
+              return name;
+            }
+            return e.toString();
+          })
+          .where((e) => e.isNotEmpty)
+          .toList();
     }
     return const [];
   }
@@ -192,11 +196,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       final skillId =
           option?.id ??
           'static_${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
-      return {
-        'id': skillId,
-        'value': name,
-        'name': name,
-      };
+      return {'id': skillId, 'value': name, 'name': name};
     }).toList(),
     'workMode': _selectedWorkModes,
   };
@@ -329,50 +329,30 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           if (industryId != null && industryId.isNotEmpty)
             'industryId': industryId,
           'page': 1,
-          'limit': 20,
+          'limit': 50,
           if (query != null && query.trim().isNotEmpty) 'search': query.trim(),
         },
         parser: (env) {
-          final list = env.data as List?;
-          if (list == null) return <SkillOption>[];
+          dynamic list = env.data;
+          if (list is Map) {
+            final map = Map<String, dynamic>.from(list);
+            list = map['data'] ?? map['items'] ?? map['skills'] ?? const [];
+          }
+          if (list is! List) return <SkillOption>[];
           return list
               .map(
-                (e) => SkillOption.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ),
+                (e) =>
+                    SkillOption.fromJson(Map<String, dynamic>.from(e as Map)),
               )
               .toList();
         },
       );
-      if (res.isSuccess &&
-          res.valueOrNull != null &&
-          res.valueOrNull!.isNotEmpty) {
+      if (res.isSuccess && res.valueOrNull != null) {
         return res.valueOrNull!;
       }
     } catch (_) {}
 
-    // Static fallback if skills API is empty or returns an error response
-    const staticSkills = [
-      SkillOption(id: 'static_1', name: 'React.js'),
-      SkillOption(id: 'static_2', name: 'Node.js'),
-      SkillOption(id: 'static_3', name: 'Flutter'),
-      SkillOption(id: 'static_4', name: 'TypeScript'),
-      SkillOption(id: 'static_5', name: 'Python'),
-      SkillOption(id: 'static_6', name: 'Go'),
-      SkillOption(id: 'static_7', name: 'AWS'),
-      SkillOption(id: 'static_8', name: 'UI/UX Design'),
-      SkillOption(id: 'static_9', name: 'SQL'),
-      SkillOption(id: 'static_10', name: '.NET'),
-      SkillOption(id: 'static_11', name: 'Java'),
-      SkillOption(id: 'static_12', name: 'C#'),
-    ];
-
-    if (query != null && query.trim().isNotEmpty) {
-      return staticSkills
-          .where((s) => s.name.toLowerCase().contains(query.toLowerCase()))
-          .toList();
-    }
-    return staticSkills;
+    return <SkillOption>[];
   }
 
   Future<List<String>> _searchSkillsApi(String query) async {
@@ -682,4 +662,3 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     }
   }
 }
-

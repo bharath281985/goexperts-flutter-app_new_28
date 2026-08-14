@@ -15,7 +15,9 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
+import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_file_upload.dart';
 import '../../../../core/widgets/app_location_field.dart';
@@ -27,9 +29,14 @@ import '../../../../core/widgets/catalog_view.dart';
 import '../../../../core/widgets/category_skills_picker.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/icon_widget.dart';
+import '../../../auth/presentation/widgets/signup_multi_select_sheet.dart';
+import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
+import '../../domain/entities/freelancer_credentials.dart';
 import '../../domain/entities/freelancer_task.dart';
 import '../../domain/entities/portfolio_item.dart';
+import '../../domain/repositories/freelancer_credentials_repository.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
 import '../../domain/repositories/freelancer_task_repository.dart';
 import '../../domain/repositories/portfolio_repository.dart';
@@ -47,9 +54,7 @@ class _ListScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppScaffold(
     appBar: AppBar(
-      leading: IconTapWidget(
-        onTap: () => Navigator.of(context).maybePop(),
-      ),
+      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
       title: Text(title),
     ),
     body: child,
@@ -1039,9 +1044,7 @@ class _FreelancerWithdrawalsPageState extends State<FreelancerWithdrawalsPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Withdrawals'),
       ),
       body: _loading
@@ -1379,9 +1382,7 @@ class _FreelancerTasksPageState extends State<FreelancerTasksPage> {
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Tasks'),
       ),
       body: CatalogView<FreelancerTask>(
@@ -1725,7 +1726,10 @@ class _FreelancerExperiencePageState extends State<FreelancerExperiencePage> {
   bool _loading = true;
   bool _saving = false;
   String? _errorMessage;
-  final _roles = <_ExperienceDraft>[];
+  List<FreelancerExperience> _items = const [];
+
+  FreelancerCredentialsRepository get _repo =>
+      sl<FreelancerCredentialsRepository>();
 
   @override
   void initState() {
@@ -1734,66 +1738,508 @@ class _FreelancerExperiencePageState extends State<FreelancerExperiencePage> {
   }
 
   Future<void> _load() async {
-    final res = await sl<FreelancerProfileRepository>().getProfile();
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    final result = await _repo.getExperiences();
     if (!mounted) return;
-    res.fold(
-      (_) {},
-      (p) => _roles
-        ..clear()
-        ..addAll(
-          p.experience
-              .split(',')
-              .where((e) => e.isNotEmpty)
-              .map((role) => _ExperienceDraft(role: role)),
-        ),
+    setState(() {
+      _loading = false;
+      _items = result.valueOrNull ?? const [];
+      _errorMessage = result.failureOrNull?.message;
+    });
+  }
+
+  Future<void> _openForm([FreelancerExperience? item]) async {
+    final result = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => FreelancerExperienceFormPage(item: item),
+      ),
     );
-    setState(() => _loading = false);
+    if (result == true) {
+      await _load();
+    }
+  }
+
+  Future<void> _delete(FreelancerExperience item) async {
+    final confirmed = await AppConfirmDialog.show(
+      context,
+      title: 'Delete experience?',
+      message: 'This will remove ${item.title} at ${item.company}.',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+    );
+    if (!confirmed || !mounted) return;
+
+    setState(() => _saving = true);
+    final result = await _repo.deleteExperience(item.id);
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    final message = result.valueOrNull;
+    if (message == null) {
+      context.showSnack(
+        result.failureOrNull?.message ?? 'Unable to delete experience',
+        isError: true,
+      );
+      return;
+    }
+    context.showSnack(message);
+    await _load();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeRolesCount = _items.where((x) => x.isCurrent).length;
+    final totalCount = _items.length;
+
+    return AppScaffold(
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: const Text('Experience'),
+        actions: [
+          IconButton(
+            tooltip: 'Add role',
+            onPressed: _saving ? null : () => _openForm(),
+            icon: const Icon(Icons.add_rounded),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: _load,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'PROJECTS',
+                                    style: context.text.labelSmall?.copyWith(
+                                      color: AppColors.mutedText,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSizes.sm,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppColors.border,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'delivered',
+                                      style: context.text.labelSmall,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              AppSizes.vGapSm,
+                              Text(
+                                '$totalCount',
+                                style: context.text.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              AppSizes.vGapSm,
+                              LinearProgressIndicator(
+                                value: totalCount > 0 ? 0.6 : 0.0,
+                                backgroundColor: AppColors.warning.withValues(
+                                  alpha: 0.1,
+                                ),
+                                color: AppColors.warning,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      AppSizes.hGapMd,
+                      Expanded(
+                        child: AppCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'CURR...',
+                                    style: context.text.labelSmall?.copyWith(
+                                      color: AppColors.mutedText,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: AppSizes.sm,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: AppColors.border,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'active roles',
+                                      style: context.text.labelSmall,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              AppSizes.vGapSm,
+                              Text(
+                                '$activeRolesCount',
+                                style: context.text.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              AppSizes.vGapSm,
+                              LinearProgressIndicator(
+                                value: activeRolesCount > 0 ? 0.5 : 0.0,
+                                backgroundColor: AppColors.danger.withValues(
+                                  alpha: 0.1,
+                                ),
+                                color: AppColors.danger,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSizes.vGapLg,
+                  AppCard(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Career timeline',
+                                    style: context.text.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  AppSizes.vGapXs,
+                                  Text(
+                                    'Full professional history synced to your public profile',
+                                    style: context.text.bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            TextButton.icon(
+                              onPressed: _saving ? null : () => _openForm(),
+                              icon: const Icon(Icons.add_rounded, size: 18),
+                              label: const Text('Add role'),
+                            ),
+                          ],
+                        ),
+                        if (_errorMessage != null) ...[
+                          AppSizes.vGapMd,
+                          Container(
+                            padding: const EdgeInsets.all(AppSizes.sm),
+                            decoration: BoxDecoration(
+                              color: AppColors.danger.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.radiusMd,
+                              ),
+                              border: Border.all(color: AppColors.danger),
+                            ),
+                            child: Text(
+                              _errorMessage!,
+                              style: context.text.bodySmall?.copyWith(
+                                color: AppColors.danger,
+                              ),
+                            ),
+                          ),
+                        ],
+                        AppSizes.vGapLg,
+                        if (_items.isEmpty)
+                          const AppCard(
+                            child: Text('No experience roles added yet.'),
+                          )
+                        else
+                          for (final item in _items) ...[
+                            _ExperienceApiCard(
+                              item: item,
+                              onEdit: _saving ? null : () => _openForm(item),
+                              onDelete: _saving ? null : () => _delete(item),
+                            ),
+                            if (item != _items.last) AppSizes.vGapMd,
+                          ],
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+class _ExperienceApiCard extends StatelessWidget {
+  const _ExperienceApiCard({required this.item, this.onEdit, this.onDelete});
+
+  final FreelancerExperience item;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitleParts = <String>[
+      if (item.company.isNotEmpty) item.company,
+      if (item.industryName != null && item.industryName!.isNotEmpty)
+        item.industryName!,
+      if (item.location.isNotEmpty) item.location,
+      if (item.startDate.isNotEmpty)
+        '${item.startDate} - ${item.isCurrent ? 'Present' : (item.endDate ?? '')}',
+    ];
+
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSizes.sm),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+            ),
+            child: const Icon(
+              Icons.work_outline_rounded,
+              color: AppColors.primary,
+            ),
+          ),
+          AppSizes.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: context.text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                if (subtitleParts.isNotEmpty) ...[
+                  AppSizes.vGapXs,
+                  Text(
+                    subtitleParts.join(' • '),
+                    style: context.text.bodySmall,
+                  ),
+                ],
+                if (item.description.isNotEmpty) ...[
+                  AppSizes.vGapSm,
+                  Text(
+                    item.description,
+                    style: context.text.bodyMedium,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+                if (item.skillNames.isNotEmpty || item.skillIds.isNotEmpty) ...[
+                  AppSizes.vGapSm,
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children:
+                        (item.skillNames.isNotEmpty
+                                ? item.skillNames
+                                : item.skillIds)
+                            .map(
+                              (name) => Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.border.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  name,
+                                  style: context.text.labelSmall,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (onEdit != null)
+            IconButton(
+              tooltip: 'Edit',
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          if (onDelete != null)
+            IconButton(
+              tooltip: 'Delete',
+              onPressed: onDelete,
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                color: AppColors.danger,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class FreelancerExperienceFormPage extends StatefulWidget {
+  const FreelancerExperienceFormPage({super.key, this.item});
+
+  final FreelancerExperience? item;
+
+  @override
+  State<FreelancerExperienceFormPage> createState() =>
+      _FreelancerExperienceFormPageState();
+}
+
+class _FreelancerExperienceFormPageState
+    extends State<FreelancerExperienceFormPage> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _companyController;
+  late final TextEditingController _locationController;
+  late final TextEditingController _startDateController;
+  late final TextEditingController _endDateController;
+  late final TextEditingController _descriptionController;
+
+  bool _isCurrent = false;
+  bool _saving = false;
+  String? _selectedIndustryId;
+  String? _selectedIndustryName;
+
+  List<SkillCategory> _industries = [];
+  List<String> _availableSkillNames = [];
+  List<String> _selectedSkillNames = [];
+  Map<String, SkillOption> _skillsMap = {};
+
+  bool _loadingIndustries = true;
+  bool _loadingSkills = false;
+  String? _error;
+
+  FreelancerCredentialsRepository get _repo =>
+      sl<FreelancerCredentialsRepository>();
+
+  @override
+  void initState() {
+    super.initState();
+    final item = widget.item;
+    _titleController = TextEditingController(text: item?.title ?? '');
+    _companyController = TextEditingController(text: item?.company ?? '');
+    _locationController = TextEditingController(text: item?.location ?? '');
+    _startDateController = TextEditingController(text: item?.startDate ?? '');
+    _endDateController = TextEditingController(text: item?.endDate ?? '');
+    _descriptionController = TextEditingController(
+      text: item?.description ?? '',
+    );
+    _isCurrent = item?.isCurrent ?? false;
+    _selectedIndustryId = item?.industryId;
+    _selectedIndustryName = item?.industryName;
+    _selectedSkillNames = List<String>.from(
+      item?.skillNames.isNotEmpty == true
+          ? item!.skillNames
+          : item?.skillIds ?? [],
+    );
+
+    _loadIndustries();
   }
 
   @override
   void dispose() {
-    for (final role in _roles) {
-      role.dispose();
-    }
+    _titleController.dispose();
+    _companyController.dispose();
+    _locationController.dispose();
+    _startDateController.dispose();
+    _endDateController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
-  Future<void> _addRole() async {
-    final role = await _experienceFormSheet(context);
-    if (!mounted || role == null) return;
-    setState(() {
-      _roles.add(role);
-      _errorMessage = null;
-    });
-    await _persistExperience('Experience added successfully');
-  }
+  Future<void> _loadIndustries() async {
+    setState(() => _loadingIndustries = true);
+    try {
+      final res = await sl<MasterDataRepository>().getIndustries();
+      if (!mounted) return;
+      res.fold((f) {}, (list) {
+        setState(() {
+          _industries = list;
+          if (_selectedIndustryId == null &&
+              _selectedIndustryName != null &&
+              _selectedIndustryName!.isNotEmpty) {
+            final match = list.firstWhere(
+              (x) =>
+                  x.name.toLowerCase() == _selectedIndustryName!.toLowerCase(),
+              orElse: () => const SkillCategory(id: '', name: ''),
+            );
+            if (match.id.isNotEmpty) _selectedIndustryId = match.id;
+          }
+        });
+      });
+    } catch (_) {}
+    setState(() => _loadingIndustries = false);
 
-  Future<void> _editRole(_ExperienceDraft role) async {
-    final updated = await _experienceFormSheet(context, item: role);
-    if (!mounted || updated == null) return;
-    final index = _roles.indexOf(role);
-    if (index == -1) {
-      updated.dispose();
-      return;
+    if (_selectedIndustryId != null && _selectedIndustryId!.isNotEmpty) {
+      _fetchSkillsForIndustry(_selectedIndustryId!);
     }
-    setState(() {
-      _roles[index] = updated;
-      role.dispose();
-      _errorMessage = null;
-    });
-    await _persistExperience('Experience updated successfully');
   }
 
-  Future<void> _removeRole(_ExperienceDraft role) async {
-    setState(() {
-      _roles.remove(role);
-      role.dispose();
-      _errorMessage = null;
-    });
-    await _persistExperience(
-      'Experience removed successfully',
-      allowEmpty: true,
-    );
+  Future<void> _fetchSkillsForIndustry(String industryId) async {
+    setState(() => _loadingSkills = true);
+    try {
+      final res = await sl<ApiClientHelper>().getEnvelope<List<SkillOption>>(
+        ApiEndpoints.publicSkills,
+        query: {'industryId': industryId, 'page': 1, 'limit': 50},
+        parser: (env) {
+          dynamic list = env.data;
+          if (list is Map) {
+            final map = Map<String, dynamic>.from(list);
+            list = map['data'] ?? map['items'] ?? map['skills'] ?? const [];
+          }
+          if (list is! List) return <SkillOption>[];
+          return list
+              .map(
+                (e) =>
+                    SkillOption.fromJson(Map<String, dynamic>.from(e as Map)),
+              )
+              .toList();
+        },
+      );
+      if (!mounted) return;
+      if (res.isSuccess && res.valueOrNull != null) {
+        final skills = res.valueOrNull!;
+        setState(() {
+          _skillsMap = {for (final s in skills) s.name: s};
+          _availableSkillNames = skills.map((s) => s.name).toList();
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _loadingSkills = false);
   }
 
   Future<void> _pickDate(TextEditingController controller) async {
@@ -1805,794 +2251,226 @@ class _FreelancerExperiencePageState extends State<FreelancerExperiencePage> {
       lastDate: DateTime.now(),
     );
     if (picked == null) return;
-    controller.text = _experienceDateValue(picked);
+    final month = picked.month.toString().padLeft(2, '0');
+    final day = picked.day.toString().padLeft(2, '0');
+    controller.text = '${picked.year}-$month-$day';
   }
 
-  Future<void> _persistExperience(
-    String successMessage, {
-    bool allowEmpty = false,
-  }) async {
-    setState(() {
-      _saving = true;
-      _errorMessage = null;
-    });
+  Future<void> _submit() async {
+    final title = _titleController.text.trim();
+    final company = _companyController.text.trim();
+    final startDate = _startDateController.text.trim();
+
+    if (title.isEmpty) {
+      setState(() => _error = 'Role / Title is required.');
+      return;
+    }
+    if (company.isEmpty) {
+      setState(() => _error = 'Company name is required.');
+      return;
+    }
+    if (_selectedIndustryId == null || _selectedIndustryId!.isEmpty) {
+      setState(() => _error = 'Please select an Industry.');
+      return;
+    }
+    if (startDate.isEmpty) {
+      setState(() => _error = 'Start date is required.');
+      return;
+    }
+
+    final skillIds = _selectedSkillNames
+        .map((name) => _skillsMap[name]?.id ?? name)
+        .where((id) => id.isNotEmpty)
+        .toList();
 
     final payload = {
-      'experience': _roles
-          .map((role) => role.toProfileValue())
-          .where((value) => value.isNotEmpty)
-          .toList(),
+      'title': title,
+      'company': company,
+      'location': _locationController.text.trim(),
+      'startDate': startDate,
+      'endDate': _isCurrent ? '' : _endDateController.text.trim(),
+      'isCurrent': _isCurrent,
+      'description': _descriptionController.text.trim(),
+      'industryId': _selectedIndustryId,
+      'skillIds': skillIds,
     };
-    if (!allowEmpty && (payload['experience'] as List).isEmpty) {
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final result = widget.item == null
+        ? await _repo.addExperience(payload)
+        : await _repo.updateExperience(widget.item!.id, payload);
+
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    final saved = result.valueOrNull;
+    if (saved == null) {
       setState(() {
-        _saving = false;
-        _errorMessage = 'Add at least one role.';
+        _error = result.failureOrNull?.message ?? 'Unable to save experience';
       });
       return;
     }
-    final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
-    if (!mounted) return;
-    res.fold(
-      (f) => setState(() {
-        _saving = false;
-        _errorMessage = f.message;
-      }),
-      (_) {
-        setState(() => _saving = false);
-        context.showSnack(successMessage);
-      },
-    );
-  }
 
-  Future<_ExperienceDraft?> _experienceFormSheet(
-    BuildContext context, {
-    _ExperienceDraft? item,
-  }) async {
-    final draft = item == null
-        ? _ExperienceDraft()
-        : _ExperienceDraft.copy(item);
-    String? errorMessage;
-    var saving = false;
-    final saved = await showModalBottomSheet<_ExperienceDraft>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheetContext) {
-        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
-        final safeBottom = MediaQuery.of(sheetContext).padding.bottom;
-        final sheetHeight = MediaQuery.of(sheetContext).size.height * 0.75;
-        return StatefulBuilder(
-          builder: (sheetContext, setSheetState) {
-            return SafeArea(
-              child: SizedBox(
-                height: sheetHeight,
-                child: Padding(
-                  padding: EdgeInsets.fromLTRB(
-                    AppSizes.lg,
-                    AppSizes.sm,
-                    AppSizes.lg,
-                    bottomInset + safeBottom + AppSizes.lg,
-                  ),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                item == null ? 'Add role' : 'Edit role',
-                                style: Theme.of(
-                                  sheetContext,
-                                ).textTheme.titleMedium,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            IconButton(
-                              tooltip: 'Close',
-                              onPressed: saving
-                                  ? null
-                                  : () => Navigator.of(sheetContext).pop(),
-                              icon: const Icon(Icons.close_rounded),
-                            ),
-                          ],
-                        ),
-                        if (errorMessage != null) ...[
-                          AppSizes.vGapMd,
-                          DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: AppColors.danger.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(
-                                AppSizes.radiusMd,
-                              ),
-                              border: Border.all(
-                                color: AppColors.danger.withValues(alpha: 0.35),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(AppSizes.md),
-                              child: Text(
-                                errorMessage!,
-                                style: Theme.of(sheetContext)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(color: AppColors.danger),
-                              ),
-                            ),
-                          ),
-                        ],
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.role,
-                          label: 'Role',
-                          hint: 'Role',
-                          textInputAction: TextInputAction.next,
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.company,
-                          label: 'Company',
-                          hint: 'Company',
-                          textInputAction: TextInputAction.next,
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.industry,
-                          label: 'Industry',
-                          hint: 'Industry',
-                          textInputAction: TextInputAction.next,
-                        ),
-                        AppSizes.vGapMd,
-                        AppLocationField(
-                          controller: draft.location,
-                          label: 'Location',
-                          hint: 'Search location',
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.start,
-                          readOnly: true,
-                          label: 'Start',
-                          hint: 'Start',
-                          suffixIcon: const Icon(Icons.calendar_today_outlined),
-                          onTap: saving ? null : () => _pickDate(draft.start),
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.end,
-                          readOnly: true,
-                          enabled: !draft.currentRole,
-                          label: 'End',
-                          hint: draft.currentRole ? 'Present' : 'End',
-                          suffixIcon: const Icon(Icons.calendar_today_outlined),
-                          onTap: saving || draft.currentRole
-                              ? null
-                              : () => _pickDate(draft.end),
-                        ),
-                        AppSizes.vGapMd,
-                        CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          value: draft.currentRole,
-                          title: const Text('Current role'),
-                          onChanged: saving
-                              ? null
-                              : (value) {
-                                  setSheetState(() {
-                                    draft.currentRole = value ?? false;
-                                    if (draft.currentRole) draft.end.clear();
-                                  });
-                                },
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.projects,
-                          label: 'Projects',
-                          hint: '0',
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.next,
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.achievements,
-                          label: 'Achievements',
-                          hint: 'Achievements (one per line)',
-                          maxLines: 3,
-                          textInputAction: TextInputAction.newline,
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: draft.tech,
-                          label: 'Tech',
-                          hint: 'Tech (comma separated)',
-                          textInputAction: TextInputAction.done,
-                        ),
-                        AppSizes.vGapXl,
-                        AppPrimaryButton(
-                          label: item == null ? 'Add & save' : 'Save',
-                          isLoading: saving,
-                          onPressed: () {
-                            if (draft.role.text.trim().isEmpty) {
-                              setSheetState(() {
-                                errorMessage = 'Role is required.';
-                              });
-                              return;
-                            }
-                            setSheetState(() {
-                              saving = true;
-                              errorMessage = null;
-                            });
-                            Navigator.of(sheetContext).pop(draft);
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
+    context.showSnack(
+      saved.responseMessage ??
+          (widget.item == null ? 'Experience added' : 'Experience updated'),
     );
-    if (saved == null) draft.dispose();
-    return saved;
+    Navigator.of(context).pop(true);
   }
 
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Experience'),
-        actions: [
-          IconButton(
-            tooltip: 'Add role',
-            onPressed: _saving ? null : _addRole,
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: Text(widget.item == null ? 'Add Experience' : 'Edit Experience'),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(AppSizes.screenPadding),
-              children: [
-                _ExperienceSummary(roles: _roles),
-                AppSizes.vGapLg,
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Career timeline',
-                                  style: context.text.titleMedium,
-                                ),
-                                AppSizes.vGapXs,
-                                Text(
-                                  'Full professional history synced to your public profile',
-                                  style: context.text.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          AppPrimaryButton(
-                            label: 'Add role',
-                            icon: Icons.add_rounded,
-                            expanded: false,
-                            gradient: false,
-                            backgroundColor: AppColors.white,
-                            textColor: AppColors.darkText,
-                            onPressed: _saving ? null : _addRole,
-                          ),
-                          AppSizes.hGapSm,
-                        ],
-                      ),
-                      if (_errorMessage != null) ...[
-                        AppSizes.vGapMd,
-                        DecoratedBox(
-                          decoration: BoxDecoration(
-                            color: AppColors.danger.withValues(alpha: 0.08),
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.radiusMd,
-                            ),
-                            border: Border.all(
-                              color: AppColors.danger.withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(AppSizes.md),
-                            child: Text(
-                              _errorMessage!,
-                              style: context.text.bodySmall?.copyWith(
-                                color: AppColors.danger,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                      AppSizes.vGapLg,
-                      for (final entry in _roles) ...[
-                        _ExperienceListCard(
-                          entry: entry,
-                          onEdit: _saving ? null : () => _editRole(entry),
-                          onRemove: _saving ? null : () => _removeRole(entry),
-                        ),
-                        if (entry != _roles.last) AppSizes.vGapMd,
-                      ],
-                      if (_roles.isEmpty)
-                        const AppCard(child: Text('No experience added yet.')),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
-  String _experienceDateValue(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '${date.year}-$month-$day';
-  }
-}
-
-class _ExperienceSummary extends StatelessWidget {
-  const _ExperienceSummary({required this.roles});
-
-  final List<_ExperienceDraft> roles;
-
-  @override
-  Widget build(BuildContext context) {
-    final filledRoles = roles
-        .where((role) => role.role.text.trim().isNotEmpty)
-        .length;
-    final industries = roles
-        .map((role) => role.industry.text.trim())
-        .where((industry) => industry.isNotEmpty)
-        .toSet()
-        .length;
-    final companies = roles
-        .map((role) => role.company.text.trim())
-        .where((company) => company.isNotEmpty)
-        .toSet()
-        .length;
-    final projects = roles.fold<int>(
-      0,
-      (sum, role) => sum + (int.tryParse(role.projects.text.trim()) ?? 0),
-    );
-    final current = roles.where((role) => role.currentRole).length;
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _ExperienceMetricCard(
-            title: 'Roles',
-            value: filledRoles,
-            label: 'on profile',
-            color: AppColors.primary,
-          ),
-          _ExperienceMetricCard(
-            title: 'Industries',
-            value: industries,
-            label: 'represented',
-            color: AppColors.info,
-          ),
-          _ExperienceMetricCard(
-            title: 'Companies',
-            value: companies,
-            label: 'listed',
-            color: AppColors.success,
-          ),
-          _ExperienceMetricCard(
-            title: 'Projects',
-            value: projects,
-            label: 'delivered',
-            color: AppColors.warning,
-          ),
-          _ExperienceMetricCard(
-            title: 'Current',
-            value: current,
-            label: 'active roles',
-            color: AppColors.danger,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExperienceMetricCard extends StatelessWidget {
-  const _ExperienceMetricCard({
-    required this.title,
-    required this.value,
-    required this.label,
-    required this.color,
-  });
-
-  final String title;
-  final int value;
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      child: AppCard(
-        margin: const EdgeInsets.only(right: AppSizes.md),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(AppSizes.screenPadding),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title.toUpperCase(),
-                    style: context.text.labelMedium?.copyWith(
-                      color: AppColors.mutedText,
-                      letterSpacing: 0,
-                    ),
-                    overflow: TextOverflow.ellipsis,
+            if (_error != null) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(AppSizes.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  border: Border.all(color: AppColors.danger),
+                ),
+                child: Text(
+                  _error!,
+                  style: context.text.bodySmall?.copyWith(
+                    color: AppColors.danger,
                   ),
                 ),
-                Chip(
-                  label: Text(label),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-              ],
-            ),
-            AppSizes.vGapLg,
-            Text('$value', style: context.text.headlineSmall),
-            AppSizes.vGapMd,
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                minHeight: 5,
-                value: value == 0 ? 0 : 0.65,
-                backgroundColor: color.withValues(alpha: 0.08),
-                valueColor: AlwaysStoppedAnimation(color),
               ),
+              AppSizes.vGapMd,
+            ],
+            AppTextField(
+              controller: _titleController,
+              label: 'Role / Title *',
+              hint: 'e.g. Senior Software Engineer',
+              textInputAction: TextInputAction.next,
+            ),
+            AppSizes.vGapMd,
+            AppTextField(
+              controller: _companyController,
+              label: 'Company *',
+              hint: 'e.g. Google',
+              textInputAction: TextInputAction.next,
+            ),
+            AppSizes.vGapMd,
+            if (_loadingIndustries)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              AppDropdown<SkillCategory>(
+                label: 'Industry *',
+                value:
+                    _selectedIndustryId == null || _selectedIndustryId!.isEmpty
+                        ? null
+                        : _industries.firstWhere(
+                            (x) => x.id == _selectedIndustryId,
+                            orElse: () => SkillCategory(
+                              id: _selectedIndustryId!,
+                              name: _selectedIndustryName ?? '',
+                            ),
+                          ),
+                items: _industries,
+                itemLabel: (ind) => ind.name,
+                onChanged: (val) {
+                  if (val == null) return;
+                  setState(() {
+                    _selectedIndustryId = val.id;
+                    _selectedIndustryName = val.name;
+                    _selectedSkillNames.clear();
+                    _availableSkillNames.clear();
+                    _skillsMap.clear();
+                  });
+                  _fetchSkillsForIndustry(val.id);
+                },
+              ),
+            AppSizes.vGapMd,
+            AppLocationField(
+              controller: _locationController,
+              label: 'Location',
+              hint: 'Search and select location',
+            ),
+            AppSizes.vGapMd,
+            AppTextField(
+              controller: _startDateController,
+              readOnly: true,
+              label: 'Start Date *',
+              hint: 'YYYY-MM-DD',
+              suffixIcon: const Icon(Icons.calendar_today_outlined),
+              onTap: () => _pickDate(_startDateController),
+            ),
+            AppSizes.vGapMd,
+            AppTextField(
+              controller: _endDateController,
+              readOnly: true,
+              enabled: !_isCurrent,
+              label: 'End Date',
+              hint: _isCurrent ? 'Present' : 'YYYY-MM-DD',
+              suffixIcon: const Icon(Icons.calendar_today_outlined),
+              onTap: _isCurrent ? null : () => _pickDate(_endDateController),
+            ),
+            AppSizes.vGapSm,
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _isCurrent,
+              title: const Text('Currently working here'),
+              onChanged: (val) {
+                setState(() {
+                  _isCurrent = val ?? false;
+                  if (_isCurrent) _endDateController.clear();
+                });
+              },
+            ),
+            AppSizes.vGapMd,
+            AppTextField(
+              controller: _descriptionController,
+              label: 'Description / Achievements',
+              hint: 'Describe your role and key achievements...',
+              maxLines: 3,
+              textInputAction: TextInputAction.newline,
+            ),
+            AppSizes.vGapMd,
+            if (_loadingSkills)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              SignupMultiSelectSheet(
+                label: 'Skills',
+                minSelection: 0,
+                selectedItems: _selectedSkillNames,
+                availableOptions: _availableSkillNames,
+                onChanged: (items) {
+                  setState(() => _selectedSkillNames = items);
+                },
+              ),
+            AppSizes.vGapXl,
+            AppPrimaryButton(
+              label: widget.item == null
+                  ? 'Add Experience'
+                  : 'Update Experience',
+              isLoading: _saving,
+              onPressed: _saving ? null : _submit,
             ),
           ],
         ),
       ),
     );
-  }
-}
-
-class _ExperienceListCard extends StatelessWidget {
-  const _ExperienceListCard({
-    required this.entry,
-    required this.onEdit,
-    required this.onRemove,
-  });
-
-  final _ExperienceDraft entry;
-  final VoidCallback? onEdit;
-  final VoidCallback? onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final subtitle = [
-      entry.company.text.trim(),
-      entry.industry.text.trim(),
-      entry.location.text.trim(),
-      if (entry.start.text.trim().isNotEmpty ||
-          entry.end.text.trim().isNotEmpty)
-        '${entry.start.text.trim()} - ${entry.currentRole ? 'Present' : entry.end.text.trim()}',
-    ].where((value) => value.isNotEmpty).join(' - ');
-
-    return AppCard(
-      child: Row(
-        children: [
-          const Icon(Icons.work_outline_rounded, color: AppColors.primary),
-          AppSizes.hGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(entry.role.text.trim(), style: context.text.titleSmall),
-                if (subtitle.isNotEmpty) ...[
-                  AppSizes.vGapXs,
-                  Text(
-                    subtitle,
-                    style: context.text.bodySmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (entry.tech.text.trim().isNotEmpty) ...[
-                  AppSizes.vGapSm,
-                  Text(entry.tech.text.trim(), style: context.text.labelSmall),
-                ],
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: 'Edit',
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit_outlined),
-          ),
-          IconButton(
-            tooltip: 'Delete',
-            onPressed: onRemove,
-            icon: const Icon(
-              Icons.delete_outline_rounded,
-              color: AppColors.danger,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// ignore: unused_element
-class _ExperienceRoleForm extends StatelessWidget {
-  const _ExperienceRoleForm({
-    required this.entry,
-    required this.saving,
-    required this.canRemove,
-    required this.onChanged,
-    required this.onPickStart,
-    required this.onPickEnd,
-    required this.onRemove,
-  });
-
-  final _ExperienceDraft entry;
-  final bool saving;
-  final bool canRemove;
-  final VoidCallback onChanged;
-  final VoidCallback onPickStart;
-  final VoidCallback onPickEnd;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final twoColumns = constraints.maxWidth >= 720;
-              final role = AppTextField(
-                controller: entry.role,
-                label: 'Role',
-                hint: 'Role',
-                textInputAction: TextInputAction.next,
-                onChanged: (_) => onChanged(),
-              );
-              final company = AppTextField(
-                controller: entry.company,
-                label: 'Company',
-                hint: 'Company',
-                textInputAction: TextInputAction.next,
-                onChanged: (_) => onChanged(),
-              );
-              final industry = AppTextField(
-                controller: entry.industry,
-                label: 'Industry',
-                hint: 'Industry',
-                textInputAction: TextInputAction.next,
-                onChanged: (_) => onChanged(),
-              );
-              final location = AppLocationField(
-                controller: entry.location,
-                label: 'Location',
-                hint: 'Search location',
-                onPlaceSelected: (_) => onChanged(),
-              );
-              final start = AppTextField(
-                controller: entry.start,
-                readOnly: true,
-                label: 'Start',
-                hint: 'Start',
-                suffixIcon: const Icon(Icons.calendar_today_outlined),
-                onTap: saving ? null : onPickStart,
-              );
-              final end = AppTextField(
-                controller: entry.end,
-                readOnly: true,
-                enabled: !entry.currentRole,
-                label: 'End',
-                hint: entry.currentRole ? 'Present' : 'End',
-                suffixIcon: const Icon(Icons.calendar_today_outlined),
-                onTap: saving || entry.currentRole ? null : onPickEnd,
-              );
-
-              if (!twoColumns) {
-                return Column(
-                  children: [
-                    role,
-                    AppSizes.vGapMd,
-                    company,
-                    AppSizes.vGapMd,
-                    industry,
-                    AppSizes.vGapMd,
-                    location,
-                    AppSizes.vGapMd,
-                    start,
-                    AppSizes.vGapMd,
-                    end,
-                  ],
-                );
-              }
-
-              return Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(child: role),
-                      AppSizes.hGapMd,
-                      Expanded(child: company),
-                    ],
-                  ),
-                  AppSizes.vGapMd,
-                  Row(
-                    children: [
-                      Expanded(child: industry),
-                      AppSizes.hGapMd,
-                      Expanded(child: location),
-                    ],
-                  ),
-                  AppSizes.vGapMd,
-                  Row(
-                    children: [
-                      Expanded(child: start),
-                      AppSizes.hGapMd,
-                      Expanded(child: end),
-                    ],
-                  ),
-                ],
-              );
-            },
-          ),
-          AppSizes.vGapMd,
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: AppSizes.md,
-            runSpacing: AppSizes.sm,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Checkbox(
-                    value: entry.currentRole,
-                    onChanged: saving
-                        ? null
-                        : (value) {
-                            entry.currentRole = value ?? false;
-                            if (entry.currentRole) entry.end.clear();
-                            onChanged();
-                          },
-                  ),
-                  Text('Current role', style: context.text.bodyMedium),
-                ],
-              ),
-              SizedBox(
-                width: 148,
-                child: AppTextField(
-                  controller: entry.projects,
-                  hint: '0',
-                  keyboardType: TextInputType.number,
-                  prefixIcon: Icons.business_center_outlined,
-                  onChanged: (_) => onChanged(),
-                ),
-              ),
-              Text('projects', style: context.text.bodyMedium),
-              if (canRemove)
-                TextButton.icon(
-                  onPressed: saving ? null : onRemove,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  label: const Text('Remove'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.danger,
-                  ),
-                ),
-            ],
-          ),
-          AppSizes.vGapMd,
-          AppTextField(
-            controller: entry.achievements,
-            label: 'Achievements',
-            hint: 'Achievements (one per line)',
-            maxLines: 3,
-            textInputAction: TextInputAction.newline,
-          ),
-          AppSizes.vGapMd,
-          AppTextField(
-            controller: entry.tech,
-            label: 'Tech',
-            hint: 'Tech (comma separated)',
-            textInputAction: TextInputAction.done,
-            onChanged: (_) => onChanged(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ExperienceDraft {
-  _ExperienceDraft({
-    String role = '',
-    String company = '',
-    String industry = '',
-    String location = '',
-    String start = '',
-    String end = '',
-    String projects = '0',
-    String achievements = '',
-    String tech = '',
-    this.currentRole = false,
-  }) : role = TextEditingController(text: role),
-       company = TextEditingController(text: company),
-       industry = TextEditingController(text: industry),
-       location = TextEditingController(text: location),
-       start = TextEditingController(text: start),
-       end = TextEditingController(text: end),
-       projects = TextEditingController(text: projects),
-       achievements = TextEditingController(text: achievements),
-       tech = TextEditingController(text: tech);
-
-  factory _ExperienceDraft.copy(_ExperienceDraft entry) => _ExperienceDraft(
-    role: entry.role.text,
-    company: entry.company.text,
-    industry: entry.industry.text,
-    location: entry.location.text,
-    start: entry.start.text,
-    end: entry.end.text,
-    projects: entry.projects.text,
-    achievements: entry.achievements.text,
-    tech: entry.tech.text,
-    currentRole: entry.currentRole,
-  );
-
-  final TextEditingController role;
-  final TextEditingController company;
-  final TextEditingController industry;
-  final TextEditingController location;
-  final TextEditingController start;
-  final TextEditingController end;
-  final TextEditingController projects;
-  final TextEditingController achievements;
-  final TextEditingController tech;
-  bool currentRole;
-
-  String toProfileValue() {
-    final parts = <String>[
-      role.text.trim(),
-      if (company.text.trim().isNotEmpty) 'at ${company.text.trim()}',
-      if (industry.text.trim().isNotEmpty) '- ${industry.text.trim()}',
-      if (location.text.trim().isNotEmpty) '- ${location.text.trim()}',
-      if (start.text.trim().isNotEmpty || end.text.trim().isNotEmpty)
-        '- ${start.text.trim()} - ${currentRole ? 'Present' : end.text.trim()}',
-      if (projects.text.trim().isNotEmpty) '- ${projects.text.trim()} projects',
-      if (tech.text.trim().isNotEmpty) '- ${tech.text.trim()}',
-      if (achievements.text.trim().isNotEmpty) '- ${achievements.text.trim()}',
-    ];
-    return parts.join(' ').trim();
-  }
-
-  void dispose() {
-    role.dispose();
-    company.dispose();
-    industry.dispose();
-    location.dispose();
-    start.dispose();
-    end.dispose();
-    projects.dispose();
-    achievements.dispose();
-    tech.dispose();
   }
 }
 
@@ -3536,9 +3414,7 @@ class _FreelancerPortfolioDetailsPageState
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Portfolio Details'),
       ),
       body: FutureBuilder<Result<PortfolioItem>>(
@@ -3996,9 +3872,7 @@ class _FreelancerPortfolioFormPageState
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: Text(_isEdit ? 'Edit Portfolio' : 'New Portfolio'),
       ),
       body: Form(

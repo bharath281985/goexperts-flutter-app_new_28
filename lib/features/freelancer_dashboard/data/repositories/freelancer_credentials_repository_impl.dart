@@ -1,4 +1,3 @@
-import '../../../../app/config/app_config.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
@@ -96,7 +95,50 @@ class FreelancerCredentialsRepositoryImpl
     );
   }
 
-  String _authPath(String path) => '${AppConfig.authBaseUrl}$path';
+  @override
+  Future<Result<List<FreelancerExperience>>> getExperiences() {
+    return _api.getEnvelope<List<FreelancerExperience>>(
+      _authPath(ApiEndpoints.freelancerExperience),
+      parser: (envelope) => ApiResponse.parseList(
+        _listPayload(envelope),
+        FreelancerExperience.fromJson,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<FreelancerExperience>> addExperience(
+    Map<String, dynamic> data,
+  ) {
+    return _api.postEnvelope<FreelancerExperience>(
+      _authPath(ApiEndpoints.freelancerExperience),
+      body: data,
+      parser: (envelope) => _experienceFromEnvelope(envelope, data),
+    );
+  }
+
+  @override
+  Future<Result<FreelancerExperience>> updateExperience(
+    String id,
+    Map<String, dynamic> data,
+  ) {
+    return _api.putEnvelope<FreelancerExperience>(
+      _authPath(ApiEndpoints.freelancerExperienceItem(id)),
+      body: data,
+      parser: (envelope) =>
+          _experienceFromEnvelope(envelope, {'id': id, ...data}),
+    );
+  }
+
+  @override
+  Future<Result<String>> deleteExperience(String id) {
+    return _api.deleteEnvelope<String>(
+      _authPath(ApiEndpoints.freelancerExperienceItem(id)),
+      parser: (envelope) => envelope.message ?? 'Experience deleted',
+    );
+  }
+
+  String _authPath(String path) => path;
 
   dynamic _listPayload(ApiResponse<dynamic> envelope) {
     final raw = envelope.data;
@@ -125,6 +167,17 @@ class FreelancerCredentialsRepositoryImpl
   ) {
     final json = _itemPayload(envelope, fallback);
     return FreelancerCertificate.fromJson(
+      json,
+      responseMessage: envelope.message,
+    );
+  }
+
+  FreelancerExperience _experienceFromEnvelope(
+    ApiResponse<dynamic> envelope,
+    Map<String, dynamic> fallback,
+  ) {
+    final json = _itemPayload(envelope, fallback);
+    return FreelancerExperience.fromJson(
       json,
       responseMessage: envelope.message,
     );

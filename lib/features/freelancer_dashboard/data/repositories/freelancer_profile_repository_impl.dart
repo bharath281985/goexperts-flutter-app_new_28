@@ -30,6 +30,78 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
   }
 
   @override
+  Future<Result<Map<String, dynamic>>> getProfessionalDetails() {
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.freelancerProfessionalDetails,
+      parser: (env) {
+        final data = env.data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+        return <String, dynamic>{};
+      },
+    );
+  }
+
+  @override
+  Future<Result<bool>> updateProfessionalDetails(
+    Map<String, dynamic> data, {
+    String? id,
+  }) {
+    final path = id != null && id.isNotEmpty
+        ? ApiEndpoints.freelancerProfessionalDetailsItem(id)
+        : ApiEndpoints.freelancerProfessionalDetails;
+    return _api.putEnvelope<bool>(
+      path,
+      body: data,
+      parser: (env) => true,
+    );
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getVerificationDetails() {
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.freelancerVerification,
+      parser: (env) {
+        final data = env.data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+        return <String, dynamic>{};
+      },
+    );
+  }
+
+  @override
+  Future<Result<bool>> updateVerificationDetail({
+    required String key,
+    String? value,
+    String? status,
+    String? documentUrl,
+  }) {
+    final body = <String, dynamic>{
+      'key': key,
+      if (value != null) 'value': value,
+      'status': status ?? 'pending',
+      if (documentUrl != null) 'documentUrl': documentUrl,
+    };
+    return _api.patchEnvelope<bool>(
+      ApiEndpoints.freelancerVerification,
+      body: body,
+      parser: (env) => true,
+    );
+  }
+
+  @override
+  Future<Result<bool>> deleteVerificationDetail({
+    required String key,
+  }) {
+    return _api.deleteEnvelope<bool>(
+      ApiEndpoints.freelancerVerification,
+      body: {
+        'key': key,
+      },
+      parser: (env) => true,
+    );
+  }
+
+  @override
   Future<Result<String>> uploadAvatar(
     String filePath, {
     void Function(int sent, int total)? onProgress,

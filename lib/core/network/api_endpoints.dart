@@ -146,6 +146,14 @@ class ApiEndpoints {
   static const freelancerCertificates = '/freelancer/certificates';
   static String freelancerCertificateItem(String id) =>
       '/freelancer/certificates/$id';
+  static const freelancerExperience = '/freelancer/experience';
+  static String freelancerExperienceItem(String id) =>
+      '/freelancer/experience/$id';
+  static const freelancerProfessionalDetails =
+      '/freelancer/professional-details';
+  static String freelancerProfessionalDetailsItem(String id) =>
+      '/freelancer/professional-details/$id';
+  static const freelancerVerification = '/freelancer/verification';
   static const freelancerContracts = '/freelancer/contracts';
   static String freelancerContract(String id) => '/freelancer/contracts/$id';
   static String freelancerContractMilestones(String id) =>
