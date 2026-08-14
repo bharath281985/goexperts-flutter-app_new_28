@@ -444,6 +444,54 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       icon: Icons.logout_rounded,
                     );
                     if (confirm && context.mounted) {
+                      showDialog<void>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => PopScope(
+                          canPop: false,
+                          child: Center(
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 24, vertical: 20),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                          AppColors.primary),
+                                    ),
+                                  ),
+                                  SizedBox(width: 16),
+                                  Text(
+                                    'Logging out...',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.darkText,
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
                       context.read<AuthBloc>().add(const AuthLoggedOut());
                     }
                   },

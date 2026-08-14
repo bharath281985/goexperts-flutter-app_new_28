@@ -1,3 +1,5 @@
+import '../../app/config/app_config.dart';
+
 /// Centralized API endpoint paths (base URL configured in `AppConfig.baseUrl`).
 class ApiEndpoints {
   ApiEndpoints._();
@@ -123,6 +125,8 @@ class ApiEndpoints {
   static const freelancerProfile = '/freelancer/profile';
   static const freelancerProfileAvatar = '/freelancer/profile/avatar';
   static const freelancerProfileResume = '/freelancer/profile/resume';
+  static String get publicResumeTemplates =>
+      '${AppConfig.authBaseUrl}/public/resume-templates';
   static const freelancerProfileKyc = '/freelancer/profile/kyc';
   static const freelancerProjects = '/freelancer/projects';
   static String freelancerProject(String id) => '/freelancer/projects/$id';
@@ -245,6 +249,7 @@ class ApiEndpoints {
   static const clientProfile = '/client/profile';
   static const clientProfileLogo = '/client/profile/logo';
   static const clientProfileDocuments = '/client/profile/documents';
+  static const clientVerification = '/client/verification';
   static const clientProjects = '/client/projects';
   static String clientProject(String id) => '/client/projects/$id';
   static String clientProjectStatus(String id) => '/client/projects/$id/status';
@@ -341,12 +346,14 @@ class ApiEndpoints {
   static const investorWallet = '/investor/wallet';
   static const investorWalletTransactions = '/investor/wallet/transactions';
   static const investorWalletWithdraw = '/investor/wallet/withdraw';
+  static const investorVerification = '/investor/verification';
 
   // ── Founder ───────────────────────────────────────────────────────────────
   static const founderIdeas = '/founder/ideas';
   static const founderDashboard = '/founder/dashboard';
   // Founder personal profile uses the startup profile endpoints on the API.
   static const founderProfile = '/founder/profile';
+  static const founderVerification = '/founder/verification';
   static const founderStartup = '/founder/startup';
   static const founderFunding = '/founder/funding';
   static String founderFundingById(String id) => '/founder/funding/$id';

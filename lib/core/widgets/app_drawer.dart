@@ -257,6 +257,7 @@ class AppDrawer extends StatelessWidget {
                           icon: Icons.logout_rounded,
                         );
                         if (confirm && context.mounted) {
+                          _showLogoutLoading(context);
                           context.read<AuthBloc>().add(const AuthLoggedOut());
                         }
                       },
@@ -314,7 +315,11 @@ class AppDrawer extends StatelessWidget {
               Icons.perm_media_outlined,
               route: Routes.freelancerPortfolioPage,
             ),
-            DrawerEntry('Resume', Icons.description_outlined),
+            DrawerEntry(
+              'Resume',
+              Icons.description_outlined,
+              route: Routes.freelancerResumeTemplates,
+            ),
             DrawerEntry(
               'Skills',
               Icons.psychology_outlined,
@@ -472,7 +477,11 @@ class AppDrawer extends StatelessWidget {
               Icons.business_outlined,
               route: Routes.clientProfile,
             ),
-            DrawerEntry('Verification', Icons.verified_user_outlined),
+            DrawerEntry(
+              'Verification',
+              Icons.verified_user_outlined,
+              route: Routes.clientVerification,
+            ),
             DrawerEntry('Departments', Icons.account_balance_outlined),
             DrawerEntry(
               'Teams',
@@ -727,6 +736,11 @@ class AppDrawer extends StatelessWidget {
               route: Routes.investorProfile,
             ),
             DrawerEntry(
+              'Verification',
+              Icons.verified_user_outlined,
+              route: Routes.investorVerification,
+            ),
+            DrawerEntry(
               'Settings',
               Icons.settings_outlined,
               route: Routes.settings,
@@ -841,6 +855,11 @@ class AppDrawer extends StatelessWidget {
               route: Routes.founderProfile,
             ),
             DrawerEntry(
+              'Verification',
+              Icons.verified_user_outlined,
+              route: Routes.founderVerification,
+            ),
+            DrawerEntry(
               'Settings',
               Icons.settings_outlined,
               route: Routes.settings,
@@ -891,6 +910,7 @@ class _FounderDrawer extends StatelessWidget {
       icon: Icons.logout_rounded,
     );
     if (confirm && context.mounted) {
+      _showLogoutLoading(context);
       context.read<AuthBloc>().add(const AuthLoggedOut());
     }
   }
@@ -1419,4 +1439,53 @@ class _DrawerMenuTile extends StatelessWidget {
     }
     return null;
   }
+}
+
+void _showLogoutLoading(BuildContext context) {
+  showDialog<void>(
+    context: context,
+    barrierDismissible: false,
+    builder: (ctx) => PopScope(
+      canPop: false,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Colors.black26,
+                blurRadius: 10,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                ),
+              ),
+              SizedBox(width: 16),
+              Text(
+                'Logging out...',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkText,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

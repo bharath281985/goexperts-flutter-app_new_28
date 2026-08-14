@@ -11,4 +11,14 @@ abstract class InvestorRepository {
   Future<Result<bool>> toggleSave(String id);
   Future<Result<bool>> updateInvestment(String id, Map<String, dynamic> data);
   Future<Result<bool>> updateInvestmentStatus(String id, String status);
+  Future<Result<Map<String, dynamic>>> getVerificationDetails();
+  Future<Result<String?>> updateVerificationDetail({
+    required String key,
+    String? value,
+    String? status,
+    String? documentUrl,
+  });
+  Future<Result<String?>> deleteVerificationDetail({
+    required String key,
+  });
 }

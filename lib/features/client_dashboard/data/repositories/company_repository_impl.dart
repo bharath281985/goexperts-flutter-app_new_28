@@ -111,6 +111,52 @@ class CompanyRepositoryImpl implements CompanyRepository {
     );
   }
 
+  @override
+  Future<Result<Map<String, dynamic>>> getVerificationDetails() async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.clientVerification,
+      parser: (env) {
+        final data = env.data;
+        if (data is Map) return Map<String, dynamic>.from(data);
+        return <String, dynamic>{};
+      },
+    );
+  }
+
+  @override
+  Future<Result<String?>> updateVerificationDetail({
+    required String key,
+    String? value,
+    String? status,
+    String? documentUrl,
+  }) async {
+    if (_api == null) return _apiNotConfigured();
+    final body = <String, dynamic>{
+      'key': key,
+      if (value != null) 'value': value,
+      'status': status ?? 'pending',
+      if (documentUrl != null) 'documentUrl': documentUrl,
+    };
+    return _api.patchEnvelope<String?>(
+      ApiEndpoints.clientVerification,
+      body: body,
+      parser: (env) => env.message,
+    );
+  }
+
+  @override
+  Future<Result<String?>> deleteVerificationDetail({
+    required String key,
+  }) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.deleteEnvelope<String?>(
+      ApiEndpoints.clientVerification,
+      body: {'key': key},
+      parser: (env) => env.message,
+    );
+  }
+
   static Company _fromJson(Map<String, dynamic> json) {
     final data = json['data'] is Map
         ? Map<String, dynamic>.from(json['data'] as Map)

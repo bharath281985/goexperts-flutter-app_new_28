@@ -13,4 +13,14 @@ abstract class CompanyRepository {
   });
   Future<Result<String>> uploadClientLogo(String filePath);
   Future<Result<String>> uploadClientDocument(String filePath);
+  Future<Result<Map<String, dynamic>>> getVerificationDetails();
+  Future<Result<String?>> updateVerificationDetail({
+    required String key,
+    String? value,
+    String? status,
+    String? documentUrl,
+  });
+  Future<Result<String?>> deleteVerificationDetail({
+    required String key,
+  });
 }

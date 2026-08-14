@@ -1,5 +1,6 @@
 import '../../../../core/utils/result.dart';
 import '../entities/freelancer_profile.dart';
+import '../entities/resume_template.dart';
 
 abstract class FreelancerProfileRepository {
   Future<Result<FreelancerProfile>> getProfile();
@@ -10,13 +11,15 @@ abstract class FreelancerProfileRepository {
     String? id,
   });
   Future<Result<Map<String, dynamic>>> getVerificationDetails();
-  Future<Result<bool>> updateVerificationDetail({
+  Future<Result<String?>> updateVerificationDetail({
     required String key,
     String? value,
     String? status,
     String? documentUrl,
   });
-  Future<Result<bool>> deleteVerificationDetail({required String key});
+  Future<Result<String?>> deleteVerificationDetail({
+    required String key,
+  });
   Future<Result<String>> uploadAvatar(String filePath);
   Future<Result<String>> uploadResume(String filePath);
   Future<Result<String>> uploadCertificate(String filePath);
@@ -24,4 +27,5 @@ abstract class FreelancerProfileRepository {
     required String filePath,
     required String documentType,
   });
+  Future<Result<List<ResumeTemplate>>> getResumeTemplates({String? search});
 }

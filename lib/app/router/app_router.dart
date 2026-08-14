@@ -45,11 +45,15 @@ import '../../features/freelancer_dashboard/domain/entities/portfolio_item.dart'
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_edit_profile_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_professional_details_page.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancer_verification_page.dart';
+import '../../features/freelancer_dashboard/presentation/pages/freelancer_resume_templates_page.dart';
 import '../../features/client_dashboard/presentation/pages/client_subpages.dart';
+import '../../features/client_dashboard/presentation/pages/client_verification_page.dart';
 import '../../features/client_dashboard/presentation/pages/client_blocker_pages.dart';
 import '../../features/investor_dashboard/presentation/pages/investor_subpages.dart';
 import '../../features/investor_dashboard/presentation/pages/investor_live_pages.dart';
 import '../../features/founder_dashboard/presentation/pages/founder_subpages.dart';
+import '../../features/founder_dashboard/presentation/pages/founder_verification_page.dart';
+import '../../features/investor_dashboard/presentation/pages/investor_verification_page.dart';
 import '../../features/founder_dashboard/presentation/pages/founder_live_pages.dart';
 import '../../features/founder_dashboard/presentation/pages/founder_proposal_details_page.dart';
 import '../../features/client_dashboard/presentation/pages/create_project_page.dart';
@@ -333,6 +337,10 @@ GoRouter createRouter(AuthBloc authBloc) {
         ),
       ),
       GoRoute(
+        path: Routes.freelancerResumeTemplates,
+        builder: (_, __) => const FreelancerResumeTemplatesPage(),
+      ),
+      GoRoute(
         path: Routes.freelancerWallet,
         builder: (_, __) => const WalletPage(),
       ),
@@ -368,6 +376,18 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.clientProfile,
         builder: (_, __) => const ClientCompanyProfilePage(),
+      ),
+      GoRoute(
+        path: Routes.clientVerification,
+        builder: (_, __) => const ClientVerificationPage(),
+      ),
+      GoRoute(
+        path: Routes.investorVerification,
+        builder: (_, __) => const InvestorVerificationPage(),
+      ),
+      GoRoute(
+        path: Routes.founderVerification,
+        builder: (_, __) => const FounderVerificationPage(),
       ),
 
       // Investor standalone

@@ -10,4 +10,14 @@ abstract class FounderRepository {
   );
   Future<Result<bool>> respondToRequest(String id, String status);
   Future<Result<bool>> toggleFollow(String id);
+  Future<Result<Map<String, dynamic>>> getVerificationDetails();
+  Future<Result<String?>> updateVerificationDetail({
+    required String key,
+    String? value,
+    String? status,
+    String? documentUrl,
+  });
+  Future<Result<String?>> deleteVerificationDetail({
+    required String key,
+  });
 }

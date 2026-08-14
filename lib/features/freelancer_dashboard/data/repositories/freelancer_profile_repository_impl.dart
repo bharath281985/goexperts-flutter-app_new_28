@@ -3,6 +3,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/freelancer_profile.dart';
+import '../../domain/entities/resume_template.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
 
 class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
@@ -65,7 +66,7 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
   }
 
   @override
-  Future<Result<bool>> updateVerificationDetail({
+  Future<Result<String?>> updateVerificationDetail({
     required String key,
     String? value,
     String? status,
@@ -77,19 +78,23 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
       'status': status ?? 'pending',
       if (documentUrl != null) 'documentUrl': documentUrl,
     };
-    return _api.patchEnvelope<bool>(
+    return _api.patchEnvelope<String?>(
       ApiEndpoints.freelancerVerification,
       body: body,
-      parser: (env) => true,
+      parser: (env) => env.message,
     );
   }
 
   @override
-  Future<Result<bool>> deleteVerificationDetail({required String key}) {
-    return _api.deleteEnvelope<bool>(
+  Future<Result<String?>> deleteVerificationDetail({
+    required String key,
+  }) {
+    return _api.deleteEnvelope<String?>(
       ApiEndpoints.freelancerVerification,
-      body: {'key': key},
-      parser: (env) => true,
+      body: {
+        'key': key,
+      },
+      parser: (env) => env.message,
     );
   }
 
@@ -141,6 +146,27 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
       endpoint: ApiEndpoints.freelancerProfileKyc,
       fields: {'documentType': documentType},
       onProgress: onProgress,
+    );
+  }
+
+  @override
+  Future<Result<List<ResumeTemplate>>> getResumeTemplates({String? search}) async {
+    final query = <String, dynamic>{
+      if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+    };
+    return _api.getEnvelope<List<ResumeTemplate>>(
+      ApiEndpoints.publicResumeTemplates,
+      query: query,
+      parser: (env) {
+        final raw = env.data;
+        if (raw is List) {
+          return raw
+              .map((e) => ResumeTemplate.fromJson(
+                  Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+        return <ResumeTemplate>[];
+      },
     );
   }
 }
