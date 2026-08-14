@@ -162,17 +162,6 @@ class _FreelancerVerificationPageState
             ? Map<String, dynamic>.from(data['data'] as Map)
             : data;
 
-<<<<<<< HEAD
-        final rawItems = payload['items'] as List?;
-        if (rawItems != null && rawItems.isNotEmpty) {
-          _items = rawItems
-              .map(
-                (e) => VerificationItem.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ),
-              )
-              .toList();
-=======
           final rawItems = payload['items'] as List?;
           if (rawItems != null && rawItems.isNotEmpty) {
             _items = rawItems
@@ -184,7 +173,6 @@ class _FreelancerVerificationPageState
                     item.key != 'gst' &&
                     item.key != 'company')
                 .toList();
->>>>>>> baf0cf6 (feat(verification & resume): add Client, Founder, and Investor verification pages with API response messages, resume templates screen, and logout loading indicator)
 
           for (final item in _items) {
             if (item.value.isNotEmpty && item.value != 'Not submitted') {
@@ -343,12 +331,6 @@ class _FreelancerVerificationPageState
       _editingPhone = false;
     });
 
-<<<<<<< HEAD
-    updateRes.fold((f) => context.showSnack(f.message, isError: true), (_) {
-      context.showSnack('Phone number submitted for verification');
-      _load();
-    });
-=======
     updateRes.fold(
       (f) => context.showSnack(f.message, isError: true),
       (msg) {
@@ -359,7 +341,6 @@ class _FreelancerVerificationPageState
         _load();
       },
     );
->>>>>>> baf0cf6 (feat(verification & resume): add Client, Founder, and Investor verification pages with API response messages, resume templates screen, and logout loading indicator)
   }
 
   Future<void> _pickFile(String key) async {
@@ -495,14 +476,6 @@ class _FreelancerVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-<<<<<<< HEAD
-    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
-      context.showSnack('${item.label} submission deleted');
-      _selectedFilePaths.remove(item.key);
-      _selectedFileNames.remove(item.key);
-      _load();
-    });
-=======
     res.fold(
       (f) => context.showSnack(f.message, isError: true),
       (msg) {
@@ -515,7 +488,6 @@ class _FreelancerVerificationPageState
         _load();
       },
     );
->>>>>>> baf0cf6 (feat(verification & resume): add Client, Founder, and Investor verification pages with API response messages, resume templates screen, and logout loading indicator)
   }
 
   IconData _iconForKey(String key) {
