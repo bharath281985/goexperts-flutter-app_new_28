@@ -5,8 +5,10 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/public_catalog_client.dart';
 import '../../../../core/utils/result.dart';
+import '../../domain/entities/master_option.dart';
 import '../../domain/entities/skill_category.dart';
 import '../../domain/entities/skill_option.dart';
+import '../../domain/entities/ticket_size_option.dart';
 import '../../domain/repositories/master_data_repository.dart';
 
 class MasterDataRepositoryImpl implements MasterDataRepository {
@@ -292,5 +294,213 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   @override
   Future<Result<List<String>>> getStartupGoals() async {
     return _getLabelValueOptions(ApiEndpoints.publicFounderGoals);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getCountriesOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicCountries,
+      query: const {'limit': 250},
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getStatesOptions(String countryIdOrCode) async {
+    try {
+      final result = await _client.getList<MasterOption>(
+        path: ApiEndpoints.publicStates,
+        query: {
+          'countryCode': countryIdOrCode,
+          'countryId': countryIdOrCode,
+        },
+        itemParser: MasterOption.fromJson,
+      );
+      if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
+        final list = result.valueOrNull!.rows
+            .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+            .toList();
+        return Success(list);
+      }
+    } catch (_) {}
+    final strStatesRes = await getStates(countryIdOrCode);
+    if (strStatesRes.isSuccess) {
+      return Success(
+        strStatesRes.valueOrNull!
+            .map((s) => MasterOption(id: s, name: s))
+            .toList(),
+      );
+    }
+    return const Success([]);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getExperienceLevelOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicExperienceLevels,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getAvailabilityOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicAvailabilities,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getCompanySizeOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicCompanySizes,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getHiringBudgetOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicHiringBudgetRanges,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getHiringGoalOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicHiringGoals,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getInvestorTypeOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicInvestorTypes,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getInvestorStageOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicInvestorStages,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<TicketSizeOption>>> getTicketSizeOptions() async {
+    try {
+      final result = await _client.getList<TicketSizeOption>(
+        path: ApiEndpoints.publicMobileTicketSizes,
+        itemParser: (json) =>
+            TicketSizeOption.fromJson(Map<String, dynamic>.from(json as Map)),
+      );
+      if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
+        return Success(result.valueOrNull!.rows);
+      }
+    } catch (_) {}
+    final result = await _client.getList<TicketSizeOption>(
+      path: '/public/ticket-sizes',
+      itemParser: (json) =>
+          TicketSizeOption.fromJson(Map<String, dynamic>.from(json as Map)),
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    return Success(result.valueOrNull!.rows);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getIndustryOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicIndustries,
+      query: const {'page': 1, 'pageSize': 200},
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getStartupStageOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicStartupStages,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getStartupRoleOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicStartupRoles,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getFounderGoalOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicFounderGoals,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
   }
 }

@@ -11,11 +11,14 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_location_field.dart';
-import '../../../../core/utils/result.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
+import '../../../../app/constants/app_colors.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../master_data/domain/entities/master_option.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
 
 class FounderPitchDeckLivePage extends StatefulWidget {
   const FounderPitchDeckLivePage({super.key});
@@ -35,56 +38,37 @@ class FounderProfileLivePage extends StatefulWidget {
 class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   final _email = TextEditingController();
   final _fullName = TextEditingController();
-  final _phone = TextEditingController();
-  final _phoneCode = TextEditingController(text: '+91');
-  final _countryCode = TextEditingController(text: 'IN');
-  final _country = TextEditingController();
   final _city = TextEditingController();
-  final _linkedin = TextEditingController();
-  final _website = TextEditingController();
-
   final _startupName = TextEditingController();
-  final _category = TextEditingController();
-  final _teamSize = TextEditingController();
-
-  final _shortPitch = TextEditingController();
+  final _pitch = TextEditingController();
+  final _targetRaise = TextEditingController();
   final _bio = TextEditingController();
+  final _industrySearchController = TextEditingController();
+  final _goalSearchController = TextEditingController();
+  final _industryDisplayController = TextEditingController();
+  final _primaryGoalDisplayController = TextEditingController();
 
-  final _education = TextEditingController();
-  final _experience = TextEditingController();
+  MasterOption? _selectedCountry;
+  MasterOption? _selectedState;
+  MasterOption? _selectedIndustry;
+  final Set<String> _selectedFounderGoalIds = {};
+  MasterOption? _selectedStage;
+  MasterOption? _selectedRole;
+  MasterOption? _selectedTeamSize;
+  MasterOption? _selectedPrimaryGoal;
 
-  final _fundingRequired = TextEditingController();
-  final _equityOffered = TextEditingController();
-  final _businessType = TextEditingController();
-  final _expansionGoals = TextEditingController();
-  final _problemStatement = TextEditingController();
-  final _solution = TextEditingController();
-  final _businessModel = TextEditingController();
-  final _revenueModel = TextEditingController();
-  final _targetCustomers = TextEditingController();
-  final _competitiveAdvantage = TextEditingController();
-  final _technologyStack = TextEditingController();
-  final _raised = TextEditingController();
-  final _valuation = TextEditingController();
-  final _runway = TextEditingController();
-  final _burnRate = TextEditingController();
-
-  String? _founderTypeId;
-  String? _stageId;
-  String? _industryId;
-  String? _categoryId;
-  String? _countryId;
+  List<MasterOption> _countries = [];
+  List<MasterOption> _states = [];
+  List<MasterOption> _industries = [];
+  List<MasterOption> _stages = [];
+  List<MasterOption> _roles = [];
+  List<MasterOption> _teamSizes = [];
+  List<MasterOption> _founderGoals = [];
 
   String? _avatarUrl;
   String? _localAvatarPath;
   bool _loading = true;
   bool _saving = false;
-
-  List<Map<String, dynamic>> _founderTypesList = [];
-  List<Map<String, dynamic>> _stagesList = [];
-  List<Map<String, dynamic>> _industriesList = [];
-  List<Map<String, dynamic>> _categoriesList = [];
-  List<Map<String, dynamic>> _countriesList = [];
 
   @override
   void initState() {
@@ -96,768 +80,652 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   void dispose() {
     _email.dispose();
     _fullName.dispose();
-    _phone.dispose();
-    _phoneCode.dispose();
-    _countryCode.dispose();
-    _country.dispose();
     _city.dispose();
-    _linkedin.dispose();
-    _website.dispose();
     _startupName.dispose();
-    _category.dispose();
-    _teamSize.dispose();
-    _shortPitch.dispose();
+    _pitch.dispose();
+    _targetRaise.dispose();
     _bio.dispose();
-    _education.dispose();
-    _experience.dispose();
-    _fundingRequired.dispose();
-    _equityOffered.dispose();
-    _businessType.dispose();
-    _expansionGoals.dispose();
-    _problemStatement.dispose();
-    _solution.dispose();
-    _businessModel.dispose();
-    _revenueModel.dispose();
-    _targetCustomers.dispose();
-    _competitiveAdvantage.dispose();
-    _technologyStack.dispose();
-    _raised.dispose();
-    _valuation.dispose();
-    _runway.dispose();
-    _burnRate.dispose();
-
+    _industrySearchController.dispose();
+    _goalSearchController.dispose();
+    _industryDisplayController.dispose();
+    _primaryGoalDisplayController.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    final futures = await Future.wait([
-      sl<ApiClientHelper>().get<Map<String, dynamic>>(
-        ApiEndpoints.founderProfile,
-        parser: (raw) => Map<String, dynamic>.from(raw as Map),
-      ),
-      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicFounderTypes,
-        parser: (raw) => (raw as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-      ),
-      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicStartupStages,
-        parser: (raw) => (raw as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-      ),
-      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicIndustries,
-        parser: (raw) => (raw as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-      ),
-      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicCountries,
-        parser: (raw) => (raw as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-      ),
-      sl<ApiClientHelper>().get<List<Map<String, dynamic>>>(
-        ApiEndpoints.publicMobileCategories,
-        parser: (raw) => (raw as List)
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList(),
-      ),
-    ]);
+    setState(() => _loading = true);
+    final masterRepo = sl<MasterDataRepository>();
+    final api = sl<ApiClientHelper>();
+
+    final cRes = await masterRepo.getCountriesOptions();
+    if (mounted && cRes.isSuccess) _countries = cRes.valueOrNull ?? [];
+
+    final indRes = await masterRepo.getIndustryOptions();
+    if (mounted && indRes.isSuccess) _industries = indRes.valueOrNull ?? [];
+
+    final stgRes = await masterRepo.getStartupStageOptions();
+    if (mounted && stgRes.isSuccess) _stages = stgRes.valueOrNull ?? [];
+
+    final rolRes = await masterRepo.getStartupRoleOptions();
+    if (mounted && rolRes.isSuccess) _roles = rolRes.valueOrNull ?? [];
+
+    final tsRes = await masterRepo.getCompanySizeOptions();
+    if (mounted && tsRes.isSuccess) _teamSizes = tsRes.valueOrNull ?? [];
+
+    final fgRes = await masterRepo.getFounderGoalOptions();
+    if (mounted && fgRes.isSuccess) _founderGoals = fgRes.valueOrNull ?? [];
+
+    final meRes = await api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.me,
+      parser: (env) {
+        if (env.data is Map && (env.data as Map)['user'] is Map) {
+          return Map<String, dynamic>.from((env.data as Map)['user'] as Map);
+        }
+        if (env.data is Map) {
+          return Map<String, dynamic>.from(env.data as Map);
+        }
+        return {};
+      },
+    );
 
     if (!mounted) return;
 
-    final profileRes = futures[0] as Result<Map<String, dynamic>>;
-    final typesRes = futures[1] as Result<List<Map<String, dynamic>>>;
-    final stagesRes = futures[2] as Result<List<Map<String, dynamic>>>;
-    final industriesRes = futures[3] as Result<List<Map<String, dynamic>>>;
-    final countriesRes = futures[4] as Result<List<Map<String, dynamic>>>;
-    final categoriesRes = futures[5] as Result<List<Map<String, dynamic>>>;
+    if (meRes.isSuccess) {
+      final userMap = meRes.valueOrNull ?? {};
+      _email.text = userMap['email']?.toString() ?? '';
+      _fullName.text = userMap['fullName']?.toString() ?? '';
+      _city.text =
+          userMap['city']?.toString() ?? userMap['location']?.toString() ?? '';
+      _bio.text = userMap['bio']?.toString() ?? '';
+      _avatarUrl = userMap['avatarUrl']?.toString();
 
-    if (typesRes.isSuccess) {
-      _founderTypesList = typesRes.valueOrNull ?? [];
+      if (userMap['country'] is Map) {
+        final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
+        final cid = cMap['id']?.toString() ?? '';
+        final cname = cMap['name']?.toString() ?? cid;
+        if (cid.isNotEmpty) {
+          _selectedCountry = MasterOption(id: cid, name: cname);
+          _loadStatesForCountry(cid);
+        }
+      }
+
+      if (userMap['state'] is Map) {
+        final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
+        final sid = sMap['id']?.toString() ?? '';
+        final sname = sMap['name']?.toString() ?? sid;
+        if (sid.isNotEmpty) {
+          _selectedState = MasterOption(id: sid, name: sname);
+        }
+      }
+
+      if (userMap['profile'] is Map) {
+        final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
+        _startupName.text =
+            pMap['startupName']?.toString() ?? pMap['startup']?.toString() ?? '';
+        _pitch.text =
+            pMap['pitch']?.toString() ?? pMap['oneLinePitch']?.toString() ?? '';
+        _targetRaise.text = pMap['targetRaise']?.toString() ?? '';
+
+        if (pMap['industryId'] is Map) {
+          final indMap = Map<String, dynamic>.from(pMap['industryId'] as Map);
+          final iId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
+          final iName = (indMap['name'] ?? indMap['label'])?.toString() ?? iId;
+          if (iId.isNotEmpty) {
+            _selectedIndustry = MasterOption(id: iId, name: iName);
+            _industryDisplayController.text = iName;
+          }
+        } else if (pMap['industryId'] is String) {
+          final iStr = pMap['industryId'].toString();
+          if (iStr.isNotEmpty) {
+            _selectedIndustry = MasterOption(id: iStr, name: iStr);
+            _industryDisplayController.text = iStr;
+          }
+        }
+
+        if (pMap['stageId'] is Map) {
+          final stMap = Map<String, dynamic>.from(pMap['stageId'] as Map);
+          final sId = (stMap['id'] ?? stMap['_id'])?.toString() ?? '';
+          final sName = (stMap['name'] ?? stMap['label'])?.toString() ?? sId;
+          if (sId.isNotEmpty) {
+            _selectedStage = MasterOption(id: sId, name: sName);
+          }
+        } else if (pMap['stageId'] is String) {
+          final sStr = pMap['stageId'].toString();
+          if (sStr.isNotEmpty) {
+            _selectedStage = MasterOption(id: sStr, name: sStr);
+          }
+        }
+
+        if (pMap['founderRoleId'] is Map) {
+          final frMap = Map<String, dynamic>.from(pMap['founderRoleId'] as Map);
+          final frId = (frMap['id'] ?? frMap['_id'])?.toString() ?? '';
+          final frName = (frMap['name'] ?? frMap['label'])?.toString() ?? frId;
+          if (frId.isNotEmpty) {
+            _selectedRole = MasterOption(id: frId, name: frName);
+          }
+        } else if (pMap['founderRoleId'] is String) {
+          final frStr = pMap['founderRoleId'].toString();
+          if (frStr.isNotEmpty) {
+            _selectedRole = MasterOption(id: frStr, name: frStr);
+          }
+        }
+
+        if (pMap['teamSizeId'] is Map) {
+          final tsMap = Map<String, dynamic>.from(pMap['teamSizeId'] as Map);
+          final tsId = (tsMap['id'] ?? tsMap['_id'])?.toString() ?? '';
+          final tsName = (tsMap['name'] ?? tsMap['label'])?.toString() ?? tsId;
+          if (tsId.isNotEmpty) {
+            _selectedTeamSize = MasterOption(id: tsId, name: tsName);
+          }
+        } else if (pMap['teamSizeId'] != null) {
+          final tsStr = pMap['teamSizeId'].toString();
+          if (tsStr.isNotEmpty) {
+            _selectedTeamSize = MasterOption(id: tsStr, name: tsStr);
+          }
+        }
+
+        if (pMap['primaryGoalId'] is List) {
+          final pgList = pMap['primaryGoalId'] as List;
+          final names = <String>[];
+          _selectedFounderGoalIds.clear();
+          for (final goal in pgList) {
+            if (goal is Map) {
+              final gid = (goal['id'] ?? goal['_id'])?.toString();
+              final gname = (goal['name'] ?? goal['label'])?.toString();
+              if (gid != null && gid.isNotEmpty) _selectedFounderGoalIds.add(gid);
+              if (gname != null && gname.isNotEmpty) names.add(gname);
+            } else if (goal is String && goal.isNotEmpty) {
+              _selectedFounderGoalIds.add(goal);
+              names.add(goal);
+            }
+          }
+          if (names.isNotEmpty) {
+            _primaryGoalDisplayController.text = names.join(', ');
+          }
+        } else if (pMap['primaryGoalId'] is Map) {
+          final pgMap = Map<String, dynamic>.from(pMap['primaryGoalId'] as Map);
+          final pgId = (pgMap['id'] ?? pgMap['_id'])?.toString() ?? '';
+          final pgName = (pgMap['name'] ?? pgMap['label'])?.toString() ?? pgId;
+          if (pgId.isNotEmpty) {
+            _selectedFounderGoalIds.add(pgId);
+            _primaryGoalDisplayController.text = pgName;
+          }
+        } else if (pMap['primaryGoalId'] is String &&
+            (pMap['primaryGoalId'] as String).isNotEmpty) {
+          final pgStr = pMap['primaryGoalId'].toString();
+          _selectedFounderGoalIds.add(pgStr);
+          _primaryGoalDisplayController.text = pgStr;
+        }
+      }
     }
 
-    if (stagesRes.isSuccess) {
-      _stagesList = stagesRes.valueOrNull ?? [];
-    }
-
-    if (industriesRes.isSuccess) {
-      _industriesList = industriesRes.valueOrNull ?? [];
-    }
-
-    if (countriesRes.isSuccess) {
-      _countriesList = countriesRes.valueOrNull ?? [];
-    }
-
-    if (categoriesRes.isSuccess) {
-      _categoriesList = categoriesRes.valueOrNull ?? [];
-    }
-
-    profileRes.fold((f) => context.showSnack(f.message, isError: true), (m) {
-      final data = m['data'] is Map ? m['data'] : m;
-      final user = data['user'] is Map ? data['user'] as Map : data;
-
-      _email.text =
-          user['email']?.toString() ?? data['email']?.toString() ?? '';
-      _fullName.text =
-          user['fullName']?.toString() ??
-          data['fullName']?.toString() ??
-          data['name']?.toString() ??
-          '';
-      _phone.text =
-          user['phone']?.toString() ?? data['phone']?.toString() ?? '';
-      _phoneCode.text =
-          data['phoneCode']?.toString() ??
-          user['phoneCode']?.toString() ??
-          '+91';
-      _countryCode.text =
-          data['countryCode']?.toString() ??
-          user['countryCode']?.toString() ??
-          'IN';
-
-      _city.text = user['city']?.toString() ?? data['city']?.toString() ?? '';
-
-      _linkedin.text = data['linkedin']?.toString() ?? '';
-      _website.text = data['website']?.toString() ?? '';
-
-      _education.text = data['education']?.toString() ?? '';
-      _experience.text = data['experience']?.toString() ?? '';
-
-      _startupName.text =
-          data['startupName']?.toString() ?? data['startup']?.toString() ?? '';
-
-      _category.text =
-          data['categoryId']?.toString() ?? data['category']?.toString() ?? '';
-      _teamSize.text = data['teamSize']?.toString() ?? '1';
-
-      _shortPitch.text =
-          data['oneLinePitch']?.toString() ??
-          data['shortPitch']?.toString() ??
-          data['pitch']?.toString() ??
-          '';
-      _bio.text =
-          data['bio']?.toString() ??
-          data['description']?.toString() ??
-          user['bio']?.toString() ??
-          '';
-
-      _fundingRequired.text =
-          data['raised']?.toString() ??
-          data['fundingRequired']?.toString() ??
-          '';
-      _equityOffered.text =
-          data['equity']?.toString() ?? data['equityOffered']?.toString() ?? '';
-      _businessType.text = data['businessType']?.toString() ?? '';
-      _expansionGoals.text = data['businessExpansionGoals']?.toString() ?? '';
-      _problemStatement.text = data['problemStatement']?.toString() ?? '';
-      _solution.text = data['solution']?.toString() ?? '';
-      _businessModel.text = data['businessModel']?.toString() ?? '';
-      _revenueModel.text = data['revenueModel']?.toString() ?? '';
-      _targetCustomers.text = data['targetCustomers']?.toString() ?? '';
-      _competitiveAdvantage.text =
-          data['competitiveAdvantage']?.toString() ?? '';
-      _technologyStack.text = data['technologyStack']?.toString() ?? '';
-      _raised.text = data['raised']?.toString() ?? '';
-      _valuation.text = data['valuation']?.toString() ?? '';
-      _runway.text = data['runway']?.toString() ?? '';
-      _burnRate.text = data['burnRate']?.toString() ?? '';
-
-      final fType =
-          data['founderTypeId']?.toString() ??
-          data['founderType']?.toString() ??
-          '';
-      _founderTypeId =
-          _founderTypesList.any((e) => e['id'] == fType || e['value'] == fType)
-          ? _founderTypesList
-                .firstWhere(
-                  (e) => e['id'] == fType || e['value'] == fType,
-                )['id']
-                ?.toString()
-          : null;
-
-      final stageStr =
-          data['stageId']?.toString() ?? data['stage']?.toString() ?? '';
-      _stageId =
-          _stagesList.any(
-            (e) =>
-                e['id'] == stageStr ||
-                e['value'] == stageStr ||
-                e['name'] == stageStr ||
-                e['label'] == stageStr,
-          )
-          ? _stagesList
-                .firstWhere(
-                  (e) =>
-                      e['id'] == stageStr ||
-                      e['value'] == stageStr ||
-                      e['name'] == stageStr ||
-                      e['label'] == stageStr,
-                )['id']
-                ?.toString()
-          : null;
-
-      final indStr =
-          data['industryId']?.toString() ?? data['industry']?.toString() ?? '';
-      // Match by id first, then by name/label (API may return name instead of id)
-      _industryId = _resolveDropdownId(_industriesList, indStr);
-
-      final catStr =
-          data['categoryId']?.toString() ?? data['category']?.toString() ?? '';
-      _categoryId = _resolveDropdownId(_categoriesList, catStr);
-
-      final countryStr =
-          data['countryId']?.toString() ??
-          data['country']?.toString() ??
-          user['countryId']?.toString() ??
-          user['country']?.toString() ??
-          '';
-      _country.text = countryStr;
-      _countryId =
-          _countriesList.any(
-            (e) =>
-                e['id'] == countryStr ||
-                e['value'] == countryStr ||
-                e['name'] == countryStr ||
-                e['label'] == countryStr,
-          )
-          ? _countriesList
-                .firstWhere(
-                  (e) =>
-                      e['id'] == countryStr ||
-                      e['value'] == countryStr ||
-                      e['name'] == countryStr ||
-                      e['label'] == countryStr,
-                )['id']
-                ?.toString()
-          : null;
-
-      _avatarUrl =
-          data['logo']?.toString() ??
-          data['avatarUrl']?.toString() ??
-          user['avatarUrl']?.toString();
-    });
+    _matchAllDropdowns();
     setState(() => _loading = false);
   }
 
-  /// Resolve a dropdown id from a list of options.
-  /// Matches by [id], [value], [name], or [label] — case-insensitive.
-  String? _resolveDropdownId(List<Map<String, dynamic>> list, String raw) {
-    final val = raw.trim();
-    if (val.isEmpty) return null;
-    final lower = val.toLowerCase();
-    for (final e in list) {
-      final id = e['id']?.toString() ?? '';
-      final value = e['value']?.toString() ?? '';
-      final name = e['name']?.toString().toLowerCase() ?? '';
-      final label = e['label']?.toString().toLowerCase() ?? '';
-      if (id == val || value == val || name == lower || label == lower) {
-        return id.isNotEmpty ? id : null;
+  MasterOption? _matchOption(MasterOption? current, List<MasterOption> list) {
+    if (current == null || list.isEmpty) return current;
+    for (final opt in list) {
+      if (opt.id == current.id) return opt;
+      if (opt.name.toLowerCase() == current.name.toLowerCase()) return opt;
+    }
+    return current;
+  }
+
+  void _matchAllDropdowns() {
+    if (!mounted) return;
+    setState(() {
+      if (_countries.isNotEmpty) {
+        _selectedCountry = _matchOption(_selectedCountry, _countries);
+      }
+      if (_states.isNotEmpty) {
+        _selectedState = _matchOption(_selectedState, _states);
+      }
+      if (_industries.isNotEmpty) {
+        _selectedIndustry = _matchOption(_selectedIndustry, _industries);
+      }
+      if (_stages.isNotEmpty) {
+        _selectedStage = _matchOption(_selectedStage, _stages);
+      }
+      if (_roles.isNotEmpty) {
+        _selectedRole = _matchOption(_selectedRole, _roles);
+      }
+      if (_teamSizes.isNotEmpty) {
+        _selectedTeamSize = _matchOption(_selectedTeamSize, _teamSizes);
+      }
+      if (_founderGoals.isNotEmpty) {
+        _selectedPrimaryGoal =
+            _matchOption(_selectedPrimaryGoal, _founderGoals);
+      }
+    });
+  }
+
+  void _updateFounderGoalsDisplayText() {
+    final names = <String>[];
+    for (final opt in _founderGoals) {
+      if (_selectedFounderGoalIds.contains(opt.id)) {
+        names.add(opt.name);
       }
     }
-    return null;
+    if (names.isNotEmpty) {
+      _primaryGoalDisplayController.text = names.join(', ');
+    } else if (_selectedFounderGoalIds.isEmpty) {
+      _primaryGoalDisplayController.clear();
+    }
+  }
+
+  Future<void> _loadStatesForCountry(String countryIdOrCode) async {
+    final res =
+        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    if (!mounted) return;
+    _states = res.valueOrNull ?? [];
+    _matchAllDropdowns();
+  }
+
+  void _showIndustryBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final search = _industrySearchController.text.trim().toLowerCase();
+            final filtered = search.isEmpty
+                ? _industries
+                : _industries
+                    .where((c) => c.name.toLowerCase().contains(search))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Select Industry',
+                        style: context.text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _industrySearchController,
+                        hint: 'Search industry...',
+                        prefixIcon: Icons.search,
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(child: Text('No industries found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final item = filtered[index];
+                                  final isSelected =
+                                      _selectedIndustry?.id == item.id;
+                                  return ListTile(
+                                    title: Text(item.name),
+                                    trailing: isSelected
+                                        ? const Icon(Icons.check_circle,
+                                            color: AppColors.primary)
+                                        : null,
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedIndustry = item;
+                                        _industryDisplayController.text =
+                                            item.name;
+                                      });
+                                      Navigator.of(context).pop();
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                      AppSizes.vGapLg,
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showPrimaryGoalBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final search = _goalSearchController.text.trim().toLowerCase();
+            final filtered = search.isEmpty
+                ? _founderGoals
+                : _founderGoals
+                    .where((c) => c.name.toLowerCase().contains(search))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Primary Goal (${_selectedFounderGoalIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              _updateFounderGoalsDisplayText();
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Done',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _goalSearchController,
+                        hint: 'Search primary goal...',
+                        prefixIcon: Icons.search,
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(child: Text('No goals found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final item = filtered[index];
+                                  final isSelected =
+                                      _selectedFounderGoalIds.contains(item.id);
+                                  return CheckboxListTile(
+                                    title: Text(item.name),
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (_) {
+                                      setState(() {
+                                        if (isSelected) {
+                                          _selectedFounderGoalIds.remove(item.id);
+                                        } else {
+                                          _selectedFounderGoalIds.add(item.id);
+                                        }
+                                      });
+                                      setSheetState(() {});
+                                      _updateFounderGoalsDisplayText();
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppPrimaryButton(
+                        label:
+                            'Done (${_selectedFounderGoalIds.length} selected)',
+                        onPressed: () {
+                          _updateFounderGoalsDisplayText();
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      AppSizes.vGapLg,
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> _save() async {
     final fullName = _fullName.text.trim();
-
     if (fullName.isEmpty) {
       context.showSnack('Name is required', isError: true);
       return;
     }
 
     setState(() => _saving = true);
-    final int teamSizeInt = int.tryParse(_teamSize.text.trim()) ?? 1;
-    final Map<String, dynamic> body = {
-      // ── Personal ────────────────────────────────────────────────────────────
+
+    final payload = <String, dynamic>{
       'fullName': fullName,
-      'phone': _phone.text.trim(),
-      'phoneCode': _phoneCode.text.trim(),
-      'countryCode': _countryCode.text.trim(),
-      'bio': _bio.text.trim(),
-      // ── Location ────────────────────────────────────────────────────────────
       'city': _city.text.trim(),
-      'state': '',
-      'country': _countryId ?? _country.text.trim(),
-      // ── Social & Links ──────────────────────────────────────────────────────
-      'linkedin': _linkedin.text.trim(),
-      'website': _website.text.trim(),
-      // ── Startup Details ─────────────────────────────────────────────────────
-      'founderType': _founderTypeId ?? '',
+      if (_bio.text.trim().isNotEmpty) 'bio': _bio.text.trim(),
+      if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
+      if (_selectedState != null) 'stateId': _selectedState!.id,
       'startupName': _startupName.text.trim(),
-      'industry': _industryId ?? '',
-      'category': _categoryId ?? '',
-      'fundingStage': _stageId ?? '',
-      'teamSize': teamSizeInt,
-      // ── Financials ──────────────────────────────────────────────────────────
-      'raised': double.tryParse(_raised.text.trim()) ?? 0,
-      'equityOffered': double.tryParse(_equityOffered.text.trim()) ?? 0,
-      'valuation': double.tryParse(_valuation.text.trim()) ?? 0,
-      'runway': _runway.text.trim(),
-      'burnRate': double.tryParse(_burnRate.text.trim()) ?? 0,
-      // ── Narrative ───────────────────────────────────────────────────────────
-      'problemStatement': _problemStatement.text.trim(),
-      'solution': _solution.text.trim(),
-      'businessModel': _businessModel.text.trim(),
-      'revenueModel': _revenueModel.text.trim(),
-      'marketSize': '',
-      'targetCustomers': _targetCustomers.text.trim(),
-      'competitiveAdvantage': _competitiveAdvantage.text.trim(),
-      'technologyStack': _technologyStack.text.trim(),
-      // ── Background ──────────────────────────────────────────────────────────
-      'education': _education.text.trim(),
-      'experience': _experience.text.trim(),
+      if (_pitch.text.trim().isNotEmpty) 'pitch': _pitch.text.trim(),
+      if (_selectedIndustry != null) 'industryId': _selectedIndustry!.id,
+      if (_selectedStage != null) 'stageId': _selectedStage!.id,
+      if (_selectedRole != null) 'founderRoleId': _selectedRole!.id,
+      if (_selectedTeamSize != null) 'teamSizeId': _selectedTeamSize!.id,
+      if (_selectedFounderGoalIds.isNotEmpty)
+        'primaryGoalId': _selectedFounderGoalIds.toList(),
+      if (_targetRaise.text.trim().isNotEmpty)
+        'targetRaise': double.tryParse(_targetRaise.text.trim()) ??
+            _targetRaise.text.trim(),
+      if (_localAvatarPath != null || _avatarUrl != null)
+        'logo': _localAvatarPath ?? _avatarUrl,
     };
 
-    final Result<String> res;
-    if (_localAvatarPath != null) {
-      final uploadRes = await sl<FileUploadHelper>().upload(
-        path: _localAvatarPath!,
-        endpoint: ApiEndpoints.founderProfile,
-        fileField: 'file',
-        method: 'put',
-        fields: body,
-      );
-      res = uploadRes.fold((f) => Err(f), (json) {
-        final url =
-            json['avatarUrl']?.toString() ??
-            json['logo']?.toString() ??
-            json['url']?.toString() ??
-            _avatarUrl;
-        if (url != null) _avatarUrl = url;
-        return const Success('Founder profile updated successfully');
-      });
-    } else {
-      res = await sl<ApiClientHelper>().putEnvelope<String>(
-        ApiEndpoints.founderProfile,
-        body: body,
-        parser: (envelope) => envelope.message?.trim().isNotEmpty == true
-            ? envelope.message!
-            : 'Founder profile updated successfully',
-      );
-    }
+    final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.updateMe,
+      body: payload,
+      parser: (env) =>
+          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+    );
 
     if (!mounted) return;
-    setState(() {
-      _saving = false;
-      if (res.isSuccess) {
-        _localAvatarPath = null;
+    setState(() => _saving = false);
+
+    if (res.isSuccess) {
+      final msg = res.valueOrNull?['message']?.toString() ??
+          'Founder profile updated successfully';
+      context.showSnack(msg);
+      final currentUser = context.read<AuthBloc>().state.user;
+      if (currentUser != null) {
+        context.read<AuthBloc>().add(
+              AuthUserUpdated(
+                currentUser.copyWith(
+                  fullName: fullName,
+                  location: _city.text.trim(),
+                ),
+              ),
+            );
       }
-    });
-
-    if (res.isFailure) {
-      context.showSnack(res.failureOrNull!.message, isError: true);
-      return;
-    }
-
-    final message = res.valueOrNull ?? 'Founder profile updated successfully';
-    final currentUser = context.read<AuthBloc>().state.user;
-    if (currentUser != null) {
-      context.read<AuthBloc>().add(
-        AuthUserUpdated(
-          currentUser.copyWith(
-            fullName: fullName,
-            location: _city.text.trim(),
-            avatarUrl: _avatarUrl,
-          ),
-        ),
+      Navigator.of(context).pop();
+    } else {
+      context.showSnack(
+        res.failureOrNull?.message ?? 'Failed to update profile',
+        isError: true,
       );
     }
+  }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.showSnack(message);
-      Navigator.of(context).pop();
-    });
+  Future<void> _uploadAvatar(String path) async {
+    setState(() => _localAvatarPath = path);
+    final result = await sl<FileUploadHelper>().uploadUrl(
+      path: path,
+      endpoint: ApiEndpoints.updateMe,
+      method: 'put',
+      fileField: 'file',
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) => context.showSnack(failure.message, isError: true),
+      (url) {
+        setState(() {
+          _avatarUrl = url;
+          _localAvatarPath = null;
+        });
+        context.read<AuthBloc>().add(const AuthRefreshUser());
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(title: const Text('Founder Profile')),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView(
-            padding: const EdgeInsets.all(AppSizes.screenPadding),
-            children: [
-              AppCard(
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.auto_stories_outlined,
-                      color: context.colors.primary,
+        appBar: AppBar(
+          leading:
+              IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Founder Profile'),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                children: [
+                  Center(
+                    child: ProfileAvatarEditor(
+                      localPath: _localAvatarPath,
+                      networkUrl: _avatarUrl,
+                      onPathPicked: _uploadAvatar,
                     ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Startup story',
-                            style: context.text.titleMedium,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Help investors understand your founder profile, market, and funding position.',
-                            style: context.text.bodySmall?.copyWith(
-                              color: context.colors.onSurfaceVariant,
-                            ),
+                  ),
+                  AppSizes.vGapXl,
+                  AppCard(
+                    child: Column(
+                      children: [
+                        AppTextField(
+                          controller: _email,
+                          label: 'Email',
+                          hint: 'Email Address',
+                          readOnly: true,
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _fullName,
+                          label: 'Name *',
+                          hint: 'Enter your name',
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _startupName,
+                          label: 'Startup / Company Name *',
+                          hint: 'e.g. LogiTech AI',
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _industryDisplayController,
+                          label: 'Industry *',
+                          hint: 'Select Industry',
+                          readOnly: true,
+                          suffixIcon:
+                              const Icon(Icons.keyboard_arrow_down_rounded),
+                          onTap: _showIndustryBottomSheet,
+                        ),
+                        AppSizes.vGapMd,
+                        AppDropdown<MasterOption>(
+                          label: 'Current Stage *',
+                          hint: 'Select Current Stage',
+                          value: _selectedStage,
+                          items: _stages,
+                          itemLabel: (item) => item.name,
+                          onChanged: (opt) =>
+                              setState(() => _selectedStage = opt),
+                        ),
+                        AppSizes.vGapMd,
+                        AppDropdown<MasterOption>(
+                          label: 'Role in Startup *',
+                          hint: 'Select Role in Startup',
+                          value: _selectedRole,
+                          items: _roles,
+                          itemLabel: (item) => item.name,
+                          onChanged: (opt) =>
+                              setState(() => _selectedRole = opt),
+                        ),
+                        AppSizes.vGapMd,
+                        AppDropdown<MasterOption>(
+                          label: 'Team Size *',
+                          hint: 'Select Team Size',
+                          value: _selectedTeamSize,
+                          items: _teamSizes,
+                          itemLabel: (item) => item.name,
+                          onChanged: (opt) =>
+                              setState(() => _selectedTeamSize = opt),
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _primaryGoalDisplayController,
+                          label: _selectedFounderGoalIds.isEmpty
+                              ? 'Primary Goal on Platform'
+                              : 'Primary Goal on Platform (${_selectedFounderGoalIds.length})',
+                          hint: 'Select Primary Goal',
+                          readOnly: true,
+                          suffixIcon:
+                              const Icon(Icons.keyboard_arrow_down_rounded),
+                          onTap: _showPrimaryGoalBottomSheet,
+                        ),
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _targetRaise,
+                          label: 'Target Raise (\$)',
+                          hint: 'e.g. 750000',
+                          keyboardType: TextInputType.number,
+                        ),
+                        AppSizes.vGapMd,
+                        AppLocationField(
+                          controller: _city,
+                          label: 'City / Location *',
+                          hint: 'Select location',
+                        ),
+                        AppSizes.vGapMd,
+                        AppDropdown<MasterOption>(
+                          label: 'Country *',
+                          hint: 'Select Country',
+                          value: _selectedCountry,
+                          items: _countries,
+                          itemLabel: (item) => item.name,
+                          onChanged: (opt) {
+                            setState(() {
+                              _selectedCountry = opt;
+                              _selectedState = null;
+                              _states = [];
+                            });
+                            if (opt != null) {
+                              _loadStatesForCountry(opt.id);
+                            }
+                          },
+                        ),
+                        if (_selectedCountry != null) ...[
+                          AppSizes.vGapMd,
+                          AppDropdown<MasterOption>(
+                            label: 'State *',
+                            hint: 'Select State',
+                            value: _selectedState,
+                            items: _states,
+                            itemLabel: (item) => item.name,
+                            onChanged: (opt) =>
+                                setState(() => _selectedState = opt),
                           ),
                         ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.vGapLg,
-              Center(
-                child: ProfileAvatarEditor(
-                  localPath: _localAvatarPath,
-                  networkUrl: _avatarUrl,
-                  onPathPicked: (path) =>
-                      setState(() => _localAvatarPath = path),
-                ),
-              ),
-              AppSizes.vGapXl,
-              _buildSectionTitle('Personal Details'),
-              AppCard(
-                child: Column(
-                  children: [
-                    AppTextField(
-                      controller: _email,
-                      label: 'Email',
-                      hint: 'Email Address',
-                      readOnly: true,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _fullName,
-                      label: 'Name',
-                      hint: 'Enter your name',
-                    ),
-                    AppSizes.vGapMd,
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 92,
-                          child: AppTextField(
-                            controller: _phoneCode,
-                            label: 'Code',
-                            hint: '+91',
-                          ),
-                        ),
-                        AppSizes.hGapMd,
-                        Expanded(
-                          child: AppTextField(
-                            controller: _phone,
-                            label: 'Phone Number',
-                            hint: 'Enter your phone number',
-                            keyboardType: TextInputType.phone,
-                            maxLength: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSizes.vGapMd,
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(
-                          width: 110,
-                          child: AppTextField(
-                            controller: _countryCode,
-                            label: 'Country Code',
-                            hint: 'IN',
-                          ),
-                        ),
-                        AppSizes.hGapMd,
-                        Expanded(
-                          child: AppDropdown<String>(
-                            label: 'Country',
-                            hint: 'Select country',
-                            value: _countryId,
-                            items: _countriesList
-                                .map((e) => e['id']?.toString() ?? '')
-                                .toList(),
-                            itemLabel: (v) {
-                              final item = _countriesList.firstWhere(
-                                (e) => e['id'] == v,
-                                orElse: () => {},
-                              );
-                              return (item['name'] ?? item['label'] ?? v)
-                                  .toString();
-                            },
-                            onChanged: (v) => setState(() => _countryId = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSizes.vGapMd,
-                    AppLocationField(
-                      controller: _city,
-                      label: 'City',
-                      hint: 'Select city',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _linkedin,
-                      label: 'LinkedIn Profile',
-                      hint: 'https://linkedin.com/in/...',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _website,
-                      label: 'Website',
-                      hint: 'https://...',
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.vGapLg,
-              _buildSectionTitle('Startup Details'),
-              AppCard(
-                child: Column(
-                  children: [
-                    AppTextField(
-                      controller: _startupName,
-                      label: 'Startup Name',
-                      hint: 'Enter startup name',
-                    ),
-                    AppSizes.vGapMd,
-                    AppDropdown<String>(
-                      label: 'Founder Type',
-                      hint: 'Select founder type',
-                      value: _founderTypeId,
-                      items: _founderTypesList
-                          .map((e) => e['id']?.toString() ?? '')
-                          .toList(),
-                      itemLabel: (v) {
-                        final item = _founderTypesList.firstWhere(
-                          (e) => e['id'] == v,
-                          orElse: () => {},
-                        );
-                        return item['label']?.toString() ?? v;
-                      },
-                      onChanged: (v) => setState(() => _founderTypeId = v),
-                    ),
-                    AppSizes.vGapMd,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppDropdown<String>(
-                            label: 'Industry',
-                            hint: 'Select industry',
-                            value: _industryId,
-                            items: _industriesList
-                                .map((e) => e['id']?.toString() ?? '')
-                                .where((id) => id.isNotEmpty)
-                                .toList(),
-                            itemLabel: (v) {
-                              final item = _industriesList.firstWhere(
-                                (e) => e['id'] == v,
-                                orElse: () => {},
-                              );
-                              return (item['name'] ?? item['label'] ?? v)
-                                  .toString();
-                            },
-                            onChanged: (v) => setState(() => _industryId = v),
-                          ),
-                        ),
-                        AppSizes.hGapMd,
-                        Expanded(
-                          child: AppDropdown<String>(
-                            label: 'Category',
-                            hint: 'Select category',
-                            value: _categoryId,
-                            items: _categoriesList
-                                .map((e) => e['id']?.toString() ?? '')
-                                .where((id) => id.isNotEmpty)
-                                .toList(),
-                            itemLabel: (v) {
-                              final item = _categoriesList.firstWhere(
-                                (e) => e['id'] == v,
-                                orElse: () => {},
-                              );
-                              return (item['name'] ?? item['label'] ?? v)
-                                  .toString();
-                            },
-                            onChanged: (v) => setState(() => _categoryId = v),
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSizes.vGapMd,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppDropdown<String>(
-                            label: 'Stage',
-                            hint: 'Select stage',
-                            value: _stageId,
-                            items: _stagesList
-                                .map((e) => e['id']?.toString() ?? '')
-                                .toList(),
-                            itemLabel: (v) {
-                              final item = _stagesList.firstWhere(
-                                (e) => e['id'] == v,
-                                orElse: () => {},
-                              );
-                              return item['label']?.toString() ?? v;
-                            },
-                            onChanged: (v) => setState(() => _stageId = v),
-                          ),
-                        ),
-                        AppSizes.hGapMd,
-                        Expanded(
-                          child: AppTextField(
-                            controller: _teamSize,
-                            label: 'Team Size',
-                            hint: 'e.g. 5',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.vGapLg,
-              _buildSectionTitle('Product & Market'),
-              AppCard(
-                child: Column(
-                  children: [
-                    AppTextField(
-                      controller: _shortPitch,
-                      label: 'Short Pitch',
-                      hint: 'A one-line pitch of your startup',
-                      maxLines: 2,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _problemStatement,
-                      label: 'Problem Statement',
-                      hint: 'What important problem are you solving?',
-                      maxLines: 4,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _solution,
-                      label: 'Solution',
-                      hint: 'Explain how your product solves it',
-                      maxLines: 4,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _targetCustomers,
-                      label: 'Target Customers',
-                      hint: 'Who buys or uses your solution?',
-                      maxLines: 3,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _competitiveAdvantage,
-                      label: 'Competitive Advantage',
-                      hint: 'What makes your company hard to copy?',
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.vGapLg,
-              _buildSectionTitle('Business Model'),
-              AppCard(
-                child: Column(
-                  children: [
-                    AppTextField(
-                      controller: _businessType,
-                      label: 'Business Type',
-                      hint: 'e.g. B2B',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _businessModel,
-                      label: 'Business Model',
-                      hint: 'e.g. Enterprise SaaS',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _revenueModel,
-                      label: 'Revenue Model',
-                      hint: 'How does the business make money?',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _technologyStack,
-                      label: 'Technology Stack',
-                      hint: 'TypeScript, Python, PostgreSQL',
-                      maxLines: 2,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _expansionGoals,
-                      label: 'Expansion Goals',
-                      hint: 'Describe your next growth milestone',
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.vGapLg,
-              _buildSectionTitle('Funding'),
-              AppCard(
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppTextField(
-                            controller: _raised,
-                            label: 'Raised',
-                            hint: '0',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                        AppSizes.hGapMd,
-                        Expanded(
-                          child: AppTextField(
-                            controller: _equityOffered,
-                            label: 'Equity (%)',
-                            hint: '0',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _valuation,
-                      label: 'Valuation',
-                      hint: '0',
-                      keyboardType: TextInputType.number,
-                    ),
-                    AppSizes.vGapMd,
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AppTextField(
-                            controller: _runway,
-                            label: 'Runway',
-                            hint: 'e.g. 18 Months',
-                          ),
-                        ),
-                        AppSizes.hGapMd,
-                        Expanded(
-                          child: AppTextField(
-                            controller: _burnRate,
-                            label: 'Monthly Burn Rate',
-                            hint: '0',
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),

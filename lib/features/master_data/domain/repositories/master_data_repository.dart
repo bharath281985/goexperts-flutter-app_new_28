@@ -1,6 +1,8 @@
 import '../../../../core/utils/result.dart';
+import '../entities/master_option.dart';
 import '../entities/skill_category.dart';
 import '../entities/skill_option.dart';
+import '../entities/ticket_size_option.dart';
 
 abstract class MasterDataRepository {
   Future<Result<List<SkillCategory>>> getSkillCategories({
@@ -36,4 +38,19 @@ abstract class MasterDataRepository {
   Future<Result<List<String>>> getDesignations();
   Future<Result<List<String>>> getCompanySizes();
   Future<Result<List<String>>> getStartupGoals();
+
+  Future<Result<List<MasterOption>>> getCountriesOptions();
+  Future<Result<List<MasterOption>>> getStatesOptions(String countryIdOrCode);
+  Future<Result<List<MasterOption>>> getExperienceLevelOptions();
+  Future<Result<List<MasterOption>>> getAvailabilityOptions();
+  Future<Result<List<MasterOption>>> getCompanySizeOptions();
+  Future<Result<List<MasterOption>>> getHiringBudgetOptions();
+  Future<Result<List<MasterOption>>> getHiringGoalOptions();
+  Future<Result<List<MasterOption>>> getInvestorTypeOptions();
+  Future<Result<List<MasterOption>>> getInvestorStageOptions();
+  Future<Result<List<TicketSizeOption>>> getTicketSizeOptions();
+  Future<Result<List<MasterOption>>> getIndustryOptions();
+  Future<Result<List<MasterOption>>> getStartupStageOptions();
+  Future<Result<List<MasterOption>>> getStartupRoleOptions();
+  Future<Result<List<MasterOption>>> getFounderGoalOptions();
 }

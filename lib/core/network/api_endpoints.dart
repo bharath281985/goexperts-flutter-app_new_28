@@ -64,6 +64,7 @@ class ApiEndpoints {
   static const publicExpansionGoals = '/expansion-goals';
   static const publicStates = '/states';
   static const publicExperienceLevels = '/public/experience-levels';
+  static const publicAvailabilities = '/public/availabilities';
   static const publicWorkModes = '/public/work-modes';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';

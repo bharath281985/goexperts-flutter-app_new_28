@@ -1,19 +1,25 @@
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
-import '../../domain/entities/freelancer_profile.dart';
+import '../../../master_data/domain/entities/master_option.dart';
+import '../../../master_data/domain/entities/skill_category.dart';
+import '../../../master_data/domain/entities/skill_option.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
 
 class FreelancerEditProfilePage extends StatefulWidget {
@@ -24,47 +30,54 @@ class FreelancerEditProfilePage extends StatefulWidget {
       _FreelancerEditProfilePageState();
 }
 
-class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
+class _FreelancerEditProfilePageState
+    extends State<FreelancerEditProfilePage> {
+  final _formKey = GlobalKey<FormState>();
+
   // Controllers
-  final _bio = TextEditingController();
-  final _hourlyRate = TextEditingController();
-  final _skillsRaw = TextEditingController(); // "skill1, skill2"
-  final _experience = TextEditingController();
-  final _education = TextEditingController();
-  final _languages = TextEditingController();
   final _fullName = TextEditingController();
-  final _phone = TextEditingController();
-  final _phoneCode = TextEditingController(text: '+91');
-  final _countryCode = TextEditingController(text: 'IN');
-  final _experienceYears = TextEditingController();
   final _title = TextEditingController();
   final _city = TextEditingController();
-  final _state = TextEditingController();
-  final _country = TextEditingController();
+  final _bio = TextEditingController();
+  final _hourlyRate = TextEditingController();
+  final _categoryDisplayController = TextEditingController();
+  final _skillsDisplayController = TextEditingController();
+  final _categorySearch = TextEditingController();
+  final _skillSearch = TextEditingController();
+
+  // Social & Link Controllers
   final _github = TextEditingController();
   final _portfolio = TextEditingController();
   final _linkedin = TextEditingController();
   final _website = TextEditingController();
-  final _panNumber = TextEditingController();
-  final _aadhaarNumber = TextEditingController();
 
-  // Availability options
-  static const _availabilityOptions = [
-    'available',
-    'part-time',
-    'not-available',
-  ];
-  String _availability = 'available';
+  // Selected Master Options
+  MasterOption? _selectedCountry;
+  MasterOption? _selectedState;
+  MasterOption? _selectedExperience;
+  MasterOption? _selectedAvailability;
 
-  // State
+  List<MasterOption> _countries = [];
+  List<MasterOption> _states = [];
+  List<MasterOption> _experienceLevels = [];
+  List<MasterOption> _availabilities = [];
+
+  // Categories & Skills
+  List<SkillCategory> _categories = [];
+  String? _selectedCategoryId;
+  List<SkillOption> _visibleSkills = [];
+  final Set<String> _selectedSkillIds = {};
+  final Map<String, List<SkillOption>> _skillsByCategoryId = {};
+
+  // Loading States
   bool _loading = true;
   bool _saving = false;
   bool _uploadingAvatar = false;
-  FreelancerProfile? _profile;
+  bool _loadingCategories = false;
+  bool _loadingSkills = false;
+
   String? _localAvatarPath;
   String? _currentAvatarUrl;
-  String? _currentResumeUrl;
-  String? _pendingResumePath; // staged resume, uploaded on Save
 
   @override
   void initState() {
@@ -74,150 +87,376 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
   @override
   void dispose() {
-    _bio.dispose();
-    _hourlyRate.dispose();
-    _skillsRaw.dispose();
-    _experience.dispose();
-    _education.dispose();
-    _languages.dispose();
     _fullName.dispose();
-    _phone.dispose();
-    _phoneCode.dispose();
-    _countryCode.dispose();
-    _experienceYears.dispose();
     _title.dispose();
     _city.dispose();
-    _state.dispose();
-    _country.dispose();
+    _bio.dispose();
+    _hourlyRate.dispose();
+    _categoryDisplayController.dispose();
+    _skillsDisplayController.dispose();
+    _categorySearch.dispose();
+    _skillSearch.dispose();
     _github.dispose();
     _portfolio.dispose();
     _linkedin.dispose();
     _website.dispose();
-    _panNumber.dispose();
-    _aadhaarNumber.dispose();
     super.dispose();
   }
 
-  // ─── Data ──────────────────────────────────────────────────────────────────
+  // ─── Data Loading ──────────────────────────────────────────────────────────
 
-  Future<void> _load() async {
-    final res = await sl<FreelancerProfileRepository>().getProfile();
+  Future<void> _loadMasterData() async {
+    final repo = sl<MasterDataRepository>();
+
+    final cRes = await repo.getCountriesOptions();
+    if (mounted && cRes.isSuccess) {
+      _countries = cRes.valueOrNull ?? [];
+    }
+
+    final expRes = await repo.getExperienceLevelOptions();
+    if (mounted && expRes.isSuccess) {
+      _experienceLevels = expRes.valueOrNull ?? [];
+    }
+
+    final availRes = await repo.getAvailabilityOptions();
+    if (mounted && availRes.isSuccess) {
+      _availabilities = availRes.valueOrNull ?? [];
+    }
+
+    _loadCategories();
+  }
+
+  Future<void> _loadStatesForCountry(String countryIdOrCode) async {
+    final res =
+        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
     if (!mounted) return;
-    res.fold((f) => context.showSnack(f.message), (p) {
-      _profile = p;
-      _currentAvatarUrl = p.avatarUrl;
-      _currentResumeUrl = p.resumeUrl;
-      _bio.text = p.bio;
-      _hourlyRate.text = p.hourlyRate > 0
-          ? p.hourlyRate.toStringAsFixed(0)
-          : '';
-      _skillsRaw.text = p.skills.join(', ');
-      _experience.text = p.experience;
-      _education.text = p.education;
-      _languages.text = p.languages.join(', ');
+    _states = res.valueOrNull ?? [];
+    _matchAllDropdowns();
+  }
 
-      _fullName.text = p.fullName;
-      _phone.text = p.phone;
-      _phoneCode.text = p.phoneCode.isEmpty ? '+91' : p.phoneCode;
-      _countryCode.text = p.countryCode.isEmpty ? 'IN' : p.countryCode;
-      _experienceYears.text = p.experienceYears > 0
-          ? p.experienceYears.toString()
-          : p.experience;
-      _title.text = p.title;
-      _city.text = p.city;
-      _state.text = p.state;
-      _country.text = p.country;
-      _github.text = p.githubUrl;
-      _portfolio.text = p.portfolioUrl;
-      _linkedin.text = p.linkedin;
-      _website.text = p.website;
-      _panNumber.text = p.panNumber;
-      _aadhaarNumber.text = p.aadhaarNumber;
+  Future<void> _loadCategories() async {
+    setState(() => _loadingCategories = true);
+    final result = await sl<MasterDataRepository>().getSkillCategories();
+    if (!mounted) return;
 
-      if (_availabilityOptions.contains(p.availability)) {
-        _availability = p.availability;
+    final categories = result.valueOrNull ?? [];
+    setState(() {
+      _categories = categories;
+      _loadingCategories = false;
+      if (_selectedCategoryId != null) {
+        final cat = _selectedCategory;
+        if (cat != null && _categoryDisplayController.text.isEmpty) {
+          _categoryDisplayController.text = cat.name;
+        }
       }
     });
-    setState(() => _loading = false);
+
+    if (_selectedCategoryId != null) {
+      _loadSkillsForCategory(_selectedCategoryId!);
+    }
+  }
+
+  Future<void> _loadSkillsForCategory(String categoryId) async {
+    if (_skillsByCategoryId.containsKey(categoryId)) {
+      setState(() {
+        _selectedCategoryId = categoryId;
+        _visibleSkills = _skillsByCategoryId[categoryId] ?? [];
+      });
+      _updateSkillsDisplayText();
+      return;
+    }
+
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _loadingSkills = true;
+    });
+
+    final repo = sl<MasterDataRepository>();
+    final allSkills = <SkillOption>[];
+    var page = 1;
+    const pageSize = 100;
+    var total = 0;
+
+    while (true) {
+      final result = await repo.getSkills(
+        categoryId: categoryId,
+        page: page,
+        pageSize: pageSize,
+      );
+      if (!mounted) return;
+
+      final batch = result.valueOrNull ?? [];
+      if (batch.isEmpty) break;
+
+      allSkills.addAll(batch.where((skill) => skill.id.isNotEmpty));
+
+      if (page == 1) {
+        final totalResult =
+            await repo.getSkillsTotal(categoryId: categoryId);
+        total = totalResult.valueOrNull ?? batch.length;
+      }
+
+      if (allSkills.length >= total || batch.length < pageSize) break;
+      page++;
+    }
+
+    setState(() {
+      _skillsByCategoryId[categoryId] = allSkills;
+      _visibleSkills = allSkills;
+      _loadingSkills = false;
+    });
+    _updateSkillsDisplayText();
+  }
+
+  MasterOption? _matchOption(MasterOption? current, List<MasterOption> list) {
+    if (current == null || list.isEmpty) return null;
+    for (final item in list) {
+      if (item == current) return item;
+      if (current.id.isNotEmpty && item.id == current.id) return item;
+      if (current.name.isNotEmpty &&
+          item.name.trim().toLowerCase() == current.name.trim().toLowerCase()) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  void _matchAllDropdowns() {
+    if (!mounted) return;
+    setState(() {
+      if (_countries.isNotEmpty) {
+        _selectedCountry = _matchOption(_selectedCountry, _countries);
+      }
+      if (_states.isNotEmpty) {
+        _selectedState = _matchOption(_selectedState, _states);
+      }
+      if (_experienceLevels.isNotEmpty) {
+        _selectedExperience =
+            _matchOption(_selectedExperience, _experienceLevels);
+      }
+      if (_availabilities.isNotEmpty) {
+        _selectedAvailability =
+            _matchOption(_selectedAvailability, _availabilities);
+      }
+    });
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+
+    await _loadMasterData();
+
+    try {
+      final res = await sl<ApiClientHelper>().getEnvelope<Map<String, dynamic>>(
+        ApiEndpoints.me,
+        parser: (env) {
+          if (env.data is Map && (env.data as Map)['user'] is Map) {
+            return Map<String, dynamic>.from((env.data as Map)['user'] as Map);
+          }
+          if (env.data is Map) {
+            return Map<String, dynamic>.from(env.data as Map);
+          }
+          return {};
+        },
+      );
+
+      if (res.isSuccess) {
+        final userMap = res.valueOrNull ?? {};
+        final fn =
+            userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
+        if (fn != null && fn.isNotEmpty) _fullName.text = fn;
+
+        final bioVal = userMap['bio']?.toString();
+        if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal;
+
+        final locVal =
+            userMap['city']?.toString() ?? userMap['location']?.toString();
+        if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
+
+        _currentAvatarUrl =
+            userMap['avatarUrl']?.toString() ?? userMap['avatar_url']?.toString();
+
+        if (userMap['country'] is Map) {
+          final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
+          final cid =
+              (cMap['id'] ?? cMap['code'] ?? cMap['_id'])?.toString() ?? '';
+          final cname = (cMap['name'] ?? cMap['label'])?.toString() ?? cid;
+          if (cid.isNotEmpty && cname.isNotEmpty) {
+            _selectedCountry = MasterOption(id: cid, name: cname);
+            await _loadStatesForCountry(cid);
+          }
+        } else if (userMap['country'] is String) {
+          final cstr = userMap['country'].toString();
+          if (cstr.isNotEmpty) {
+            _selectedCountry = MasterOption(id: cstr, name: cstr);
+            await _loadStatesForCountry(cstr);
+          }
+        }
+
+        if (userMap['state'] is Map) {
+          final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
+          final sid =
+              (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
+          final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
+          if (sid.isNotEmpty && sname.isNotEmpty) {
+            _selectedState = MasterOption(id: sid, name: sname);
+          }
+        } else if (userMap['state'] is String) {
+          final sstr = userMap['state'].toString();
+          if (sstr.isNotEmpty) {
+            _selectedState = MasterOption(id: sstr, name: sstr);
+          }
+        }
+
+        if (userMap['profile'] is Map) {
+          final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
+
+          final headlineVal =
+              (pMap['titleHeadline'] ?? pMap['headline'] ?? pMap['title'])
+                  ?.toString();
+          if (headlineVal != null && headlineVal.isNotEmpty) {
+            _title.text = headlineVal;
+          }
+
+          final rateVal = pMap['hourlyRate'] ?? pMap['hourly_rate'];
+          if (rateVal != null) {
+            _hourlyRate.text = rateVal.toString();
+          }
+
+          _github.text =
+              (pMap['githubUrl'] ?? pMap['github'])?.toString() ?? '';
+          _portfolio.text =
+              (pMap['portfolioUrl'] ?? pMap['portfolio'])?.toString() ?? '';
+          _linkedin.text =
+              (pMap['linkedInUrl'] ?? pMap['linkedin'])?.toString() ?? '';
+          _website.text =
+              (pMap['websiteUrl'] ?? pMap['website'])?.toString() ?? '';
+
+          if (pMap['experience'] is Map) {
+            final expMap = Map<String, dynamic>.from(pMap['experience'] as Map);
+            final eid = (expMap['id'] ?? expMap['_id'])?.toString() ?? '';
+            final ename =
+                (expMap['name'] ?? expMap['label'])?.toString() ?? eid;
+            if (eid.isNotEmpty && ename.isNotEmpty) {
+              _selectedExperience = MasterOption(id: eid, name: ename);
+            }
+          }
+
+          if (pMap['availability'] is Map) {
+            final availMap =
+                Map<String, dynamic>.from(pMap['availability'] as Map);
+            final aid = (availMap['id'] ?? availMap['_id'])?.toString() ?? '';
+            final aname =
+                (availMap['name'] ?? availMap['label'])?.toString() ?? aid;
+            if (aid.isNotEmpty && aname.isNotEmpty) {
+              _selectedAvailability = MasterOption(id: aid, name: aname);
+            }
+          }
+
+          if (pMap['industry'] is Map) {
+            final indMap = Map<String, dynamic>.from(pMap['industry'] as Map);
+            final indId = (indMap['id'] ?? indMap['_id'])?.toString();
+            final indName = (indMap['name'] ?? indMap['label'])?.toString();
+            if (indId != null && indId.isNotEmpty) {
+              _selectedCategoryId = indId;
+              if (indName != null && indName.isNotEmpty) {
+                _categoryDisplayController.text = indName;
+              }
+            }
+          }
+
+          if (pMap['skills'] is List) {
+            final skillsList = pMap['skills'] as List;
+            final prefilledNames = <String>[];
+            for (final s in skillsList) {
+              if (s is Map) {
+                final sid = (s['id'] ?? s['_id'])?.toString();
+                final sname = (s['name'] ?? s['label'])?.toString();
+                if (sid != null && sid.isNotEmpty) {
+                  _selectedSkillIds.add(sid);
+                }
+                if (sname != null && sname.isNotEmpty) {
+                  prefilledNames.add(sname);
+                }
+              } else if (s is String && s.isNotEmpty) {
+                _selectedSkillIds.add(s);
+              }
+            }
+            if (prefilledNames.isNotEmpty) {
+              _skillsDisplayController.text = prefilledNames.join(', ');
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    _matchAllDropdowns();
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _save() async {
-    if (_fullName.text.trim().isEmpty) {
-      context.showSnack('Full name is required', isError: true);
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedCategoryId == null) {
+      context.showSnack('Industry / Category is required', isError: true);
       return;
     }
+
     setState(() => _saving = true);
 
-    // Upload pending resume first
-    if (_pendingResumePath != null) {
-      final uploadRes = await sl<FreelancerProfileRepository>().uploadResume(
-        _pendingResumePath!,
-      );
-      if (!mounted) return;
-      uploadRes.fold(
-        (f) => context.showSnack(
-          'Resume upload failed: ${f.message}',
-          isError: true,
-        ),
-        (url) {
-          _pendingResumePath = null;
-          _currentResumeUrl = url;
-        },
-      );
-    }
-
-    // Notice we do NOT send _localAvatarPath here if it was a File path.
-    // The avatar URL is exclusively from _currentAvatarUrl after it uploads.
-    final payload = {
-      // ── Personal ──────────────────────────────────────────────────────────
+    final payload = <String, dynamic>{
       'fullName': _fullName.text.trim(),
-      'phone': _phone.text.trim(),
-      'phoneCode': _phoneCode.text.trim(),
-      'countryCode': _countryCode.text.trim(),
+      'titleHeadline': _title.text.trim(),
       'bio': _bio.text.trim(),
-      'title': _title.text.trim(),
-      // ── Location ──────────────────────────────────────────────────────────
       'city': _city.text.trim(),
-      'state': _state.text.trim(),
-      'country': _country.text.trim(),
-      // ── Work ──────────────────────────────────────────────────────────────
-      'availability': _availability,
-      'hourlyRate': double.tryParse(_hourlyRate.text.trim()) ?? 0.0,
-      'skills': _skillsRaw.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
-      'languages': _languages.text
-          .split(',')
-          .map((e) => e.trim())
-          .where((e) => e.isNotEmpty)
-          .toList(),
-      'education': _education.text.trim(),
-      'experience': _experienceYears.text.trim(),
-      // ── Social & Links ────────────────────────────────────────────────────
-      'githubUrl': _github.text.trim(),
+      if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
+      if (_selectedState != null) ...{
+        'stateId': _selectedState!.id,
+        'stateid': _selectedState!.id,
+      },
+      if (_selectedExperience != null) ...{
+        'experienceLevelId': _selectedExperience!.id,
+        'experienceId': _selectedExperience!.id,
+      },
+      if (_selectedAvailability != null) 'availabilityId': _selectedAvailability!.id,
+      if (_selectedCategoryId != null) ...{
+        'industryId': _selectedCategoryId,
+        'categoryId': _selectedCategoryId,
+      },
+      if (_hourlyRate.text.trim().isNotEmpty)
+        'hourlyRate':
+            double.tryParse(_hourlyRate.text.trim()) ??
+            _hourlyRate.text.trim(),
+      if (_selectedSkillIds.isNotEmpty) ...{
+        'skillIds': _selectedSkillIds.toList().join(','),
+        'skills': _selectedSkillIds.toList(),
+      },
       'portfolioUrl': _portfolio.text.trim(),
-      'linkedin': _linkedin.text.trim(),
-      'website': _website.text.trim(),
-      // ── KYC ───────────────────────────────────────────────────────────────
-      'panNumber': _panNumber.text.trim(),
-      'aadhaarNumber': _aadhaarNumber.text.trim(),
-      // ── Avatar & Resume ───────────────────────────────────────────────────
+      'githubUrl': _github.text.trim(),
+      'linkedInUrl': _linkedin.text.trim(),
+      'websiteUrl': _website.text.trim(),
       if (_currentAvatarUrl != null) 'avatarUrl': _currentAvatarUrl,
-      if (_currentAvatarUrl != null) 'avatar': _currentAvatarUrl,
-      if (_currentResumeUrl != null) 'resumeUrl': _currentResumeUrl,
-      if (_currentResumeUrl != null) 'resume': _currentResumeUrl,
     };
 
-    final res = await sl<FreelancerProfileRepository>().updateProfile(payload);
+    final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.updateMe,
+      body: payload,
+      parser: (envelope) => {
+        'message': envelope.message ?? 'Profile updated successfully',
+      },
+    );
+
     if (!mounted) return;
     setState(() => _saving = false);
-    res.fold((f) => context.showSnack(f.message), (_) {
-      context.showSnack('Profile updated successfully!');
-      context.read<AuthBloc>().add(const AuthRefreshUser());
-      Navigator.of(context).pop();
-    });
+    res.fold(
+      (f) => context.showSnack(f.message, isError: true),
+      (data) {
+        final msg =
+            data['message']?.toString() ?? 'Profile updated successfully!';
+        context.showSnack(msg);
+        context.read<AuthBloc>().add(const AuthRefreshUser());
+        Navigator.of(context).pop();
+      },
+    );
   }
 
   Future<void> _uploadAvatar(String path) async {
@@ -228,66 +467,280 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final res = await sl<FreelancerProfileRepository>().uploadAvatar(path);
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
-    res.fold((f) => context.showSnack(f.message), (url) async {
+    res.fold((f) => context.showSnack(f.message, isError: true), (url) async {
       setState(() {
         _localAvatarPath = null;
         _currentAvatarUrl = url;
       });
       context.read<AuthBloc>().add(const AuthRefreshUser());
-      context.showSnack('Avatar updated!');
+      context.showSnack('Avatar updated successfully!');
       await _load();
     });
   }
 
-  Future<void> _pickResume() async {
-    final picked = await FilePicker.platform.pickFiles(
-      allowMultiple: false,
-      type: FileType.custom,
-      allowedExtensions: ['pdf', 'doc', 'docx'],
-    );
-    final path = picked?.files.single.path;
-    if (path == null) return;
-    setState(() => _pendingResumePath = path);
-    context.showSnack('Resume selected — tap Save to upload.');
+  void _onCategorySelected(String categoryId) {
+    if (categoryId == _selectedCategoryId) return;
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedSkillIds.clear();
+      _skillsDisplayController.clear();
+      _visibleSkills = [];
+    });
+    final cat = _selectedCategory;
+    if (cat != null) {
+      _categoryDisplayController.text = cat.name;
+    }
+    _loadSkillsForCategory(categoryId);
   }
 
-  Future<void> _openResumeUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri == null) return;
-    try {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } catch (_) {
-      if (mounted) context.showSnack('Unable to open resume', isError: true);
+  SkillCategory? get _selectedCategory {
+    for (final category in _categories) {
+      if (category.id == _selectedCategoryId) return category;
+    }
+    return null;
+  }
+
+  void _toggleSkill(String skillId) {
+    setState(() {
+      if (_selectedSkillIds.contains(skillId)) {
+        _selectedSkillIds.remove(skillId);
+      } else {
+        _selectedSkillIds.add(skillId);
+      }
+    });
+    _updateSkillsDisplayText();
+  }
+
+  void _updateSkillsDisplayText() {
+    final selectedNames = <String>[];
+    for (final categorySkills in _skillsByCategoryId.values) {
+      for (final s in categorySkills) {
+        if (_selectedSkillIds.contains(s.id) &&
+            !selectedNames.contains(s.name)) {
+          selectedNames.add(s.name);
+        }
+      }
+    }
+    for (final s in _visibleSkills) {
+      if (_selectedSkillIds.contains(s.id) && !selectedNames.contains(s.name)) {
+        selectedNames.add(s.name);
+      }
+    }
+    if (selectedNames.isNotEmpty) {
+      _skillsDisplayController.text = selectedNames.join(', ');
+    } else if (_selectedSkillIds.isEmpty) {
+      _skillsDisplayController.clear();
     }
   }
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
+  void _showCategoryBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final search = _categorySearch.text.trim().toLowerCase();
+            final filtered = search.isEmpty
+                ? _categories
+                : _categories
+                    .where((c) => c.name.toLowerCase().contains(search))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.7,
+              maxChildSize: 0.9,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Select Industry / Category',
+                        style: context.text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppTextField(
+                        controller: _categorySearch,
+                        hint: 'Search categories...',
+                        prefixIcon: Icons.search,
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: _loadingCategories
+                            ? const Center(child: CircularProgressIndicator())
+                            : filtered.isEmpty
+                                ? const Center(
+                                    child: Text('No categories found'))
+                                : ListView.separated(
+                                    controller: scrollController,
+                                    itemCount: filtered.length,
+                                    separatorBuilder: (_, __) =>
+                                        const Divider(height: 1),
+                                    itemBuilder: (context, index) {
+                                      final cat = filtered[index];
+                                      final isSelected =
+                                          cat.id == _selectedCategoryId;
+                                      return ListTile(
+                                        title: Text(cat.name),
+                                        trailing: isSelected
+                                            ? const Icon(Icons.check_circle,
+                                                color: AppColors.primary)
+                                            : null,
+                                        onTap: () {
+                                          _onCategorySelected(cat.id);
+                                          _categoryDisplayController.text =
+                                              cat.name;
+                                          _skillsDisplayController.clear();
+                                          Navigator.of(context).pop();
+                                        },
+                                      );
+                                    },
+                                  ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSkillsBottomSheet() {
+    if (_selectedCategoryId == null) {
+      context.showSnack('Please select an Industry / Category first',
+          isError: true);
+      return;
+    }
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final search = _skillSearch.text.trim().toLowerCase();
+            final filtered = search.isEmpty
+                ? _visibleSkills
+                : _visibleSkills
+                    .where((s) => s.name.toLowerCase().contains(search))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Skills (${_selectedSkillIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              _updateSkillsDisplayText();
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Done',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _skillSearch,
+                        hint: 'Search skills...',
+                        prefixIcon: Icons.search,
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: _loadingSkills
+                            ? const Center(child: CircularProgressIndicator())
+                            : filtered.isEmpty
+                                ? const Center(child: Text('No skills found'))
+                                : ListView.separated(
+                                    controller: scrollController,
+                                    itemCount: filtered.length,
+                                    separatorBuilder: (_, __) =>
+                                        const Divider(height: 1),
+                                    itemBuilder: (context, index) {
+                                      final skill = filtered[index];
+                                      final isSelected = _selectedSkillIds
+                                          .contains(skill.id);
+                                      return CheckboxListTile(
+                                        title: Text(skill.name),
+                                        value: isSelected,
+                                        activeColor: AppColors.primary,
+                                        onChanged: (_) {
+                                          _toggleSkill(skill.id);
+                                          setSheetState(() {});
+                                        },
+                                      );
+                                    },
+                                  ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppPrimaryButton(
+                        label: 'Done (${_selectedSkillIds.length} selected)',
+                        onPressed: () {
+                          _updateSkillsDisplayText();
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      AppSizes.vGapLg,
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ─── Completion Percentage ─────────────────────────────────────────────────
 
   int _completionPercent() {
     final checks = [
       _bio.text.trim().isNotEmpty,
       _hourlyRate.text.trim().isNotEmpty,
-      _skillsRaw.text.trim().isNotEmpty,
-      _experience.text.trim().isNotEmpty,
-      _education.text.trim().isNotEmpty,
-      _languages.text.trim().isNotEmpty,
+      _selectedCategoryId != null,
+      _selectedCountry != null,
+      _selectedState != null,
+      _selectedExperience != null,
+      _selectedAvailability != null,
       _fullName.text.trim().isNotEmpty,
       _title.text.trim().isNotEmpty,
       _city.text.trim().isNotEmpty,
-      _panNumber.text.trim().isNotEmpty,
-      _aadhaarNumber.text.trim().isNotEmpty,
-      (_localAvatarPath ?? _profile?.avatarUrl ?? '').isNotEmpty,
-      (_profile?.resumeUrl?.isNotEmpty == true || _pendingResumePath != null),
+      (_localAvatarPath ?? _currentAvatarUrl ?? '').isNotEmpty,
     ];
     final filled = checks.where((c) => c).length;
     return ((filled / checks.length) * 100).round();
   }
 
-  // ─── UI ────────────────────────────────────────────────────────────────────
+  // ─── UI Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.colors;
     return AppScaffold(
       appBar: AppBar(
         leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
@@ -316,332 +769,236 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // ── Completion banner ───────────────────────────────────────
-                  _CompletionCard(percent: _completionPercent()),
-                  AppSizes.vGapLg,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Completion Card
+                    _CompletionCard(percent: _completionPercent()),
+                    AppSizes.vGapLg,
 
-                  // ── Avatar ─────────────────────────────────────────────────
-                  _SectionLabel('Profile Photo'),
-                  AppSizes.vGapSm,
-                  Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      ProfileAvatarEditor(
-                        localPath: _localAvatarPath,
-                        networkUrl: _currentAvatarUrl,
-                        onPathPicked: _uploadAvatar,
-                        size: 110,
-                      ),
-                      if (_uploadingAvatar)
-                        Positioned.fill(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.black38,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                  AppSizes.vGapLg,
-
-                  _SectionLabel('About You'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _fullName,
-                    label: 'Full Name',
-                    hint: 'Enter your full name',
-                  ),
-                  AppSizes.vGapMd,
-                  AppTextField(
-                    controller: _title,
-                    label: 'Professional Title',
-                    hint: 'e.g. Senior Flutter Developer',
-                  ),
-                  AppSizes.vGapMd,
-                  Row(
-                    children: [
-                      SizedBox(
-                        width: 92,
-                        child: AppTextField(
-                          controller: _phoneCode,
-                          label: 'Code',
-                          hint: '+91',
-                        ),
-                      ),
-                      AppSizes.hGapMd,
-                      Expanded(
-                        child: AppTextField(
-                          controller: _phone,
-                          label: 'Phone Number',
-                          hint: 'Enter your phone number',
-                          keyboardType: TextInputType.phone,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSizes.vGapLg,
-
-                  _SectionLabel('Location'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _city,
-                    label: 'City',
-                    hint: 'e.g. Hyderabad',
-                  ),
-                  AppSizes.vGapMd,
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: 110,
-                        child: AppTextField(
-                          controller: _countryCode,
-                          label: 'Country Code',
-                          hint: 'IN',
-                        ),
-                      ),
-                      AppSizes.hGapMd,
-                      Expanded(
-                        child: AppTextField(
-                          controller: _country,
-                          label: 'Country',
-                          hint: 'India',
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSizes.vGapLg,
-
-                  // ── Bio ────────────────────────────────────────────────────
-                  _SectionLabel('Professional Bio'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _bio,
-                    label: 'Bio',
-                    hint:
-                        'Tell clients about yourself, your expertise, and what makes you unique…',
-                    maxLines: 4,
-                    textInputAction: TextInputAction.newline,
-                  ),
-                  AppSizes.vGapLg,
-
-                  // ── Availability & Rate ─────────────────────────────────────
-                  _SectionLabel('Work Preferences'),
-                  AppSizes.vGapSm,
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: AppTextField(
-                          controller: _hourlyRate,
-                          label: 'Hourly Rate (₹)',
-                          hint: 'e.g. 1500',
-                          prefixIcon: Icons.currency_rupee_rounded,
-                          keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true,
-                          ),
-                          textInputAction: TextInputAction.next,
-                        ),
-                      ),
-                      AppSizes.hGapMd,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Availability',
-                              style: context.text.labelMedium?.copyWith(
-                                color: colors.onSurfaceVariant,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            AppSizes.vGapXs,
-                            AppCard(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: AppSizes.sm,
-                              ),
-                              child: DropdownButton<String>(
-                                value: _availability,
-                                isExpanded: true,
-                                underline: const SizedBox.shrink(),
-                                items: const [
-                                  DropdownMenuItem(
-                                    value: 'available',
-                                    child: Text('Available'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'part-time',
-                                    child: Text('Part-Time'),
-                                  ),
-                                  DropdownMenuItem(
-                                    value: 'not-available',
-                                    child: Text('Not Available'),
-                                  ),
-                                ],
-                                onChanged: (v) =>
-                                    setState(() => _availability = v!),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSizes.vGapLg,
-
-                  // ── Skills ─────────────────────────────────────────────────
-                  _SectionLabel('Skills'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _skillsRaw,
-                    label: 'Skills',
-                    hint: 'Flutter, Python, UI/UX, Node.js…',
-                    maxLines: 2,
-                    textInputAction: TextInputAction.next,
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  AppSizes.vGapXs,
-                  Text(
-                    'Separate skills with commas',
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-                  if (_skillsRaw.text.trim().isNotEmpty) ...[
+                    // Profile Photo
+                    const _SectionLabel('Profile Photo'),
                     AppSizes.vGapSm,
-                    _ChipsPreview(raw: _skillsRaw.text),
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        ProfileAvatarEditor(
+                          localPath: _localAvatarPath,
+                          networkUrl: _currentAvatarUrl,
+                          onPathPicked: _uploadAvatar,
+                          size: 110,
+                        ),
+                        if (_uploadingAvatar)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black38,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    AppSizes.vGapLg,
+
+                    // Personal Info
+                    const _SectionLabel('About You'),
+                    AppSizes.vGapSm,
+                    AppTextField(
+                      controller: _fullName,
+                      label: 'Full Name *',
+                      hint: 'Enter your full name',
+                      validator: (v) =>
+                          Validators.minLength(v, 2, field: 'Full Name'),
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _title,
+                      label: 'Professional Title *',
+                      hint: 'e.g. Senior Flutter Developer',
+                      validator: (v) => Validators.minLength(v, 3,
+                          field: 'Professional Title'),
+                    ),
+                    AppSizes.vGapLg,
+
+                    // Location
+                    const _SectionLabel('Location'),
+                    AppSizes.vGapSm,
+                    AppLocationField(
+                      controller: _city,
+                      label: 'City / Location *',
+                      hint: 'Search and select city / location',
+                      validator: (v) =>
+                          Validators.required(v, field: 'City / Location'),
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Country *',
+                      hint: 'Select Country',
+                      value: _selectedCountry,
+                      items: _countries,
+                      itemLabel: (item) => item.name,
+                      validator: (v) =>
+                          Validators.required(v?.name, field: 'Country'),
+                      onChanged: (opt) {
+                        setState(() {
+                          _selectedCountry = opt;
+                          _selectedState = null;
+                          _states = [];
+                        });
+                        if (opt != null) {
+                          _loadStatesForCountry(opt.id);
+                        }
+                      },
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'State *',
+                      hint: 'Select State',
+                      value: _selectedState,
+                      items: _states,
+                      itemLabel: (item) => item.name,
+                      validator: (v) =>
+                          Validators.required(v?.name, field: 'State'),
+                      onChanged: (opt) => setState(() => _selectedState = opt),
+                    ),
+                    AppSizes.vGapLg,
+
+                    // Professional Bio
+                    const _SectionLabel('Professional Bio'),
+                    AppSizes.vGapSm,
+                    AppTextField(
+                      controller: _bio,
+                      label: 'Bio *',
+                      hint:
+                          'Tell clients about yourself, your expertise, and what makes you unique…',
+                      maxLines: 4,
+                      textInputAction: TextInputAction.newline,
+                      validator: (v) =>
+                          Validators.minLength(v, 10, field: 'Bio'),
+                    ),
+                    AppSizes.vGapLg,
+
+                    // Work Preferences
+                    const _SectionLabel('Work Preferences'),
+                    AppSizes.vGapSm,
+                    AppTextField(
+                      controller: _hourlyRate,
+                      label: 'Hourly Rate (\$/hr) *',
+                      hint: 'e.g. 120 or 230.99',
+                      prefixIcon: Icons.attach_money_rounded,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validator: (v) {
+                        final reqErr =
+                            Validators.required(v, field: 'Hourly Rate');
+                        if (reqErr != null) return reqErr;
+                        if (double.tryParse(v!.trim()) == null) {
+                          return 'Please enter a valid rate (e.g. 230.99)';
+                        }
+                        return null;
+                      },
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Availability *',
+                      hint: 'Select Availability',
+                      value: _selectedAvailability,
+                      items: _availabilities,
+                      itemLabel: (item) => item.name,
+                      validator: (v) => Validators.required(v?.name,
+                          field: 'Availability'),
+                      onChanged: (opt) =>
+                          setState(() => _selectedAvailability = opt),
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Experience Level *',
+                      hint: 'Select Experience Level',
+                      value: _selectedExperience,
+                      items: _experienceLevels,
+                      itemLabel: (item) => item.name,
+                      validator: (v) => Validators.required(v?.name,
+                          field: 'Experience Level'),
+                      onChanged: (opt) =>
+                          setState(() => _selectedExperience = opt),
+                    ),
+                    AppSizes.vGapLg,
+
+                    // Industry & Skills
+                    const _SectionLabel('Industry & Skills'),
+                    AppSizes.vGapSm,
+                    AppTextField(
+                      controller: _categoryDisplayController,
+                      label: 'Industry / Category *',
+                      hint: 'Select Industry / Category',
+                      readOnly: true,
+                      suffixIcon:
+                          const Icon(Icons.keyboard_arrow_down_rounded),
+                      onTap: _showCategoryBottomSheet,
+                      validator: (v) =>
+                          Validators.required(v, field: 'Industry / Category'),
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _skillsDisplayController,
+                      label: 'Skills (optional)',
+                      hint: _selectedCategoryId == null
+                          ? 'Select industry first'
+                          : 'Select skills',
+                      readOnly: true,
+                      suffixIcon:
+                          const Icon(Icons.keyboard_arrow_down_rounded),
+                      onTap: _showSkillsBottomSheet,
+                    ),
+                    AppSizes.vGapLg,
+
+                    // Social Links
+                    const _SectionLabel('Social & Links'),
+                    AppSizes.vGapSm,
+                    AppTextField(
+                      controller: _portfolio,
+                      label: 'Portfolio URL',
+                      hint: 'https://...',
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _github,
+                      label: 'GitHub URL',
+                      hint: 'https://github.com/...',
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _linkedin,
+                      label: 'LinkedIn Profile',
+                      hint: 'https://linkedin.com/in/...',
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _website,
+                      label: 'Website',
+                      hint: 'https://...',
+                    ),
+                    AppSizes.vGapXl,
+
+                    // Save Button
+                    AppPrimaryButton(
+                      label: 'Save Profile',
+                      icon: Icons.check_circle_outline_rounded,
+                      isLoading: _saving,
+                      onPressed: _saving ? null : _save,
+                    ),
+                    AppSizes.vGapLg,
                   ],
-                  AppSizes.vGapLg,
-
-                  // ── Languages ──────────────────────────────────────────────
-                  _SectionLabel('Languages'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _languages,
-                    label: 'Languages',
-                    hint: 'English, Hindi, Tamil…',
-                    textInputAction: TextInputAction.next,
-                  ),
-                  AppSizes.vGapXs,
-                  Text(
-                    'Separate with commas',
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-                  AppSizes.vGapLg,
-
-                  // ── Experience ─────────────────────────────────────────────
-                  _SectionLabel('Experience'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _experienceYears,
-                    label: 'Years of experience',
-                    hint: 'Senior Dev at TechCorp, Freelance Flutter Dev…',
-                    maxLines: 3,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  AppSizes.vGapXs,
-                  Text(
-                    'Separate entries with commas',
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-                  AppSizes.vGapLg,
-
-                  // ── Education ──────────────────────────────────────────────
-                  _SectionLabel('Education'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _education,
-                    label: 'Education',
-                    hint: 'B.Tech Computer Science - NIT…',
-                    maxLines: 2,
-                    textInputAction: TextInputAction.next,
-                  ),
-                  AppSizes.vGapXs,
-                  Text(
-                    'Separate entries with commas',
-                    style: context.text.labelSmall?.copyWith(
-                      color: context.colors.onSurfaceVariant,
-                    ),
-                  ),
-                  AppSizes.vGapLg,
-
-                  // ── Resume ─────────────────────────────────────────────────
-                  _SectionLabel('Resume / CV'),
-                  AppSizes.vGapSm,
-                  _ResumeCard(
-                    networkUrl: _currentResumeUrl,
-                    pendingPath: _pendingResumePath,
-                    onPick: _pickResume,
-                    onOpenUrl: _openResumeUrl,
-                    onRemovePending: () =>
-                        setState(() => _pendingResumePath = null),
-                  ),
-                  AppSizes.vGapLg,
-                  _SectionLabel('Social & Links'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _github,
-                    label: 'GitHub URL',
-                    hint: 'https://github.com/...',
-                  ),
-                  AppSizes.vGapMd,
-                  AppTextField(
-                    controller: _portfolio,
-                    label: 'Portfolio URL',
-                    hint: 'https://...',
-                  ),
-                  AppSizes.vGapMd,
-                  AppTextField(
-                    controller: _linkedin,
-                    label: 'LinkedIn Profile',
-                    hint: 'LinkedIn URL',
-                  ),
-                  AppSizes.vGapMd,
-                  AppTextField(
-                    controller: _website,
-                    label: 'Website',
-                    hint: 'Personal website URL',
-                  ),
-                  AppSizes.vGapLg,
-
-                  _SectionLabel('KYC Documents'),
-                  AppSizes.vGapSm,
-                  AppTextField(
-                    controller: _panNumber,
-                    label: 'PAN Number',
-                    maxLength: 10,
-                  ),
-                  AppSizes.vGapMd,
-                  AppTextField(
-                    controller: _aadhaarNumber,
-                    label: 'Aadhaar Number',
-                    keyboardType: TextInputType.number,
-                    maxLength: 12,
-                  ),
-                  AppSizes.vGapXl,
-
-                  // ── Save button ────────────────────────────────────────────
-                  AppPrimaryButton(
-                    label: 'Save Profile',
-                    icon: Icons.check_circle_outline_rounded,
-                    isLoading: _saving,
-                    onPressed: _saving ? null : _save,
-                  ),
-                  AppSizes.vGapLg,
-                ],
+                ),
               ),
             ),
     );
@@ -656,13 +1013,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-    label.toUpperCase(),
-    style: context.text.labelSmall?.copyWith(
-      color: context.colors.onSurfaceVariant,
-      letterSpacing: 1.2,
-      fontWeight: FontWeight.w700,
-    ),
-  );
+        label.toUpperCase(),
+        style: context.text.labelSmall?.copyWith(
+          color: context.colors.onSurfaceVariant,
+          letterSpacing: 1.2,
+          fontWeight: FontWeight.w700,
+        ),
+      );
 }
 
 class _CompletionCard extends StatelessWidget {
@@ -698,8 +1055,8 @@ class _CompletionCard extends StatelessWidget {
                   percent >= 80
                       ? 'Great! Your profile looks strong.'
                       : percent >= 50
-                      ? 'Profile is taking shape — keep going!'
-                      : 'Complete your profile to get hired faster.',
+                          ? 'Profile is taking shape — keep going!'
+                          : 'Complete your profile to get hired faster.',
                   style: context.text.bodySmall?.copyWith(
                     color: _color,
                     fontWeight: FontWeight.w600,
@@ -725,198 +1082,6 @@ class _CompletionCard extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation(_color),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ChipsPreview extends StatelessWidget {
-  const _ChipsPreview({required this.raw});
-  final String raw;
-
-  @override
-  Widget build(BuildContext context) {
-    final items = raw
-        .split(',')
-        .map((e) => e.trim())
-        .where((e) => e.isNotEmpty)
-        .toList();
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Wrap(
-      spacing: AppSizes.xs,
-      runSpacing: AppSizes.xs,
-      children: [
-        for (final item in items)
-          Chip(
-            label: Text(item),
-            labelStyle: context.text.labelSmall?.copyWith(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w600,
-            ),
-            backgroundColor: AppColors.primary.withValues(alpha: 0.08),
-            side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.xs),
-            visualDensity: VisualDensity.compact,
-          ),
-      ],
-    );
-  }
-}
-
-class _ResumeCard extends StatelessWidget {
-  const _ResumeCard({
-    required this.networkUrl,
-    required this.pendingPath,
-    required this.onPick,
-    required this.onOpenUrl,
-    required this.onRemovePending,
-  });
-
-  final String? networkUrl;
-  final String? pendingPath;
-  final VoidCallback onPick;
-  final void Function(String url) onOpenUrl;
-  final VoidCallback onRemovePending;
-
-  String get _pendingFileName {
-    if (pendingPath == null) return '';
-    return pendingPath!.split(RegExp(r'[\\/]')).last;
-  }
-
-  String get _networkFileName {
-    if (networkUrl == null || networkUrl!.isEmpty) return '';
-    final raw = networkUrl!.split('?').first;
-    return raw.split('/').last;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    final hasNetwork = networkUrl != null && networkUrl!.isNotEmpty;
-    final hasPending = pendingPath != null;
-
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                ),
-                child: Icon(
-                  Icons.description_outlined,
-                  color: hasNetwork || hasPending
-                      ? AppColors.primary
-                      : colors.onSurfaceVariant,
-                ),
-              ),
-              AppSizes.hGapMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      hasPending
-                          ? 'New resume selected'
-                          : hasNetwork
-                          ? 'Resume uploaded'
-                          : 'No resume uploaded yet',
-                      style: context.text.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (hasPending)
-                      Text(
-                        _pendingFileName,
-                        style: context.text.labelSmall?.copyWith(
-                          color: AppColors.primary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      )
-                    else if (hasNetwork)
-                      GestureDetector(
-                        onTap: () => onOpenUrl(networkUrl!),
-                        child: Text(
-                          _networkFileName.isNotEmpty
-                              ? _networkFileName
-                              : 'View Resume',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            decoration: TextDecoration.underline,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )
-                    else
-                      Text(
-                        'PDF, DOC, DOCX accepted',
-                        style: context.text.labelSmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              AppSizes.hGapSm,
-              if (hasPending)
-                IconButton(
-                  icon: const Icon(Icons.close_rounded, size: 20),
-                  color: AppColors.danger,
-                  tooltip: 'Remove selection',
-                  onPressed: onRemovePending,
-                ),
-              AppPrimaryButton(
-                label: hasPending
-                    ? 'Change'
-                    : (hasNetwork ? 'Replace' : 'Upload'),
-                icon: Icons.upload_rounded,
-                onPressed: onPick,
-                expanded: false,
-              ),
-            ],
-          ),
-          if (hasPending) ...[
-            AppSizes.vGapXs,
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.sm,
-                vertical: AppSizes.xs,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                border: Border.all(
-                  color: AppColors.warning.withValues(alpha: 0.4),
-                ),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.info_outline_rounded,
-                    size: 14,
-                    color: AppColors.warning,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'This resume will be uploaded when you tap "Save Profile"',
-                      style: context.text.labelSmall?.copyWith(
-                        color: AppColors.warning,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ],
       ),
     );

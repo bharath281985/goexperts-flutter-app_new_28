@@ -1,8 +1,8 @@
 import 'package:file_picker/file_picker.dart';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
+
+import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
@@ -11,10 +11,17 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/payments/payment_checkout_service.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../master_data/domain/entities/master_option.dart';
+import '../../../master_data/domain/entities/skill_category.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/entities/company.dart';
 import '../../domain/repositories/company_repository.dart';
 
@@ -28,21 +35,29 @@ class ClientCompanyProfilePage extends StatefulWidget {
 
 class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   final _name = TextEditingController();
-  final _email = TextEditingController();
-  final _phone = TextEditingController();
-  final _phoneCode = TextEditingController(text: '+91');
-  final _countryCode = TextEditingController(text: 'IN');
   final _companyNameController = TextEditingController();
-  final _industry = TextEditingController();
-  final _teamSize = TextEditingController();
-  final _bio = TextEditingController();
+  final _jobTitleController = TextEditingController();
   final _city = TextEditingController();
-  final _country = TextEditingController();
+  final _bio = TextEditingController();
   final _website = TextEditingController();
   final _linkedin = TextEditingController();
-  final _pan = TextEditingController();
-  final _aadhaar = TextEditingController();
-  final _gst = TextEditingController();
+  final _categoryDisplayController = TextEditingController();
+  final _hiringGoalsDisplayController = TextEditingController();
+  final _categorySearch = TextEditingController();
+
+  MasterOption? _selectedCountry;
+  MasterOption? _selectedState;
+  MasterOption? _selectedCompanySize;
+  MasterOption? _selectedBudgetRange;
+  String? _selectedCategoryId;
+  final Set<String> _selectedHiringGoalIds = {};
+
+  List<MasterOption> _countries = [];
+  List<MasterOption> _states = [];
+  List<MasterOption> _companySizes = [];
+  List<MasterOption> _budgetRanges = [];
+  List<MasterOption> _hiringGoals = [];
+  List<SkillCategory> _categories = [];
 
   bool _loading = true;
   bool _saving = false;
@@ -58,47 +73,400 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   @override
   void dispose() {
     _name.dispose();
-    _email.dispose();
-    _phone.dispose();
-    _phoneCode.dispose();
-    _countryCode.dispose();
     _companyNameController.dispose();
-    _industry.dispose();
-    _teamSize.dispose();
-    _bio.dispose();
+    _jobTitleController.dispose();
     _city.dispose();
-    _country.dispose();
+    _bio.dispose();
     _website.dispose();
     _linkedin.dispose();
-    _pan.dispose();
-    _aadhaar.dispose();
-    _gst.dispose();
+    _categoryDisplayController.dispose();
+    _hiringGoalsDisplayController.dispose();
+    _categorySearch.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
-    final res = await sl<CompanyRepository>().getClientProfile();
+    final api = sl<ApiClientHelper>();
+    final masterRepo = sl<MasterDataRepository>();
+
+    final cRes = await masterRepo.getCountriesOptions();
+    if (mounted && cRes.isSuccess) _countries = cRes.valueOrNull ?? [];
+
+    final csRes = await masterRepo.getCompanySizeOptions();
+    if (mounted && csRes.isSuccess) _companySizes = csRes.valueOrNull ?? [];
+
+    final bRes = await masterRepo.getHiringBudgetOptions();
+    if (mounted && bRes.isSuccess) _budgetRanges = bRes.valueOrNull ?? [];
+
+    final hgRes = await masterRepo.getHiringGoalOptions();
+    if (mounted && hgRes.isSuccess) _hiringGoals = hgRes.valueOrNull ?? [];
+
+    final catRes = await masterRepo.getSkillCategories();
+    if (mounted && catRes.isSuccess) _categories = catRes.valueOrNull ?? [];
+
+    final meRes = await api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.me,
+      parser: (env) {
+        if (env.data is Map && (env.data as Map)['user'] is Map) {
+          return Map<String, dynamic>.from((env.data as Map)['user'] as Map);
+        }
+        if (env.data is Map) {
+          return Map<String, dynamic>.from(env.data as Map);
+        }
+        return {};
+      },
+    );
+
     if (!mounted) return;
-    res.fold((f) => context.showSnack(f.message), (c) {
-      _companyData = c;
-      _name.text = c.ownerName.isNotEmpty ? c.ownerName : c.name;
-      _email.text = c.email;
-      _phone.text = c.phone;
-      _phoneCode.text = c.phoneCode.isEmpty ? '+91' : c.phoneCode;
-      _countryCode.text = c.countryCode.isEmpty ? 'IN' : c.countryCode;
-      _companyNameController.text = c.name;
-      _industry.text = c.industry;
-      _teamSize.text = c.teamSize;
-      _bio.text = c.bio;
-      _city.text = c.city;
-      _country.text = c.country;
-      _website.text = c.website ?? '';
-      _linkedin.text = c.linkedin;
-      _pan.text = (c.pan.isNotEmpty ? c.pan : c.panNumber);
-      _aadhaar.text = c.aadhaarNumber;
-      _gst.text = c.gst;
-    });
+    final userMap = meRes.valueOrNull ?? {};
+    if (userMap.isNotEmpty) {
+      final fn =
+          userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
+      if (fn != null && fn.isNotEmpty) _name.text = fn;
+
+      final bioVal = userMap['bio']?.toString();
+      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal;
+
+      final locVal =
+          userMap['city']?.toString() ?? userMap['location']?.toString();
+      if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
+
+      if (userMap['country'] is Map) {
+        final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
+        final cid =
+            (cMap['id'] ?? cMap['code'] ?? cMap['_id'])?.toString() ?? '';
+        final cname = (cMap['name'] ?? cMap['label'])?.toString() ?? cid;
+        if (cid.isNotEmpty && cname.isNotEmpty) {
+          _selectedCountry = MasterOption(id: cid, name: cname);
+          _loadStatesForCountry(cid);
+        }
+      }
+
+      if (userMap['state'] is Map) {
+        final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
+        final sid =
+            (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
+        final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
+        if (sid.isNotEmpty && sname.isNotEmpty) {
+          _selectedState = MasterOption(id: sid, name: sname);
+        }
+      }
+
+      if (userMap['profile'] is Map) {
+        final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
+
+        final compVal = pMap['company']?.toString();
+        if (compVal != null && compVal.isNotEmpty) {
+          _companyNameController.text = compVal;
+        }
+
+        final jtVal =
+            (pMap['jobTitle'] ?? pMap['titleHeadline'] ?? pMap['headline'] ?? pMap['title'])
+                ?.toString();
+        if (jtVal != null && jtVal.isNotEmpty) {
+          _jobTitleController.text = jtVal;
+        }
+
+        final webVal = (pMap['websiteUrl'] ?? pMap['website'])?.toString();
+        if (webVal != null && webVal.isNotEmpty) {
+          _website.text = webVal;
+        }
+
+        final linkVal = (pMap['linkedInUrl'] ?? pMap['linkedin'])?.toString();
+        if (linkVal != null && linkVal.isNotEmpty) {
+          _linkedin.text = linkVal;
+        }
+
+        if (pMap['industryId'] is Map) {
+          final indMap = Map<String, dynamic>.from(pMap['industryId'] as Map);
+          final indId = (indMap['id'] ?? indMap['_id'])?.toString();
+          final indName = (indMap['name'] ?? indMap['label'])?.toString();
+          if (indId != null && indId.isNotEmpty) {
+            _selectedCategoryId = indId;
+            if (indName != null && indName.isNotEmpty) {
+              _categoryDisplayController.text = indName;
+            }
+          }
+        } else if (pMap['industry'] is Map) {
+          final indMap = Map<String, dynamic>.from(pMap['industry'] as Map);
+          final indId = (indMap['id'] ?? indMap['_id'])?.toString();
+          final indName = (indMap['name'] ?? indMap['label'])?.toString();
+          if (indId != null && indId.isNotEmpty) {
+            _selectedCategoryId = indId;
+            if (indName != null && indName.isNotEmpty) {
+              _categoryDisplayController.text = indName;
+            }
+          }
+        }
+
+        if (pMap['companySizeId'] is Map) {
+          final csMap =
+              Map<String, dynamic>.from(pMap['companySizeId'] as Map);
+          final csId = (csMap['id'] ?? csMap['_id'])?.toString() ?? '';
+          final csName = (csMap['name'] ?? csMap['label'])?.toString() ?? csId;
+          if (csId.isNotEmpty && csName.isNotEmpty) {
+            _selectedCompanySize = MasterOption(id: csId, name: csName);
+          }
+        }
+
+        if (pMap['projectHireBudgetId'] is Map) {
+          final bMap =
+              Map<String, dynamic>.from(pMap['projectHireBudgetId'] as Map);
+          final bId = (bMap['id'] ?? bMap['_id'])?.toString() ?? '';
+          final bName = (bMap['name'] ?? bMap['label'])?.toString() ?? bId;
+          if (bId.isNotEmpty && bName.isNotEmpty) {
+            _selectedBudgetRange = MasterOption(id: bId, name: bName);
+          }
+        }
+
+        if (pMap['hiringGoalId'] is List) {
+          final hgList = pMap['hiringGoalId'] as List;
+          final names = <String>[];
+          for (final goal in hgList) {
+            if (goal is Map) {
+              final gid = (goal['id'] ?? goal['_id'])?.toString();
+              final gname = (goal['name'] ?? goal['label'])?.toString();
+              if (gid != null && gid.isNotEmpty) {
+                _selectedHiringGoalIds.add(gid);
+              }
+              if (gname != null && gname.isNotEmpty) names.add(gname);
+            } else if (goal is String && goal.isNotEmpty) {
+              _selectedHiringGoalIds.add(goal);
+              names.add(goal);
+            }
+          }
+          if (names.isNotEmpty) {
+            _hiringGoalsDisplayController.text = names.join(', ');
+          }
+        }
+      }
+    }
+
+    _matchAllDropdowns();
     setState(() => _loading = false);
+  }
+
+  MasterOption? _matchOption(MasterOption? current, List<MasterOption> list) {
+    if (current == null || list.isEmpty) return null;
+    for (final item in list) {
+      if (item == current) return item;
+      if (current.id.isNotEmpty && item.id == current.id) return item;
+      if (current.name.isNotEmpty &&
+          item.name.trim().toLowerCase() == current.name.trim().toLowerCase()) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  void _matchAllDropdowns() {
+    if (!mounted) return;
+    setState(() {
+      if (_countries.isNotEmpty) {
+        _selectedCountry = _matchOption(_selectedCountry, _countries);
+      }
+      if (_states.isNotEmpty) {
+        _selectedState = _matchOption(_selectedState, _states);
+      }
+      if (_companySizes.isNotEmpty) {
+        _selectedCompanySize =
+            _matchOption(_selectedCompanySize, _companySizes);
+      }
+      if (_budgetRanges.isNotEmpty) {
+        _selectedBudgetRange =
+            _matchOption(_selectedBudgetRange, _budgetRanges);
+      }
+    });
+  }
+
+  Future<void> _loadStatesForCountry(String countryIdOrCode) async {
+    final res =
+        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    if (!mounted) return;
+    _states = res.valueOrNull ?? [];
+    _matchAllDropdowns();
+  }
+
+  void _showCategoryBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final search = _categorySearch.text.trim().toLowerCase();
+            final filtered = search.isEmpty
+                ? _categories
+                : _categories
+                    .where((c) => c.name.toLowerCase().contains(search))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.7,
+              maxChildSize: 0.9,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Select Category / Industry',
+                        style: context.text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppTextField(
+                        controller: _categorySearch,
+                        hint: 'Search categories...',
+                        prefixIcon: Icons.search,
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? const Center(
+                                child: Text('No categories found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final cat = filtered[index];
+                                  final isSelected =
+                                      cat.id == _selectedCategoryId;
+                                  return ListTile(
+                                    title: Text(cat.name),
+                                    trailing: isSelected
+                                        ? const Icon(Icons.check_circle,
+                                            color: AppColors.primary)
+                                        : null,
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedCategoryId = cat.id;
+                                        _categoryDisplayController.text =
+                                            cat.name;
+                                      });
+                                      Navigator.of(context).pop();
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showHiringGoalsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              maxChildSize: 0.95,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Hiring Goals (${_selectedHiringGoalIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              _updateHiringGoalsDisplayText();
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text('Done',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: _hiringGoals.isEmpty
+                            ? const Center(child: Text('No goals available'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: _hiringGoals.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final goal = _hiringGoals[index];
+                                  final isSelected = _selectedHiringGoalIds
+                                      .contains(goal.id);
+                                  return CheckboxListTile(
+                                    title: Text(goal.name),
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (_) {
+                                      setState(() {
+                                        if (isSelected) {
+                                          _selectedHiringGoalIds.remove(goal.id);
+                                        } else {
+                                          _selectedHiringGoalIds.add(goal.id);
+                                        }
+                                      });
+                                      setSheetState(() {});
+                                      _updateHiringGoalsDisplayText();
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppPrimaryButton(
+                        label: 'Done (${_selectedHiringGoalIds.length} selected)',
+                        onPressed: () {
+                          _updateHiringGoalsDisplayText();
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                      AppSizes.vGapLg,
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _updateHiringGoalsDisplayText() {
+    final names = <String>[];
+    for (final goal in _hiringGoals) {
+      if (_selectedHiringGoalIds.contains(goal.id)) {
+        names.add(goal.name);
+      }
+    }
+    if (names.isNotEmpty) {
+      _hiringGoalsDisplayController.text = names.join(', ');
+    } else if (_selectedHiringGoalIds.isEmpty) {
+      _hiringGoalsDisplayController.clear();
+    }
   }
 
   Future<void> _save() async {
@@ -107,50 +475,56 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       return;
     }
     setState(() => _saving = true);
-    final res = await sl<CompanyRepository>().updateClientProfile({
-      // ── Personal ──────────────────────────────────────────────────────────
+
+    final payload = <String, dynamic>{
       'fullName': _name.text.trim(),
-      'phone': _phone.text.trim(),
-      'phoneCode': _phoneCode.text.trim(),
-      'countryCode': _countryCode.text.trim(),
-      'bio': _bio.text.trim(),
-      // ── Location ──────────────────────────────────────────────────────────
       'city': _city.text.trim(),
-      'state': '',
-      'country': _country.text.trim(),
-      // ── Company ───────────────────────────────────────────────────────────
-      'companyName': _companyNameController.text.trim(),
-      'industry': _industry.text.trim(),
-      'teamSize': _teamSize.text.trim(),
-      'clientGoals': <String>[],
-      // ── Social & Links ────────────────────────────────────────────────────
-      'website': _website.text.trim(),
-      'linkedin': _linkedin.text.trim(),
-      // ── KYC ───────────────────────────────────────────────────────────────
-      'panNumber': _pan.text.trim(),
-      'aadhaarNumber': _aadhaar.text.trim(),
-      'gst': _gst.text.trim(),
-      // ── Logo ──────────────────────────────────────────────────────────────
+      'bio': _bio.text.trim(),
+      if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
+      if (_selectedState != null) 'stateId': _selectedState!.id,
+      'company': _companyNameController.text.trim(),
+      'jobTitle': _jobTitleController.text.trim(),
+      if (_selectedCategoryId != null) 'industryId': _selectedCategoryId,
+      if (_selectedCompanySize != null)
+        'companySizeId': _selectedCompanySize!.id,
+      if (_selectedBudgetRange != null)
+        'projectHireBudgetId': _selectedBudgetRange!.id,
+      if (_selectedHiringGoalIds.isNotEmpty)
+        'hiringGoalId': _selectedHiringGoalIds.toList(),
+      'websiteUrl': _website.text.trim(),
+      'linkedInUrl': _linkedin.text.trim(),
       if (_localLogoPath != null || _companyData?.logoUrl != null)
         'logo': _localLogoPath ?? _companyData?.logoUrl,
-    });
+    };
+
+    final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.updateMe,
+      body: payload,
+      parser: (env) =>
+          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+    );
+
     if (!mounted) return;
-    setState(() {
-      _saving = false;
-      if (res.isSuccess) {
-        _localLogoPath = null;
-      }
-    });
-    res.fold((f) => context.showSnack(f.message), (_) {
-      context.showSnack('Company profile updated');
+    setState(() => _saving = false);
+
+    if (res.isSuccess) {
+      final msg = res.valueOrNull?['message']?.toString() ??
+          'Company profile updated successfully';
+      context.showSnack(msg);
       final currentUser = context.read<AuthBloc>().state.user;
       if (currentUser != null) {
         context.read<AuthBloc>().add(
-          AuthUserUpdated(currentUser.copyWith(fullName: _name.text.trim())),
-        );
+              AuthUserUpdated(
+                  currentUser.copyWith(fullName: _name.text.trim())),
+            );
       }
       Navigator.of(context).pop();
-    });
+    } else {
+      context.showSnack(
+        res.failureOrNull?.message ?? 'Failed to update company profile',
+        isError: true,
+      );
+    }
   }
 
   Future<void> _uploadDoc() async {
@@ -186,7 +560,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Company Profile')),
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: const Text('Company Profile'),
+      ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
@@ -215,40 +592,91 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _name,
-                  label: 'Full Name',
+                  label: 'Full Name *',
                   hint: 'Enter your full name',
                 ),
                 AppSizes.vGapMd,
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 92,
-                      child: AppTextField(
-                        controller: _phoneCode,
-                        label: 'Code',
-                        hint: '+91',
-                      ),
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: AppTextField(
-                        controller: _phone,
-                        label: 'Phone Number',
-                        hint: 'Enter contact phone',
-                        keyboardType: TextInputType.phone,
-                        maxLength: 10,
-                      ),
-                    ),
-                  ],
+                AppTextField(
+                  controller: _jobTitleController,
+                  label: 'Job Title *',
+                  hint: 'e.g. VP of Engineering',
                 ),
                 AppSizes.vGapLg,
                 Text('Company Info', style: context.text.titleMedium),
                 AppSizes.vGapSm,
                 AppTextField(
                   controller: _companyNameController,
-                  label: 'Company Name',
+                  label: 'Company Name *',
                   hint: 'Enter company name',
+                ),
+                AppSizes.vGapMd,
+                AppLocationField(
+                  controller: _city,
+                  label: 'Location / City *',
+                  hint: 'Search and select city location',
+                ),
+                AppSizes.vGapMd,
+                AppDropdown<MasterOption>(
+                  label: 'Country *',
+                  hint: 'Select Country',
+                  value: _selectedCountry,
+                  items: _countries,
+                  itemLabel: (item) => item.name,
+                  onChanged: (opt) {
+                    setState(() {
+                      _selectedCountry = opt;
+                      _selectedState = null;
+                      _states = [];
+                    });
+                    if (opt != null) {
+                      _loadStatesForCountry(opt.id);
+                    }
+                  },
+                ),
+                AppSizes.vGapMd,
+                AppDropdown<MasterOption>(
+                  label: 'State *',
+                  hint: 'Select State',
+                  value: _selectedState,
+                  items: _states,
+                  itemLabel: (item) => item.name,
+                  onChanged: (opt) => setState(() => _selectedState = opt),
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _categoryDisplayController,
+                  label: 'Category / Industry *',
+                  hint: 'Select Category / Industry',
+                  readOnly: true,
+                  suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  onTap: _showCategoryBottomSheet,
+                ),
+                AppSizes.vGapMd,
+                AppDropdown<MasterOption>(
+                  label: 'Company Size *',
+                  hint: 'Select Company Size',
+                  value: _selectedCompanySize,
+                  items: _companySizes,
+                  itemLabel: (item) => item.name,
+                  onChanged: (opt) => setState(() => _selectedCompanySize = opt),
+                ),
+                AppSizes.vGapMd,
+                AppDropdown<MasterOption>(
+                  label: 'Project / Hiring Budget *',
+                  hint: 'Select Budget Range',
+                  value: _selectedBudgetRange,
+                  items: _budgetRanges,
+                  itemLabel: (item) => item.name,
+                  onChanged: (opt) => setState(() => _selectedBudgetRange = opt),
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _hiringGoalsDisplayController,
+                  label: 'Hiring Goals',
+                  hint: 'Select Hiring Goals',
+                  readOnly: true,
+                  suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                  onTap: _showHiringGoalsBottomSheet,
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
@@ -256,46 +684,6 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   label: 'Biography / Overview',
                   hint: 'Brief description about the company',
                   maxLines: 3,
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _industry,
-                  label: 'Industry',
-                  hint: 'Enter industry (e.g. Technology)',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _teamSize,
-                  label: 'Company Size',
-                  hint: 'e.g. 50-200',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _city,
-                  label: 'City',
-                  hint: 'Your city',
-                ),
-                AppSizes.vGapMd,
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(
-                      width: 110,
-                      child: AppTextField(
-                        controller: _countryCode,
-                        label: 'Country Code',
-                        hint: 'IN',
-                      ),
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: AppTextField(
-                        controller: _country,
-                        label: 'Country',
-                        hint: 'India',
-                      ),
-                    ),
-                  ],
                 ),
                 AppSizes.vGapLg,
                 Text('Links', style: context.text.titleMedium),
@@ -332,20 +720,16 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   int _completionPercent() {
     final vals = [
       _name.text.trim(),
-      _email.text.trim(),
-      _phone.text.trim(),
       _companyNameController.text.trim(),
-      _industry.text.trim(),
       _bio.text.trim(),
       _city.text.trim(),
-      _country.text.trim(),
-      _pan.text.trim(),
-      _aadhaar.text.trim(),
+      _selectedCountry?.name ?? '',
+      _selectedState?.name ?? '',
       if ((_companyData?.logoUrl ?? '').isNotEmpty || _localLogoPath != null)
         'logo',
     ];
     final filled = vals.where((e) => e.isNotEmpty).length;
-    return ((filled / 11) * 100).round();
+    return ((filled / 7) * 100).round();
   }
 }
 

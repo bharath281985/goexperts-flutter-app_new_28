@@ -225,6 +225,7 @@ class ApiClientHelper {
     required List<int> bytes,
     required String filename,
     String fileField = 'file',
+    String method = 'put',
     Map<String, dynamic>? fields,
     required T Function(ApiResponse<dynamic> envelope) parser,
   }) async {
@@ -233,11 +234,18 @@ class ApiClientHelper {
         ...?fields,
         fileField: MultipartFile.fromBytes(bytes, filename: filename),
       });
-      final response = await _dio.post<Map<String, dynamic>>(
-        path,
-        data: formData,
-        options: Options(contentType: 'multipart/form-data'),
-      );
+      final usePut = method.toLowerCase() == 'put';
+      final response = usePut
+          ? await _dio.put<Map<String, dynamic>>(
+              path,
+              data: formData,
+              options: Options(contentType: 'multipart/form-data'),
+            )
+          : await _dio.post<Map<String, dynamic>>(
+              path,
+              data: formData,
+              options: Options(contentType: 'multipart/form-data'),
+            );
       final envelope = ApiResponse.parse(response.data ?? {}, null);
       ApiExceptionHandler.ensureSuccess(envelope);
       return Success(parser(envelope));

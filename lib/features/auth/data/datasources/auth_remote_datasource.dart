@@ -123,12 +123,16 @@ class AuthRemoteDatasource {
     result.fold((f) => throw Exception(f.message), (_) => null);
   }
 
-  Future<AppUser> uploadAvatarBytes(List<int> bytes) async {
+  Future<AppUser> uploadAvatarBytes(
+    List<int> bytes, {
+    String fileField = 'file',
+  }) async {
     final result = await _api.uploadBytesEnvelope<AppUser>(
-      ApiEndpoints.updateMeAvatar,
+      ApiEndpoints.updateMe,
       bytes: bytes,
       filename: 'avatar.jpg',
-      fileField: 'file',
+      fileField: fileField,
+      method: 'put',
       parser: (envelope) {
         final raw = envelope.data;
         if (raw is Map && raw['user'] is Map) {
