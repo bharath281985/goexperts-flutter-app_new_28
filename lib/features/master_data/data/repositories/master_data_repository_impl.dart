@@ -311,14 +311,13 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   }
 
   @override
-  Future<Result<List<MasterOption>>> getStatesOptions(String countryIdOrCode) async {
+  Future<Result<List<MasterOption>>> getStatesOptions(
+    String countryIdOrCode,
+  ) async {
     try {
       final result = await _client.getList<MasterOption>(
         path: ApiEndpoints.publicStates,
-        query: {
-          'countryCode': countryIdOrCode,
-          'countryId': countryIdOrCode,
-        },
+        query: {'countryCode': countryIdOrCode, 'countryId': countryIdOrCode},
         itemParser: MasterOption.fromJson,
       );
       if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
@@ -369,6 +368,19 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   Future<Result<List<MasterOption>>> getCompanySizeOptions() async {
     final result = await _client.getList<MasterOption>(
       path: ApiEndpoints.publicCompanySizes,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getTeamSizeOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicTeamSizes,
       itemParser: MasterOption.fromJson,
     );
     if (result.isFailure) return Err(result.failureOrNull!);

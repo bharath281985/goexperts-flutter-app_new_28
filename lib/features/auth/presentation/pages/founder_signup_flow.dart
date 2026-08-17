@@ -218,7 +218,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     final desRes = await repo.getStartupRoles();
     final cRes = await repo.getCountries();
     final gRes = await repo.getStartupGoals();
-    final tsRes = await repo.getCompanySizes();
+    final tsRes = await repo.getTeamSizeOptions();
 
     if (!mounted) return;
     setState(() {
@@ -238,7 +238,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         _startupGoalsMaster = gRes.valueOrNull!;
       }
       if (tsRes.isSuccess && tsRes.valueOrNull!.isNotEmpty) {
-        _teamSizes = tsRes.valueOrNull!;
+        _teamSizes = tsRes.valueOrNull!.map((e) => e.name).toList();
       }
     });
   }

@@ -491,7 +491,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     setState(() => _localAvatarPath = path);
     final result = await sl<FileUploadHelper>().uploadUrl(
       path: path,
-      endpoint: ApiEndpoints.updateMe,
+      endpoint: ApiEndpoints.updateMeAvatar,
       method: 'put',
       fileField: 'file',
     );
@@ -499,6 +499,13 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     result.fold(
       (failure) => context.showSnack(failure.message, isError: true),
       (url) {
+        if (url.trim().isEmpty) {
+          context.showSnack(
+            'Photo uploaded, but the server did not return its URL.',
+            isError: true,
+          );
+          return;
+        }
         setState(() {
           _avatarUrl = url;
           _localAvatarPath = null;

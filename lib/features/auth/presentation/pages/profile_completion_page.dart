@@ -38,7 +38,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
   final _fullName = TextEditingController();
   final _headline = TextEditingController(); // Job Title / Headline
-  final _company = TextEditingController(); // Client Company / Investor Firm Name
+  final _company =
+      TextEditingController(); // Client Company / Investor Firm Name
   final _location = TextEditingController();
   final _bio = TextEditingController();
   final _hourlyRate = TextEditingController();
@@ -192,7 +193,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         }
 
         final headlineVal =
-            (pMap['jobTitle'] ?? pMap['titleHeadline'] ?? pMap['headline'] ?? pMap['title'])
+            (pMap['jobTitle'] ??
+                    pMap['titleHeadline'] ??
+                    pMap['headline'] ??
+                    pMap['title'])
                 ?.toString();
         if (headlineVal != null && headlineVal.isNotEmpty) {
           _headline.text = headlineVal;
@@ -216,7 +220,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         }
 
         if (pMap['investorTypeId'] is Map) {
-          final itMap = Map<String, dynamic>.from(pMap['investorTypeId'] as Map);
+          final itMap = Map<String, dynamic>.from(
+            pMap['investorTypeId'] as Map,
+          );
           final itId = (itMap['id'] ?? itMap['_id'])?.toString() ?? '';
           final itName = (itMap['name'] ?? itMap['label'])?.toString() ?? itId;
           if (itId.isNotEmpty && itName.isNotEmpty) {
@@ -230,7 +236,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         }
 
         if (pMap['preferredStageId'] is Map) {
-          final psMap = Map<String, dynamic>.from(pMap['preferredStageId'] as Map);
+          final psMap = Map<String, dynamic>.from(
+            pMap['preferredStageId'] as Map,
+          );
           final psId = (psMap['id'] ?? psMap['_id'])?.toString() ?? '';
           final psName = (psMap['name'] ?? psMap['label'])?.toString() ?? psId;
           if (psId.isNotEmpty && psName.isNotEmpty) {
@@ -260,8 +268,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             }
           }
           if (_prefilledFocusAreaNames.isNotEmpty) {
-            _focusAreasDisplayController.text =
-                _prefilledFocusAreaNames.join(', ');
+            _focusAreasDisplayController.text = _prefilledFocusAreaNames.join(
+              ', ',
+            );
           }
         }
 
@@ -275,8 +284,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         }
 
         if (pMap['availability'] is Map) {
-          final availMap =
-              Map<String, dynamic>.from(pMap['availability'] as Map);
+          final availMap = Map<String, dynamic>.from(
+            pMap['availability'] as Map,
+          );
           final aid = (availMap['id'] ?? availMap['_id'])?.toString() ?? '';
           final aname =
               (availMap['name'] ?? availMap['label'])?.toString() ?? aid;
@@ -307,7 +317,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         }
 
         if (pMap['projectHireBudgetId'] is Map) {
-          final bMap = Map<String, dynamic>.from(pMap['projectHireBudgetId'] as Map);
+          final bMap = Map<String, dynamic>.from(
+            pMap['projectHireBudgetId'] as Map,
+          );
           final bId = (bMap['id'] ?? bMap['_id'])?.toString() ?? '';
           final bName = (bMap['name'] ?? bMap['label'])?.toString() ?? bId;
           if (bId.isNotEmpty && bName.isNotEmpty) {
@@ -323,7 +335,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             if (goal is Map) {
               final gid = (goal['id'] ?? goal['_id'])?.toString();
               final gname = (goal['name'] ?? goal['label'])?.toString();
-              if (gid != null && gid.isNotEmpty) _selectedFounderGoalIds.add(gid);
+              if (gid != null && gid.isNotEmpty)
+                _selectedFounderGoalIds.add(gid);
               if (gname != null && gname.isNotEmpty) names.add(gname);
             } else if (goal is String && goal.isNotEmpty) {
               _selectedFounderGoalIds.add(goal);
@@ -375,28 +388,40 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         _selectedState = _matchOption(_selectedState, _states);
       }
       if (_experienceLevels.isNotEmpty) {
-        _selectedExperience =
-            _matchOption(_selectedExperience, _experienceLevels);
+        _selectedExperience = _matchOption(
+          _selectedExperience,
+          _experienceLevels,
+        );
       }
       if (_availabilities.isNotEmpty) {
-        _selectedAvailability =
-            _matchOption(_selectedAvailability, _availabilities);
+        _selectedAvailability = _matchOption(
+          _selectedAvailability,
+          _availabilities,
+        );
       }
       if (_companySizes.isNotEmpty) {
-        _selectedCompanySize =
-            _matchOption(_selectedCompanySize, _companySizes);
+        _selectedCompanySize = _matchOption(
+          _selectedCompanySize,
+          _companySizes,
+        );
       }
       if (_budgetRanges.isNotEmpty) {
-        _selectedBudgetRange =
-            _matchOption(_selectedBudgetRange, _budgetRanges);
+        _selectedBudgetRange = _matchOption(
+          _selectedBudgetRange,
+          _budgetRanges,
+        );
       }
       if (_investorTypes.isNotEmpty) {
-        _selectedInvestorType =
-            _matchOption(_selectedInvestorType, _investorTypes);
+        _selectedInvestorType = _matchOption(
+          _selectedInvestorType,
+          _investorTypes,
+        );
       }
       if (_investorStages.isNotEmpty) {
-        _selectedPreferredStage =
-            _matchOption(_selectedPreferredStage, _investorStages);
+        _selectedPreferredStage = _matchOption(
+          _selectedPreferredStage,
+          _investorStages,
+        );
       }
       if (_ticketSizes.isNotEmpty &&
           (_rawTicketMin != null || _rawTicketMax != null)) {
@@ -412,23 +437,31 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         );
       }
       if (_startupStages.isNotEmpty) {
-        _selectedFounderStage =
-            _matchOption(_selectedFounderStage, _startupStages);
+        _selectedFounderStage = _matchOption(
+          _selectedFounderStage,
+          _startupStages,
+        );
       }
       if (_startupRoles.isNotEmpty) {
-        _selectedFounderRole =
-            _matchOption(_selectedFounderRole, _startupRoles);
+        _selectedFounderRole = _matchOption(
+          _selectedFounderRole,
+          _startupRoles,
+        );
       }
-      if (_companySizes.isNotEmpty) {
-        _selectedTeamSize = _matchOption(_selectedTeamSize, _companySizes);
+      if (_teamSizes.isNotEmpty) {
+        _selectedTeamSize = _matchOption(_selectedTeamSize, _teamSizes);
       }
       if (_founderGoals.isNotEmpty) {
-        _selectedPrimaryGoal =
-            _matchOption(_selectedPrimaryGoal, _founderGoals);
+        _selectedPrimaryGoal = _matchOption(
+          _selectedPrimaryGoal,
+          _founderGoals,
+        );
       }
       if (_focusAreaOptions.isNotEmpty) {
-        _selectedFounderIndustry =
-            _matchOption(_selectedFounderIndustry, _focusAreaOptions);
+        _selectedFounderIndustry = _matchOption(
+          _selectedFounderIndustry,
+          _focusAreaOptions,
+        );
       }
     });
   }
@@ -440,15 +473,21 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     if (mounted && cRes.isSuccess) _countries = cRes.valueOrNull ?? [];
 
     final expRes = await repo.getExperienceLevelOptions();
-    if (mounted && expRes.isSuccess) _experienceLevels = expRes.valueOrNull ?? [];
+    if (mounted && expRes.isSuccess)
+      _experienceLevels = expRes.valueOrNull ?? [];
 
     final availRes = await repo.getAvailabilityOptions();
-    if (mounted && availRes.isSuccess) _availabilities = availRes.valueOrNull ?? [];
+    if (mounted && availRes.isSuccess)
+      _availabilities = availRes.valueOrNull ?? [];
 
     final csRes = await repo.getCompanySizeOptions();
     if (mounted && csRes.isSuccess) {
       _companySizes = csRes.valueOrNull ?? [];
-      _teamSizes = _companySizes;
+    }
+
+    final tmRes = await repo.getTeamSizeOptions();
+    if (mounted && tmRes.isSuccess) {
+      _teamSizes = tmRes.valueOrNull ?? [];
     }
 
     final bRes = await repo.getHiringBudgetOptions();
@@ -467,7 +506,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     if (mounted && tsRes.isSuccess) _ticketSizes = tsRes.valueOrNull ?? [];
 
     final indRes = await repo.getIndustryOptions();
-    if (mounted && indRes.isSuccess) _focusAreaOptions = indRes.valueOrNull ?? [];
+    if (mounted && indRes.isSuccess)
+      _focusAreaOptions = indRes.valueOrNull ?? [];
 
     final stgRes = await repo.getStartupStageOptions();
     if (mounted && stgRes.isSuccess) _startupStages = stgRes.valueOrNull ?? [];
@@ -484,8 +524,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 
   Future<void> _loadStatesForCountry(String countryIdOrCode) async {
-    final res =
-        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    final res = await sl<MasterDataRepository>().getStatesOptions(
+      countryIdOrCode,
+    );
     if (!mounted) return;
     _states = res.valueOrNull ?? [];
     _matchAllDropdowns();
@@ -571,8 +612,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       if (result.isFailure) {
         setState(() {
           _loadingSkills = false;
-          _loadError =
-              result.failureOrNull?.message ?? 'Failed to load skills';
+          _loadError = result.failureOrNull?.message ?? 'Failed to load skills';
         });
         return;
       }
@@ -583,8 +623,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       allSkills.addAll(batch.where((skill) => skill.id.isNotEmpty));
 
       if (page == 1) {
-        final totalResult =
-            await repo.getSkillsTotal(categoryId: categoryId);
+        final totalResult = await repo.getSkillsTotal(categoryId: categoryId);
         total = totalResult.valueOrNull ?? batch.length;
       }
 
@@ -649,7 +688,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   void _updateFocusAreasDisplayText() {
     final names = <String>[];
-    final options = _focusAreaOptions.isNotEmpty ? _focusAreaOptions : _categories.map((c) => MasterOption(id: c.id, name: c.name)).toList();
+    final options = _focusAreaOptions.isNotEmpty
+        ? _focusAreaOptions
+        : _categories.map((c) => MasterOption(id: c.id, name: c.name)).toList();
     for (final opt in options) {
       if (_selectedFocusAreaIds.contains(opt.id)) {
         names.add(opt.name);
@@ -713,8 +754,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             final filtered = search.isEmpty
                 ? _categories
                 : _categories
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -743,33 +784,34 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         child: _loadingCategories
                             ? const Center(child: CircularProgressIndicator())
                             : filtered.isEmpty
-                                ? const Center(
-                                    child: Text('No categories found'))
-                                : ListView.separated(
-                                    controller: scrollController,
-                                    itemCount: filtered.length,
-                                    separatorBuilder: (_, __) =>
-                                        const Divider(height: 1),
-                                    itemBuilder: (context, index) {
-                                      final cat = filtered[index];
-                                      final isSelected =
-                                          cat.id == _selectedCategoryId;
-                                      return ListTile(
-                                        title: Text(cat.name),
-                                        trailing: isSelected
-                                            ? const Icon(Icons.check_circle,
-                                                color: AppColors.primary)
-                                            : null,
-                                        onTap: () {
-                                          _onCategorySelected(cat.id);
-                                          _categoryDisplayController.text =
-                                              cat.name;
-                                          _skillsDisplayController.clear();
-                                          Navigator.of(context).pop();
-                                        },
-                                      );
+                            ? const Center(child: Text('No categories found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final cat = filtered[index];
+                                  final isSelected =
+                                      cat.id == _selectedCategoryId;
+                                  return ListTile(
+                                    title: Text(cat.name),
+                                    trailing: isSelected
+                                        ? const Icon(
+                                            Icons.check_circle,
+                                            color: AppColors.primary,
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      _onCategorySelected(cat.id);
+                                      _categoryDisplayController.text =
+                                          cat.name;
+                                      _skillsDisplayController.clear();
+                                      Navigator.of(context).pop();
                                     },
-                                  ),
+                                  );
+                                },
+                              ),
                       ),
                     ],
                   ),
@@ -794,13 +836,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             final options = _focusAreaOptions.isNotEmpty
                 ? _focusAreaOptions
                 : _categories
-                    .map((c) => MasterOption(id: c.id, name: c.name))
-                    .toList();
+                      .map((c) => MasterOption(id: c.id, name: c.name))
+                      .toList();
             final filtered = search.isEmpty
                 ? options
                 : options
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -825,8 +867,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                               _updateFocusAreasDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -848,8 +892,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final cat = filtered[index];
-                                  final isSelected =
-                                      _selectedFocusAreaIds.contains(cat.id);
+                                  final isSelected = _selectedFocusAreaIds
+                                      .contains(cat.id);
                                   return CheckboxListTile(
                                     title: Text(cat.name),
                                     value: isSelected,
@@ -871,7 +915,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
-                        label: 'Done (${_selectedFocusAreaIds.length} selected)',
+                        label:
+                            'Done (${_selectedFocusAreaIds.length} selected)',
                         onPressed: () {
                           _updateFocusAreasDisplayText();
                           Navigator.of(context).pop();
@@ -901,8 +946,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             final filtered = search.isEmpty
                 ? _focusAreaOptions
                 : _focusAreaOptions
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -942,8 +987,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                   return ListTile(
                                     title: Text(item.name),
                                     trailing: isSelected
-                                        ? const Icon(Icons.check_circle,
-                                            color: AppColors.primary)
+                                        ? const Icon(
+                                            Icons.check_circle,
+                                            color: AppColors.primary,
+                                          )
                                         : null,
                                     onTap: () {
                                       setState(() {
@@ -981,8 +1028,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             final filtered = search.isEmpty
                 ? _founderGoals
                 : _founderGoals
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1007,8 +1054,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                               _updateFounderGoalsDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -1030,8 +1079,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final item = filtered[index];
-                                  final isSelected =
-                                      _selectedFounderGoalIds.contains(item.id);
+                                  final isSelected = _selectedFounderGoalIds
+                                      .contains(item.id);
                                   return CheckboxListTile(
                                     title: Text(item.name),
                                     value: isSelected,
@@ -1039,7 +1088,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                     onChanged: (_) {
                                       setState(() {
                                         if (isSelected) {
-                                          _selectedFounderGoalIds.remove(item.id);
+                                          _selectedFounderGoalIds.remove(
+                                            item.id,
+                                          );
                                         } else {
                                           _selectedFounderGoalIds.add(item.id);
                                         }
@@ -1089,8 +1140,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             final filtered = search.isEmpty
                 ? _visibleSkills
                 : _visibleSkills
-                    .where((s) => s.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((s) => s.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1115,8 +1166,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                               _updateSkillsDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -1132,27 +1185,28 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         child: _loadingSkills
                             ? const Center(child: CircularProgressIndicator())
                             : filtered.isEmpty
-                                ? const Center(child: Text('No skills found'))
-                                : ListView.separated(
-                                    controller: scrollController,
-                                    itemCount: filtered.length,
-                                    separatorBuilder: (_, __) =>
-                                        const Divider(height: 1),
-                                    itemBuilder: (context, index) {
-                                      final skill = filtered[index];
-                                      final isSelected = _selectedSkillIds
-                                          .contains(skill.id);
-                                      return CheckboxListTile(
-                                        title: Text(skill.name),
-                                        value: isSelected,
-                                        activeColor: AppColors.primary,
-                                        onChanged: (_) {
-                                          _toggleSkill(skill.id);
-                                          setSheetState(() {});
-                                        },
-                                      );
+                            ? const Center(child: Text('No skills found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final skill = filtered[index];
+                                  final isSelected = _selectedSkillIds.contains(
+                                    skill.id,
+                                  );
+                                  return CheckboxListTile(
+                                    title: Text(skill.name),
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (_) {
+                                      _toggleSkill(skill.id);
+                                      setSheetState(() {});
                                     },
-                                  ),
+                                  );
+                                },
+                              ),
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
@@ -1205,8 +1259,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                               _updateHiringGoalsDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -1230,7 +1286,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                     onChanged: (_) {
                                       setState(() {
                                         if (isSelected) {
-                                          _selectedHiringGoalIds.remove(goal.id);
+                                          _selectedHiringGoalIds.remove(
+                                            goal.id,
+                                          );
                                         } else {
                                           _selectedHiringGoalIds.add(goal.id);
                                         }
@@ -1244,7 +1302,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
-                        label: 'Done (${_selectedHiringGoalIds.length} selected)',
+                        label:
+                            'Done (${_selectedHiringGoalIds.length} selected)',
                         onPressed: () {
                           _updateHiringGoalsDisplayText();
                           Navigator.of(context).pop();
@@ -1302,7 +1361,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     final role =
         context.read<AuthBloc>().state.user?.role ?? UserRole.freelancer;
 
-    if (role != UserRole.client && role != UserRole.investor && role != UserRole.founder && _selectedCategoryId == null) {
+    if (role != UserRole.client &&
+        role != UserRole.investor &&
+        role != UserRole.founder &&
+        _selectedCategoryId == null) {
       setState(() => _categoryError = 'Category is required');
       context.showSnack('Category is required', isError: true);
       return;
@@ -1345,26 +1407,28 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         } else ...{
           if (_ticketMin.text.trim().isNotEmpty)
             'ticketMin':
-                double.tryParse(_ticketMin.text.trim()) ?? _ticketMin.text.trim(),
+                double.tryParse(_ticketMin.text.trim()) ??
+                _ticketMin.text.trim(),
           if (_ticketMax.text.trim().isNotEmpty)
             'ticketMax':
-                double.tryParse(_ticketMax.text.trim()) ?? _ticketMax.text.trim(),
+                double.tryParse(_ticketMax.text.trim()) ??
+                _ticketMax.text.trim(),
         },
       } else if (role == UserRole.founder) ...{
-        if (_company.text.trim().isNotEmpty) 'startupName': _company.text.trim(),
+        if (_company.text.trim().isNotEmpty)
+          'startupName': _company.text.trim(),
         if (_pitch.text.trim().isNotEmpty) 'pitch': _pitch.text.trim(),
         if (_selectedFounderIndustry != null)
           'industryId': _selectedFounderIndustry!.id,
-        if (_selectedFounderStage != null)
-          'stageId': _selectedFounderStage!.id,
+        if (_selectedFounderStage != null) 'stageId': _selectedFounderStage!.id,
         if (_selectedFounderRole != null)
           'founderRoleId': _selectedFounderRole!.id,
-        if (_selectedTeamSize != null)
-          'teamSizeId': _selectedTeamSize!.id,
+        if (_selectedTeamSize != null) 'teamSizeId': _selectedTeamSize!.id,
         if (_selectedFounderGoalIds.isNotEmpty)
           'primaryGoalId': _selectedFounderGoalIds.toList(),
         if (_targetRaise.text.trim().isNotEmpty)
-          'targetRaise': double.tryParse(_targetRaise.text.trim()) ??
+          'targetRaise':
+              double.tryParse(_targetRaise.text.trim()) ??
               _targetRaise.text.trim(),
       } else ...{
         if (_selectedCategoryId != null) ...{
@@ -1389,11 +1453,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     };
 
     context.read<AuthBloc>().add(
-          AuthProfileCompleted(
-            payload,
-            avatarBytes: _avatarBytes?.toList(),
-          ),
-        );
+      AuthProfileCompleted(payload, avatarBytes: _avatarBytes?.toList()),
+    );
   }
 
   void _showTopValidationMessage(String message) {
@@ -1518,8 +1579,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                   (isClient
                       ? Routes.clientDashboard
                       : isInvestor
-                          ? Routes.investorDashboard
-                          : Routes.freelancerDashboard);
+                      ? Routes.investorDashboard
+                      : Routes.freelancerDashboard);
               context.go(targetRoute);
             }
           },
@@ -1557,9 +1618,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                       tooltip: 'Add profile photo',
                                       constraints:
                                           const BoxConstraints.tightFor(
-                                        width: 25,
-                                        height: 25,
-                                      ),
+                                            width: 25,
+                                            height: 25,
+                                          ),
                                       padding: EdgeInsets.zero,
                                       onPressed: _openAvatarPicker,
                                       icon: const Icon(
@@ -1617,8 +1678,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         value: _selectedInvestorType,
                         items: _investorTypes,
                         itemLabel: (item) => item.name,
-                        validator: (v) => Validators.required(v?.name,
-                            field: 'Investor Type'),
+                        validator: (v) => Validators.required(
+                          v?.name,
+                          field: 'Investor Type',
+                        ),
                         onChanged: (opt) =>
                             setState(() => _selectedInvestorType = opt),
                       ),
@@ -1629,8 +1692,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         value: _selectedPreferredStage,
                         items: _investorStages,
                         itemLabel: (item) => item.name,
-                        validator: (v) => Validators.required(v?.name,
-                            field: 'Preferred Investment Stage'),
+                        validator: (v) => Validators.required(
+                          v?.name,
+                          field: 'Preferred Investment Stage',
+                        ),
                         onChanged: (opt) =>
                             setState(() => _selectedPreferredStage = opt),
                       ),
@@ -1642,8 +1707,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                             : 'Focus Areas / Sectors (${_selectedFocusAreaIds.length})',
                         hint: 'Select focus sectors',
                         readOnly: true,
-                        suffixIcon:
-                            const Icon(Icons.keyboard_arrow_down_rounded),
+                        suffixIcon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                        ),
                         onTap: _showFocusAreasBottomSheet,
                       ),
                       AppSizes.vGapLg,
@@ -1693,8 +1759,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         value: _selectedTicketSize,
                         items: _ticketSizes,
                         itemLabel: (item) => item.label,
-                        validator: (v) => Validators.required(v?.label,
-                            field: 'Ticket Size'),
+                        validator: (v) =>
+                            Validators.required(v?.label, field: 'Ticket Size'),
                         onChanged: (opt) =>
                             setState(() => _selectedTicketSize = opt),
                       ),
@@ -1704,8 +1770,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         controller: _company,
                         label: 'Startup / Company Name *',
                         hint: 'e.g. LogiTech AI',
-                        validator: (v) => Validators.required(v,
-                            field: 'Startup Name'),
+                        validator: (v) =>
+                            Validators.required(v, field: 'Startup Name'),
                       ),
                       AppSizes.vGapLg,
                       AppTextField(
@@ -1713,8 +1779,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         label: 'Industry *',
                         hint: 'Select Industry',
                         readOnly: true,
-                        suffixIcon:
-                            const Icon(Icons.keyboard_arrow_down_rounded),
+                        suffixIcon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                        ),
                         onTap: _showFounderIndustryBottomSheet,
                       ),
                       AppSizes.vGapLg,
@@ -1724,8 +1791,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         value: _selectedFounderStage,
                         items: _startupStages,
                         itemLabel: (item) => item.name,
-                        validator: (v) => Validators.required(v?.name,
-                            field: 'Current Stage'),
+                        validator: (v) => Validators.required(
+                          v?.name,
+                          field: 'Current Stage',
+                        ),
                         onChanged: (opt) =>
                             setState(() => _selectedFounderStage = opt),
                       ),
@@ -1736,8 +1805,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         value: _selectedFounderRole,
                         items: _startupRoles,
                         itemLabel: (item) => item.name,
-                        validator: (v) => Validators.required(v?.name,
-                            field: 'Role in Startup'),
+                        validator: (v) => Validators.required(
+                          v?.name,
+                          field: 'Role in Startup',
+                        ),
                         onChanged: (opt) =>
                             setState(() => _selectedFounderRole = opt),
                       ),
@@ -1748,8 +1819,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         value: _selectedTeamSize,
                         items: _teamSizes,
                         itemLabel: (item) => item.name,
-                        validator: (v) => Validators.required(v?.name,
-                            field: 'Team Size'),
+                        validator: (v) =>
+                            Validators.required(v?.name, field: 'Team Size'),
                         onChanged: (opt) =>
                             setState(() => _selectedTeamSize = opt),
                       ),
@@ -1761,8 +1832,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                             : 'Primary Goal on Platform (${_selectedFounderGoalIds.length})',
                         hint: 'Select Primary Goal',
                         readOnly: true,
-                        suffixIcon:
-                            const Icon(Icons.keyboard_arrow_down_rounded),
+                        suffixIcon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                        ),
                         onTap: _showFounderGoalsBottomSheet,
                       ),
                       AppSizes.vGapLg,
@@ -1837,11 +1909,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         hint: isClient
                             ? 'e.g. VP of Engineering'
                             : role == UserRole.founder
-                                ? 'Enter your title'
-                                : 'Enter your job title',
+                            ? 'Enter your title'
+                            : 'Enter your job title',
                         validator: (v) => Validators.minLength(
-                            v, 2,
-                            field: isClient ? 'Job Title' : 'Headline'),
+                          v,
+                          2,
+                          field: isClient ? 'Job Title' : 'Headline',
+                        ),
                       ),
                       if (isClient) ...[
                         AppSizes.vGapLg,
@@ -1849,8 +1923,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           controller: _company,
                           label: 'Company Name *',
                           hint: 'Enter company name',
-                          validator: (v) => Validators.minLength(v, 2,
-                              field: 'Company Name'),
+                          validator: (v) =>
+                              Validators.minLength(v, 2, field: 'Company Name'),
                         ),
                       ],
                       AppSizes.vGapLg,
@@ -1899,18 +1973,22 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         label: 'Category / Industry *',
                         hint: 'Select Category / Industry',
                         readOnly: true,
-                        suffixIcon:
-                            const Icon(Icons.keyboard_arrow_down_rounded),
+                        suffixIcon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                        ),
                         onTap: _showCategoryBottomSheet,
-                        validator: (v) => Validators.required(v,
-                            field: 'Category / Industry'),
+                        validator: (v) => Validators.required(
+                          v,
+                          field: 'Category / Industry',
+                        ),
                       ),
                       if (_categoryError != null) ...[
                         AppSizes.vGapXs,
                         Text(
                           _categoryError!,
-                          style: context.text.bodySmall
-                              ?.copyWith(color: AppColors.danger),
+                          style: context.text.bodySmall?.copyWith(
+                            color: AppColors.danger,
+                          ),
                         ),
                       ],
                       if (isClient) ...[
@@ -1921,8 +1999,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           value: _selectedCompanySize,
                           items: _companySizes,
                           itemLabel: (item) => item.name,
-                          validator: (v) => Validators.required(v?.name,
-                              field: 'Company Size'),
+                          validator: (v) => Validators.required(
+                            v?.name,
+                            field: 'Company Size',
+                          ),
                           onChanged: (opt) =>
                               setState(() => _selectedCompanySize = opt),
                         ),
@@ -1933,8 +2013,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           value: _selectedBudgetRange,
                           items: _budgetRanges,
                           itemLabel: (item) => item.name,
-                          validator: (v) => Validators.required(v?.name,
-                              field: 'Project / Hiring Budget'),
+                          validator: (v) => Validators.required(
+                            v?.name,
+                            field: 'Project / Hiring Budget',
+                          ),
                           onChanged: (opt) =>
                               setState(() => _selectedBudgetRange = opt),
                         ),
@@ -1944,8 +2026,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           label: 'Hiring Goals',
                           hint: 'Select Hiring Goals',
                           readOnly: true,
-                          suffixIcon:
-                              const Icon(Icons.keyboard_arrow_down_rounded),
+                          suffixIcon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                          ),
                           onTap: _showHiringGoalsBottomSheet,
                         ),
                       ] else ...[
@@ -1956,8 +2039,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           value: _selectedExperience,
                           items: _experienceLevels,
                           itemLabel: (item) => item.name,
-                          validator: (v) => Validators.required(v?.name,
-                              field: 'Experience Level'),
+                          validator: (v) => Validators.required(
+                            v?.name,
+                            field: 'Experience Level',
+                          ),
                           onChanged: (opt) =>
                               setState(() => _selectedExperience = opt),
                         ),
@@ -1968,8 +2053,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                           value: _selectedAvailability,
                           items: _availabilities,
                           itemLabel: (item) => item.name,
-                          validator: (v) => Validators.required(v?.name,
-                              field: 'Availability'),
+                          validator: (v) => Validators.required(
+                            v?.name,
+                            field: 'Availability',
+                          ),
                           onChanged: (opt) =>
                               setState(() => _selectedAvailability = opt),
                         ),
@@ -1982,8 +2069,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                             decimal: true,
                           ),
                           validator: (v) {
-                            final reqErr =
-                                Validators.required(v, field: 'Hourly Rate');
+                            final reqErr = Validators.required(
+                              v,
+                              field: 'Hourly Rate',
+                            );
                             if (reqErr != null) return reqErr;
                             final trimmed = v!.trim();
                             if (double.tryParse(trimmed) == null) {
@@ -2000,8 +2089,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                               ? 'Select category first'
                               : 'Select skills',
                           readOnly: true,
-                          suffixIcon:
-                              const Icon(Icons.keyboard_arrow_down_rounded),
+                          suffixIcon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                          ),
                           onTap: _showSkillsBottomSheet,
                         ),
                       ],

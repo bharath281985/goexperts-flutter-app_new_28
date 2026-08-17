@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../errors/failures.dart';
 import '../utils/result.dart';
+import '../utils/image_url.dart';
 import 'api_exception_handler.dart';
 import 'api_response.dart';
 import 'dio_client.dart';
@@ -112,13 +113,19 @@ class FileUploadHelper {
     );
     return res.fold(
       Err.new,
-      (json) => Success(
-        json['url']?.toString() ??
-            json['fileUrl']?.toString() ??
-            json['avatarUrl']?.toString() ??
-            json['logoUrl']?.toString() ??
-            '',
-      ),
+      (json) {
+        final nested = json['user'];
+        final nestedMap = nested is Map ? nested : null;
+        final url =
+            json['url']?.toString() ??
+              json['fileUrl']?.toString() ??
+              json['avatarUrl']?.toString() ??
+              json['logoUrl']?.toString() ??
+              nestedMap?['avatarUrl']?.toString() ??
+              nestedMap?['avatar_url']?.toString() ??
+              '';
+        return Success(normalizeImageUrl(url));
+      },
     );
   }
 }

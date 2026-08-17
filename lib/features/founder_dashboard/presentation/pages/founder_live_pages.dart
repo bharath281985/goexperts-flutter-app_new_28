@@ -109,7 +109,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     final rolRes = await masterRepo.getStartupRoleOptions();
     if (mounted && rolRes.isSuccess) _roles = rolRes.valueOrNull ?? [];
 
-    final tsRes = await masterRepo.getCompanySizeOptions();
+    final tsRes = await masterRepo.getTeamSizeOptions();
     if (mounted && tsRes.isSuccess) _teamSizes = tsRes.valueOrNull ?? [];
 
     final fgRes = await masterRepo.getFounderGoalOptions();
@@ -161,7 +161,9 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       if (userMap['profile'] is Map) {
         final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
         _startupName.text =
-            pMap['startupName']?.toString() ?? pMap['startup']?.toString() ?? '';
+            pMap['startupName']?.toString() ??
+            pMap['startup']?.toString() ??
+            '';
         _pitch.text =
             pMap['pitch']?.toString() ?? pMap['oneLinePitch']?.toString() ?? '';
         _targetRaise.text = pMap['targetRaise']?.toString() ?? '';
@@ -232,7 +234,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
             if (goal is Map) {
               final gid = (goal['id'] ?? goal['_id'])?.toString();
               final gname = (goal['name'] ?? goal['label'])?.toString();
-              if (gid != null && gid.isNotEmpty) _selectedFounderGoalIds.add(gid);
+              if (gid != null && gid.isNotEmpty)
+                _selectedFounderGoalIds.add(gid);
               if (gname != null && gname.isNotEmpty) names.add(gname);
             } else if (goal is String && goal.isNotEmpty) {
               _selectedFounderGoalIds.add(goal);
@@ -294,8 +297,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         _selectedTeamSize = _matchOption(_selectedTeamSize, _teamSizes);
       }
       if (_founderGoals.isNotEmpty) {
-        _selectedPrimaryGoal =
-            _matchOption(_selectedPrimaryGoal, _founderGoals);
+        _selectedPrimaryGoal = _matchOption(
+          _selectedPrimaryGoal,
+          _founderGoals,
+        );
       }
     });
   }
@@ -315,8 +320,9 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   }
 
   Future<void> _loadStatesForCountry(String countryIdOrCode) async {
-    final res =
-        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    final res = await sl<MasterDataRepository>().getStatesOptions(
+      countryIdOrCode,
+    );
     if (!mounted) return;
     _states = res.valueOrNull ?? [];
     _matchAllDropdowns();
@@ -334,8 +340,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
             final filtered = search.isEmpty
                 ? _industries
                 : _industries
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -375,8 +381,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                   return ListTile(
                                     title: Text(item.name),
                                     trailing: isSelected
-                                        ? const Icon(Icons.check_circle,
-                                            color: AppColors.primary)
+                                        ? const Icon(
+                                            Icons.check_circle,
+                                            color: AppColors.primary,
+                                          )
                                         : null,
                                     onTap: () {
                                       setState(() {
@@ -414,8 +422,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
             final filtered = search.isEmpty
                 ? _founderGoals
                 : _founderGoals
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -440,8 +448,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                               _updateFounderGoalsDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -463,8 +473,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final item = filtered[index];
-                                  final isSelected =
-                                      _selectedFounderGoalIds.contains(item.id);
+                                  final isSelected = _selectedFounderGoalIds
+                                      .contains(item.id);
                                   return CheckboxListTile(
                                     title: Text(item.name),
                                     value: isSelected,
@@ -472,7 +482,9 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                     onChanged: (_) {
                                       setState(() {
                                         if (isSelected) {
-                                          _selectedFounderGoalIds.remove(item.id);
+                                          _selectedFounderGoalIds.remove(
+                                            item.id,
+                                          );
                                         } else {
                                           _selectedFounderGoalIds.add(item.id);
                                         }
@@ -529,7 +541,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       if (_selectedFounderGoalIds.isNotEmpty)
         'primaryGoalId': _selectedFounderGoalIds.toList(),
       if (_targetRaise.text.trim().isNotEmpty)
-        'targetRaise': double.tryParse(_targetRaise.text.trim()) ??
+        'targetRaise':
+            double.tryParse(_targetRaise.text.trim()) ??
             _targetRaise.text.trim(),
       if (_localAvatarPath != null || _avatarUrl != null)
         'logo': _localAvatarPath ?? _avatarUrl,
@@ -546,19 +559,20 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     setState(() => _saving = false);
 
     if (res.isSuccess) {
-      final msg = res.valueOrNull?['message']?.toString() ??
+      final msg =
+          res.valueOrNull?['message']?.toString() ??
           'Founder profile updated successfully';
       context.showSnack(msg);
       final currentUser = context.read<AuthBloc>().state.user;
       if (currentUser != null) {
         context.read<AuthBloc>().add(
-              AuthUserUpdated(
-                currentUser.copyWith(
-                  fullName: fullName,
-                  location: _city.text.trim(),
-                ),
-              ),
-            );
+          AuthUserUpdated(
+            currentUser.copyWith(
+              fullName: fullName,
+              location: _city.text.trim(),
+            ),
+          ),
+        );
       }
       Navigator.of(context).pop();
     } else {
@@ -573,7 +587,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     setState(() => _localAvatarPath = path);
     final result = await sl<FileUploadHelper>().uploadUrl(
       path: path,
-      endpoint: ApiEndpoints.updateMe,
+      endpoint: ApiEndpoints.updateMeAvatar,
       method: 'put',
       fileField: 'file',
     );
@@ -581,6 +595,13 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     result.fold(
       (failure) => context.showSnack(failure.message, isError: true),
       (url) {
+        if (url.trim().isEmpty) {
+          context.showSnack(
+            'Photo uploaded, but the server did not return its URL.',
+            isError: true,
+          );
+          return;
+        }
         setState(() {
           _avatarUrl = url;
           _localAvatarPath = null;
@@ -592,140 +613,135 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-        appBar: AppBar(
-          leading:
-              IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-          title: const Text('Founder Profile'),
-        ),
-        body: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : ListView(
-                padding: const EdgeInsets.all(AppSizes.screenPadding),
-                children: [
-                  Center(
-                    child: ProfileAvatarEditor(
-                      localPath: _localAvatarPath,
-                      networkUrl: _avatarUrl,
-                      onPathPicked: _uploadAvatar,
+    appBar: AppBar(
+      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+      title: const Text('Founder Profile'),
+    ),
+    body: _loading
+        ? const Center(child: CircularProgressIndicator())
+        : ListView(
+            padding: const EdgeInsets.all(AppSizes.screenPadding),
+            children: [
+              Center(
+                child: ProfileAvatarEditor(
+                  localPath: _localAvatarPath,
+                  networkUrl: _avatarUrl,
+                  onPathPicked: _uploadAvatar,
+                ),
+              ),
+              AppSizes.vGapXl,
+              AppCard(
+                child: Column(
+                  children: [
+                    AppTextField(
+                      controller: _email,
+                      label: 'Email',
+                      hint: 'Email Address',
+                      readOnly: true,
                     ),
-                  ),
-                  AppSizes.vGapXl,
-                  AppCard(
-                    child: Column(
-                      children: [
-                        AppTextField(
-                          controller: _email,
-                          label: 'Email',
-                          hint: 'Email Address',
-                          readOnly: true,
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: _fullName,
-                          label: 'Name *',
-                          hint: 'Enter your name',
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: _startupName,
-                          label: 'Startup / Company Name *',
-                          hint: 'e.g. LogiTech AI',
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: _industryDisplayController,
-                          label: 'Industry *',
-                          hint: 'Select Industry',
-                          readOnly: true,
-                          suffixIcon:
-                              const Icon(Icons.keyboard_arrow_down_rounded),
-                          onTap: _showIndustryBottomSheet,
-                        ),
-                        AppSizes.vGapMd,
-                        AppDropdown<MasterOption>(
-                          label: 'Current Stage *',
-                          hint: 'Select Current Stage',
-                          value: _selectedStage,
-                          items: _stages,
-                          itemLabel: (item) => item.name,
-                          onChanged: (opt) =>
-                              setState(() => _selectedStage = opt),
-                        ),
-                        AppSizes.vGapMd,
-                        AppDropdown<MasterOption>(
-                          label: 'Role in Startup *',
-                          hint: 'Select Role in Startup',
-                          value: _selectedRole,
-                          items: _roles,
-                          itemLabel: (item) => item.name,
-                          onChanged: (opt) =>
-                              setState(() => _selectedRole = opt),
-                        ),
-                        AppSizes.vGapMd,
-                        AppDropdown<MasterOption>(
-                          label: 'Team Size *',
-                          hint: 'Select Team Size',
-                          value: _selectedTeamSize,
-                          items: _teamSizes,
-                          itemLabel: (item) => item.name,
-                          onChanged: (opt) =>
-                              setState(() => _selectedTeamSize = opt),
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: _primaryGoalDisplayController,
-                          label: _selectedFounderGoalIds.isEmpty
-                              ? 'Primary Goal on Platform'
-                              : 'Primary Goal on Platform (${_selectedFounderGoalIds.length})',
-                          hint: 'Select Primary Goal',
-                          readOnly: true,
-                          suffixIcon:
-                              const Icon(Icons.keyboard_arrow_down_rounded),
-                          onTap: _showPrimaryGoalBottomSheet,
-                        ),
-                        AppSizes.vGapMd,
-                        AppTextField(
-                          controller: _targetRaise,
-                          label: 'Target Raise (\$)',
-                          hint: 'e.g. 750000',
-                          keyboardType: TextInputType.number,
-                        ),
-                        AppSizes.vGapMd,
-                        AppLocationField(
-                          controller: _city,
-                          label: 'City / Location *',
-                          hint: 'Select location',
-                        ),
-                        AppSizes.vGapMd,
-                        AppDropdown<MasterOption>(
-                          label: 'Country *',
-                          hint: 'Select Country',
-                          value: _selectedCountry,
-                          items: _countries,
-                          itemLabel: (item) => item.name,
-                          onChanged: (opt) {
-                            setState(() {
-                              _selectedCountry = opt;
-                              _selectedState = null;
-                              _states = [];
-                            });
-                            if (opt != null) {
-                              _loadStatesForCountry(opt.id);
-                            }
-                          },
-                        ),
-                        if (_selectedCountry != null) ...[
-                          AppSizes.vGapMd,
-                          AppDropdown<MasterOption>(
-                            label: 'State *',
-                            hint: 'Select State',
-                            value: _selectedState,
-                            items: _states,
-                            itemLabel: (item) => item.name,
-                            onChanged: (opt) =>
-                                setState(() => _selectedState = opt),
-                          ),
-                        ],
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _fullName,
+                      label: 'Name *',
+                      hint: 'Enter your name',
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _startupName,
+                      label: 'Startup / Company Name *',
+                      hint: 'e.g. LogiTech AI',
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _industryDisplayController,
+                      label: 'Industry *',
+                      hint: 'Select Industry',
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                      onTap: _showIndustryBottomSheet,
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Current Stage *',
+                      hint: 'Select Current Stage',
+                      value: _selectedStage,
+                      items: _stages,
+                      itemLabel: (item) => item.name,
+                      onChanged: (opt) => setState(() => _selectedStage = opt),
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Role in Startup *',
+                      hint: 'Select Role in Startup',
+                      value: _selectedRole,
+                      items: _roles,
+                      itemLabel: (item) => item.name,
+                      onChanged: (opt) => setState(() => _selectedRole = opt),
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Team Size *',
+                      hint: 'Select Team Size',
+                      value: _selectedTeamSize,
+                      items: _teamSizes,
+                      itemLabel: (item) => item.name,
+                      onChanged: (opt) =>
+                          setState(() => _selectedTeamSize = opt),
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _primaryGoalDisplayController,
+                      label: _selectedFounderGoalIds.isEmpty
+                          ? 'Primary Goal on Platform'
+                          : 'Primary Goal on Platform (${_selectedFounderGoalIds.length})',
+                      hint: 'Select Primary Goal',
+                      readOnly: true,
+                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                      onTap: _showPrimaryGoalBottomSheet,
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _targetRaise,
+                      label: 'Target Raise (\$)',
+                      hint: 'e.g. 750000',
+                      keyboardType: TextInputType.number,
+                    ),
+                    AppSizes.vGapMd,
+                    AppLocationField(
+                      controller: _city,
+                      label: 'City / Location *',
+                      hint: 'Select location',
+                    ),
+                    AppSizes.vGapMd,
+                    AppDropdown<MasterOption>(
+                      label: 'Country *',
+                      hint: 'Select Country',
+                      value: _selectedCountry,
+                      items: _countries,
+                      itemLabel: (item) => item.name,
+                      onChanged: (opt) {
+                        setState(() {
+                          _selectedCountry = opt;
+                          _selectedState = null;
+                          _states = [];
+                        });
+                        if (opt != null) {
+                          _loadStatesForCountry(opt.id);
+                        }
+                      },
+                    ),
+                    if (_selectedCountry != null) ...[
+                      AppSizes.vGapMd,
+                      AppDropdown<MasterOption>(
+                        label: 'State *',
+                        hint: 'Select State',
+                        value: _selectedState,
+                        items: _states,
+                        itemLabel: (item) => item.name,
+                        onChanged: (opt) =>
+                            setState(() => _selectedState = opt),
+                      ),
+                    ],
                   ],
                 ),
               ),

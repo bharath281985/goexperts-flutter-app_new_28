@@ -43,7 +43,6 @@ class ApiEndpoints {
   static const publicInvestmentModes = '/investment-modes';
   static const publicInvestorGoals = '/investor-goals';
   static const publicMobileTicketSizes = '/ticket-sizes';
-  static const publicMobileTeamSizes = '/team-sizes';
   static const publicCompanySizes = '/public/company-sizes';
   static const publicTeamSizes = '/public/team-sizes';
   static const publicSkills = '/public/skills';

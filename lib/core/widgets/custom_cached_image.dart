@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 import '../../app/constants/app_colors.dart';
+import '../utils/image_url.dart';
 
 class CustomCachedImage extends StatelessWidget {
   const CustomCachedImage({
@@ -25,6 +26,7 @@ class CustomCachedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final resolvedImageUrl = normalizeImageUrl(imageUrl);
     final fallback =
         errorWidget ??
         Container(
@@ -54,7 +56,7 @@ class CustomCachedImage extends StatelessWidget {
         );
 
     final image = Image(
-      image: CachedNetworkImageProvider(imageUrl),
+      image: CachedNetworkImageProvider(resolvedImageUrl),
       width: width,
       height: height,
       fit: fit,

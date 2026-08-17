@@ -46,17 +46,25 @@ class AppDropdown<T> extends StatelessWidget {
                 ? Icon(prefixIcon, size: AppSizes.iconMd)
                 : null,
           ),
-          items: items
-              .map(
-                (e) => DropdownMenuItem<T>(
-                  value: e,
-                  child: Text(
-                    context.tr(itemLabel(e)),
-                    overflow: TextOverflow.ellipsis,
-                  ),
+          items: [
+            if (value != null && !items.contains(value))
+              DropdownMenuItem<T>(
+                value: value,
+                child: Text(
+                  context.tr(itemLabel(value as T)),
+                  overflow: TextOverflow.ellipsis,
                 ),
-              )
-              .toList(),
+              ),
+            ...items.map(
+              (e) => DropdownMenuItem<T>(
+                value: e,
+                child: Text(
+                  context.tr(itemLabel(e)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
           onChanged: onChanged,
         ),
       ],

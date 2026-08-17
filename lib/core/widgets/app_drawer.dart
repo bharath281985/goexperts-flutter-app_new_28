@@ -817,11 +817,7 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Assets & Documents', [
-            DrawerEntry(
-              'Media & Documents',
-              Icons.perm_media_outlined,
-              route: Routes.founderMedia,
-            ),
+           
           ]),
           DrawerSection('Communication', [
             DrawerEntry(
@@ -835,17 +831,23 @@ class AppDrawer extends StatelessWidget {
               Icons.event_outlined,
               route: Routes.meetings,
             ),
+             DrawerEntry(
+              'Media & Documents',
+              Icons.perm_media_outlined,
+             
+            ),
           ]),
           const DrawerSection('Finance', [
-            DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-              route: Routes.wallet,
-            ),
+           
             DrawerEntry(
               'Subscriptions',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
+            ),
+             DrawerEntry(
+              'Wallet',
+              Icons.account_balance_wallet_outlined,
+             
             ),
           ]),
           const DrawerSection('Account', [

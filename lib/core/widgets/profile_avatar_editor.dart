@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,13 +6,14 @@ import 'package:image_picker/image_picker.dart';
 
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/image_url.dart';
 import 'custom_cached_image.dart';
 
 /// A reusable avatar editor widget for profile edit pages.
 /// Shows a 100×100 circle with the current avatar (local or network),
 /// an edit button, and handles image picking internally.
 /// The [onPathPicked] callback is called when the user picks a new image.
-class ProfileAvatarEditor extends StatelessWidget {
+class ProfileAvatarEditor extends StatefulWidget {
   const ProfileAvatarEditor({
     super.key,
     this.localPath,
@@ -26,10 +27,13 @@ class ProfileAvatarEditor extends StatelessWidget {
   final ValueChanged<String> onPathPicked;
   final double size;
 
+  @override
+  State<ProfileAvatarEditor> createState() => _ProfileAvatarEditorState();
+
   /// Normalizes any URL: localhost → production, bare paths → full URL
   static String? resolveUrl(String? url) {
     if (url == null || url.trim().isEmpty) return null;
-    var u = url.trim();
+    var u = normalizeImageUrl(url);
     // replace emulator/dev localhost with production domain
     if (u.contains('localhost:4000')) {
       u = u
@@ -44,6 +48,10 @@ class ProfileAvatarEditor extends StatelessWidget {
     const base = 'https://mobileapi.goexperts.in';
     return u.startsWith('/') ? '$base$u' : '$base/$u';
   }
+}
+
+class _ProfileAvatarEditorState extends State<ProfileAvatarEditor> {
+  Uint8List? _selectedBytes;
 
   Future<void> _pick(BuildContext context) async {
     final source = await showModalBottomSheet<ImageSource>(
@@ -77,11 +85,13 @@ class ProfileAvatarEditor extends StatelessWidget {
         maxHeight: 1024,
         imageQuality: 85,
       );
-      final path = picked?.path;
-      if (path == null) return;
-      onPathPicked(path);
-      if (context.mounted) {
-        context.showSnack('Photo selected. Tap Save to upload.');
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      if (bytes.isEmpty) throw Exception('Selected image is empty');
+      if (mounted) {
+        setState(() => _selectedBytes = bytes);
+        widget.onPathPicked(picked.path);
+        context.showSnack('Photo selected. Uploading...');
       }
     } catch (e) {
       if (context.mounted) {
@@ -91,7 +101,7 @@ class ProfileAvatarEditor extends StatelessWidget {
   }
 
   Widget _placeholder() =>
-      Icon(Icons.person, size: size * 0.5, color: Colors.grey);
+      Icon(Icons.person, size: widget.size * 0.5, color: Colors.grey);
 
   Widget _networkImage(String url) {
     final isSvg = url.toLowerCase().contains('dicebear.com/api/');
@@ -118,11 +128,16 @@ class ProfileAvatarEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final resolvedNet = resolveUrl(networkUrl);
+    final resolvedNet = ProfileAvatarEditor.resolveUrl(widget.networkUrl);
 
     Widget child;
-    if (localPath != null) {
-      child = Image.file(File(localPath!), fit: BoxFit.cover);
+    if (_selectedBytes != null) {
+      child = Image.memory(
+        _selectedBytes!,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
     } else if (resolvedNet != null) {
       child = _networkImage(resolvedNet);
     } else {
@@ -135,8 +150,8 @@ class ProfileAvatarEditor extends StatelessWidget {
         children: [
           ClipOval(
             child: Container(
-              width: size,
-              height: size,
+              width: widget.size,
+              height: widget.size,
               color: Theme.of(context).disabledColor.withValues(alpha: 0.1),
               child: child,
             ),

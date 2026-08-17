@@ -46,6 +46,8 @@ abstract class MasterDataRepository {
   Future<Result<List<MasterOption>>> getCompanySizeOptions();
   Future<Result<List<MasterOption>>> getHiringBudgetOptions();
   Future<Result<List<MasterOption>>> getHiringGoalOptions();
+  Future<Result<List<MasterOption>>> getTeamSizeOptions();
+
   Future<Result<List<MasterOption>>> getInvestorTypeOptions();
   Future<Result<List<MasterOption>>> getInvestorStageOptions();
   Future<Result<List<TicketSizeOption>>> getTicketSizeOptions();

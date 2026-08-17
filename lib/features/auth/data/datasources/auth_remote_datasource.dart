@@ -128,7 +128,7 @@ class AuthRemoteDatasource {
     String fileField = 'file',
   }) async {
     final result = await _api.uploadBytesEnvelope<AppUser>(
-      ApiEndpoints.updateMe,
+      ApiEndpoints.updateMeAvatar,
       bytes: bytes,
       filename: 'avatar.jpg',
       fileField: fileField,

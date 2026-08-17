@@ -3749,10 +3749,7 @@ class _FreelancerPortfolioFormPageState
   Future<void> _loadTeamSizes() async {
     setState(() => _loadingTeamSizes = true);
     try {
-      final items = await _loadOptions(
-        ApiEndpoints.publicMobileTeamSizes,
-        baseUrl: AppConfig.mobilePublicBaseUrl,
-      );
+      final items = await _loadOptions(ApiEndpoints.publicTeamSizes);
       if (!mounted) return;
       setState(() {
         _teamSizeOptions = _mergeSelected(items, _selectedTeamSize);
