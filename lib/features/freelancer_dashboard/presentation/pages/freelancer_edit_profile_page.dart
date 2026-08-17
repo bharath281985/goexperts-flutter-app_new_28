@@ -30,11 +30,11 @@ class FreelancerEditProfilePage extends StatefulWidget {
       _FreelancerEditProfilePageState();
 }
 
-class _FreelancerEditProfilePageState
-    extends State<FreelancerEditProfilePage> {
+class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
+  final _email = TextEditingController();
   final _fullName = TextEditingController();
   final _title = TextEditingController();
   final _city = TextEditingController();
@@ -87,6 +87,7 @@ class _FreelancerEditProfilePageState
 
   @override
   void dispose() {
+    _email.dispose();
     _fullName.dispose();
     _title.dispose();
     _city.dispose();
@@ -127,8 +128,9 @@ class _FreelancerEditProfilePageState
   }
 
   Future<void> _loadStatesForCountry(String countryIdOrCode) async {
-    final res =
-        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    final res = await sl<MasterDataRepository>().getStatesOptions(
+      countryIdOrCode,
+    );
     if (!mounted) return;
     _states = res.valueOrNull ?? [];
     _matchAllDropdowns();
@@ -136,7 +138,7 @@ class _FreelancerEditProfilePageState
 
   Future<void> _loadCategories() async {
     setState(() => _loadingCategories = true);
-    final result = await sl<MasterDataRepository>().getSkillCategories();
+    final result = await sl<MasterDataRepository>().getIndustries();
     if (!mounted) return;
 
     final categories = result.valueOrNull ?? [];
@@ -191,8 +193,7 @@ class _FreelancerEditProfilePageState
       allSkills.addAll(batch.where((skill) => skill.id.isNotEmpty));
 
       if (page == 1) {
-        final totalResult =
-            await repo.getSkillsTotal(categoryId: categoryId);
+        final totalResult = await repo.getSkillsTotal(categoryId: categoryId);
         total = totalResult.valueOrNull ?? batch.length;
       }
 
@@ -231,12 +232,16 @@ class _FreelancerEditProfilePageState
         _selectedState = _matchOption(_selectedState, _states);
       }
       if (_experienceLevels.isNotEmpty) {
-        _selectedExperience =
-            _matchOption(_selectedExperience, _experienceLevels);
+        _selectedExperience = _matchOption(
+          _selectedExperience,
+          _experienceLevels,
+        );
       }
       if (_availabilities.isNotEmpty) {
-        _selectedAvailability =
-            _matchOption(_selectedAvailability, _availabilities);
+        _selectedAvailability = _matchOption(
+          _selectedAvailability,
+          _availabilities,
+        );
       }
     });
   }
@@ -262,6 +267,9 @@ class _FreelancerEditProfilePageState
 
       if (res.isSuccess) {
         final userMap = res.valueOrNull ?? {};
+        final emailVal = userMap['email']?.toString();
+        if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
+
         final fn =
             userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
         if (fn != null && fn.isNotEmpty) _fullName.text = fn;
@@ -274,7 +282,8 @@ class _FreelancerEditProfilePageState
         if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
 
         _currentAvatarUrl =
-            userMap['avatarUrl']?.toString() ?? userMap['avatar_url']?.toString();
+            userMap['avatarUrl']?.toString() ??
+            userMap['avatar_url']?.toString();
 
         if (userMap['country'] is Map) {
           final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
@@ -343,8 +352,9 @@ class _FreelancerEditProfilePageState
           }
 
           if (pMap['availability'] is Map) {
-            final availMap =
-                Map<String, dynamic>.from(pMap['availability'] as Map);
+            final availMap = Map<String, dynamic>.from(
+              pMap['availability'] as Map,
+            );
             final aid = (availMap['id'] ?? availMap['_id'])?.toString() ?? '';
             final aname =
                 (availMap['name'] ?? availMap['label'])?.toString() ?? aid;
@@ -417,15 +427,15 @@ class _FreelancerEditProfilePageState
         'experienceLevelId': _selectedExperience!.id,
         'experienceId': _selectedExperience!.id,
       },
-      if (_selectedAvailability != null) 'availabilityId': _selectedAvailability!.id,
+      if (_selectedAvailability != null)
+        'availabilityId': _selectedAvailability!.id,
       if (_selectedCategoryId != null) ...{
         'industryId': _selectedCategoryId,
         'categoryId': _selectedCategoryId,
       },
       if (_hourlyRate.text.trim().isNotEmpty)
         'hourlyRate':
-            double.tryParse(_hourlyRate.text.trim()) ??
-            _hourlyRate.text.trim(),
+            double.tryParse(_hourlyRate.text.trim()) ?? _hourlyRate.text.trim(),
       if (_selectedSkillIds.isNotEmpty) ...{
         'skillIds': _selectedSkillIds.toList().join(','),
         'skills': _selectedSkillIds.toList(),
@@ -447,16 +457,13 @@ class _FreelancerEditProfilePageState
 
     if (!mounted) return;
     setState(() => _saving = false);
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (data) {
-        final msg =
-            data['message']?.toString() ?? 'Profile updated successfully!';
-        context.showSnack(msg);
-        context.read<AuthBloc>().add(const AuthRefreshUser());
-        Navigator.of(context).pop();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (data) {
+      final msg =
+          data['message']?.toString() ?? 'Profile updated successfully!';
+      context.showSnack(msg);
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+      Navigator.of(context).pop();
+    });
   }
 
   Future<void> _uploadAvatar(String path) async {
@@ -545,8 +552,8 @@ class _FreelancerEditProfilePageState
             final filtered = search.isEmpty
                 ? _categories
                 : _categories
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -575,33 +582,34 @@ class _FreelancerEditProfilePageState
                         child: _loadingCategories
                             ? const Center(child: CircularProgressIndicator())
                             : filtered.isEmpty
-                                ? const Center(
-                                    child: Text('No categories found'))
-                                : ListView.separated(
-                                    controller: scrollController,
-                                    itemCount: filtered.length,
-                                    separatorBuilder: (_, __) =>
-                                        const Divider(height: 1),
-                                    itemBuilder: (context, index) {
-                                      final cat = filtered[index];
-                                      final isSelected =
-                                          cat.id == _selectedCategoryId;
-                                      return ListTile(
-                                        title: Text(cat.name),
-                                        trailing: isSelected
-                                            ? const Icon(Icons.check_circle,
-                                                color: AppColors.primary)
-                                            : null,
-                                        onTap: () {
-                                          _onCategorySelected(cat.id);
-                                          _categoryDisplayController.text =
-                                              cat.name;
-                                          _skillsDisplayController.clear();
-                                          Navigator.of(context).pop();
-                                        },
-                                      );
+                            ? const Center(child: Text('No categories found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final cat = filtered[index];
+                                  final isSelected =
+                                      cat.id == _selectedCategoryId;
+                                  return ListTile(
+                                    title: Text(cat.name),
+                                    trailing: isSelected
+                                        ? const Icon(
+                                            Icons.check_circle,
+                                            color: AppColors.primary,
+                                          )
+                                        : null,
+                                    onTap: () {
+                                      _onCategorySelected(cat.id);
+                                      _categoryDisplayController.text =
+                                          cat.name;
+                                      _skillsDisplayController.clear();
+                                      Navigator.of(context).pop();
                                     },
-                                  ),
+                                  );
+                                },
+                              ),
                       ),
                     ],
                   ),
@@ -616,8 +624,10 @@ class _FreelancerEditProfilePageState
 
   void _showSkillsBottomSheet() {
     if (_selectedCategoryId == null) {
-      context.showSnack('Please select an Industry / Category first',
-          isError: true);
+      context.showSnack(
+        'Please select an Industry / Category first',
+        isError: true,
+      );
       return;
     }
 
@@ -632,8 +642,8 @@ class _FreelancerEditProfilePageState
             final filtered = search.isEmpty
                 ? _visibleSkills
                 : _visibleSkills
-                    .where((s) => s.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((s) => s.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -658,8 +668,10 @@ class _FreelancerEditProfilePageState
                               _updateSkillsDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -675,27 +687,28 @@ class _FreelancerEditProfilePageState
                         child: _loadingSkills
                             ? const Center(child: CircularProgressIndicator())
                             : filtered.isEmpty
-                                ? const Center(child: Text('No skills found'))
-                                : ListView.separated(
-                                    controller: scrollController,
-                                    itemCount: filtered.length,
-                                    separatorBuilder: (_, __) =>
-                                        const Divider(height: 1),
-                                    itemBuilder: (context, index) {
-                                      final skill = filtered[index];
-                                      final isSelected = _selectedSkillIds
-                                          .contains(skill.id);
-                                      return CheckboxListTile(
-                                        title: Text(skill.name),
-                                        value: isSelected,
-                                        activeColor: AppColors.primary,
-                                        onChanged: (_) {
-                                          _toggleSkill(skill.id);
-                                          setSheetState(() {});
-                                        },
-                                      );
+                            ? const Center(child: Text('No skills found'))
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final skill = filtered[index];
+                                  final isSelected = _selectedSkillIds.contains(
+                                    skill.id,
+                                  );
+                                  return CheckboxListTile(
+                                    title: Text(skill.name),
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (_) {
+                                      _toggleSkill(skill.id);
+                                      setSheetState(() {});
                                     },
-                                  ),
+                                  );
+                                },
+                              ),
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
@@ -812,6 +825,13 @@ class _FreelancerEditProfilePageState
                     const _SectionLabel('About You'),
                     AppSizes.vGapSm,
                     AppTextField(
+                      controller: _email,
+                      label: 'Email',
+                      hint: 'Email Address',
+                      readOnly: true,
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
                       controller: _fullName,
                       label: 'Full Name *',
                       hint: 'Enter your full name',
@@ -823,8 +843,11 @@ class _FreelancerEditProfilePageState
                       controller: _title,
                       label: 'Professional Title *',
                       hint: 'e.g. Senior Flutter Developer',
-                      validator: (v) => Validators.minLength(v, 3,
-                          field: 'Professional Title'),
+                      validator: (v) => Validators.minLength(
+                        v,
+                        3,
+                        field: 'Professional Title',
+                      ),
                     ),
                     AppSizes.vGapLg,
 
@@ -898,8 +921,10 @@ class _FreelancerEditProfilePageState
                         decimal: true,
                       ),
                       validator: (v) {
-                        final reqErr =
-                            Validators.required(v, field: 'Hourly Rate');
+                        final reqErr = Validators.required(
+                          v,
+                          field: 'Hourly Rate',
+                        );
                         if (reqErr != null) return reqErr;
                         if (double.tryParse(v!.trim()) == null) {
                           return 'Please enter a valid rate (e.g. 230.99)';
@@ -914,8 +939,8 @@ class _FreelancerEditProfilePageState
                       value: _selectedAvailability,
                       items: _availabilities,
                       itemLabel: (item) => item.name,
-                      validator: (v) => Validators.required(v?.name,
-                          field: 'Availability'),
+                      validator: (v) =>
+                          Validators.required(v?.name, field: 'Availability'),
                       onChanged: (opt) =>
                           setState(() => _selectedAvailability = opt),
                     ),
@@ -926,8 +951,10 @@ class _FreelancerEditProfilePageState
                       value: _selectedExperience,
                       items: _experienceLevels,
                       itemLabel: (item) => item.name,
-                      validator: (v) => Validators.required(v?.name,
-                          field: 'Experience Level'),
+                      validator: (v) => Validators.required(
+                        v?.name,
+                        field: 'Experience Level',
+                      ),
                       onChanged: (opt) =>
                           setState(() => _selectedExperience = opt),
                     ),
@@ -941,8 +968,7 @@ class _FreelancerEditProfilePageState
                       label: 'Industry / Category *',
                       hint: 'Select Industry / Category',
                       readOnly: true,
-                      suffixIcon:
-                          const Icon(Icons.keyboard_arrow_down_rounded),
+                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                       onTap: _showCategoryBottomSheet,
                       validator: (v) =>
                           Validators.required(v, field: 'Industry / Category'),
@@ -955,8 +981,7 @@ class _FreelancerEditProfilePageState
                           ? 'Select industry first'
                           : 'Select skills',
                       readOnly: true,
-                      suffixIcon:
-                          const Icon(Icons.keyboard_arrow_down_rounded),
+                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                       onTap: _showSkillsBottomSheet,
                     ),
                     AppSizes.vGapLg,
@@ -1013,13 +1038,13 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Text(
-        label.toUpperCase(),
-        style: context.text.labelSmall?.copyWith(
-          color: context.colors.onSurfaceVariant,
-          letterSpacing: 1.2,
-          fontWeight: FontWeight.w700,
-        ),
-      );
+    label.toUpperCase(),
+    style: context.text.labelSmall?.copyWith(
+      color: context.colors.onSurfaceVariant,
+      letterSpacing: 1.2,
+      fontWeight: FontWeight.w700,
+    ),
+  );
 }
 
 class _CompletionCard extends StatelessWidget {
@@ -1055,8 +1080,8 @@ class _CompletionCard extends StatelessWidget {
                   percent >= 80
                       ? 'Great! Your profile looks strong.'
                       : percent >= 50
-                          ? 'Profile is taking shape — keep going!'
-                          : 'Complete your profile to get hired faster.',
+                      ? 'Profile is taking shape — keep going!'
+                      : 'Complete your profile to get hired faster.',
                   style: context.text.bodySmall?.copyWith(
                     color: _color,
                     fontWeight: FontWeight.w600,

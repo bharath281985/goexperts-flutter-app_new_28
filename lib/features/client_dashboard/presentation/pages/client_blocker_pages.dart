@@ -20,7 +20,6 @@ import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../master_data/domain/entities/master_option.dart';
-import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/entities/company.dart';
 import '../../domain/repositories/company_repository.dart';
@@ -34,6 +33,7 @@ class ClientCompanyProfilePage extends StatefulWidget {
 }
 
 class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
+  final _email = TextEditingController();
   final _name = TextEditingController();
   final _companyNameController = TextEditingController();
   final _jobTitleController = TextEditingController();
@@ -57,7 +57,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   List<MasterOption> _companySizes = [];
   List<MasterOption> _budgetRanges = [];
   List<MasterOption> _hiringGoals = [];
-  List<SkillCategory> _categories = [];
+  List<MasterOption> _categories = [];
 
   bool _loading = true;
   bool _saving = false;
@@ -72,6 +72,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
 
   @override
   void dispose() {
+    _email.dispose();
     _name.dispose();
     _companyNameController.dispose();
     _jobTitleController.dispose();
@@ -101,7 +102,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     final hgRes = await masterRepo.getHiringGoalOptions();
     if (mounted && hgRes.isSuccess) _hiringGoals = hgRes.valueOrNull ?? [];
 
-    final catRes = await masterRepo.getSkillCategories();
+    final catRes = await masterRepo.getIndustryOptions();
     if (mounted && catRes.isSuccess) _categories = catRes.valueOrNull ?? [];
 
     final meRes = await api.getEnvelope<Map<String, dynamic>>(
@@ -120,6 +121,9 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     if (!mounted) return;
     final userMap = meRes.valueOrNull ?? {};
     if (userMap.isNotEmpty) {
+      final emailVal = userMap['email']?.toString();
+      if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
+
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
       if (fn != null && fn.isNotEmpty) _name.text = fn;
@@ -161,7 +165,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         }
 
         final jtVal =
-            (pMap['jobTitle'] ?? pMap['titleHeadline'] ?? pMap['headline'] ?? pMap['title'])
+            (pMap['jobTitle'] ??
+                    pMap['titleHeadline'] ??
+                    pMap['headline'] ??
+                    pMap['title'])
                 ?.toString();
         if (jtVal != null && jtVal.isNotEmpty) {
           _jobTitleController.text = jtVal;
@@ -200,8 +207,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         }
 
         if (pMap['companySizeId'] is Map) {
-          final csMap =
-              Map<String, dynamic>.from(pMap['companySizeId'] as Map);
+          final csMap = Map<String, dynamic>.from(pMap['companySizeId'] as Map);
           final csId = (csMap['id'] ?? csMap['_id'])?.toString() ?? '';
           final csName = (csMap['name'] ?? csMap['label'])?.toString() ?? csId;
           if (csId.isNotEmpty && csName.isNotEmpty) {
@@ -210,8 +216,9 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         }
 
         if (pMap['projectHireBudgetId'] is Map) {
-          final bMap =
-              Map<String, dynamic>.from(pMap['projectHireBudgetId'] as Map);
+          final bMap = Map<String, dynamic>.from(
+            pMap['projectHireBudgetId'] as Map,
+          );
           final bId = (bMap['id'] ?? bMap['_id'])?.toString() ?? '';
           final bName = (bMap['name'] ?? bMap['label'])?.toString() ?? bId;
           if (bId.isNotEmpty && bName.isNotEmpty) {
@@ -269,19 +276,24 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         _selectedState = _matchOption(_selectedState, _states);
       }
       if (_companySizes.isNotEmpty) {
-        _selectedCompanySize =
-            _matchOption(_selectedCompanySize, _companySizes);
+        _selectedCompanySize = _matchOption(
+          _selectedCompanySize,
+          _companySizes,
+        );
       }
       if (_budgetRanges.isNotEmpty) {
-        _selectedBudgetRange =
-            _matchOption(_selectedBudgetRange, _budgetRanges);
+        _selectedBudgetRange = _matchOption(
+          _selectedBudgetRange,
+          _budgetRanges,
+        );
       }
     });
   }
 
   Future<void> _loadStatesForCountry(String countryIdOrCode) async {
-    final res =
-        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    final res = await sl<MasterDataRepository>().getStatesOptions(
+      countryIdOrCode,
+    );
     if (!mounted) return;
     _states = res.valueOrNull ?? [];
     _matchAllDropdowns();
@@ -299,8 +311,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
             final filtered = search.isEmpty
                 ? _categories
                 : _categories
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -327,8 +339,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                       AppSizes.vGapMd,
                       Expanded(
                         child: filtered.isEmpty
-                            ? const Center(
-                                child: Text('No categories found'))
+                            ? const Center(child: Text('No categories found'))
                             : ListView.separated(
                                 controller: scrollController,
                                 itemCount: filtered.length,
@@ -341,8 +352,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                                   return ListTile(
                                     title: Text(cat.name),
                                     trailing: isSelected
-                                        ? const Icon(Icons.check_circle,
-                                            color: AppColors.primary)
+                                        ? const Icon(
+                                            Icons.check_circle,
+                                            color: AppColors.primary,
+                                          )
                                         : null,
                                     onTap: () {
                                       setState(() {
@@ -398,8 +411,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                               _updateHiringGoalsDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -423,7 +438,9 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                                     onChanged: (_) {
                                       setState(() {
                                         if (isSelected) {
-                                          _selectedHiringGoalIds.remove(goal.id);
+                                          _selectedHiringGoalIds.remove(
+                                            goal.id,
+                                          );
                                         } else {
                                           _selectedHiringGoalIds.add(goal.id);
                                         }
@@ -437,7 +454,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
-                        label: 'Done (${_selectedHiringGoalIds.length} selected)',
+                        label:
+                            'Done (${_selectedHiringGoalIds.length} selected)',
                         onPressed: () {
                           _updateHiringGoalsDisplayText();
                           Navigator.of(context).pop();
@@ -508,15 +526,15 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     setState(() => _saving = false);
 
     if (res.isSuccess) {
-      final msg = res.valueOrNull?['message']?.toString() ??
+      final msg =
+          res.valueOrNull?['message']?.toString() ??
           'Company profile updated successfully';
       context.showSnack(msg);
       final currentUser = context.read<AuthBloc>().state.user;
       if (currentUser != null) {
         context.read<AuthBloc>().add(
-              AuthUserUpdated(
-                  currentUser.copyWith(fullName: _name.text.trim())),
-            );
+          AuthUserUpdated(currentUser.copyWith(fullName: _name.text.trim())),
+        );
       }
       Navigator.of(context).pop();
     } else {
@@ -591,6 +609,13 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
+                  controller: _email,
+                  label: 'Email',
+                  hint: 'Email Address',
+                  readOnly: true,
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
                   controller: _name,
                   label: 'Full Name *',
                   hint: 'Enter your full name',
@@ -658,7 +683,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   value: _selectedCompanySize,
                   items: _companySizes,
                   itemLabel: (item) => item.name,
-                  onChanged: (opt) => setState(() => _selectedCompanySize = opt),
+                  onChanged: (opt) =>
+                      setState(() => _selectedCompanySize = opt),
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
@@ -667,7 +693,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   value: _selectedBudgetRange,
                   items: _budgetRanges,
                   itemLabel: (item) => item.name,
-                  onChanged: (opt) => setState(() => _selectedBudgetRange = opt),
+                  onChanged: (opt) =>
+                      setState(() => _selectedBudgetRange = opt),
                 ),
                 AppSizes.vGapMd,
                 AppTextField(

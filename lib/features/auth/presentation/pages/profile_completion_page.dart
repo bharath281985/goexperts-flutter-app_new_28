@@ -36,6 +36,7 @@ class ProfileCompletionPage extends StatefulWidget {
 
 class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
+  final _email = TextEditingController();
   final _fullName = TextEditingController();
   final _headline = TextEditingController(); // Job Title / Headline
   final _company =
@@ -106,6 +107,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   String? _categoryError;
   String? _avatarError;
   Uint8List? _avatarBytes;
+  int _profileCompletion = 0;
 
   List<SkillCategory> _categories = [];
   String? _selectedCategoryId;
@@ -116,6 +118,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     super.initState();
     final user = context.read<AuthBloc>().state.user;
     if (user != null) {
+      _profileCompletion = user.profileCompletion;
       if (user.fullName.isNotEmpty) _fullName.text = user.fullName;
       if (user.categoryId != null && user.categoryId!.isNotEmpty) {
         _selectedCategoryId = user.categoryId;
@@ -149,6 +152,18 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       if (!mounted || res.isFailure) return;
       final userMap = res.valueOrNull ?? {};
       if (userMap.isEmpty) return;
+
+      final emailVal = userMap['email']?.toString();
+      if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
+
+      final compVal =
+          userMap['profileCompletion'] ?? userMap['profile_completion'];
+      if (compVal != null) {
+        final parsed = int.tryParse(compVal.toString());
+        if (parsed != null && parsed > 0) {
+          setState(() => _profileCompletion = parsed);
+        }
+      }
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
@@ -335,8 +350,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             if (goal is Map) {
               final gid = (goal['id'] ?? goal['_id'])?.toString();
               final gname = (goal['name'] ?? goal['label'])?.toString();
-              if (gid != null && gid.isNotEmpty)
+              if (gid != null && gid.isNotEmpty) {
                 _selectedFounderGoalIds.add(gid);
+              }
               if (gname != null && gname.isNotEmpty) names.add(gname);
             } else if (goal is String && goal.isNotEmpty) {
               _selectedFounderGoalIds.add(goal);
@@ -473,12 +489,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     if (mounted && cRes.isSuccess) _countries = cRes.valueOrNull ?? [];
 
     final expRes = await repo.getExperienceLevelOptions();
-    if (mounted && expRes.isSuccess)
+    if (mounted && expRes.isSuccess) {
       _experienceLevels = expRes.valueOrNull ?? [];
+    }
 
     final availRes = await repo.getAvailabilityOptions();
-    if (mounted && availRes.isSuccess)
+    if (mounted && availRes.isSuccess) {
       _availabilities = availRes.valueOrNull ?? [];
+    }
 
     final csRes = await repo.getCompanySizeOptions();
     if (mounted && csRes.isSuccess) {
@@ -506,8 +524,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     if (mounted && tsRes.isSuccess) _ticketSizes = tsRes.valueOrNull ?? [];
 
     final indRes = await repo.getIndustryOptions();
-    if (mounted && indRes.isSuccess)
+    if (mounted && indRes.isSuccess) {
       _focusAreaOptions = indRes.valueOrNull ?? [];
+    }
 
     final stgRes = await repo.getStartupStageOptions();
     if (mounted && stgRes.isSuccess) _startupStages = stgRes.valueOrNull ?? [];
@@ -538,7 +557,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       _loadError = null;
     });
 
-    final result = await sl<MasterDataRepository>().getSkillCategories();
+    final result = await sl<MasterDataRepository>().getIndustries();
     if (!mounted) return;
 
     if (result.isFailure) {
@@ -1323,6 +1342,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
   @override
   void dispose() {
+    _email.dispose();
     _fullName.dispose();
     _headline.dispose();
     _company.dispose();
@@ -1594,6 +1614,60 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Container(
+                      margin: const EdgeInsets.only(bottom: AppSizes.lg),
+                      padding: const EdgeInsets.all(AppSizes.md),
+                      decoration: BoxDecoration(
+                        color: context.colors.surface,
+                        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                        border: Border.all(
+                          color: context.colors.outlineVariant,
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Profile Completion',
+                                style: context.text.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                '${(_profileCompletion > 0 ? _profileCompletion : (state.user?.profileCompletion ?? 0))}%',
+                                style: context.text.titleSmall?.copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          AppSizes.vGapSm,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value:
+                                  ((_profileCompletion > 0
+                                          ? _profileCompletion
+                                          : (state.user?.profileCompletion ??
+                                                0))
+                                      .clamp(0, 100)) /
+                                  100.0,
+                              minHeight: 8,
+                              backgroundColor: AppColors.primary.withValues(
+                                alpha: 0.15,
+                              ),
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                     Center(
                       child: Column(
                         children: [
@@ -1655,6 +1729,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     Text(
                       'Setting up your ${role.shortLabel} profile',
                       style: context.text.titleMedium,
+                    ),
+                    AppSizes.vGapLg,
+                    AppTextField(
+                      controller: _email,
+                      label: 'Email',
+                      hint: 'Email Address',
+                      readOnly: true,
                     ),
                     AppSizes.vGapLg,
                     AppTextField(

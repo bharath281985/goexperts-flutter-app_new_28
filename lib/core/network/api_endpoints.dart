@@ -61,7 +61,7 @@ class ApiEndpoints {
 
   static const publicClientGoals = '/client-goals';
   static const publicExpansionGoals = '/expansion-goals';
-  static const publicStates = '/states';
+  static const publicStates = '/public/states';
   static const publicExperienceLevels = '/public/experience-levels';
   static const publicAvailabilities = '/public/availabilities';
   static const publicWorkModes = '/public/work-modes';

@@ -31,6 +31,7 @@ class InvestorProfilePage extends StatefulWidget {
 }
 
 class _InvestorProfilePageState extends State<InvestorProfilePage> {
+  final _email = TextEditingController();
   final _fullName = TextEditingController();
   final _firm = TextEditingController();
   final _city = TextEditingController();
@@ -72,6 +73,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
   @override
   void dispose() {
+    _email.dispose();
     _fullName.dispose();
     _firm.dispose();
     _city.dispose();
@@ -103,7 +105,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     if (mounted && tsRes.isSuccess) _ticketSizes = tsRes.valueOrNull ?? [];
 
     final indRes = await masterRepo.getIndustryOptions();
-    if (mounted && indRes.isSuccess) _focusAreaOptions = indRes.valueOrNull ?? [];
+    if (mounted && indRes.isSuccess) {
+      _focusAreaOptions = indRes.valueOrNull ?? [];
+    }
 
     final meRes = await api.getEnvelope<Map<String, dynamic>>(
       ApiEndpoints.me,
@@ -121,10 +125,14 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     if (!mounted) return;
     final userMap = meRes.valueOrNull ?? {};
     if (userMap.isNotEmpty) {
-      _verified = userMap['isVerified'] as bool? ??
+      _verified =
+          userMap['isVerified'] as bool? ??
           userMap['verified'] as bool? ??
           false;
       _avatarUrl = userMap['avatarUrl']?.toString();
+
+      final emailVal = userMap['email']?.toString();
+      if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
@@ -179,7 +187,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
         }
 
         if (pMap['investorTypeId'] is Map) {
-          final itMap = Map<String, dynamic>.from(pMap['investorTypeId'] as Map);
+          final itMap = Map<String, dynamic>.from(
+            pMap['investorTypeId'] as Map,
+          );
           final itId = (itMap['id'] ?? itMap['_id'])?.toString() ?? '';
           final itName = (itMap['name'] ?? itMap['label'])?.toString() ?? itId;
           if (itId.isNotEmpty && itName.isNotEmpty) {
@@ -193,7 +203,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
         }
 
         if (pMap['preferredStageId'] is Map) {
-          final psMap = Map<String, dynamic>.from(pMap['preferredStageId'] as Map);
+          final psMap = Map<String, dynamic>.from(
+            pMap['preferredStageId'] as Map,
+          );
           final psId = (psMap['id'] ?? psMap['_id'])?.toString() ?? '';
           final psName = (psMap['name'] ?? psMap['label'])?.toString() ?? psId;
           if (psId.isNotEmpty && psName.isNotEmpty) {
@@ -223,8 +235,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
             }
           }
           if (_prefilledFocusAreaNames.isNotEmpty) {
-            _focusAreasDisplayController.text =
-                _prefilledFocusAreaNames.join(', ');
+            _focusAreasDisplayController.text = _prefilledFocusAreaNames.join(
+              ', ',
+            );
           }
         }
       }
@@ -258,12 +271,16 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
         _selectedState = _matchOption(_selectedState, _states);
       }
       if (_investorTypes.isNotEmpty) {
-        _selectedInvestorType =
-            _matchOption(_selectedInvestorType, _investorTypes);
+        _selectedInvestorType = _matchOption(
+          _selectedInvestorType,
+          _investorTypes,
+        );
       }
       if (_investorStages.isNotEmpty) {
-        _selectedPreferredStage =
-            _matchOption(_selectedPreferredStage, _investorStages);
+        _selectedPreferredStage = _matchOption(
+          _selectedPreferredStage,
+          _investorStages,
+        );
       }
       if (_ticketSizes.isNotEmpty &&
           (_rawTicketMin != null || _rawTicketMax != null)) {
@@ -282,8 +299,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
   }
 
   Future<void> _loadStatesForCountry(String countryIdOrCode) async {
-    final res =
-        await sl<MasterDataRepository>().getStatesOptions(countryIdOrCode);
+    final res = await sl<MasterDataRepository>().getStatesOptions(
+      countryIdOrCode,
+    );
     if (!mounted) return;
     _states = res.valueOrNull ?? [];
     _matchAllDropdowns();
@@ -301,13 +319,13 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
             final options = _focusAreaOptions.isNotEmpty
                 ? _focusAreaOptions
                 : _categories
-                    .map((c) => MasterOption(id: c.id, name: c.name))
-                    .toList();
+                      .map((c) => MasterOption(id: c.id, name: c.name))
+                      .toList();
             final filtered = search.isEmpty
                 ? options
                 : options
-                    .where((c) => c.name.toLowerCase().contains(search))
-                    .toList();
+                      .where((c) => c.name.toLowerCase().contains(search))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -332,8 +350,10 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                               _updateFocusAreasDisplayText();
                               Navigator.of(context).pop();
                             },
-                            child: const Text('Done',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),
@@ -355,8 +375,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final cat = filtered[index];
-                                  final isSelected =
-                                      _selectedFocusAreaIds.contains(cat.id);
+                                  final isSelected = _selectedFocusAreaIds
+                                      .contains(cat.id);
                                   return CheckboxListTile(
                                     title: Text(cat.name),
                                     value: isSelected,
@@ -378,7 +398,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
-                        label: 'Done (${_selectedFocusAreaIds.length} selected)',
+                        label:
+                            'Done (${_selectedFocusAreaIds.length} selected)',
                         onPressed: () {
                           _updateFocusAreasDisplayText();
                           Navigator.of(context).pop();
@@ -464,19 +485,20 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     setState(() => _saving = false);
 
     if (res.isSuccess) {
-      final msg = res.valueOrNull?['message']?.toString() ??
+      final msg =
+          res.valueOrNull?['message']?.toString() ??
           'Investor profile updated successfully';
       context.showSnack(msg);
       final currentUser = context.read<AuthBloc>().state.user;
       if (currentUser != null) {
         context.read<AuthBloc>().add(
-              AuthUserUpdated(
-                currentUser.copyWith(
-                  fullName: fullName,
-                  location: _city.text.trim(),
-                ),
-              ),
-            );
+          AuthUserUpdated(
+            currentUser.copyWith(
+              fullName: fullName,
+              location: _city.text.trim(),
+            ),
+          ),
+        );
       }
       Navigator.of(context).pop();
     } else {
@@ -547,6 +569,13 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   onPathPicked: _uploadAvatar,
                 ),
                 AppSizes.vGapXl,
+                AppTextField(
+                  controller: _email,
+                  label: 'Email',
+                  hint: 'Email Address',
+                  readOnly: true,
+                ),
+                AppSizes.vGapMd,
                 AppTextField(
                   controller: _fullName,
                   label: 'Full Name *',
@@ -629,8 +658,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   value: _selectedTicketSize,
                   items: _ticketSizes,
                   itemLabel: (item) => item.label,
-                  onChanged: (opt) =>
-                      setState(() => _selectedTicketSize = opt),
+                  onChanged: (opt) => setState(() => _selectedTicketSize = opt),
                 ),
                 AppSizes.vGapMd,
                 AppTextField(

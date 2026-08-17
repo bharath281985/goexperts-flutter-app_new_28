@@ -69,7 +69,13 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   }) async {
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
-      query: {'categoryId': categoryId, 'page': page, 'pageSize': pageSize},
+      query: {
+        'industryId': categoryId,
+        'categoryId': categoryId,
+        'page': page,
+        'limit': pageSize,
+        'pageSize': pageSize,
+      },
       itemParser: SkillOption.fromJson,
     );
     if (result.isFailure) {
@@ -82,7 +88,13 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   Future<Result<int>> getSkillsTotal({required String categoryId}) async {
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
-      query: {'categoryId': categoryId, 'page': 1, 'pageSize': 1},
+      query: {
+        'industryId': categoryId,
+        'categoryId': categoryId,
+        'page': 1,
+        'limit': 1,
+        'pageSize': 1,
+      },
       itemParser: SkillOption.fromJson,
     );
     if (result.isFailure) {
@@ -169,7 +181,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
       );
       final response = await dio.get<Map<String, dynamic>>(
         ApiEndpoints.publicStates,
-        queryParameters: {'countryCode': countryCode},
+        queryParameters: {'countryId': countryCode},
       );
       final raw = response.data?['data'];
       final list = (raw is List ? raw : const [])
@@ -317,7 +329,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     try {
       final result = await _client.getList<MasterOption>(
         path: ApiEndpoints.publicStates,
-        query: {'countryCode': countryIdOrCode, 'countryId': countryIdOrCode},
+        query: {'countryId': countryIdOrCode},
         itemParser: MasterOption.fromJson,
       );
       if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
