@@ -234,8 +234,9 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
             if (goal is Map) {
               final gid = (goal['id'] ?? goal['_id'])?.toString();
               final gname = (goal['name'] ?? goal['label'])?.toString();
-              if (gid != null && gid.isNotEmpty)
+              if (gid != null && gid.isNotEmpty) {
                 _selectedFounderGoalIds.add(gid);
+              }
               if (gname != null && gname.isNotEmpty) names.add(gname);
             } else if (goal is String && goal.isNotEmpty) {
               _selectedFounderGoalIds.add(goal);
