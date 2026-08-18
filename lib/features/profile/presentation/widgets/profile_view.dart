@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
@@ -74,7 +74,7 @@ class ProfileView extends StatelessWidget {
     this.reviews = const [],
     this.onPrimaryAction,
     this.onMessage,
-    
+
     this.onBookmark,
     this.onShare,
   });
@@ -83,7 +83,7 @@ class ProfileView extends StatelessWidget {
   final List<Review> reviews;
   final VoidCallback? onPrimaryAction;
   final VoidCallback? onMessage;
- 
+
   final VoidCallback? onBookmark;
   final VoidCallback? onShare;
 
@@ -93,6 +93,10 @@ class ProfileView extends StatelessWidget {
 
     if (data.type == PublicProfileType.investor) {
       return _investorView(context, displaySkills);
+    }
+
+    if (data.type == PublicProfileType.founder) {
+      return _founderView(context, displaySkills);
     }
 
     return ListView(
@@ -586,7 +590,6 @@ class ProfileView extends StatelessWidget {
       AppSizes.vGapSm,
       Row(
         children: [
-         
           Expanded(
             child: _dossierAction(
               context,
@@ -763,6 +766,655 @@ class ProfileView extends StatelessWidget {
     ],
   );
 
+  Widget _founderView(BuildContext context, List<String> displaySkills) {
+    final startupEntry = data.stats.entries
+        .cast<MapEntry<String, String>?>()
+        .firstWhere(
+          (entry) => entry!.key.toLowerCase().contains('startup'),
+          orElse: () => null,
+        );
+    final raisedEntry = data.stats.entries
+        .cast<MapEntry<String, String>?>()
+        .firstWhere(
+          (entry) => entry!.key.toLowerCase().contains('raised'),
+          orElse: () => null,
+        );
+    final goalEntry = data.stats.entries
+        .cast<MapEntry<String, String>?>()
+        .firstWhere((entry) {
+          final key = entry!.key.toLowerCase();
+          return key.contains('goal') || key.contains('target');
+        }, orElse: () => null);
+    final startupName = startupEntry?.value.trim().isNotEmpty == true
+        ? startupEntry!.value
+        : (data.headline.trim().isNotEmpty ? data.headline : data.name);
+    final metrics = data.stats.entries
+        .where(
+          (entry) =>
+              entry.key != startupEntry?.key &&
+              entry.key != raisedEntry?.key &&
+              entry.key != goalEntry?.key,
+        )
+        .take(3)
+        .toList(growable: false);
+    final raised = _founderNumericValue(raisedEntry?.value);
+    final goal = _founderNumericValue(goalEntry?.value);
+    final fundingProgress = goal > 0 ? (raised / goal).clamp(0.0, 1.0) : 0.0;
+    final profileChips = <String>[
+      for (final entry in data.stats.entries)
+        if (entry.key.toLowerCase().contains('industry') ||
+            entry.key.toLowerCase().contains('type') ||
+            entry.key.toLowerCase().contains('stage'))
+          entry.value,
+      if (data.location.trim().isNotEmpty) data.location,
+    ].where((value) => value.trim().isNotEmpty).take(3).toList();
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        Stack(
+          clipBehavior: Clip.none,
+          children: [
+            AspectRatio(
+              aspectRatio: 2.45,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.asset(
+                      'assets/images/profile_cover.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: AppColors.darkGradient,
+                        ),
+                      ),
+                    ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Color(0xB3111111)],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Positioned(
+              left: AppSizes.screenPadding,
+              bottom: -42,
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x26000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: AppAvatar(
+                  name: data.name,
+                  imageUrl: data.avatarUrl,
+                  size: 80,
+                ),
+              ),
+            ),
+            Positioned(
+              right: AppSizes.screenPadding,
+              bottom: 12,
+              child: Row(
+                children: [
+                  _founderCoverAction(
+                    icon: Icons.share_outlined,
+                    onTap: onShare,
+                  ),
+                  const SizedBox(width: 8),
+                  _founderCoverAction(
+                    icon: data.isSaved
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_outline_rounded,
+                    onTap: onBookmark,
+                    active: data.isSaved,
+                  ),
+                  const SizedBox(width: 8),
+                  _founderCoverAction(
+                    icon: Icons.more_horiz_rounded,
+                    onTap: () => _more(context),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.screenPadding,
+            54,
+            AppSizes.screenPadding,
+            AppSizes.xl,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                  ),
+                  child: Text(
+                    'STARTUP PROFILE',
+                    style: context.text.labelSmall?.copyWith(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ),
+              ),
+              AppSizes.vGapSm,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      startupName,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: context.text.headlineSmall?.copyWith(
+                        color: AppColors.darkText,
+                        fontWeight: FontWeight.w800,
+                        height: 1.1,
+                      ),
+                    ),
+                  ),
+                  if (data.isVerified) ...[
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.verified_rounded,
+                      color: AppColors.projectVerified,
+                      size: 21,
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 5),
+              Text(
+                data.headline.isNotEmpty && data.headline != startupName
+                    ? data.headline
+                    : data.name,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.titleMedium?.copyWith(
+                  color: AppColors.darkText,
+                  fontWeight: FontWeight.w600,
+                  height: 1.35,
+                ),
+              ),
+              if (data.location.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.mutedText,
+                      size: 17,
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                      child: Text(
+                        data.location,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.bodySmall?.copyWith(
+                          color: AppColors.mutedText,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              if (profileChips.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 7,
+                  runSpacing: 7,
+                  children: profileChips
+                      .map((value) => _founderMetaChip(context, value))
+                      .toList(),
+                ),
+              ],
+              if (metrics.isNotEmpty) ...[
+                AppSizes.vGapLg,
+                const AppSectionHeader(title: 'Overview'),
+                AppSizes.vGapSm,
+                AppCard(
+                  padding: const EdgeInsets.all(AppSizes.sm),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final columns = constraints.maxWidth >= 360 ? 3 : 2;
+                      final itemWidth =
+                          (constraints.maxWidth -
+                              (AppSizes.sm * (columns - 1))) /
+                          columns;
+                      return Wrap(
+                        spacing: AppSizes.sm,
+                        runSpacing: AppSizes.sm,
+                        children: metrics
+                            .map(
+                              (metric) => Container(
+                                width: itemWidth,
+                                constraints: const BoxConstraints(
+                                  minHeight: 76,
+                                ),
+                                padding: const EdgeInsets.all(AppSizes.sm),
+                                decoration: BoxDecoration(
+                                  color: AppColors.background,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      metric.value,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: context.text.titleMedium?.copyWith(
+                                        color: AppColors.darkText,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      metric.key,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: context.text.labelSmall?.copyWith(
+                                        color: AppColors.mutedText,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      );
+                    },
+                  ),
+                ),
+              ],
+              if (raisedEntry != null || goalEntry != null) ...[
+                AppSizes.vGapMd,
+                AppCard(
+                  padding: const EdgeInsets.all(AppSizes.md),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        goal > 0 ? 'Funding progress' : 'Funding',
+                        style: context.text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      AppSizes.vGapSm,
+                      if (goal > 0) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: LinearProgressIndicator(
+                            minHeight: 8,
+                            value: fundingProgress,
+                            backgroundColor: AppColors.border,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        AppSizes.vGapSm,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                raisedEntry == null
+                                    ? 'Raised —'
+                                    : 'Raised ${raisedEntry.value}',
+                                style: context.text.bodySmall,
+                              ),
+                            ),
+                            Expanded(
+                              child: Text(
+                                'Goal ${goalEntry!.value}',
+                                textAlign: TextAlign.end,
+                                style: context.text.bodySmall,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(9),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(
+                                Icons.trending_up_rounded,
+                                color: AppColors.primary,
+                                size: 20,
+                              ),
+                            ),
+                            AppSizes.hGapMd,
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    raisedEntry == null
+                                        ? 'Raised amount not public'
+                                        : 'Raised ${raisedEntry.value}',
+                                    style: context.text.titleMedium?.copyWith(
+                                      color: AppColors.darkText,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Funding target is not public',
+                                    style: context.text.bodySmall?.copyWith(
+                                      color: AppColors.mutedText,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+              AppSizes.vGapLg,
+              _founderSection(
+                context,
+                title: 'About the startup',
+                icon: Icons.person_outline_rounded,
+                child: Text(
+                  data.about.isEmpty
+                      ? 'This founder has not added an introduction yet.'
+                      : data.about,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: data.about.isEmpty
+                        ? AppColors.mutedText
+                        : AppColors.darkText,
+                    height: 1.55,
+                  ),
+                ),
+              ),
+              AppSizes.vGapLg,
+              _founderSection(
+                context,
+                title: 'Team',
+                icon: Icons.groups_2_outlined,
+                child: Row(
+                  children: [
+                    AppAvatar(
+                      name: data.name,
+                      imageUrl: data.avatarUrl,
+                      size: 48,
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            'Founder',
+                            style: context.text.bodySmall?.copyWith(
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (displaySkills.isNotEmpty) ...[
+                AppSizes.vGapLg,
+                _founderSection(
+                  context,
+                  title: 'Goals & expertise',
+                  icon: Icons.auto_awesome_outlined,
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: displaySkills
+                        .map((skill) => _chip(context, skill))
+                        .toList(),
+                  ),
+                ),
+              ],
+              if (data.email.isNotEmpty ||
+                  data.phone.isNotEmpty ||
+                  data.website.isNotEmpty ||
+                  data.linkedin.isNotEmpty) ...[
+                AppSizes.vGapLg,
+                _founderSection(
+                  context,
+                  title: 'Profile details',
+                  icon: Icons.contact_page_outlined,
+                  child: Column(
+                    children: [
+                      if (data.email.isNotEmpty)
+                        _founderDetail(
+                          context,
+                          Icons.mail_outline_rounded,
+                          data.email,
+                        ),
+                      if (data.phone.isNotEmpty)
+                        _founderDetail(
+                          context,
+                          Icons.phone_outlined,
+                          data.phone,
+                        ),
+                      if (data.website.isNotEmpty)
+                        _founderDetail(
+                          context,
+                          Icons.language_rounded,
+                          data.website,
+                        ),
+                      if (data.linkedin.isNotEmpty)
+                        _founderDetail(
+                          context,
+                          Icons.link_rounded,
+                          data.linkedin,
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+              if (reviews.isNotEmpty) ...[
+                AppSizes.vGapLg,
+                const AppSectionHeader(title: 'Founder Reviews'),
+                AppSizes.vGapSm,
+                for (final review in reviews) _review(context, review),
+              ],
+              AppSizes.vGapLg,
+              _founderBottomActions(context),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  double _founderNumericValue(String? value) {
+    if (value == null) return 0;
+    final normalized = value.replaceAll(RegExp(r'[^0-9.]'), '');
+    return double.tryParse(normalized) ?? 0;
+  }
+
+  Widget _founderMetaChip(BuildContext context, String value) => Container(
+    constraints: const BoxConstraints(maxWidth: 210),
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Text(
+      value,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: context.text.labelMedium?.copyWith(
+        color: AppColors.darkText,
+        fontWeight: FontWeight.w600,
+      ),
+    ),
+  );
+
+  Widget _founderBottomActions(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(AppSizes.sm),
+    child: Row(
+      children: [
+        Expanded(
+          child: OutlinedButton.icon(
+            onPressed: onMessage,
+            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+            label: const FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text('Message'),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primary,
+              side: const BorderSide(color: AppColors.primary),
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+        ),
+        AppSizes.hGapSm,
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: onPrimaryAction,
+            icon: Icon(data.primaryActionIcon, size: 18),
+            label: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(data.primaryActionLabel),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              minimumSize: const Size.fromHeight(50),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _founderCoverAction({
+    required IconData icon,
+    VoidCallback? onTap,
+    bool active = false,
+  }) => Material(
+    color: Colors.black.withValues(alpha: 0.58),
+    borderRadius: BorderRadius.circular(12),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 42,
+        height: 42,
+        child: Icon(
+          icon,
+          color: active ? AppColors.primary : Colors.white,
+          size: 21,
+        ),
+      ),
+    ),
+  );
+
+  Widget _founderSection(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Widget child,
+  }) => AppCard(
+    padding: const EdgeInsets.all(AppSizes.md),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: AppColors.primary, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                title,
+                style: context.text.titleMedium?.copyWith(
+                  color: AppColors.darkText,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        AppSizes.vGapMd,
+        child,
+      ],
+    ),
+  );
+
+  Widget _founderDetail(BuildContext context, IconData icon, String value) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.mutedText, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                value,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: context.text.bodyMedium?.copyWith(height: 1.35),
+              ),
+            ),
+          ],
+        ),
+      );
+
   Widget _banner(BuildContext context) => Container(
     height: 150,
     decoration: BoxDecoration(
@@ -805,15 +1457,6 @@ class ProfileView extends StatelessWidget {
     ),
   );
 
-  Widget _bannerAction(
-    BuildContext context,
-    IconData icon,
-    VoidCallback onTap,
-  ) => IconButton(
-    onPressed: onTap,
-    icon: Icon(icon, color: AppColors.white, size: 20),
-  );
-
   Widget _actions(BuildContext context) {
     return Row(
       children: [
@@ -842,9 +1485,7 @@ class ProfileView extends StatelessWidget {
           ),
         ),
         AppSizes.hGapMd,
-        if (data.type != PublicProfileType.founder) ...[
-          
-        ],
+        if (data.type != PublicProfileType.founder) ...[],
         _iconAction(
           context,
           data.isSaved

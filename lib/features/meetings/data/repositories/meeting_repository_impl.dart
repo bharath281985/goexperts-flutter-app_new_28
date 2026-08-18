@@ -112,6 +112,7 @@ class MeetingRepositoryImpl implements MeetingRepository {
       'date': date,
       'time': time,
       'mode': meeting.isVideo ? 'Online' : 'Offline',
+      'meeting_link': meeting.meetingLink.trim(),
     };
     if (role == UserRole.founder) {
       body['investorId'] = withUserId;
@@ -220,7 +221,9 @@ class MeetingRepositoryImpl implements MeetingRepository {
       status: EntityStatus.fromString(json['status'] as String? ?? 'scheduled'),
       isVideo: json['mode'] == 'Online' || ((json['isVideo'] as bool?) ?? true),
       meetingLink:
-          json['meetingLink'] as String? ?? json['link'] as String? ?? '',
+          (json['meeting_link'] ?? json['meetingLink'] ?? json['link'])
+              ?.toString() ??
+          '',
       agenda: json['agenda'] as String? ?? '',
       participants:
           (json['participants'] as List?)?.map((e) => e.toString()).toList() ??

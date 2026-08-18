@@ -542,14 +542,14 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
             AppTextField(
               controller: _headlineController,
               label: 'Professional Title *',
-              hint: 'Enter your designation',
+              hint: 'Enter Professional Title',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _bioController,
               maxLines: 3,
               label: 'Brief Bio',
-              hint: 'Describe your core expertise...',
+              hint: 'Enter Brief Bio',
             ),
           ],
         );
@@ -639,25 +639,25 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
                 FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
               ],
               label: 'Hourly Rate Amount *',
-              hint: 'Enter hourly rate',
+              hint: 'Enter Hourly Rate Amount',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _portfolioController,
               label: 'Portfolio Link',
-              hint: 'Enter portfolio link',
+              hint: 'Enter Portfolio Link',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _githubController,
               label: 'Github Link',
-              hint: 'Enter Github link',
+              hint: 'Enter Github Link',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _linkedinController,
               label: 'LinkedIn Link',
-              hint: 'Enter LinkedIn link',
+              hint: 'Enter LinkedIn Link',
             ),
           ],
         );

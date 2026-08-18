@@ -348,7 +348,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         break;
                     }
                   }),
-               
+
                   if (role == UserRole.freelancer || role == UserRole.investor)
                     _tile(context, Icons.collections_outlined, 'Portfolio', () {
                       if (role == UserRole.investor) {
@@ -390,7 +390,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     'Subscription',
                     () => context.push(Routes.subscriptionsManage),
                   ),
-                 
+
                   _tile(
                     context,
                     Icons.shield_outlined,
@@ -403,7 +403,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     'Bookmarks',
                     () => context.push(Routes.bookmarks),
                   ),
-                 
+
                   _tile(
                     context,
                     Icons.help_outline_rounded,
@@ -437,7 +437,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           child: Center(
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 24, vertical: 20),
+                                horizontal: 24,
+                                vertical: 20,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
@@ -458,7 +460,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2.5,
                                       valueColor: AlwaysStoppedAnimation<Color>(
-                                          AppColors.primary),
+                                        AppColors.primary,
+                                      ),
                                     ),
                                   ),
                                   SizedBox(width: 16),

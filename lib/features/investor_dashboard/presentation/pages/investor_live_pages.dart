@@ -572,20 +572,20 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppTextField(
                   controller: _email,
                   label: 'Email',
-                  hint: 'Email Address',
+                  hint: 'Enter Email',
                   readOnly: true,
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _fullName,
                   label: 'Full Name *',
-                  hint: 'Enter your full name',
+                  hint: 'Enter Full Name',
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _firm,
                   label: 'Firm / Entity Name',
-                  hint: 'e.g. Vance Capital Partners',
+                  hint: 'Enter Firm / Entity Name',
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
@@ -600,7 +600,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
                   label: 'Preferred Investment Stage *',
-                  hint: 'Select Investment Stage',
+                  hint: 'Select Preferred Investment Stage',
                   value: _selectedPreferredStage,
                   items: _investorStages,
                   itemLabel: (item) => item.name,
@@ -613,7 +613,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   label: _selectedFocusAreaIds.isEmpty
                       ? 'Focus Areas / Sectors'
                       : 'Focus Areas / Sectors (${_selectedFocusAreaIds.length})',
-                  hint: 'Select focus sectors',
+                  hint: 'Select Focus Industries / Sector',
                   readOnly: true,
                   suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                   onTap: _showFocusAreasBottomSheet,
@@ -622,7 +622,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppLocationField(
                   controller: _city,
                   label: 'Location / City *',
-                  hint: 'Search and select city location',
+                  hint: 'Select Location / City',
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
@@ -665,7 +665,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppTextField(
                   controller: _bio,
                   label: 'About / Bio',
-                  hint: 'Enter your bio or investment thesis...',
+                  hint: 'Enter About / Bio',
                   maxLines: 3,
                 ),
                 AppSizes.vGapXl,

@@ -827,14 +827,14 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppTextField(
                       controller: _email,
                       label: 'Email',
-                      hint: 'Email Address',
+                      hint: 'Enter Email',
                       readOnly: true,
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _fullName,
                       label: 'Full Name *',
-                      hint: 'Enter your full name',
+                      hint: 'Enter Full Name',
                       validator: (v) =>
                           Validators.minLength(v, 2, field: 'Full Name'),
                     ),
@@ -842,7 +842,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppTextField(
                       controller: _title,
                       label: 'Professional Title *',
-                      hint: 'e.g. Senior Flutter Developer',
+                      hint: 'Enter Professional Title',
                       validator: (v) => Validators.minLength(
                         v,
                         3,
@@ -857,7 +857,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppLocationField(
                       controller: _city,
                       label: 'City / Location *',
-                      hint: 'Search and select city / location',
+                      hint: 'Select City / Location',
                       validator: (v) =>
                           Validators.required(v, field: 'City / Location'),
                     ),
@@ -916,7 +916,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppTextField(
                       controller: _hourlyRate,
                       label: 'Hourly Rate (\$/hr) *',
-                      hint: 'e.g. 120 or 230.99',
+                      hint: 'Enter Hourly Rate',
                       prefixIcon: Icons.attach_money_rounded,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
@@ -993,25 +993,25 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppTextField(
                       controller: _portfolio,
                       label: 'Portfolio URL',
-                      hint: 'https://...',
+                      hint: 'Enter Portfolio URL',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _github,
                       label: 'GitHub URL',
-                      hint: 'https://github.com/...',
+                      hint: 'Enter GitHub URL',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _linkedin,
                       label: 'LinkedIn Profile',
-                      hint: 'https://linkedin.com/in/...',
+                      hint: 'Enter LinkedIn Profile',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _website,
                       label: 'Website',
-                      hint: 'https://...',
+                      hint: 'Enter Website',
                     ),
                     AppSizes.vGapXl,
 

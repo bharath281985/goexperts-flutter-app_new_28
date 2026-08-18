@@ -667,20 +667,20 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppTextField(
                       controller: _email,
                       label: 'Email',
-                      hint: 'Email Address',
+                      hint: 'Enter Email',
                       readOnly: true,
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _fullName,
                       label: 'Name *',
-                      hint: 'Enter your name',
+                      hint: 'Enter Name',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _startupName,
                       label: 'Startup / Company Name *',
-                      hint: 'e.g. LogiTech AI',
+                      hint: 'Enter Startup / Company Name',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
@@ -734,14 +734,14 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppTextField(
                       controller: _targetRaise,
                       label: 'Target Raise (\$)',
-                      hint: 'e.g. 750000',
+                      hint: 'Enter Target Raise',
                       keyboardType: TextInputType.number,
                     ),
                     AppSizes.vGapMd,
                     AppLocationField(
                       controller: _city,
                       label: 'City / Location *',
-                      hint: 'Select location',
+                      hint: 'Select City / Location',
                     ),
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
@@ -783,7 +783,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                 child: AppTextField(
                   controller: _bio,
                   label: 'Bio',
-                  hint: 'Tell people about your background and vision',
+                  hint: 'Enter Bio',
                   maxLines: 4,
                 ),
               ),

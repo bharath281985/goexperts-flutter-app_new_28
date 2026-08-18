@@ -611,20 +611,20 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppTextField(
                   controller: _email,
                   label: 'Email',
-                  hint: 'Email Address',
+                  hint: 'Enter Email',
                   readOnly: true,
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _name,
                   label: 'Full Name *',
-                  hint: 'Enter your full name',
+                  hint: 'Enter Full Name',
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _jobTitleController,
                   label: 'Job Title *',
-                  hint: 'e.g. VP of Engineering',
+                  hint: 'Enter Job Title',
                 ),
                 AppSizes.vGapLg,
                 Text('Company Info', style: context.text.titleMedium),
@@ -632,13 +632,13 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppTextField(
                   controller: _companyNameController,
                   label: 'Company Name *',
-                  hint: 'Enter company name',
+                  hint: 'Enter Company Name',
                 ),
                 AppSizes.vGapMd,
                 AppLocationField(
                   controller: _city,
                   label: 'Location / City *',
-                  hint: 'Search and select city location',
+                  hint: 'Select Location / City',
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
@@ -690,7 +690,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
                   label: 'Project / Hiring Budget *',
-                  hint: 'Select Budget Range',
+                  hint: 'Select Project / Hiring Budget',
                   value: _selectedBudgetRange,
                   items: _budgetRanges,
                   itemLabel: (item) => item.name,
@@ -710,7 +710,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppTextField(
                   controller: _bio,
                   label: 'Biography / Overview',
-                  hint: 'Brief description about the company',
+                  hint: 'Enter Biography / Overview',
                   maxLines: 3,
                 ),
                 AppSizes.vGapLg,
@@ -719,7 +719,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppTextField(
                   controller: _website,
                   label: 'Website',
-                  hint: 'Enter website URL',
+                  hint: 'Enter Website',
                 ),
                 AppSizes.vGapMd,
                 AppTextField(

@@ -444,7 +444,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             AppTextField(
               controller: _startupNameController,
               label: 'Startup Name *',
-              hint: 'Enter startup name',
+              hint: 'Enter Startup Name',
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
@@ -474,7 +474,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               controller: _descriptionController,
               maxLines: 3,
               label: 'Short Pitch Detail',
-              hint: 'Enter your short pitch details',
+              hint: 'Enter Short Pitch Detail',
             ),
           ],
         );
@@ -497,7 +497,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               controller: _founderBioController,
               maxLines: 3,
               label: 'Founder Bio',
-              hint: 'Enter founder bio',
+              hint: 'Enter Founder Bio',
             ),
           ],
         );
@@ -508,14 +508,14 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               controller: _capitalRaisedController,
               keyboardType: TextInputType.number,
               label: 'Capital Raised',
-              hint: 'Enter capital raised',
+              hint: 'Enter Capital Raised',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _targetFundraiseController,
               keyboardType: TextInputType.number,
               label: 'Target Fundraise',
-              hint: 'Enter target fundraise',
+              hint: 'Enter Target Fundraise',
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(

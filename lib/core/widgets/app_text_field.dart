@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../app/constants/app_sizes.dart';
 import '../extensions/context_extensions.dart';
+import '../utils/field_hint_utils.dart';
 
 /// Standard labeled text field used across all forms.
 class AppTextField extends StatefulWidget {
@@ -55,6 +56,13 @@ class _AppTextFieldState extends State<AppTextField> {
 
   @override
   Widget build(BuildContext context) {
+    final label = widget.label?.trim();
+    final generatedHint = label == null || label.isEmpty
+        ? widget.hint
+        : widget.readOnly && widget.onTap != null
+        ? selectHintForLabel(label)
+        : enterHintForLabel(label);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -78,7 +86,7 @@ class _AppTextFieldState extends State<AppTextField> {
           readOnly: widget.readOnly,
           onTap: widget.onTap,
           decoration: InputDecoration(
-            hintText: widget.hint == null ? null : context.tr(widget.hint!),
+            hintText: generatedHint == null ? null : context.tr(generatedHint),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, size: AppSizes.iconMd)
                 : null,

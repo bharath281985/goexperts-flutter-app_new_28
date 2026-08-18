@@ -510,6 +510,52 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     }
   }
 
+  Widget _compactCardHeader({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required Widget status,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            AppSizes.hGapSm,
+            Expanded(
+              child: Align(alignment: Alignment.centerRight, child: status),
+            ),
+          ],
+        ),
+        AppSizes.vGapSm,
+        Text(
+          title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        if (subtitle.isNotEmpty) ...[
+          AppSizes.vGapXs,
+          Text(
+            subtitle,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthBloc>().state.user;
@@ -543,15 +589,27 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                       accountVerified: _accountVerified,
                     ),
                     AppSizes.vGapMd,
-                    for (final item in _items) ...[
-                      if (item.key == 'email')
-                        _buildEmailCard(item, email)
-                      else if (item.key == 'phone' || item.key == 'mobile')
-                        _buildPhoneCard(item)
-                      else
-                        _buildItemCard(item),
-                      AppSizes.vGapMd,
-                    ],
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const gap = AppSizes.sm;
+                        final columns = constraints.maxWidth >= 300 ? 2 : 1;
+                        final cardWidth =
+                            (constraints.maxWidth - gap * (columns - 1)) /
+                            columns;
+                        return Wrap(
+                          spacing: gap,
+                          runSpacing: AppSizes.md,
+                          children: _items.map((item) {
+                            final card = item.key == 'email'
+                                ? _buildEmailCard(item, email)
+                                : item.key == 'phone' || item.key == 'mobile'
+                                ? _buildPhoneCard(item)
+                                : _buildItemCard(item);
+                            return SizedBox(width: cardWidth, child: card);
+                          }).toList(),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -565,122 +623,63 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     if (isVerified) {
       return AppCard(
         radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.md),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+        padding: const EdgeInsets.all(AppSizes.sm),
+        child: _compactCardHeader(
+          icon: Icons.email_outlined,
+          color: AppColors.success,
+          title: 'Email Verification',
+          subtitle: email.isNotEmpty ? email : item.value,
+          status: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.success,
+                size: 18,
               ),
-              child: const Icon(Icons.email_outlined, color: AppColors.success),
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Email Verification',
-                    style: context.text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    email.isNotEmpty ? email : item.value,
-                    style: context.text.bodySmall?.copyWith(
-                      color: AppColors.mutedText,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            AppSizes.hGapSm,
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.check_circle,
+              AppSizes.hGapXs,
+              Text(
+                'Verified',
+                style: context.text.labelMedium?.copyWith(
                   color: AppColors.success,
-                  size: 18,
+                  fontWeight: FontWeight.w700,
                 ),
-                AppSizes.hGapXs,
-                Text(
-                  'Verified',
-                  style: context.text.labelMedium?.copyWith(
-                    color: AppColors.success,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return AppCard(
       radius: AppSizes.radiusMd,
-      padding: const EdgeInsets.all(AppSizes.md),
+      padding: const EdgeInsets.all(AppSizes.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppColors.danger.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.email_outlined,
+          _compactCardHeader(
+            icon: Icons.email_outlined,
+            color: AppColors.danger,
+            title: 'Email Verification',
+            subtitle: email,
+            status: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.error_outline,
                   color: AppColors.danger,
+                  size: 16,
                 ),
-              ),
-              AppSizes.hGapMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Email Verification',
-                      style: context.text.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      email,
-                      style: context.text.bodySmall?.copyWith(
-                        color: AppColors.mutedText,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.hGapSm,
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.error_outline,
+                AppSizes.hGapXs,
+                Text(
+                  'Not verified',
+                  style: context.text.labelSmall?.copyWith(
                     color: AppColors.danger,
-                    size: 16,
+                    fontWeight: FontWeight.w700,
                   ),
-                  AppSizes.hGapXs,
-                  Text(
-                    'Not verified',
-                    style: context.text.labelSmall?.copyWith(
-                      color: AppColors.danger,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
           AppSizes.vGapMd,
           AppTextField(
@@ -691,9 +690,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
             prefixIcon: Icons.pin_outlined,
           ),
           AppSizes.vGapMd,
-          Row(
+          Column(
             children: [
-              Expanded(
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: (_sendingEmailOtp || _emailSeconds > 0)
                       ? null
@@ -717,8 +717,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                   ),
                 ),
               ),
-              AppSizes.hGapMd,
-              Expanded(
+              AppSizes.vGapSm,
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
                   onPressed: (_verifyingEmail || !_emailOtpSent)
                       ? null
@@ -752,14 +753,14 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     if (isEditing) {
       return AppCard(
         radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.md),
+        padding: const EdgeInsets.all(AppSizes.sm),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
                     color:
                         (item.isVerified ? AppColors.success : AppColors.danger)
@@ -808,25 +809,26 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                       size: 16,
                     ),
                     AppSizes.hGapXs,
-                    Text(
-                      item.isVerified ? 'Verified' : 'Not verified',
-                      style: context.text.labelSmall?.copyWith(
-                        color: item.isVerified
-                            ? AppColors.success
-                            : AppColors.danger,
-                        fontWeight: FontWeight.w700,
+                    if (MediaQuery.sizeOf(context).width >= 600)
+                      Text(
+                        item.isVerified ? 'Verified' : 'Not verified',
+                        style: context.text.labelSmall?.copyWith(
+                          color: item.isVerified
+                              ? AppColors.success
+                              : AppColors.danger,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ],
             ),
             AppSizes.vGapMd,
-            Row(
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 120,
+                  width: double.infinity,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -895,8 +897,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                     ],
                   ),
                 ),
-                AppSizes.hGapSm,
-                Expanded(
+                AppSizes.vGapSm,
+                SizedBox(
+                  width: double.infinity,
                   child: AppTextField(
                     controller: _phoneController,
                     label: 'Mobile number',
@@ -912,10 +915,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
               ],
             ),
             AppSizes.vGapMd,
-            Row(
+            Column(
               children: [
                 if (item.isVerified) ...[
-                  Expanded(
+                  SizedBox(
+                    width: double.infinity,
                     child: OutlinedButton(
                       onPressed: () => setState(() => _editingPhone = false),
                       style: OutlinedButton.styleFrom(
@@ -924,9 +928,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                       child: const Text('Cancel'),
                     ),
                   ),
-                  AppSizes.hGapMd,
+                  AppSizes.vGapSm,
                 ],
-                Expanded(
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: _submittingPhone
                         ? null
@@ -956,11 +961,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     if (item.isPending) {
       return AppCard(
         radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.md),
+        padding: const EdgeInsets.all(AppSizes.sm),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: AppColors.warning.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -1049,11 +1054,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     // Phone is Verified and not editing
     return AppCard(
       radius: AppSizes.radiusMd,
-      padding: const EdgeInsets.all(AppSizes.md),
+      padding: const EdgeInsets.all(AppSizes.sm),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: AppColors.success.withValues(alpha: 0.1),
               shape: BoxShape.circle,
@@ -1164,11 +1169,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     if (item.isVerified && !isEditing) {
       return AppCard(
         radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.md),
+        padding: const EdgeInsets.all(AppSizes.sm),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: AppColors.success.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -1263,11 +1268,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     if (item.isPending && !isEditing) {
       return AppCard(
         radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.md),
+        padding: const EdgeInsets.all(AppSizes.sm),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: AppColors.warning.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
@@ -1356,14 +1361,14 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     // Status: Missing or Editing
     return AppCard(
       radius: AppSizes.radiusMd,
-      padding: const EdgeInsets.all(AppSizes.md),
+      padding: const EdgeInsets.all(AppSizes.sm),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(10),
+                padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
                   color:
                       (item.isVerified
@@ -1420,19 +1425,20 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                     size: 16,
                   ),
                   AppSizes.hGapXs,
-                  Text(
-                    item.isVerified
-                        ? 'Verified'
-                        : (item.isPending ? 'Pending' : 'Not verified'),
-                    style: context.text.labelSmall?.copyWith(
-                      color: item.isVerified
-                          ? AppColors.success
-                          : (item.isPending
-                                ? AppColors.warning
-                                : AppColors.danger),
-                      fontWeight: FontWeight.w700,
+                  if (MediaQuery.sizeOf(context).width >= 600)
+                    Text(
+                      item.isVerified
+                          ? 'Verified'
+                          : (item.isPending ? 'Pending' : 'Not verified'),
+                      style: context.text.labelSmall?.copyWith(
+                        color: item.isVerified
+                            ? AppColors.success
+                            : (item.isPending
+                                  ? AppColors.warning
+                                  : AppColors.danger),
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ],
@@ -1459,10 +1465,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
             ),
           ),
           AppSizes.vGapMd,
-          Row(
+          Column(
             children: [
               if (item.isVerified || item.isPending) ...[
-                Expanded(
+                SizedBox(
+                  width: double.infinity,
                   child: OutlinedButton(
                     onPressed: () =>
                         setState(() => _editingKeys.remove(item.key)),
@@ -1472,9 +1479,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                     child: const Text('Cancel'),
                   ),
                 ),
-                AppSizes.hGapMd,
+                AppSizes.vGapSm,
               ],
-              Expanded(
+              SizedBox(
+                width: double.infinity,
                 child: AppPrimaryButton(
                   label: 'Submit',
                   icon: Icons.check_circle_outline,

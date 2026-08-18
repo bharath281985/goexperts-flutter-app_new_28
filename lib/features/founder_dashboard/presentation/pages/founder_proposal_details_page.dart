@@ -17,7 +17,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_status_chip.dart';
 import '../../../messages/domain/repositories/message_repository.dart';
-import '../../../meetings/presentation/pages/meetings_list_view.dart';
+import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 
 /// Detailed view of investor bids/proposals for founders.
 class FounderProposalDetailsPage extends StatefulWidget {
@@ -125,14 +125,18 @@ class _FounderProposalDetailsPageState
   }
 
   void _scheduleMeeting(String investorId) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ScheduleMeetingSheet(
-        preselectedParticipantId: investorId,
-        onScheduled: () {},
-      ),
+    final investorName =
+        _proposal?['investorName']?.toString() ??
+        _proposal?['investorProfile']?['fullName']?.toString() ??
+        'Investor';
+    final investorAvatar =
+        _proposal?['investorAvatar']?.toString() ??
+        _proposal?['investorProfile']?['avatarUrl']?.toString();
+    ScheduleMeetingSheet.show(
+      context,
+      targetId: investorId,
+      targetName: investorName,
+      targetAvatar: investorAvatar,
     );
   }
 

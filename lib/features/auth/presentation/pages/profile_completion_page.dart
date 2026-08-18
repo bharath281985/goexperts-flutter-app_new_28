@@ -1734,14 +1734,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     AppTextField(
                       controller: _email,
                       label: 'Email',
-                      hint: 'Email Address',
+                      hint: 'Enter Email',
                       readOnly: true,
                     ),
                     AppSizes.vGapLg,
                     AppTextField(
                       controller: _fullName,
                       label: 'Full Name *',
-                      hint: 'Enter your full name',
+                      hint: 'Enter Full Name',
                       validator: (v) =>
                           Validators.minLength(v, 2, field: 'Full Name'),
                     ),
@@ -1750,7 +1750,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppTextField(
                         controller: _company,
                         label: 'Firm / Entity Name',
-                        hint: 'e.g. Vance Capital Partners',
+                        hint: 'Enter Firm / Entity Name',
                       ),
                       AppSizes.vGapLg,
                       AppDropdown<MasterOption>(
@@ -1769,7 +1769,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppSizes.vGapLg,
                       AppDropdown<MasterOption>(
                         label: 'Preferred Investment Stage *',
-                        hint: 'Select Investment Stage',
+                        hint: 'Select Preferred Investment Stage',
                         value: _selectedPreferredStage,
                         items: _investorStages,
                         itemLabel: (item) => item.name,
@@ -1786,7 +1786,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         label: _selectedFocusAreaIds.isEmpty
                             ? 'Focus Areas / Sectors'
                             : 'Focus Areas / Sectors (${_selectedFocusAreaIds.length})',
-                        hint: 'Select focus sectors',
+                        hint: 'Select Focus Industries / Sector',
                         readOnly: true,
                         suffixIcon: const Icon(
                           Icons.keyboard_arrow_down_rounded,
@@ -1797,7 +1797,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppLocationField(
                         controller: _location,
                         label: 'Location *',
-                        hint: 'Search and select your location',
+                        hint: 'Select Location',
                         validator: (v) =>
                             Validators.required(v, field: 'Location'),
                       ),
@@ -1850,7 +1850,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppTextField(
                         controller: _company,
                         label: 'Startup / Company Name *',
-                        hint: 'e.g. LogiTech AI',
+                        hint: 'Enter Startup / Company Name',
                         validator: (v) =>
                             Validators.required(v, field: 'Startup Name'),
                       ),
@@ -1922,14 +1922,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppTextField(
                         controller: _targetRaise,
                         label: 'Target Raise (\$)',
-                        hint: 'e.g. 750000',
+                        hint: 'Enter Target Raise',
                         keyboardType: TextInputType.number,
                       ),
                       AppSizes.vGapLg,
                       AppLocationField(
                         controller: _location,
                         label: 'Location *',
-                        hint: 'Search and select your location',
+                        hint: 'Select Location',
                         validator: (v) =>
                             Validators.required(v, field: 'Location'),
                       ),
@@ -1988,7 +1988,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         controller: _headline,
                         label: isClient ? 'Job Title *' : 'Headline *',
                         hint: isClient
-                            ? 'e.g. VP of Engineering'
+                            ? 'Enter Job Title'
                             : role == UserRole.founder
                             ? 'Enter your title'
                             : 'Enter your job title',
@@ -2003,7 +2003,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         AppTextField(
                           controller: _company,
                           label: 'Company Name *',
-                          hint: 'Enter company name',
+                          hint: 'Enter Company Name',
                           validator: (v) =>
                               Validators.minLength(v, 2, field: 'Company Name'),
                         ),
@@ -2012,7 +2012,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppLocationField(
                         controller: _location,
                         label: 'Location *',
-                        hint: 'Search and select your location',
+                        hint: 'Select Location',
                         validator: (v) =>
                             Validators.required(v, field: 'Location'),
                       ),
@@ -2090,7 +2090,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         AppSizes.vGapLg,
                         AppDropdown<MasterOption>(
                           label: 'Project / Hiring Budget *',
-                          hint: 'Select Budget Range',
+                          hint: 'Select Project / Hiring Budget',
                           value: _selectedBudgetRange,
                           items: _budgetRanges,
                           itemLabel: (item) => item.name,
@@ -2145,7 +2145,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         AppTextField(
                           controller: _hourlyRate,
                           label: 'Hourly Rate (\$/hr) *',
-                          hint: 'e.g. 120 or 230.99',
+                          hint: 'Enter Hourly Rate',
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
@@ -2181,7 +2181,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     AppTextField(
                       controller: _bio,
                       label: 'About / Bio',
-                      hint: 'Tell us about yourself or your company…',
+                      hint: 'Enter About / Bio',
                       maxLines: 4,
                     ),
                     AppSizes.vGapXl,

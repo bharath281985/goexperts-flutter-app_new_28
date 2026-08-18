@@ -14,6 +14,7 @@ class Conversation extends Equatable {
     this.isMuted = false,
     this.isTyping = false,
     this.role = '',
+    this.participantId = '',
   });
 
   final String id;
@@ -27,6 +28,7 @@ class Conversation extends Equatable {
   final bool isMuted;
   final bool isTyping;
   final String role;
+  final String participantId;
 
   @override
   List<Object?> get props => [

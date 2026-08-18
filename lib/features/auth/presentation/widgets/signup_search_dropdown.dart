@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/utils/field_hint_utils.dart';
+
 /// Modal bottom sheet dropdown for master selections (Industries, Designations, Cities, etc.)
 class SignupSearchDropdown extends StatelessWidget {
   final String label;
@@ -74,7 +76,7 @@ class SignupSearchDropdown extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    hasValue ? value! : placeholder,
+                    hasValue ? value! : selectHintForLabel(label),
                     style: TextStyle(
                       fontSize: 15,
                       color: hasValue

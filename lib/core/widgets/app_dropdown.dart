@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../app/constants/app_sizes.dart';
 import '../extensions/context_extensions.dart';
+import '../utils/field_hint_utils.dart';
 
 /// Labeled dropdown field.
 class AppDropdown<T> extends StatelessWidget {
@@ -27,6 +28,11 @@ class AppDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedLabel = label?.trim();
+    final generatedHint = normalizedLabel == null || normalizedLabel.isEmpty
+        ? hint
+        : selectHintForLabel(normalizedLabel);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -40,7 +46,7 @@ class AppDropdown<T> extends StatelessWidget {
           style: context.text.bodyMedium,
           validator: validator,
           decoration: InputDecoration(
-            hintText: hint == null ? null : context.tr(hint!),
+            hintText: generatedHint == null ? null : context.tr(generatedHint),
             hintStyle: context.theme.inputDecorationTheme.hintStyle,
             prefixIcon: prefixIcon != null
                 ? Icon(prefixIcon, size: AppSizes.iconMd)

@@ -13,7 +13,7 @@ import '../../../../core/widgets/catalog_view.dart';
 import '../../domain/entities/investor.dart';
 import '../../domain/repositories/investor_repository.dart';
 import '../widgets/investment_edit_sheet.dart';
-import '../../../meetings/presentation/pages/meetings_list_view.dart';
+import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 
 /// Embeddable deal-room catalog.
 class DealsListView extends StatelessWidget {
@@ -311,18 +311,12 @@ class _DealCard extends StatelessWidget {
                     ),
                     icon: const Icon(Icons.event_rounded, size: 16),
                     label: const Text('Schedule'),
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => ScheduleMeetingSheet(
-                          onScheduled: () {},
-                          preselectedParticipantId:
-                              deal.founderId ?? deal.startupId,
-                        ),
-                      );
-                    },
+                    onPressed: () => ScheduleMeetingSheet.show(
+                      context,
+                      targetId: deal.founderId ?? deal.startupId,
+                      targetName: deal.founderName,
+                      targetAvatar: deal.startupLogo,
+                    ),
                   ),
                 ),
               ],

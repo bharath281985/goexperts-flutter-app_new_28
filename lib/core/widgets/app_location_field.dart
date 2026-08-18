@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../app/constants/app_sizes.dart';
 import '../extensions/context_extensions.dart';
 import '../services/google_places_service.dart';
+import '../utils/field_hint_utils.dart';
 import 'location_search_sheet.dart';
 
 /// Location field with Google Places search and selection.
@@ -38,6 +39,11 @@ class AppLocationField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final normalizedLabel = label?.trim();
+    final generatedHint = normalizedLabel == null || normalizedLabel.isEmpty
+        ? (hint ?? 'Select Location')
+        : selectHintForLabel(normalizedLabel);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -51,7 +57,7 @@ class AppLocationField extends StatelessWidget {
           onTap: () => _openSearch(context),
           validator: validator,
           decoration: InputDecoration(
-            hintText: hint ?? 'Search and select location',
+            hintText: generatedHint,
             prefixIcon: const Icon(
               Icons.location_on_outlined,
               size: AppSizes.iconMd,

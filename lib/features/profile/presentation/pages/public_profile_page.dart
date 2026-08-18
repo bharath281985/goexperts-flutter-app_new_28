@@ -306,24 +306,54 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               (fp['startup'] is String ? fp['startup'].toString() : null) ??
               fullName;
 
-          final industry =
-              fp['industry']?.toString() ??
-              startupMap?['industry']?.toString() ??
-              '';
-          final stage =
-              fp['stage']?.toString() ?? startupMap?['stage']?.toString() ?? '';
-          final teamSize =
-              (fp['teamSize'] as num?)?.toInt() ??
-              (startupMap?['teamSize'] as num?)?.toInt() ??
-              0;
+          final industryValue = fp['Industry'] ?? fp['industry'];
+          final industry = industryValue is Map
+              ? (industryValue['industryName'] ?? industryValue['name'])
+                        ?.toString() ??
+                    ''
+              : industryValue?.toString() ??
+                    startupMap?['industry']?.toString() ??
+                    '';
+          final rawStage = fp['stage']?.toString() ?? '';
+          final startupStage = startupMap?['stage']?.toString() ?? '';
+          final stage = rawStage.contains('-') && startupStage.isNotEmpty
+              ? startupStage
+              : (rawStage.isNotEmpty ? rawStage : startupStage);
+
+          final teamSizeValue = fp['teamSize'];
+          final startupMetrics = startupMap?['metrics'] is Map
+              ? startupMap!['metrics'] as Map
+              : null;
+          final startupTeamSize =
+              startupMap?['teamSize'] ?? startupMetrics?['teamSize'];
+          final teamSizeLabel = teamSizeValue is Map
+              ? (teamSizeValue['name'] ?? teamSizeValue['label'])?.toString() ??
+                    ''
+              : teamSizeValue is num
+              ? teamSizeValue.toInt().toString()
+              : startupTeamSize is num
+              ? startupTeamSize.toInt().toString()
+              : startupTeamSize?.toString() ?? '';
           final raised =
               (fp['raised'] as num?)?.toDouble() ??
               (startupMap?['fundingRaised'] as num?)?.toDouble() ??
               (startupMap?['funding'] as num?)?.toDouble() ??
               0.0;
 
+          final primaryGoals = fp['PrimaryGoal'];
           final skillsRaw = raw['skills']?.toString() ?? '';
-          final skills = skillsRaw.isNotEmpty
+          final skills = primaryGoals is List
+              ? primaryGoals
+                    .map(
+                      (goal) => goal is Map
+                          ? (goal['primaryGoalName'] ?? goal['name'])
+                                    ?.toString() ??
+                                ''
+                          : goal.toString(),
+                    )
+                    .where((goal) => goal.trim().isNotEmpty)
+                    .toList()
+              : skillsRaw.isNotEmpty
               ? skillsRaw
                     .split(',')
                     .map((e) => e.trim())
@@ -334,7 +364,10 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           final education = raw['education']?.toString() ?? '';
           final linkedin = raw['linkedin']?.toString() ?? '';
           final website = raw['website']?.toString() ?? '';
-          final founderType = raw['founderType']?.toString() ?? '';
+          final founderType =
+              raw['founderType']?.toString() ??
+              raw['founderRole']?.toString() ??
+              '';
 
           return ProfileViewData(
             name: founderName.isNotEmpty && founderName != 'User'
@@ -361,18 +394,12 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             ),
             isSaved: apiIsSaved,
             type: PublicProfileType.founder,
-            primaryActionLabel:
-                FollowManager.instance.isFollowing(_followCategory, id)
-                ? 'Unfollow'
-                : 'Follow',
-            primaryActionIcon:
-                FollowManager.instance.isFollowing(_followCategory, id)
-                ? Icons.person_remove_outlined
-                : Icons.person_add_alt_1_outlined,
+            primaryActionLabel: 'Connect',
+            primaryActionIcon: Icons.handshake_outlined,
             stats: {
               'Startup': startupName,
               'Stage': stage.isEmpty ? '—' : stage,
-              'Team': teamSize > 0 ? '$teamSize' : '—',
+              'Team': teamSizeLabel.isNotEmpty ? teamSizeLabel : '—',
               'Raised': raised > 0 ? Formatters.compactCurrency(raised) : '—',
             },
             phone: phone,
@@ -581,7 +608,6 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       tooltip: 'Share profile',
                       onPressed: () => _showShareSheet(context, profile),
                     ),
-                
                 ],
               ),
               body: () {
@@ -616,7 +642,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       '${Routes.chat}/${widget.id}?name=$nameEncoded&avatarUrl=$avatarEncoded',
                     );
                   },
-                
+
                   onBookmark: () async {
                     if (widget.type == PublicProfileType.investor) {
                       final api = sl<ApiClientHelper>();

@@ -439,7 +439,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             AppTextField(
               controller: _businessNameController,
               label: 'Company Name *',
-              hint: 'Enter company name',
+              hint: 'Enter Company Name',
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(
@@ -469,7 +469,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             AppTextField(
               controller: _companySiteController,
               label: 'Company Site Link',
-              hint: 'Enter company site link',
+              hint: 'Enter Company Site Link',
             ),
           ],
         );
@@ -479,7 +479,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             AppTextField(
               controller: _jobRoleController,
               label: 'Job Role',
-              hint: 'Enter job role',
+              hint: 'Enter Job Role',
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
@@ -500,7 +500,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           children: [
             AppDropdown<String>(
               label: 'Current Team Size',
-              hint: 'Select Team Size',
+              hint: 'Select Current Team Size',
               value: _selectedTeamSize,
               items: _companySizes,
               itemLabel: (value) => value,
@@ -512,7 +512,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             const SizedBox(height: 16),
             AppDropdown<String>(
               label: 'Project / Hiring Budget Range',
-              hint: 'Select Budget Range',
+              hint: 'Select Project / Hiring Budget Range',
               value: _selectedBudgetRange,
               items: _budgetRanges,
               itemLabel: (value) => value,

@@ -63,8 +63,10 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
             }
 
             final isSaved = _isSavedOverride ?? s.isSaved;
+            final compactActions = MediaQuery.sizeOf(context).width < 360;
 
             return Scaffold(
+              backgroundColor: AppColors.background,
               appBar: AppBar(
                 title: const Text('Startup Details'),
                 actions: [
@@ -105,8 +107,17 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
               ),
               body: _content(context, s),
               bottomNavigationBar: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSizes.lg),
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizes.md,
+                    AppSizes.sm,
+                    AppSizes.md,
+                    AppSizes.md,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: AppColors.card,
+                    border: Border(top: BorderSide(color: AppColors.border)),
+                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -137,12 +148,13 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                           },
                         ),
                       ),
-                      AppSizes.hGapMd,
+                      AppSizes.hGapSm,
                       Expanded(
-                        flex: 2,
                         child: AppPrimaryButton(
                           label: (_hasInvestedOverride ?? s.hasInvested)
                               ? 'Withdraw Interest'
+                              : compactActions
+                              ? 'Express Interest'
                               : 'Invest / Express Interest',
                           icon: (_hasInvestedOverride ?? s.hasInvested)
                               ? Icons.cancel_outlined
@@ -236,63 +248,81 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
   }
 
   Widget _content(BuildContext context, Startup s) {
-    return ListView(
+    return SingleChildScrollView(
       padding: EdgeInsets.zero,
-      children: [
-        // 1. Sleek Gradient Banner Image with premium fade
-        Container(
-          height: 190,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/startup_banner.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Theme.of(
-                    context,
-                  ).scaffoldBackgroundColor.withValues(alpha: 0.4),
-                  Theme.of(context).scaffoldBackgroundColor,
-                ],
-                stops: const [0.4, 0.8, 1.0],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Sleek Gradient Banner Image with overlapping Avatar
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              AspectRatio(
+                aspectRatio: 2.35,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlack,
+                    image: s.coverUrl != null && s.coverUrl!.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(s.coverUrl!),
+                            fit: BoxFit.cover,
+                            onError: (_, _) {},
+                          )
+                        : const DecorationImage(
+                            image: AssetImage(
+                              'assets/images/startup_banner.png',
+                            ),
+                            fit: BoxFit.cover,
+                          ),
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          AppColors.startupHeaderHighlight,
+                          AppColors.background.withValues(alpha: 0.2),
+                          AppColors.background,
+                        ],
+                        stops: const [0.5, 0.8, 1.0],
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
+              Positioned(
+                bottom: -34,
+                left: AppSizes.screenPadding,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.shadow.withValues(alpha: 0.15),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: AppAvatar(name: s.name, imageUrl: s.logoUrl, size: 72),
+                ),
+              ),
+            ],
           ),
-        ),
 
-        // 2. Avatar & Title Section (Overlapping)
-        Transform.translate(
-          offset: const Offset(0, -42),
-          child: Padding(
+          // Add spacing to account for the overlapping avatar
+          const SizedBox(height: 42),
+
+          Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSizes.screenPadding,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Avatar with premium border
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).scaffoldBackgroundColor,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.shadow,
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: AppAvatar(name: s.name, imageUrl: s.logoUrl, size: 84),
-                ),
-                AppSizes.vGapSm,
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -301,8 +331,11 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                         s.name,
                         style: context.text.headlineSmall?.copyWith(
                           fontWeight: FontWeight.w800,
+                          color: AppColors.darkText,
+                          height: 1.08,
                         ),
                         maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (s.isVerified)
@@ -342,68 +375,80 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                 ),
 
                 AppSizes.vGapLg,
-                AppSizes.vGapLg,
                 // 3. Premium Interactive Financial Overview
                 AppSectionHeader(title: 'Overview'),
                 AppSizes.vGapSm,
                 Container(
-                  padding: const EdgeInsets.all(AppSizes.xl),
+                  padding: const EdgeInsets.all(AppSizes.lg),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(AppSizes.radiusXl),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.06),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
+                        color: AppColors.primary.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
                     ],
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.08),
+                      color: AppColors.primary.withValues(alpha: 0.1),
                     ),
                   ),
                   child: Column(
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _financialStat(
-                              context,
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final columns = constraints.maxWidth >= 330 ? 3 : 2;
+                          final tileWidth =
+                              (constraints.maxWidth -
+                                  AppSizes.sm * (columns - 1)) /
+                              columns;
+                          final stats = [
+                            (
                               'Ask',
                               Formatters.compactCurrency(s.fundingRequired),
                               Icons.payments_rounded,
-                              AppColors.primary,
                             ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 48,
-                            color: AppColors.border.withValues(alpha: 0.5),
-                          ),
-                          Expanded(
-                            child: _financialStat(
-                              context,
+                            (
                               'Equity',
                               '${s.equityOffered.toStringAsFixed(s.equityOffered.truncateToDouble() == s.equityOffered ? 0 : 1)}%',
                               Icons.pie_chart_rounded,
-                              AppColors.primary,
                             ),
-                          ),
-                          Container(
-                            width: 1,
-                            height: 48,
-                            color: AppColors.border.withValues(alpha: 0.5),
-                          ),
-                          Expanded(
-                            child: _financialStat(
-                              context,
+                            (
                               'Valuation',
                               Formatters.compactCurrency(s.valuation),
                               Icons.show_chart_rounded,
-                              AppColors.primary,
                             ),
-                          ),
-                        ],
+                          ];
+                          return Wrap(
+                            spacing: AppSizes.sm,
+                            runSpacing: AppSizes.sm,
+                            children: stats
+                                .map(
+                                  (stat) => Container(
+                                    width: tileWidth,
+                                    padding: const EdgeInsets.all(AppSizes.sm),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.background,
+                                      borderRadius: BorderRadius.circular(
+                                        AppSizes.radiusMd,
+                                      ),
+                                      border: Border.all(
+                                        color: AppColors.border,
+                                      ),
+                                    ),
+                                    child: _financialStat(
+                                      context,
+                                      stat.$1,
+                                      stat.$2,
+                                      stat.$3,
+                                      AppColors.primary,
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                          );
+                        },
                       ),
                       AppSizes.vGapXl,
                       Column(
@@ -418,81 +463,90 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary.withValues(
-                                    alpha: 0.12,
+                              if (s.fundingRequired > 0)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
                                   ),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  '${(s.fundingProgress * 100).toStringAsFixed(0)}%',
-                                  style: context.text.labelMedium?.copyWith(
-                                    color: AppColors.primary,
-                                    fontWeight: FontWeight.w800,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${(s.fundingProgress * 100).toStringAsFixed(0)}%',
+                                    style: context.text.labelMedium?.copyWith(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.w800,
+                                    ),
                                   ),
                                 ),
-                              ),
                             ],
                           ),
                           AppSizes.vGapMd,
-                          Stack(
-                            children: [
-                              Container(
-                                height: 10,
-                                decoration: BoxDecoration(
-                                  color: AppColors.border.withValues(
-                                    alpha: 0.4,
-                                  ),
-                                  borderRadius: BorderRadius.circular(999),
-                                ),
-                              ),
-                              LayoutBuilder(
-                                builder: (ctx, constraints) {
-                                  return Container(
-                                    height: 10,
-                                    width:
-                                        constraints.maxWidth *
-                                        (s.fundingProgress.clamp(0.02, 1)),
-                                    decoration: BoxDecoration(
-                                      gradient: AppColors.primaryGradient,
-                                      borderRadius: BorderRadius.circular(999),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: AppColors.primary.withValues(
-                                            alpha: 0.4,
-                                          ),
-                                          blurRadius: 8,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
+                          if (s.fundingRequired > 0)
+                            Stack(
+                              children: [
+                                Container(
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.border.withValues(
+                                      alpha: 0.4,
                                     ),
-                                  );
-                                },
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                                LayoutBuilder(
+                                  builder: (ctx, constraints) {
+                                    return Container(
+                                      height: 10,
+                                      width:
+                                          constraints.maxWidth *
+                                          (s.fundingProgress.clamp(0.0, 1.0)),
+                                      decoration: BoxDecoration(
+                                        gradient: AppColors.primaryGradient,
+                                        borderRadius: BorderRadius.circular(
+                                          999,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppColors.primary.withValues(
+                                              alpha: 0.4,
+                                            ),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            )
+                          else
+                            Text(
+                              'Funding goal is not public',
+                              style: context.text.bodySmall?.copyWith(
+                                color: AppColors.mutedText,
                               ),
-                            ],
-                          ),
+                            ),
                           AppSizes.vGapMd,
                           Row(
                             children: [
-                              Text(
-                                Formatters.compactCurrency(s.fundingRaised),
-                                style: context.text.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.darkText,
+                              Flexible(
+                                child: Text(
+                                  '${Formatters.compactCurrency(s.fundingRaised)} raised',
+                                  style: context.text.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.darkText,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
                                 ),
                               ),
-                              Text(
-                                ' raised',
-                                style: context.text.bodySmall?.copyWith(
-                                  color: AppColors.subtleText,
-                                ),
-                              ),
-                              const Spacer(),
+                              const SizedBox(width: AppSizes.sm),
                               Icon(
                                 Icons.favorite_rounded,
                                 size: 14,
@@ -529,7 +583,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                         AppAvatar(
                           name: s.founderName,
                           imageUrl: s.founderAvatar,
-                          size: 50,
+                          size: 54,
                         ),
                         AppSizes.hGapMd,
                         Expanded(
@@ -538,12 +592,35 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                             children: [
                               Text(
                                 s.founderName,
-                                style: context.text.titleMedium,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.text.titleMedium?.copyWith(
+                                  color: AppColors.darkText,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                              Text(
-                                'Founder',
-                                style: context.text.labelSmall?.copyWith(
-                                  color: AppColors.primary,
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary.withValues(
+                                    alpha: 0.08,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppSizes.radiusSm,
+                                  ),
+                                ),
+                                child: Text(
+                                  'Founder · View profile',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.text.labelSmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
                               ),
                             ],
@@ -634,12 +711,12 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                     ),
                 ],
 
-                const SizedBox(height: 90),
+                AppSizes.vGapXl,
               ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -652,15 +729,15 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
   ) => Column(
     children: [
       Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(9),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: 0.12)),
         ),
-        child: Icon(icon, color: color, size: 24),
+        child: Icon(icon, color: color, size: 20),
       ),
-      AppSizes.vGapMd,
+      AppSizes.vGapSm,
       Text(
         value,
         style: context.text.titleMedium?.copyWith(
@@ -678,35 +755,42 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
     ],
   );
 
-  Widget _pill(BuildContext context, String text, {IconData? icon}) =>
-      Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.md,
-          vertical: 6,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.background,
-          borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: AppColors.mutedText),
-              const SizedBox(width: 4),
-            ],
-            Text(
-              text,
-              style: const TextStyle(
-                color: AppColors.darkText,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
+  Widget _pill(
+    BuildContext context,
+    String text, {
+    IconData? icon,
+  }) => Container(
+    constraints: BoxConstraints(
+      maxWidth: MediaQuery.sizeOf(context).width - (AppSizes.screenPadding * 2),
+    ),
+    padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 6),
+    decoration: BoxDecoration(
+      color: AppColors.background,
+      borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 14, color: AppColors.mutedText),
+          const SizedBox(width: 4),
+        ],
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: AppColors.darkText,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
             ),
-          ],
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-      );
+      ],
+    ),
+  );
 
   Widget _readingBlock(
     BuildContext context,

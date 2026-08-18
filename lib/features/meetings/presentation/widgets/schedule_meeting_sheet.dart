@@ -56,6 +56,7 @@ class ScheduleMeetingSheet extends StatefulWidget {
 
 class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
   final _titleCtrl = TextEditingController(text: 'Introduction Meeting');
+  final _meetingUrlCtrl = TextEditingController();
   final _agendaCtrl = TextEditingController();
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
@@ -94,6 +95,11 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
       context.showSnack('Please select a date and time', isError: true);
       return;
     }
+    final meetingUrl = _meetingUrlCtrl.text.trim();
+    if (meetingUrl.isEmpty) {
+      context.showSnack('Please enter a meeting URL', isError: true);
+      return;
+    }
 
     setState(() => _isLoading = true);
 
@@ -112,8 +118,9 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
       withId: widget.targetId,
       withAvatar: widget.targetAvatar,
       startTime: startTime,
-
+      durationMinutes: _durationMinutes,
       status: EntityStatus.pending,
+      meetingLink: meetingUrl,
       agenda: _agendaCtrl.text.trim(),
       participants: [widget.targetId],
     );
@@ -132,6 +139,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
   @override
   void dispose() {
     _titleCtrl.dispose();
+    _meetingUrlCtrl.dispose();
     _agendaCtrl.dispose();
     super.dispose();
   }
@@ -237,6 +245,15 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
               ],
             ),
 
+            AppSizes.vGapLg,
+            AppTextField(
+              controller: _meetingUrlCtrl,
+              label: 'Meeting URL *',
+              hint: 'Enter Meeting URL',
+              prefixIcon: Icons.link_rounded,
+              keyboardType: TextInputType.url,
+              textInputAction: TextInputAction.next,
+            ),
             AppSizes.vGapLg,
             AppTextField(
               controller: _agendaCtrl,

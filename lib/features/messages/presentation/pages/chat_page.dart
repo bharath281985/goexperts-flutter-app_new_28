@@ -1,10 +1,12 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
@@ -13,6 +15,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
 import '../../domain/entities/conversation.dart';
 import '../../domain/repositories/message_repository.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../bloc/chat_cubit.dart';
 
 class ChatPage extends StatelessWidget {
@@ -66,6 +69,46 @@ class _ChatViewState extends State<_ChatView> {
     context.read<ChatCubit>().send(text);
     _controller.clear();
     _scrollToBottom();
+  }
+
+  String _profileRoute(BuildContext context) {
+    final conversation = widget.conversation;
+    final profileId = conversation?.participantId.isNotEmpty == true
+        ? conversation!.participantId
+        : context.read<ChatCubit>().conversationId;
+    var role = conversation?.role.trim().toLowerCase() ?? '';
+
+    if (role.isEmpty) {
+      role = switch (context.read<AuthBloc>().state.user?.role) {
+        UserRole.investor => 'founder',
+        UserRole.founder => 'investor',
+        UserRole.client => 'freelancer',
+        UserRole.freelancer => 'company',
+        _ => '',
+      };
+    }
+
+    final base = switch (role) {
+      'founder' => Routes.publicFounder,
+      'investor' => Routes.publicInvestor,
+      'client' || 'company' => Routes.publicCompany,
+      'freelancer' => Routes.publicFreelancer,
+      _ => '',
+    };
+    return base.isEmpty || profileId.isEmpty ? '' : '$base/$profileId';
+  }
+
+  Future<void> _setConversationReadState({required bool unread}) async {
+    final repository = sl<MessageRepository>();
+    final conversationId = context.read<ChatCubit>().conversationId;
+    final result = unread
+        ? await repository.markConversationUnread(conversationId)
+        : await repository.markConversationRead(conversationId);
+    if (!mounted) return;
+    result.fold(
+      (failure) => context.showSnack(failure.message, isError: true),
+      (_) => context.showSnack(unread ? 'Marked as unread' : 'Marked as read'),
+    );
   }
 
   Future<void> _attach() async {
@@ -171,11 +214,13 @@ class _ChatViewState extends State<_ChatView> {
         actions: [
           IconButton(
             icon: const Icon(Icons.call_outlined),
-            onPressed: () => context.showSnack('Voice call (WebRTC ready)'),
+            tooltip: 'Voice call',
+            onPressed: () => context.showSnack('Voice calling coming soon'),
           ),
           IconButton(
             icon: const Icon(Icons.videocam_outlined),
-            onPressed: () => context.showSnack('Video call (WebRTC ready)'),
+            tooltip: 'Video call',
+            onPressed: () => context.showSnack('Video calling coming soon'),
           ),
           IconButton(
             icon: const Icon(Icons.more_vert_rounded),
@@ -186,31 +231,27 @@ class _ChatViewState extends State<_ChatView> {
                 AppAction(
                   label: 'Mark as Unread',
                   icon: Icons.mark_email_unread_outlined,
-                  onTap: () async {
-                    await sl<MessageRepository>().markConversationUnread(
-                      context.read<ChatCubit>().conversationId,
-                    );
-                    if (context.mounted) {
-                      context.showSnack('Marked as unread');
-                    }
-                  },
+                  onTap: () => _setConversationReadState(unread: true),
                 ),
                 AppAction(
                   label: 'Mark as Read',
                   icon: Icons.mark_email_read_outlined,
-                  onTap: () async {
-                    await sl<MessageRepository>().markConversationRead(
-                      context.read<ChatCubit>().conversationId,
-                    );
-                    if (context.mounted) {
-                      context.showSnack('Marked as read');
-                    }
-                  },
+                  onTap: () => _setConversationReadState(unread: false),
                 ),
                 AppAction(
                   label: 'View Profile',
                   icon: Icons.person_outline_rounded,
-                  onTap: () {},
+                  onTap: () {
+                    final route = _profileRoute(context);
+                    if (route.isEmpty) {
+                      context.showSnack(
+                        'Profile is unavailable for this conversation',
+                        isError: true,
+                      );
+                      return;
+                    }
+                    context.push(route);
+                  },
                 ),
               ],
             ),

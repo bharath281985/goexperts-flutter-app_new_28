@@ -267,10 +267,41 @@ class AuthRepositoryImpl implements AuthRepository {
         await _api.uploadAvatarBytes(avatarBytes);
       }
       final result = await _api.updateProfile(data);
-      if (result.user != null) {
-        await _cacheUser(result.user!);
+
+      final current = _readCachedUser();
+      AppUser finalUser = result.user ?? current!;
+
+      if (current != null) {
+        final merged = current.copyWith(
+          fullName: data['fullName'] as String? ?? result.user?.fullName,
+          headline:
+              data['titleHeadline'] as String? ??
+              data['headline'] as String? ??
+              data['jobTitle'] as String? ??
+              result.user?.headline,
+          location:
+              data['city'] as String? ??
+              data['location'] as String? ??
+              result.user?.location,
+          categoryId:
+              data['categoryId'] as String? ??
+              data['industryId'] as String? ??
+              result.user?.categoryId,
+          industryId: data['industryId'] as String? ?? result.user?.industryId,
+          avatarUrl: result.user?.avatarUrl,
+          isProfileComplete:
+              result.user?.isProfileComplete ?? current.isProfileComplete,
+          profileCompletion: (result.user?.profileCompletion ?? 0) > 0
+              ? result.user!.profileCompletion
+              : current.profileCompletion,
+        );
+        finalUser = merged;
       }
-      return Success(result);
+
+      await _cacheUser(finalUser);
+      return Success(
+        ProfileCompletionResult(user: finalUser, message: result.message),
+      );
     } catch (e) {
       return Err(_mapError(e));
     }
