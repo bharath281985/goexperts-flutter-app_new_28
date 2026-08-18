@@ -597,10 +597,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 
   Future<void> _loadSkillsForCategory(String categoryId) async {
-    if (_skillsByCategoryId.containsKey(categoryId)) {
+    // The backend API returns all skills regardless of industryId.
+    // Cache under a fixed key so we only fetch once.
+    const cacheKey = '__all__';
+    if (_skillsByCategoryId.containsKey(cacheKey) &&
+        (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
       setState(() {
         _selectedCategoryId = categoryId;
-        _visibleSkills = _skillsByCategoryId[categoryId] ?? [];
+        _visibleSkills = _skillsByCategoryId[cacheKey] ?? [];
         _categoryError = null;
       });
       _updateSkillsDisplayText();
@@ -639,7 +643,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       final batch = result.valueOrNull ?? [];
       if (batch.isEmpty) break;
 
-      allSkills.addAll(batch.where((skill) => skill.id.isNotEmpty));
+      allSkills.addAll(batch.where((skill) => skill.name.isNotEmpty));
 
       if (page == 1) {
         final totalResult = await repo.getSkillsTotal(categoryId: categoryId);
@@ -651,7 +655,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     }
 
     setState(() {
-      _skillsByCategoryId[categoryId] = allSkills;
+      _skillsByCategoryId[cacheKey] = allSkills;
       _visibleSkills = allSkills;
       _loadingSkills = false;
     });
@@ -1142,11 +1146,23 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     );
   }
 
-  void _showSkillsBottomSheet() {
+  Future<void> _showSkillsBottomSheet() async {
     if (_selectedCategoryId == null) {
       context.showSnack('Please select a Category first', isError: true);
       return;
     }
+
+    const cacheKey = '__all__';
+    if (_skillsByCategoryId.containsKey(cacheKey) &&
+        (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
+      setState(() {
+        _visibleSkills = _skillsByCategoryId[cacheKey]!;
+      });
+    } else {
+      await _loadSkillsForCategory(_selectedCategoryId!);
+    }
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,

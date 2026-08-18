@@ -22,7 +22,6 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../master_data/domain/entities/master_option.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/entities/company.dart';
-import '../../domain/repositories/company_repository.dart';
 
 class ClientCompanyProfilePage extends StatefulWidget {
   const ClientCompanyProfilePage({super.key});
@@ -63,6 +62,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   bool _saving = false;
   Company? _companyData;
   String? _localLogoPath;
+  String? _logoUrl;
 
   @override
   void initState() {
@@ -134,6 +134,11 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       final locVal =
           userMap['city']?.toString() ?? userMap['location']?.toString();
       if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
+
+      final avVal = userMap['avatarUrl']?.toString() ??
+          userMap['avatar']?.toString() ??
+          userMap['logoUrl']?.toString();
+      if (avVal != null && avVal.isNotEmpty) _logoUrl = avVal;
 
       if (userMap['country'] is Map) {
         final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
@@ -494,6 +499,21 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     }
     setState(() => _saving = true);
 
+    String? uploadedAvatarUrl = _logoUrl;
+    if (_localLogoPath != null && _localLogoPath!.isNotEmpty) {
+      final uploadRes = await sl<FileUploadHelper>().uploadUrl(
+        path: _localLogoPath!,
+        endpoint: ApiEndpoints.updateMeAvatar,
+        method: 'put',
+        fileField: 'file',
+      );
+      if (uploadRes.isSuccess && (uploadRes.valueOrNull ?? '').isNotEmpty) {
+        uploadedAvatarUrl = uploadRes.valueOrNull!;
+        _logoUrl = uploadedAvatarUrl;
+        _localLogoPath = null;
+      }
+    }
+
     final payload = <String, dynamic>{
       'fullName': _name.text.trim(),
       'city': _city.text.trim(),
@@ -510,9 +530,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       if (_selectedHiringGoalIds.isNotEmpty)
         'hiringGoalId': _selectedHiringGoalIds.toList(),
       'websiteUrl': _website.text.trim(),
-      'linkedInUrl': _linkedin.text.trim(),
-      if (_localLogoPath != null || _companyData?.logoUrl != null)
-        'logo': _localLogoPath ?? _companyData?.logoUrl,
+      if (uploadedAvatarUrl != null && uploadedAvatarUrl.isNotEmpty) ...{
+        'avatarUrl': uploadedAvatarUrl,
+        'logo': uploadedAvatarUrl,
+      },
     };
 
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
@@ -530,13 +551,9 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           res.valueOrNull?['message']?.toString() ??
           'Company profile updated successfully';
       context.showSnack(msg);
-      final currentUser = context.read<AuthBloc>().state.user;
-      if (currentUser != null) {
-        context.read<AuthBloc>().add(
-          AuthUserUpdated(currentUser.copyWith(fullName: _name.text.trim())),
-        );
-      }
-      Navigator.of(context).pop();
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+      // Stay on page and refresh data
+      await _load();
     } else {
       context.showSnack(
         res.failureOrNull?.message ?? 'Failed to update company profile',
@@ -545,34 +562,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     }
   }
 
-  Future<void> _uploadDoc() async {
-    final picked = await FilePicker.platform.pickFiles(allowMultiple: false);
-    if (picked == null || picked.files.single.path == null) return;
-    final res = await sl<CompanyRepository>().uploadClientDocument(
-      picked.files.single.path!,
-    );
-    if (!mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message),
-      (_) => context.showSnack('Document uploaded'),
-    );
-  }
-
-  Future<void> _uploadLogo(String path) async {
+  void _uploadLogo(String path) {
     setState(() => _localLogoPath = path);
-    final result = await sl<CompanyRepository>().uploadClientLogo(path);
-    if (!mounted) return;
-    result.fold(
-      (failure) => context.showSnack(failure.message, isError: true),
-      (url) async {
-        setState(() {
-          _localLogoPath = null;
-        });
-        context.read<AuthBloc>().add(const AuthRefreshUser());
-        context.showSnack('Company logo updated');
-        await _load();
-      },
-    );
   }
 
   @override
@@ -604,7 +595,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppSizes.vGapMd,
                 ProfileAvatarEditor(
                   localPath: _localLogoPath,
-                  networkUrl: _companyData?.logoUrl,
+                  networkUrl: _logoUrl,
                   onPathPicked: _uploadLogo,
                 ),
                 AppSizes.vGapMd,
@@ -721,19 +712,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   label: 'Website',
                   hint: 'Enter Website',
                 ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _linkedin,
-                  label: 'LinkedIn URL',
-                  hint: 'Enter LinkedIn URL',
-                ),
                 AppSizes.vGapLg,
-                AppPrimaryButton(
-                  label: 'Upload Document',
-                  onPressed: _uploadDoc,
-                  icon: Icons.upload_file_outlined,
-                ),
-                AppSizes.vGapMd,
                 AppPrimaryButton(
                   label: 'Save Profile',
                   isLoading: _saving,

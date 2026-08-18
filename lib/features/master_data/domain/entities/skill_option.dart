@@ -8,13 +8,16 @@ class SkillOption extends Equatable {
   final String? categoryId;
 
   factory SkillOption.fromJson(Map<String, dynamic> json) {
+    final id = (json['id'] ?? json['_id'] ?? json['skillId'] ?? json['code'] ?? json['name'])?.toString() ?? '';
+    final name =
+        json['name']?.toString() ??
+        json['title']?.toString() ??
+        json['skillName']?.toString() ??
+        json['label']?.toString() ??
+        id;
     return SkillOption(
-      id: json['id']?.toString() ?? '',
-      name:
-          json['name']?.toString() ??
-          json['title']?.toString() ??
-          json['skillName']?.toString() ??
-          '',
+      id: id,
+      name: name,
       categoryId:
           json['categoryId']?.toString() ??
           json['category_id']?.toString() ??

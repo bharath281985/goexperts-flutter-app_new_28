@@ -91,7 +91,7 @@ class _ProfileAvatarEditorState extends State<ProfileAvatarEditor> {
       if (mounted) {
         setState(() => _selectedBytes = bytes);
         widget.onPathPicked(picked.path);
-        context.showSnack('Photo selected. Uploading...');
+        // context.showSnack('Photo selected. Uploading...');
       }
     } catch (e) {
       if (context.mounted) {

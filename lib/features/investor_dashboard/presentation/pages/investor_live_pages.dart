@@ -489,18 +489,9 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           res.valueOrNull?['message']?.toString() ??
           'Investor profile updated successfully';
       context.showSnack(msg);
-      final currentUser = context.read<AuthBloc>().state.user;
-      if (currentUser != null) {
-        context.read<AuthBloc>().add(
-          AuthUserUpdated(
-            currentUser.copyWith(
-              fullName: fullName,
-              location: _city.text.trim(),
-            ),
-          ),
-        );
-      }
-      Navigator.of(context).pop();
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+      // Stay on page and refresh data
+      await _load();
     } else {
       context.showSnack(
         res.failureOrNull?.message ?? 'Failed to update profile',

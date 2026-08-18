@@ -49,7 +49,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   final _github = TextEditingController();
   final _portfolio = TextEditingController();
   final _linkedin = TextEditingController();
-  final _website = TextEditingController();
 
   // Selected Master Options
   MasterOption? _selectedCountry;
@@ -100,7 +99,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     _github.dispose();
     _portfolio.dispose();
     _linkedin.dispose();
-    _website.dispose();
     super.dispose();
   }
 
@@ -159,10 +157,14 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   Future<void> _loadSkillsForCategory(String categoryId) async {
-    if (_skillsByCategoryId.containsKey(categoryId)) {
+    // The backend API returns all skills regardless of industryId.
+    // Cache under a fixed key so we only fetch once.
+    const cacheKey = '__all__';
+    if (_skillsByCategoryId.containsKey(cacheKey) &&
+        (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
       setState(() {
         _selectedCategoryId = categoryId;
-        _visibleSkills = _skillsByCategoryId[categoryId] ?? [];
+        _visibleSkills = _skillsByCategoryId[cacheKey] ?? [];
       });
       _updateSkillsDisplayText();
       return;
@@ -190,7 +192,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       final batch = result.valueOrNull ?? [];
       if (batch.isEmpty) break;
 
-      allSkills.addAll(batch.where((skill) => skill.id.isNotEmpty));
+      allSkills.addAll(batch.where((skill) => skill.name.isNotEmpty));
 
       if (page == 1) {
         final totalResult = await repo.getSkillsTotal(categoryId: categoryId);
@@ -201,8 +203,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       page++;
     }
 
+    for (final skill in allSkills) {
+      for (final sIdOrName in List<String>.from(_selectedSkillIds)) {
+        if (sIdOrName.trim().toLowerCase() == skill.name.trim().toLowerCase() ||
+            sIdOrName == skill.id) {
+          _selectedSkillIds.remove(sIdOrName);
+          _selectedSkillIds.add(skill.id);
+        }
+      }
+    }
+
     setState(() {
-      _skillsByCategoryId[categoryId] = allSkills;
+      _skillsByCategoryId[cacheKey] = allSkills;
       _visibleSkills = allSkills;
       _loadingSkills = false;
     });
@@ -210,7 +222,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   MasterOption? _matchOption(MasterOption? current, List<MasterOption> list) {
-    if (current == null || list.isEmpty) return null;
+    if (current == null) return null;
+    if (list.isEmpty) return current;
     for (final item in list) {
       if (item == current) return item;
       if (current.id.isNotEmpty && item.id == current.id) return item;
@@ -219,7 +232,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         return item;
       }
     }
-    return null;
+    return current;
   }
 
   void _matchAllDropdowns() {
@@ -338,33 +351,56 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
               (pMap['portfolioUrl'] ?? pMap['portfolio'])?.toString() ?? '';
           _linkedin.text =
               (pMap['linkedInUrl'] ?? pMap['linkedin'])?.toString() ?? '';
-          _website.text =
-              (pMap['websiteUrl'] ?? pMap['website'])?.toString() ?? '';
 
-          if (pMap['experience'] is Map) {
-            final expMap = Map<String, dynamic>.from(pMap['experience'] as Map);
-            final eid = (expMap['id'] ?? expMap['_id'])?.toString() ?? '';
-            final ename =
-                (expMap['name'] ?? expMap['label'])?.toString() ?? eid;
+          final expObj = pMap['ExperienceLevel'] ??
+              pMap['experienceLevel'] ??
+              pMap['experienceLevelId'] ??
+              pMap['experience'];
+          if (expObj is Map) {
+            final expMap = Map<String, dynamic>.from(expObj);
+            final eid = (expMap['experienceLevelId'] ??
+                    expMap['id'] ??
+                    expMap['_id'])
+                ?.toString() ??
+                '';
+            final ename = (expMap['experienceLevelName'] ??
+                    expMap['name'] ??
+                    expMap['label'])
+                ?.toString() ??
+                eid;
             if (eid.isNotEmpty && ename.isNotEmpty) {
               _selectedExperience = MasterOption(id: eid, name: ename);
             }
+          } else if (expObj is String && expObj.isNotEmpty) {
+            _selectedExperience = MasterOption(id: expObj, name: expObj);
           }
 
-          if (pMap['availability'] is Map) {
-            final availMap = Map<String, dynamic>.from(
-              pMap['availability'] as Map,
-            );
-            final aid = (availMap['id'] ?? availMap['_id'])?.toString() ?? '';
-            final aname =
-                (availMap['name'] ?? availMap['label'])?.toString() ?? aid;
+          final availObj = pMap['Availability'] ??
+              pMap['availability'] ??
+              pMap['availabilityId'];
+          if (availObj is Map) {
+            final availMap = Map<String, dynamic>.from(availObj);
+            final aid = (availMap['availabilityId'] ??
+                    availMap['id'] ??
+                    availMap['_id'])
+                ?.toString() ??
+                '';
+            final aname = (availMap['availabilityName'] ??
+                    availMap['name'] ??
+                    availMap['label'])
+                ?.toString() ??
+                aid;
             if (aid.isNotEmpty && aname.isNotEmpty) {
               _selectedAvailability = MasterOption(id: aid, name: aname);
             }
+          } else if (availObj is String && availObj.isNotEmpty) {
+            _selectedAvailability = MasterOption(id: availObj, name: availObj);
           }
 
-          if (pMap['industry'] is Map) {
-            final indMap = Map<String, dynamic>.from(pMap['industry'] as Map);
+          final indObj =
+              pMap['industryId'] ?? pMap['categoryId'] ?? pMap['industry'];
+          if (indObj is Map) {
+            final indMap = Map<String, dynamic>.from(indObj);
             final indId = (indMap['id'] ?? indMap['_id'])?.toString();
             final indName = (indMap['name'] ?? indMap['label'])?.toString();
             if (indId != null && indId.isNotEmpty) {
@@ -373,6 +409,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                 _categoryDisplayController.text = indName;
               }
             }
+          } else if (indObj is String && indObj.isNotEmpty) {
+            _selectedCategoryId = indObj;
+            _categoryDisplayController.text = indObj;
           }
 
           if (pMap['skills'] is List) {
@@ -390,6 +429,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                 }
               } else if (s is String && s.isNotEmpty) {
                 _selectedSkillIds.add(s);
+                prefilledNames.add(s);
               }
             }
             if (prefilledNames.isNotEmpty) {
@@ -401,6 +441,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     } catch (_) {}
 
     _matchAllDropdowns();
+    if (_selectedCategoryId != null) {
+      await _loadSkillsForCategory(_selectedCategoryId!);
+    }
     if (mounted) setState(() => _loading = false);
   }
 
@@ -443,7 +486,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       'portfolioUrl': _portfolio.text.trim(),
       'githubUrl': _github.text.trim(),
       'linkedInUrl': _linkedin.text.trim(),
-      'websiteUrl': _website.text.trim(),
       if (_currentAvatarUrl != null) 'avatarUrl': _currentAvatarUrl,
     };
 
@@ -457,12 +499,13 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
     if (!mounted) return;
     setState(() => _saving = false);
-    res.fold((f) => context.showSnack(f.message, isError: true), (data) {
+    res.fold((f) => context.showSnack(f.message, isError: true), (data) async {
       final msg =
           data['message']?.toString() ?? 'Profile updated successfully!';
       context.showSnack(msg);
       context.read<AuthBloc>().add(const AuthRefreshUser());
-      Navigator.of(context).pop();
+      // Stay on page and refresh data
+      await _load();
     });
   }
 
@@ -622,7 +665,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     );
   }
 
-  void _showSkillsBottomSheet() {
+  Future<void> _showSkillsBottomSheet() async {
     if (_selectedCategoryId == null) {
       context.showSnack(
         'Please select an Industry / Category first',
@@ -630,6 +673,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       );
       return;
     }
+
+    const cacheKey = '__all__';
+    if (_skillsByCategoryId.containsKey(cacheKey) &&
+        (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
+      setState(() {
+        _visibleSkills = _skillsByCategoryId[cacheKey]!;
+      });
+    } else {
+      await _loadSkillsForCategory(_selectedCategoryId!);
+    }
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -1006,12 +1061,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       controller: _linkedin,
                       label: 'LinkedIn Profile',
                       hint: 'Enter LinkedIn Profile',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _website,
-                      label: 'Website',
-                      hint: 'Enter Website',
                     ),
                     AppSizes.vGapXl,
 

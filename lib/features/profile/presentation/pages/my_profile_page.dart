@@ -36,9 +36,20 @@ class _MyProfilePageState extends State<MyProfilePage> {
   @override
   void initState() {
     super.initState();
+    _refreshAllData();
+  }
+
+  void _refreshAllData() {
     context.read<AuthBloc>().add(const AuthRefreshUser());
     _syncRoleProfile();
     _fetchAverage();
+  }
+
+  Future<void> _navigateAndRefresh(Future<void> Function() navAction) async {
+    await navAction();
+    if (mounted) {
+      _refreshAllData();
+    }
   }
 
   Future<void> _syncRoleProfile() async {
@@ -240,7 +251,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: () => context.push(Routes.changePassword),
+                      onPressed: () => _navigateAndRefresh(
+                        () => context.push(Routes.changePassword),
+                      ),
                       icon: const Icon(
                         Icons.settings_outlined,
                         color: Colors.white,
@@ -284,12 +297,24 @@ class _MyProfilePageState extends State<MyProfilePage> {
                               ],
                             ],
                           ),
-                          Text(
-                            user?.headline ?? role.label,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13,
+                          if ((user?.email ?? '').isNotEmpty)
+                            Text(
+                              user!.email,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                fontSize: 13,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
+                          Text(
+                            user?.headline?.isNotEmpty == true
+                                ? user!.headline!
+                                : role.label,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.8),
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -332,54 +357,63 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 AppSizes.vGapLg,
                 _group(context, 'Profile', [
                   _tile(context, Icons.edit_outlined, 'Edit Profile', () {
-                    switch (role) {
-                      case UserRole.investor:
-                        context.push(Routes.investorProfile);
-                        break;
-                      case UserRole.founder:
-                        context.push(Routes.founderProfile);
-                        break;
-                      case UserRole.client:
-                        context.push(Routes.clientProfile);
-                        break;
-                      case UserRole.freelancer:
-                        // Navigate to the dedicated edit profile page
-                        context.push(Routes.freelancerEditProfile);
-                        break;
-                    }
+                    _navigateAndRefresh(() async {
+                      switch (role) {
+                        case UserRole.investor:
+                          await context.push(Routes.investorProfile);
+                          break;
+                        case UserRole.founder:
+                          await context.push(Routes.founderProfile);
+                          break;
+                        case UserRole.client:
+                          await context.push(Routes.clientProfile);
+                          break;
+                        case UserRole.freelancer:
+                          await context.push(Routes.freelancerEditProfile);
+                          break;
+                      }
+                    });
                   }),
 
                   if (role == UserRole.freelancer || role == UserRole.investor)
                     _tile(context, Icons.collections_outlined, 'Portfolio', () {
-                      if (role == UserRole.investor) {
-                        context.push(Routes.investorPortfolio);
-                      } else {
-                        context.push(Routes.freelancerPortfolioPage);
-                      }
+                      _navigateAndRefresh(() async {
+                        if (role == UserRole.investor) {
+                          await context.push(Routes.investorPortfolio);
+                        } else {
+                          await context.push(Routes.freelancerPortfolioPage);
+                        }
+                      });
                     }),
                   _tile(
                     context,
                     Icons.star_outline_rounded,
                     'Reviews',
-                    () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const MyReviewsPage()),
-                    ),
+                    () => _navigateAndRefresh(() async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const MyReviewsPage(),
+                        ),
+                      );
+                    }),
                   ),
                   _tile(context, Icons.insights_outlined, 'Analytics', () {
-                    switch (role) {
-                      case UserRole.investor:
-                        context.push(Routes.investorAnalytics);
-                        break;
-                      case UserRole.founder:
-                        context.push(Routes.founderAnalytics);
-                        break;
-                      case UserRole.client:
-                        context.push(Routes.clientAnalytics);
-                        break;
-                      case UserRole.freelancer:
-                        context.push(Routes.freelancerAnalytics);
-                        break;
-                    }
+                    _navigateAndRefresh(() async {
+                      switch (role) {
+                        case UserRole.investor:
+                          await context.push(Routes.investorAnalytics);
+                          break;
+                        case UserRole.founder:
+                          await context.push(Routes.founderAnalytics);
+                          break;
+                        case UserRole.client:
+                          await context.push(Routes.clientAnalytics);
+                          break;
+                        case UserRole.freelancer:
+                          await context.push(Routes.freelancerAnalytics);
+                          break;
+                      }
+                    });
                   }),
                 ]),
                 AppSizes.vGapLg,
@@ -388,33 +422,42 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     context,
                     Icons.workspace_premium_outlined,
                     'Subscription',
-                    () => context.push(Routes.subscriptionsManage),
+                    () => _navigateAndRefresh(
+                      () => context.push(Routes.subscriptionsManage),
+                    ),
                   ),
 
                   _tile(
                     context,
                     Icons.shield_outlined,
                     'Security Center',
-                    () => context.push(Routes.changePassword),
+                    () => _navigateAndRefresh(
+                      () => context.push(Routes.changePassword),
+                    ),
                   ),
                   _tile(
                     context,
                     Icons.bookmark_outline_rounded,
                     'Bookmarks',
-                    () => context.push(Routes.bookmarks),
+                    () => _navigateAndRefresh(
+                      () => context.push(Routes.bookmarks),
+                    ),
                   ),
 
                   _tile(
                     context,
                     Icons.help_outline_rounded,
                     'Support',
-                    () => context.push(Routes.support),
+                    () =>
+                        _navigateAndRefresh(() => context.push(Routes.support)),
                   ),
                   _tile(
                     context,
                     Icons.delete_outline_rounded,
                     'Delete Account',
-                    () => context.push(Routes.deleteAccount),
+                    () => _navigateAndRefresh(
+                      () => context.push(Routes.deleteAccount),
+                    ),
                   ),
                 ]),
                 AppSizes.vGapLg,

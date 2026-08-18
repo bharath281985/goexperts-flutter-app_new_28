@@ -65,14 +65,13 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     int page = 1,
     int pageSize = 100,
   }) async {
+    // Note: The backend skills API does not support filtering by industryId.
+    // Passing industryId returns empty results. Load all skills without filter.
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
       query: {
-        'industryId': categoryId,
-        'categoryId': categoryId,
         'page': page,
         'limit': pageSize,
-        'pageSize': pageSize,
       },
       itemParser: SkillOption.fromJson,
     );
@@ -84,14 +83,13 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   @override
   Future<Result<int>> getSkillsTotal({required String categoryId}) async {
+    // Note: The backend skills API does not support filtering by industryId.
+    // Get total count of all skills without filter.
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
       query: {
-        'industryId': categoryId,
-        'categoryId': categoryId,
         'page': 1,
         'limit': 1,
-        'pageSize': 1,
       },
       itemParser: SkillOption.fromJson,
     );

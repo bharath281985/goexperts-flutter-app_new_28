@@ -287,6 +287,9 @@ class _RoleShellState extends State<RoleShell> {
     if (index == 0 && _index == index) {
       _cubit.refresh();
     }
+    if (tabs[index].item.label == 'Profile') {
+      context.read<AuthBloc>().add(const AuthRefreshUser());
+    }
     setState(() {
       if (tabs[index].item.label == 'Wallet') {
         _walletRefreshToken++;

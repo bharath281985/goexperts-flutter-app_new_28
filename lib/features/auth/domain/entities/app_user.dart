@@ -169,14 +169,34 @@ class AppUser extends Equatable {
       );
     }
 
+    final avatar = str('avatarUrl', 'avatar_url') ??
+        str('avatar', 'avatar') ??
+        str('logoUrl', 'logo_url') ??
+        str('logo', 'logo') ??
+        (json['profile'] is Map
+            ? (json['profile']['avatarUrl'] ??
+                    json['profile']['avatar'] ??
+                    json['profile']['logoUrl'] ??
+                    json['profile']['logo'])
+                ?.toString()
+            : null);
+
     return AppUser(
       id: str('id', 'id') ?? '',
-      fullName: str('fullName', 'full_name') ?? '',
+      fullName: str('fullName', 'full_name') ??
+          str('name', 'name') ??
+          (json['profile'] is Map
+              ? (json['profile']['fullName'] ??
+                      json['profile']['name'] ??
+                      json['profile']['companyName'])
+                  ?.toString()
+              : null) ??
+          '',
       email: str('email', 'email') ?? '',
       phone: str('phone', 'phone'),
       countryCode: str('countryCode', 'country_code'),
       role: roleRaw != null ? UserRole.fromString(roleRaw) : null,
-      avatarUrl: str('avatarUrl', 'avatar_url'),
+      avatarUrl: avatar,
       isVerified: flag('isVerified', 'is_verified'),
       isProfileComplete:
           flag('isProfileComplete', 'is_profile_complete') ||

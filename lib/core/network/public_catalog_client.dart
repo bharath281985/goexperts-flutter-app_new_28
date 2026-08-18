@@ -66,7 +66,14 @@ class PublicCatalogClient {
       return Err(ServerFailure(json['message'] as String? ?? 'Request failed'));
     }
 
-    final rawList = json['data'] ?? json['rows'];
+    dynamic rawList = json['data'] ?? json['rows'];
+    if (rawList is Map) {
+      rawList = rawList['rows'] ??
+          rawList['items'] ??
+          rawList['skills'] ??
+          rawList['data'] ??
+          rawList['results'];
+    }
     final rows = (rawList is List ? rawList : const [])
         .whereType<Map>()
         .map((item) => itemParser(Map<String, dynamic>.from(item)))
