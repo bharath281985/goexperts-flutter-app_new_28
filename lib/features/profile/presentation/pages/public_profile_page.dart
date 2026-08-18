@@ -13,13 +13,13 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/follow_manager.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/image_url.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../domain/entities/review.dart';
 import '../../domain/repositories/review_repository.dart';
-import '../../../investor_dashboard/domain/repositories/investor_repository.dart';
 import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 import '../widgets/profile_view.dart';
 
@@ -92,14 +92,20 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     final id = raw['id']?.toString() ?? widget.id;
     final fullName =
         raw['fullName']?.toString() ?? raw['full_name']?.toString() ?? 'User';
-    final avatarUrl =
+    final rawAvatarUrl =
         raw['avatarUrl']?.toString() ?? raw['avatar_url']?.toString();
+    final avatarUrl = rawAvatarUrl == null || rawAvatarUrl.isEmpty
+        ? null
+        : normalizeImageUrl(rawAvatarUrl);
     final city = raw['city']?.toString() ?? '';
     final country = raw['country']?.toString() ?? '';
     final location = [city, country].where((e) => e.isNotEmpty).join(', ');
     final bio = raw['bio']?.toString() ?? '';
     final isVerified =
-        raw['isVerified'] as bool? ?? raw['is_verified'] as bool? ?? false;
+        raw['isVerified'] as bool? ??
+        raw['is_verified'] as bool? ??
+        raw['verified'] as bool? ??
+        false;
     final email = raw['email']?.toString() ?? '';
     final phone = raw['phone']?.toString() ?? '';
 
@@ -114,7 +120,11 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       return false;
     }
 
-    final apiIsSaved = toBool(raw['isSaved']) || toBool(raw['is_saved']);
+    final hasAuthoritativeSavedState =
+        raw.containsKey('isSaved') || raw.containsKey('is_saved');
+    final apiIsSaved = hasAuthoritativeSavedState
+        ? toBool(raw['isSaved'] ?? raw['is_saved'])
+        : toBool(raw['savedData']);
     BookmarkManager.instance.syncItem(_bookmarkCategory, id, apiIsSaved);
 
     final apiIsFollowing =
@@ -191,15 +201,53 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       case PublicProfileType.investor:
         {
           final ip = raw['investorProfile'] as Map? ?? raw;
-          final firm = ip['firm']?.toString() ?? '';
+          final firm =
+              ip['firm']?.toString() ?? ip['company']?.toString() ?? '';
           final ticketMin = (ip['ticketMin'] as num?)?.toDouble() ?? 0.0;
           final ticketMax = (ip['ticketMax'] as num?)?.toDouble() ?? 0.0;
-          final focusRaw = ip['focusAreas']?.toString() ?? '';
-          final focus = focusRaw.isNotEmpty
+          final focusRaw = ip['focusAreas'] is String
+              ? ip['focusAreas'].toString()
+              : '';
+          final focusList = ip['FocusAreas'];
+          final focus = focusList is List
+              ? focusList
+                    .map((item) {
+                      if (item is Map) {
+                        return (item['focusAreaName'] ?? item['focusAreaId'])
+                                ?.toString()
+                                .trim() ??
+                            '';
+                      }
+                      return item.toString().trim();
+                    })
+                    .where((value) => value.isNotEmpty)
+                    .toSet()
+                    .toList()
+              : focusRaw.isNotEmpty
               ? focusRaw
                     .split(',')
                     .map((s) => s.trim())
                     .where((s) => s.isNotEmpty)
+                    .toList()
+              : <String>[];
+          final preferredStageList =
+              ip['PreferredStage'] ?? ip['preferredStages'];
+          final preferredStages = preferredStageList is List
+              ? preferredStageList
+                    .map((item) {
+                      if (item is Map) {
+                        return (item['preferredStageName'] ??
+                                    item['stageName'] ??
+                                    item['name'] ??
+                                    item['preferredStageId'])
+                                ?.toString()
+                                .trim() ??
+                            '';
+                      }
+                      return item.toString().trim();
+                    })
+                    .where((value) => value.isNotEmpty)
+                    .toSet()
                     .toList()
               : <String>[];
           final deals =
@@ -208,12 +256,20 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               0;
           return ProfileViewData(
             name: fullName,
-            headline: firm.isNotEmpty ? firm : 'Investor',
-            location: location,
+            headline: [
+              ip['investorTypeName']?.toString() ??
+                  ip['investorType']?.toString() ??
+                  'Investor',
+              if (firm.isNotEmpty) firm,
+            ].join(' · '),
+            location: raw['location']?.toString().isNotEmpty == true
+                ? raw['location'].toString()
+                : location,
             avatarUrl: avatarUrl,
             isVerified: isVerified,
             about: bio,
             skills: focus,
+            preferredStages: preferredStages,
             isFollowing: FollowManager.instance.isFollowing(
               _followCategory,
               id,
@@ -525,6 +581,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       tooltip: 'Share profile',
                       onPressed: () => _showShareSheet(context, profile),
                     ),
+                
                 ],
               ),
               body: () {
@@ -537,15 +594,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                   reviews: reviews,
                   onShare: () => _showShareSheet(context, profile),
                   onPrimaryAction: () {
-                    if (profile.type == PublicProfileType.founder) {
-                      FollowManager.instance.toggleFollow(
-                        _followCategory,
-                        widget.id,
-                      );
-                      setState(() {
-                        _future = _loadAll();
-                      });
-                    } else if (profile.primaryActionLabel == 'Connect') {
+                    if (profile.primaryActionLabel == 'Connect') {
                       ScheduleMeetingSheet.show(
                         context,
                         targetId: widget.id,
@@ -567,28 +616,37 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                       '${Routes.chat}/${widget.id}?name=$nameEncoded&avatarUrl=$avatarEncoded',
                     );
                   },
-                  onFollow: () async {
-                    // Update follow locally
-                    FollowManager.instance.toggleFollow(
-                      _followCategory,
-                      widget.id,
-                    );
-                    setState(() {
-                      _future = _loadAll();
-                    });
-                  },
+                
                   onBookmark: () async {
                     if (widget.type == PublicProfileType.investor) {
-                      final repo = sl<InvestorRepository>();
-                      final res = await repo.toggleSave(widget.id);
+                      final api = sl<ApiClientHelper>();
+                      final isSaved = BookmarkManager.instance.isBookmarked(
+                        _bookmarkCategory,
+                        widget.id,
+                      );
+                      final res = isSaved
+                          ? await api.deleteAction(
+                              ApiEndpoints.investorWatchlistItem(widget.id),
+                            )
+                          : await api.postAction(
+                              ApiEndpoints.investorWatchlist,
+                              body: {'startupId': widget.id},
+                            );
+                      if (!context.mounted) return;
                       res.fold(
                         (f) {
                           context.showSnack(f.message, isError: true);
                         },
                         (success) {
-                          BookmarkManager.instance.toggle(
+                          BookmarkManager.instance.syncItem(
                             _bookmarkCategory,
                             widget.id,
+                            !isSaved,
+                          );
+                          context.showSnack(
+                            isSaved
+                                ? 'Removed from watchlist'
+                                : 'Added to watchlist',
                           );
                           setState(() {
                             _future = _loadAll();

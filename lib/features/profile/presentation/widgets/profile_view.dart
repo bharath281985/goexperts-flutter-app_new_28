@@ -26,6 +26,7 @@ class ProfileViewData {
     this.followers = 0,
     this.stats = const {},
     this.skills = const [],
+    this.preferredStages = const [],
     this.primaryActionLabel = 'Contact',
     this.primaryActionIcon = Icons.mail_outline_rounded,
     this.isFollowing = false,
@@ -50,6 +51,9 @@ class ProfileViewData {
   final int followers;
   final Map<String, String> stats;
   final List<String> skills;
+  // Nullable keeps existing view-model instances safe across hot reloads when
+  // this field is introduced; rendering always normalizes null to an empty list.
+  final List<String>? preferredStages;
   final String primaryActionLabel;
   final IconData primaryActionIcon;
   final bool isFollowing;
@@ -70,7 +74,7 @@ class ProfileView extends StatelessWidget {
     this.reviews = const [],
     this.onPrimaryAction,
     this.onMessage,
-    this.onFollow,
+    
     this.onBookmark,
     this.onShare,
   });
@@ -79,12 +83,18 @@ class ProfileView extends StatelessWidget {
   final List<Review> reviews;
   final VoidCallback? onPrimaryAction;
   final VoidCallback? onMessage;
-  final VoidCallback? onFollow;
+ 
   final VoidCallback? onBookmark;
   final VoidCallback? onShare;
 
   @override
   Widget build(BuildContext context) {
+    final displaySkills = _uniqueSkills(data.skills);
+
+    if (data.type == PublicProfileType.investor) {
+      return _investorView(context, displaySkills);
+    }
+
     return ListView(
       padding: EdgeInsets.zero,
       children: [
@@ -174,15 +184,22 @@ class ProfileView extends StatelessWidget {
                   AppSizes.vGapSm,
                   Text(data.about, style: context.text.bodyMedium),
                 ],
-                if (data.skills.isNotEmpty) ...[
+                if (displaySkills.isNotEmpty) ...[
                   AppSizes.vGapLg,
-                  const AppSectionHeader(title: 'Skills & Expertise'),
-                  AppSizes.vGapSm,
-                  Wrap(
-                    spacing: AppSizes.sm,
-                    runSpacing: AppSizes.sm,
-                    children: [for (final s in data.skills) _chip(context, s)],
-                  ),
+                  if (data.type == PublicProfileType.investor)
+                    _investmentFocus(context, displaySkills)
+                  else ...[
+                    const AppSectionHeader(title: 'Skills & Expertise'),
+                    AppSizes.vGapSm,
+                    Wrap(
+                      spacing: AppSizes.sm,
+                      runSpacing: AppSizes.sm,
+                      children: [
+                        for (final skill in displaySkills)
+                          _chip(context, skill),
+                      ],
+                    ),
+                  ],
                 ],
                 if (data.experience.isNotEmpty ||
                     data.education.isNotEmpty) ...[
@@ -387,6 +404,365 @@ class ProfileView extends StatelessWidget {
     );
   }
 
+  Widget _investorView(BuildContext context, List<String> focusAreas) {
+    final stages = _uniqueSkills(data.preferredStages ?? const <String>[]);
+
+    return ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        _banner(context),
+        Transform.translate(
+          offset: const Offset(0, -34),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.screenPadding,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _investorIdentity(context),
+                AppSizes.vGapMd,
+                _investorActions(context),
+                if (data.stats.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  _statsCard(context),
+                ],
+                AppSizes.vGapLg,
+                _investorThesis(context),
+                if (focusAreas.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  _investmentFocus(context, focusAreas),
+                ],
+                if (stages.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  _preferredStages(context, stages),
+                ],
+                if (data.phone.isNotEmpty || data.email.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  _investorContact(context),
+                ],
+                if (reviews.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  const AppSectionHeader(title: 'Founder Reviews'),
+                  AppSizes.vGapSm,
+                  for (final review in reviews) _review(context, review),
+                ],
+                AppSizes.vGapXxl,
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _investorIdentity(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(AppSizes.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.22),
+                  width: 2,
+                ),
+              ),
+              child: AppAvatar(
+                name: data.name,
+                imageUrl: data.avatarUrl,
+                size: 74,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+              ),
+              child: Text(
+                'INVESTOR DOSSIER',
+                style: context.text.labelSmall?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ),
+          ],
+        ),
+        AppSizes.vGapMd,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                data.name,
+                style: context.text.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
+              ),
+            ),
+            if (data.isVerified) ...[
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.verified_rounded,
+                color: AppColors.primary,
+                size: 21,
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: 5),
+        Text(
+          data.headline,
+          style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+        if (data.location.trim().isNotEmpty) ...[
+          const SizedBox(height: 9),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 17,
+                color: AppColors.mutedText,
+              ),
+              const SizedBox(width: 5),
+              Expanded(
+                child: Text(
+                  data.location,
+                  style: context.text.bodySmall?.copyWith(
+                    color: AppColors.mutedText,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
+    ),
+  );
+
+  Widget _investorActions(BuildContext context) => Column(
+    children: [
+      Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: onPrimaryAction,
+              icon: Icon(data.primaryActionIcon, size: 18),
+              label: Text(data.primaryActionLabel),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                minimumSize: const Size.fromHeight(46),
+              ),
+            ),
+          ),
+          AppSizes.hGapSm,
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: onMessage,
+              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+              label: const Text('Message'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary),
+                minimumSize: const Size.fromHeight(46),
+              ),
+            ),
+          ),
+        ],
+      ),
+      AppSizes.vGapSm,
+      Row(
+        children: [
+         
+          Expanded(
+            child: _dossierAction(
+              context,
+              icon: data.isSaved
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_outline_rounded,
+              label: data.isSaved ? 'Saved' : 'Save',
+              onTap: onBookmark,
+              active: data.isSaved,
+            ),
+          ),
+          AppSizes.hGapSm,
+          Expanded(
+            child: _dossierAction(
+              context,
+              icon: Icons.share_outlined,
+              label: 'Share',
+              onTap: onShare,
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+
+  Widget _dossierAction(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required VoidCallback? onTap,
+    bool active = false,
+  }) => OutlinedButton.icon(
+    onPressed: onTap,
+    icon: Icon(icon, size: 17),
+    label: Text(label, overflow: TextOverflow.ellipsis),
+    style: OutlinedButton.styleFrom(
+      foregroundColor: active ? AppColors.primary : null,
+      backgroundColor: active
+          ? AppColors.primary.withValues(alpha: 0.06)
+          : null,
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      minimumSize: const Size.fromHeight(42),
+      side: BorderSide(
+        color: active
+            ? AppColors.primary.withValues(alpha: 0.45)
+            : Theme.of(context).dividerColor,
+      ),
+    ),
+  );
+
+  Widget _investorThesis(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(AppSizes.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(
+              Icons.format_quote_rounded,
+              color: AppColors.primary,
+              size: 22,
+            ),
+            AppSizes.hGapSm,
+            Text(
+              'Investment Thesis',
+              style: context.text.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        AppSizes.vGapMd,
+        Text(
+          data.about.trim().isEmpty
+              ? 'This investor has not shared a public investment thesis yet. Explore their focus areas and preferred stages below.'
+              : data.about,
+          style: context.text.bodyMedium?.copyWith(
+            color: data.about.trim().isEmpty ? AppColors.mutedText : null,
+            height: 1.55,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  Widget _preferredStages(BuildContext context, List<String> stages) => AppCard(
+    padding: const EdgeInsets.all(AppSizes.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Preferred Stages',
+          style: context.text.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'Company maturity this investor typically considers',
+          style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+        ),
+        AppSizes.vGapMd,
+        for (var i = 0; i < stages.length; i++) ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.flag_outlined,
+                  color: AppColors.primary,
+                  size: 18,
+                ),
+              ),
+              AppSizes.hGapSm,
+              Expanded(
+                child: Text(
+                  stages[i],
+                  style: context.text.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (i != stages.length - 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSizes.sm),
+              child: Divider(height: 1, color: Theme.of(context).dividerColor),
+            ),
+        ],
+      ],
+    ),
+  );
+
+  Widget _investorContact(BuildContext context) => AppCard(
+    padding: const EdgeInsets.all(AppSizes.lg),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Contact',
+          style: context.text.titleMedium?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          'Available after you are ready to start a conversation',
+          style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+        ),
+        AppSizes.vGapMd,
+        if (data.email.isNotEmpty)
+          _contactLine(context, Icons.mail_outline_rounded, data.email),
+        if (data.email.isNotEmpty && data.phone.isNotEmpty) AppSizes.vGapMd,
+        if (data.phone.isNotEmpty)
+          _contactLine(context, Icons.phone_outlined, data.phone),
+      ],
+    ),
+  );
+
+  Widget _contactLine(BuildContext context, IconData icon, String value) => Row(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Icon(icon, size: 18, color: AppColors.primary),
+      AppSizes.hGapSm,
+      Expanded(
+        child: Text(
+          value,
+          style: context.text.bodyMedium?.copyWith(height: 1.35),
+        ),
+      ),
+    ],
+  );
+
   Widget _banner(BuildContext context) => Container(
     height: 150,
     decoration: BoxDecoration(
@@ -467,14 +843,7 @@ class ProfileView extends StatelessWidget {
         ),
         AppSizes.hGapMd,
         if (data.type != PublicProfileType.founder) ...[
-          _iconAction(
-            context,
-            data.isFollowing
-                ? Icons.person_remove_outlined
-                : Icons.person_add_alt_1_outlined,
-            onFollow,
-          ),
-          AppSizes.hGapMd,
+          
         ],
         _iconAction(
           context,
@@ -552,6 +921,160 @@ class ProfileView extends StatelessWidget {
         fontWeight: FontWeight.w600,
         fontSize: 12,
       ),
+    ),
+  );
+
+  List<String> _uniqueSkills(List<String> skills) {
+    final seen = <String>{};
+    return skills
+        .map((skill) => skill.trim())
+        .where((skill) => skill.isNotEmpty && seen.add(skill.toLowerCase()))
+        .toList(growable: false);
+  }
+
+  Widget _investmentFocus(BuildContext context, List<String> focusAreas) {
+    final dividerColor = Theme.of(context).dividerColor.withValues(alpha: 0.55);
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(width: 4, color: AppColors.primary),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSizes.lg,
+                    AppSizes.lg,
+                    AppSizes.lg,
+                    AppSizes.md,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.09),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.track_changes_rounded,
+                              size: 19,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          AppSizes.hGapMd,
+                          Expanded(
+                            child: Text(
+                              'Investment Focus',
+                              style: context.text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Sectors this investor actively explores',
+                        style: context.text.bodySmall?.copyWith(
+                          color: AppColors.mutedText,
+                          height: 1.35,
+                        ),
+                      ),
+                      AppSizes.vGapMd,
+                      for (var index = 0; index < focusAreas.length; index++)
+                        _focusAreaRow(
+                          context,
+                          focusAreas[index],
+                          index: index,
+                          isLast: index == focusAreas.length - 1,
+                          dividerColor: dividerColor,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _focusAreaRow(
+    BuildContext context,
+    String focusArea, {
+    required int index,
+    required bool isLast,
+    required Color dividerColor,
+  }) => IntrinsicHeight(
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          width: 28,
+          child: Column(
+            children: [
+              Container(
+                width: 22,
+                height: 22,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.32),
+                  ),
+                ),
+                child: Text(
+                  '${index + 1}',
+                  style: context.text.labelSmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10,
+                  ),
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 1.5,
+                    color: AppColors.primary.withValues(alpha: 0.18),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        AppSizes.hGapSm,
+        Expanded(
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 48),
+            padding: const EdgeInsets.only(bottom: AppSizes.md),
+            margin: EdgeInsets.only(bottom: isLast ? 0 : AppSizes.sm),
+            decoration: BoxDecoration(
+              border: isLast
+                  ? null
+                  : Border(bottom: BorderSide(color: dividerColor)),
+            ),
+            alignment: Alignment.topLeft,
+            child: Text(
+              focusArea,
+              style: context.text.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ),
+        ),
+      ],
     ),
   );
 

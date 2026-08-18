@@ -158,76 +158,107 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         }
       }
 
-      if (userMap['profile'] is Map) {
-        final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
+      {
+        final pMap = <String, dynamic>{
+          ...userMap,
+          if (userMap['profile'] is Map)
+            ...Map<String, dynamic>.from(userMap['profile'] as Map),
+        };
+        _bio.text = pMap['bio']?.toString() ?? _bio.text;
         _startupName.text =
             pMap['startupName']?.toString() ??
+            pMap['companyName']?.toString() ??
             pMap['startup']?.toString() ??
             '';
         _pitch.text =
             pMap['pitch']?.toString() ?? pMap['oneLinePitch']?.toString() ?? '';
         _targetRaise.text = pMap['targetRaise']?.toString() ?? '';
 
-        if (pMap['industryId'] is Map) {
-          final indMap = Map<String, dynamic>.from(pMap['industryId'] as Map);
+        if (_selectedCountry == null && pMap['country'] is Map) {
+          final country = MasterOption.fromJson(
+            Map<String, dynamic>.from(pMap['country'] as Map),
+          );
+          if (country.id.isNotEmpty) {
+            _selectedCountry = country;
+            _loadStatesForCountry(country.id);
+          }
+        }
+        if (_selectedState == null && pMap['state'] is Map) {
+          final state = MasterOption.fromJson(
+            Map<String, dynamic>.from(pMap['state'] as Map),
+          );
+          if (state.id.isNotEmpty) _selectedState = state;
+        }
+
+        final rawIndustry = pMap['industryId'] ?? pMap['industry'];
+        if (rawIndustry is Map) {
+          final indMap = Map<String, dynamic>.from(rawIndustry);
           final iId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
           final iName = (indMap['name'] ?? indMap['label'])?.toString() ?? iId;
           if (iId.isNotEmpty) {
             _selectedIndustry = MasterOption(id: iId, name: iName);
             _industryDisplayController.text = iName;
           }
-        } else if (pMap['industryId'] is String) {
-          final iStr = pMap['industryId'].toString();
+        } else if (rawIndustry is String) {
+          final iStr = rawIndustry.toString();
           if (iStr.isNotEmpty) {
             _selectedIndustry = MasterOption(id: iStr, name: iStr);
             _industryDisplayController.text = iStr;
           }
         }
 
-        if (pMap['stageId'] is Map) {
-          final stMap = Map<String, dynamic>.from(pMap['stageId'] as Map);
+        final rawStage = pMap['stageId'] ?? pMap['stage'];
+        if (rawStage is Map) {
+          final stMap = Map<String, dynamic>.from(rawStage);
           final sId = (stMap['id'] ?? stMap['_id'])?.toString() ?? '';
           final sName = (stMap['name'] ?? stMap['label'])?.toString() ?? sId;
           if (sId.isNotEmpty) {
             _selectedStage = MasterOption(id: sId, name: sName);
           }
-        } else if (pMap['stageId'] is String) {
-          final sStr = pMap['stageId'].toString();
+        } else if (rawStage is String) {
+          final sStr = rawStage.toString();
           if (sStr.isNotEmpty) {
             _selectedStage = MasterOption(id: sStr, name: sStr);
           }
         }
 
-        if (pMap['founderRoleId'] is Map) {
-          final frMap = Map<String, dynamic>.from(pMap['founderRoleId'] as Map);
+        final rawFounderRole =
+            pMap['founderRoleId'] ?? pMap['founderRole'] ?? pMap['role'];
+        if (rawFounderRole is Map) {
+          final frMap = Map<String, dynamic>.from(rawFounderRole);
           final frId = (frMap['id'] ?? frMap['_id'])?.toString() ?? '';
           final frName = (frMap['name'] ?? frMap['label'])?.toString() ?? frId;
           if (frId.isNotEmpty) {
             _selectedRole = MasterOption(id: frId, name: frName);
           }
-        } else if (pMap['founderRoleId'] is String) {
-          final frStr = pMap['founderRoleId'].toString();
+        } else if (rawFounderRole is String) {
+          final frStr = rawFounderRole.toString();
           if (frStr.isNotEmpty) {
             _selectedRole = MasterOption(id: frStr, name: frStr);
           }
         }
 
-        if (pMap['teamSizeId'] is Map) {
-          final tsMap = Map<String, dynamic>.from(pMap['teamSizeId'] as Map);
+        final rawTeamSize = pMap['teamSizeId'] ?? pMap['teamSize'];
+        if (rawTeamSize is Map) {
+          final tsMap = Map<String, dynamic>.from(rawTeamSize);
           final tsId = (tsMap['id'] ?? tsMap['_id'])?.toString() ?? '';
           final tsName = (tsMap['name'] ?? tsMap['label'])?.toString() ?? tsId;
           if (tsId.isNotEmpty) {
             _selectedTeamSize = MasterOption(id: tsId, name: tsName);
           }
-        } else if (pMap['teamSizeId'] != null) {
-          final tsStr = pMap['teamSizeId'].toString();
+        } else if (rawTeamSize != null) {
+          final tsStr = rawTeamSize.toString();
           if (tsStr.isNotEmpty) {
             _selectedTeamSize = MasterOption(id: tsStr, name: tsStr);
           }
         }
 
-        if (pMap['primaryGoalId'] is List) {
-          final pgList = pMap['primaryGoalId'] as List;
+        final rawPrimaryGoal =
+            pMap['primaryGoalId'] ??
+            pMap['primaryGoal'] ??
+            pMap['primaryGoals'];
+        if (rawPrimaryGoal is List) {
+          final pgList = rawPrimaryGoal;
           final names = <String>[];
           _selectedFounderGoalIds.clear();
           for (final goal in pgList) {
@@ -246,17 +277,16 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           if (names.isNotEmpty) {
             _primaryGoalDisplayController.text = names.join(', ');
           }
-        } else if (pMap['primaryGoalId'] is Map) {
-          final pgMap = Map<String, dynamic>.from(pMap['primaryGoalId'] as Map);
+        } else if (rawPrimaryGoal is Map) {
+          final pgMap = Map<String, dynamic>.from(rawPrimaryGoal);
           final pgId = (pgMap['id'] ?? pgMap['_id'])?.toString() ?? '';
           final pgName = (pgMap['name'] ?? pgMap['label'])?.toString() ?? pgId;
           if (pgId.isNotEmpty) {
             _selectedFounderGoalIds.add(pgId);
             _primaryGoalDisplayController.text = pgName;
           }
-        } else if (pMap['primaryGoalId'] is String &&
-            (pMap['primaryGoalId'] as String).isNotEmpty) {
-          final pgStr = pMap['primaryGoalId'].toString();
+        } else if (rawPrimaryGoal is String && rawPrimaryGoal.isNotEmpty) {
+          final pgStr = rawPrimaryGoal;
           _selectedFounderGoalIds.add(pgStr);
           _primaryGoalDisplayController.text = pgStr;
         }
@@ -736,6 +766,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                       AppDropdown<MasterOption>(
                         label: 'State *',
                         hint: 'Select State',
+                        prefixIcon: Icons.map_outlined,
                         value: _selectedState,
                         items: _states,
                         itemLabel: (item) => item.name,

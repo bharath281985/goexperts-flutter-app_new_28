@@ -5,7 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_primary_button.dart';
@@ -50,32 +53,21 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
     }
 
     setState(() => _sending = true);
-    try {
-      final response = await Dio().post<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}/public/delete-account/request-otp',
-        data: {'email': email},
-        options: Options(headers: {'Content-Type': 'application/json'}),
-      );
-      final body = response.data ?? const <String, dynamic>{};
-      if (!mounted) return;
-      if (body['success'] == false) {
-        context.showSnack(
-          body['message']?.toString() ?? 'Failed to send OTP',
-          isError: true,
-        );
-      } else {
+    final result = await sl<ApiClientHelper>().postEnvelope<String>(
+      ApiEndpoints.sendOtp,
+      body: {'email': email},
+      parser: (envelope) =>
+          envelope.message ?? 'Verification OTP sent to your email.',
+    );
+    if (!mounted) return;
+    result.fold(
+      (failure) => context.showSnack(failure.message, isError: true),
+      (message) {
         setState(() => _otpSent = true);
-        context.showSnack(
-          body['message']?.toString() ??
-              'OTP sent successfully. Check your email inbox/spam.',
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      context.showSnack('Failed to send OTP. Please try again.', isError: true);
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+        context.showSnack(message);
+      },
+    );
+    if (mounted) setState(() => _sending = false);
   }
 
   Future<void> _submit() async {

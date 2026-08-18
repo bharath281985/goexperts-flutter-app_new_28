@@ -885,6 +885,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppDropdown<MasterOption>(
                       label: 'State *',
                       hint: 'Select State',
+                      prefixIcon: Icons.map_outlined,
                       value: _selectedState,
                       items: _states,
                       itemLabel: (item) => item.name,

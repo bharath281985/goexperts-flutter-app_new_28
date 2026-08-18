@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/utils/image_url.dart';
 
 /// An investor profile discovered by founders.
 class Investor extends Equatable {
@@ -90,22 +91,32 @@ class Investor extends Equatable {
         profile['bio']?.toString() ??
         profile['thesis']?.toString() ??
         '';
-    final avatarUrl =
-        json['avatarUrl'] as String? ?? profile['avatarUrl'] as String?;
+    final rawAvatar =
+        json['avatarUrl']?.toString() ??
+        json['avatar']?.toString() ??
+        profile['avatarUrl']?.toString();
+    final avatarUrl = rawAvatar == null || rawAvatar.isEmpty
+        ? null
+        : normalizeImageUrl(rawAvatar);
 
     final country = json['country'] as String? ?? profile['country'] as String?;
     final city = json['city'] as String? ?? profile['city'] as String?;
-    String location = 'N/A';
-    if (city != null &&
+    String location =
+        json['location']?.toString() ?? profile['location']?.toString() ?? '';
+    if (location.isEmpty &&
+        city != null &&
         city.isNotEmpty &&
         country != null &&
         country.isNotEmpty) {
-      location = '$city, $country';
-    } else if (city != null && city.isNotEmpty) {
+      location = city.toLowerCase().contains(country.toLowerCase())
+          ? city
+          : '$city, $country';
+    } else if (location.isEmpty && city != null && city.isNotEmpty) {
       location = city;
-    } else if (country != null && country.isNotEmpty) {
+    } else if (location.isEmpty && country != null && country.isNotEmpty) {
       location = country;
     }
+    if (location.isEmpty) location = 'N/A';
 
     final ticketMin =
         (profile['ticketMin'] as num?)?.toDouble() ??
@@ -121,9 +132,26 @@ class Investor extends Equatable {
         json['company']?.toString() ??
         '';
 
-    final focusAreasStr = profile['focusAreas']?.toString() ?? '';
+    final focusAreasStr = profile['focusAreas'] is String
+        ? profile['focusAreas'].toString()
+        : '';
     List<String> interestedIndustries = const [];
-    if (focusAreasStr.isNotEmpty) {
+    final focusAreaList = profile['FocusAreas'] ?? json['FocusAreas'];
+    if (focusAreaList is List) {
+      interestedIndustries = focusAreaList
+          .map((item) {
+            if (item is Map) {
+              return (item['focusAreaName'] ?? item['focusAreaId'])
+                      ?.toString()
+                      .trim() ??
+                  '';
+            }
+            return item.toString().trim();
+          })
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList();
+    } else if (focusAreasStr.isNotEmpty) {
       interestedIndustries = focusAreasStr
           .split(',')
           .map((e) => e.trim())
@@ -147,8 +175,28 @@ class Investor extends Equatable {
 
     final role = json['role']?.toString() ?? '';
     final investorType =
+        profile['investorTypeName']?.toString() ??
+        json['investorTypeName']?.toString() ??
         profile['investorType']?.toString() ??
         (focusAreasStr.trim().isNotEmpty ? focusAreasStr : 'Angel Investor');
+
+    final preferredStagesRaw =
+        profile['PreferredStage'] ?? json['PreferredStage'];
+    final stagePreferences = preferredStagesRaw is List
+        ? preferredStagesRaw
+              .map((item) {
+                if (item is Map) {
+                  return (item['preferredStageName'] ??
+                              item['preferredStageId'])
+                          ?.toString()
+                          .trim() ??
+                      '';
+                }
+                return item.toString().trim();
+              })
+              .where((value) => value.isNotEmpty)
+              .toList()
+        : const <String>[];
 
     final isVerified =
         json['isVerified'] as bool? ?? json['verified'] as bool? ?? false;
@@ -168,7 +216,11 @@ class Investor extends Equatable {
       avatarUrl: avatarUrl,
       bio: bio,
       partnerRole: role,
-      dealsCount: (profile['deals'] as num?)?.toInt() ?? 0,
+      stagePreferences: stagePreferences,
+      dealsCount:
+          (profile['deals'] as num?)?.toInt() ??
+          (profile['investmentsCount'] as num?)?.toInt() ??
+          0,
       portfolioCount: 0,
       isVerified: isVerified,
       isFollowing: isFollowing,

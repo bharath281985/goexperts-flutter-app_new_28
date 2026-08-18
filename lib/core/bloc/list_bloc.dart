@@ -56,6 +56,11 @@ class ListItemUpdated extends ListEvent {
   List<Object?> get props => [item];
 }
 
+class ListItemRemoved extends ListEvent {
+  const ListItemRemoved(this.matcher);
+  final bool Function(dynamic item) matcher;
+}
+
 // ----- State -----
 class ListState<T> extends Equatable {
   const ListState({
@@ -125,6 +130,18 @@ class ListBloc<T> extends Bloc<ListEvent, ListState<T>> {
           .map((e) => event.matcher(e, event.item) ? event.item as T : e)
           .toList();
       emit(state.copyWith(items: updatedList));
+    });
+    on<ListItemRemoved>((event, emit) {
+      final updatedList = state.items
+          .where((item) => !event.matcher(item))
+          .toList();
+      emit(
+        state.copyWith(
+          status: updatedList.isEmpty ? ViewStatus.empty : ViewStatus.success,
+          items: updatedList,
+          totalItems: updatedList.length,
+        ),
+      );
     });
   }
 

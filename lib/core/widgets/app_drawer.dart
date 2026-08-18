@@ -353,15 +353,11 @@ class AppDrawer extends StatelessWidget {
               route: Routes.freelancerProposals,
             ),
             DrawerEntry(
-              'Contracts',
-              Icons.assignment_turned_in_outlined,
+              'Tracking',
+              Icons.art_track_outlined,
               route: Routes.freelancerContracts,
             ),
-            DrawerEntry(
-              'Tasks',
-              Icons.task_alt_outlined,
-              route: Routes.freelancerTasks,
-            ),
+           
             DrawerEntry(
               'Calendar',
               Icons.calendar_month_outlined,
@@ -377,36 +373,43 @@ class AppDrawer extends StatelessWidget {
               Icons.chat_bubble_outline_rounded,
               route: Routes.messages,
             ),
-            DrawerEntry('My Clients', Icons.people_outline_rounded),
+           
             DrawerEntry(
               'Reviews',
               Icons.star_border_rounded,
               route: Routes.freelancerReviews,
             ),
+             DrawerEntry(
+              'Tasks',
+              Icons.task_alt_outlined,
+            
+            ),
+           
           ]),
           const DrawerSection('Finance', [
+             DrawerEntry(
+              'Subscriptions',
+              Icons.workspace_premium_outlined,
+              route: Routes.subscriptionsManage,
+            ),
             DrawerEntry('Earnings', Icons.bar_chart_rounded),
             DrawerEntry(
               'Wallet',
               Icons.account_balance_wallet_outlined,
-              route: Routes.wallet,
+           
             ),
             DrawerEntry('Transactions', Icons.sync_alt_rounded),
             DrawerEntry(
               'Withdrawals',
               Icons.payments_outlined,
-              route: Routes.freelancerWithdrawals,
+             
             ),
             DrawerEntry(
               'Invoices',
               Icons.receipt_long_outlined,
-              route: Routes.freelancerInvoices,
+           
             ),
-            DrawerEntry(
-              'Subscriptions',
-              Icons.workspace_premium_outlined,
-              route: Routes.subscriptionsManage,
-            ),
+           
           ]),
           const DrawerSection('Growth', [
             DrawerEntry(
@@ -420,35 +423,27 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
           ]),
           const DrawerSection('System', [
-            DrawerEntry(
-              'Search Center',
-              Icons.search_rounded,
-              route: Routes.search,
-            ),
+          
             DrawerEntry('Connected Apps', Icons.power_outlined),
             DrawerEntry('Downloads', Icons.download_outlined),
             DrawerEntry('Activity Logs', Icons.show_chart_rounded),
             DrawerEntry('Audit Logs', Icons.list_alt_rounded),
             DrawerEntry('System Status', Icons.monitor_heart_outlined),
-            DrawerEntry(
-              'Help Center',
-              Icons.help_outline_rounded,
-              route: Routes.helpCenter,
-            ),
+           
             DrawerEntry(
               'Support',
               Icons.support_agent_outlined,
               route: Routes.support,
             ),
-            DrawerEntry(
-              'Settings',
-              Icons.settings_outlined,
-              route: Routes.settings,
-            ),
+              // DrawerEntry(
+            //   'Settings',
+            //   Icons.settings_outlined,
+            //   route: Routes.settings,
+            // ),
             DrawerEntry(
               'Security',
               Icons.security_outlined,
-              route: Routes.securityCenter,
+              route: Routes.changePassword,
             ),
           ]),
         ];
@@ -465,11 +460,7 @@ class AppDrawer extends StatelessWidget {
               Icons.bar_chart_rounded,
               route: Routes.clientAnalytics,
             ), // Placeholder
-            DrawerEntry(
-              'Notifications',
-              Icons.notifications_active_outlined,
-              badge: unreadNotifications > 0 ? unreadNotifications : null,
-            ),
+           
           ]),
           const DrawerSection('Company', [
             DrawerEntry(
@@ -499,7 +490,7 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry(
               'Tasks',
               Icons.task_alt_outlined,
-              route: Routes.clientTasks,
+              
             ),
             DrawerEntry('Contracts', Icons.assignment_outlined),
           ]),
@@ -519,13 +510,13 @@ class AppDrawer extends StatelessWidget {
               Icons.send_outlined,
               route: Routes.invitations,
             ),
-            DrawerEntry(
-              'Shortlisted',
-              Icons.favorite_border_rounded,
-              route: Routes.clientShortlisted,
-            ),
           ]),
           DrawerSection('Communication', [
+             DrawerEntry(
+              'Notifications',
+              Icons.notifications_active_outlined,
+              badge: unreadNotifications > 0 ? unreadNotifications : null,
+            ),
             DrawerEntry(
               'Messages',
               Icons.chat_bubble_outline_rounded,
@@ -539,23 +530,24 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Finance', [
-            DrawerEntry('Invoices', Icons.receipt_long_outlined),
-            DrawerEntry(
-              'Payments',
-              Icons.payment_outlined,
-              route: Routes.clientPayments,
-            ),
-            DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-              route: Routes.wallet,
-            ),
-            DrawerEntry('Transactions', Icons.sync_alt_rounded),
-            DrawerEntry(
+             DrawerEntry(
               'Subscriptions',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
+            DrawerEntry('Invoices', Icons.receipt_long_outlined),
+            DrawerEntry(
+              'Payments',
+              Icons.payment_outlined,
+
+            ),
+            DrawerEntry(
+              'Wallet',
+              Icons.account_balance_wallet_outlined,
+             
+            ),
+            DrawerEntry('Transactions', Icons.sync_alt_rounded),
+           
           ]),
           const DrawerSection('Insights', [
             DrawerEntry(
@@ -583,27 +575,15 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry('Downloads', Icons.download_outlined),
           ]),
           const DrawerSection('System', [
-            DrawerEntry(
-              'Notifications',
-              Icons.notifications_outlined,
-              route: Routes.notifications,
-            ),
-            DrawerEntry(
-              'Global Search',
-              Icons.search_rounded,
-              route: Routes.search,
-            ),
+            
+            
             DrawerEntry(
               'AI Assistant',
               Icons.auto_awesome_outlined,
               badgeText: '⌘',
               badgeColor: Color(0xFFE53935),
             ),
-            DrawerEntry(
-              'Help Center',
-              Icons.help_outline_rounded,
-              route: Routes.helpCenter,
-            ),
+            
             DrawerEntry(
               'Support',
               Icons.support_agent_outlined,
@@ -614,18 +594,18 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry(
               'Security',
               Icons.security_outlined,
-              route: Routes.securityCenter,
+              route: Routes.changePassword,
             ),
             DrawerEntry('Roles & Permissions', Icons.manage_accounts_outlined),
             DrawerEntry('Team Access', Icons.people_outline_rounded),
             DrawerEntry('Connected Apps', Icons.power_outlined),
             DrawerEntry('API Keys', Icons.api_rounded),
             DrawerEntry('Component Library', Icons.widgets_outlined),
-            DrawerEntry(
-              'Settings',
-              Icons.settings_outlined,
-              route: Routes.settings,
-            ),
+            // DrawerEntry(
+            //   'Settings',
+            //   Icons.settings_outlined,
+            //   route: Routes.settings,
+            // ),
           ]),
         ];
       case UserRole.investor:
@@ -641,12 +621,7 @@ class AppDrawer extends StatelessWidget {
               Icons.insights_outlined,
               route: Routes.investorAnalytics,
             ),
-            DrawerEntry(
-              'Notifications',
-              Icons.notifications_none_rounded,
-              route: Routes.notifications,
-              badge: unreadNotifications > 0 ? unreadNotifications : null,
-            ),
+           
           ]),
           const DrawerSection('Deal Flow', [
             DrawerEntry(
@@ -693,6 +668,12 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           DrawerSection('Communication', [
+             DrawerEntry(
+              'Notifications',
+              Icons.notifications_none_rounded,
+              route: Routes.notifications,
+              badge: unreadNotifications > 0 ? unreadNotifications : null,
+            ),
             DrawerEntry(
               'Messages',
               Icons.chat_bubble_outline_rounded,
@@ -718,15 +699,16 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Finance', [
-            DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-              route: Routes.wallet,
-            ),
+            
             DrawerEntry(
               'Subscription',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
+            ),
+            DrawerEntry(
+              'Wallet',
+              Icons.account_balance_wallet_outlined,
+             
             ),
           ]),
           const DrawerSection('Account', [
@@ -740,15 +722,15 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.investorVerification,
             ),
-            DrawerEntry(
-              'Settings',
-              Icons.settings_outlined,
-              route: Routes.settings,
-            ),
+              // DrawerEntry(
+            //   'Settings',
+            //   Icons.settings_outlined,
+            //   route: Routes.settings,
+            // ),
             DrawerEntry(
               'Security',
               Icons.shield_outlined,
-              route: Routes.securityCenter,
+              route: Routes.changePassword,
             ),
             DrawerEntry(
               'Support',
@@ -770,12 +752,7 @@ class AppDrawer extends StatelessWidget {
               Icons.bar_chart_rounded,
               route: Routes.founderAnalytics,
             ),
-            DrawerEntry(
-              'Notifications',
-              Icons.notifications_active_outlined,
-              route: Routes.notifications,
-              badge: unreadNotifications > 0 ? unreadNotifications : null,
-            ),
+          
           ]),
           const DrawerSection('Startup', [
             DrawerEntry(
@@ -801,7 +778,7 @@ class AppDrawer extends StatelessWidget {
             DrawerEntry(
               'Hiring',
               Icons.person_add_alt_1_outlined,
-              route: Routes.founderHiring,
+            
             ),
           ]),
           const DrawerSection('Fundraising', [
@@ -820,6 +797,12 @@ class AppDrawer extends StatelessWidget {
            
           ]),
           DrawerSection('Communication', [
+              DrawerEntry(
+              'Notifications',
+              Icons.notifications_active_outlined,
+              route: Routes.notifications,
+              badge: unreadNotifications > 0 ? unreadNotifications : null,
+            ),
             DrawerEntry(
               'Messages',
               Icons.chat_bubble_outline_rounded,
@@ -861,15 +844,15 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.founderVerification,
             ),
-            DrawerEntry(
-              'Settings',
-              Icons.settings_outlined,
-              route: Routes.settings,
-            ),
+              // DrawerEntry(
+            //   'Settings',
+            //   Icons.settings_outlined,
+            //   route: Routes.settings,
+            // ),
             DrawerEntry(
               'Security Center',
               Icons.shield_outlined,
-              route: Routes.securityCenter,
+              route: Routes.changePassword,
             ),
             DrawerEntry(
               'Support',

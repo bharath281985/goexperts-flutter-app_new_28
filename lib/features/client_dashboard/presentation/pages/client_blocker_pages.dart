@@ -662,6 +662,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppDropdown<MasterOption>(
                   label: 'State *',
                   hint: 'Select State',
+                  prefixIcon: Icons.map_outlined,
                   value: _selectedState,
                   items: _states,
                   itemLabel: (item) => item.name,

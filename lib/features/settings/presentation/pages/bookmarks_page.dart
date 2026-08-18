@@ -226,19 +226,31 @@ class BookmarksPage extends StatelessWidget {
       showSearch: false,
       emptyTitle: 'No saved projects',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, p, _) => AppProjectCard(
-        project: p.copyWith(
-          isSaved: BookmarkManager.instance.isBookmarked(
-            BookmarkManager.categoryProjects,
-            p.id,
-          ),
-        ),
-        onTap: () => context.push('${Routes.projectDetails}/${p.id}'),
-        onSave: () => BookmarkManager.instance.toggle(
-          BookmarkManager.categoryProjects,
-          p.id,
-        ),
-      ),
+      itemBuilder: (context, p, _) {
+        final bloc = context.read<ListBloc<Project>>();
+        return AppProjectCard(
+          project: p.copyWith(isSaved: true),
+          onTap: () => context.push('${Routes.projectDetails}/${p.id}'),
+          onSave: () async {
+            final result = await sl<ProjectRepository>().toggleSave(p.id);
+            if (!context.mounted) return;
+            result.fold(
+              (failure) => context.showSnack(failure.message, isError: true),
+              (_) {
+                BookmarkManager.instance.syncItem(
+                  BookmarkManager.categoryProjects,
+                  p.id,
+                  false,
+                );
+                bloc.add(
+                  ListItemRemoved((item) => (item as Project).id == p.id),
+                );
+                context.showSnack('Removed from saved');
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -248,19 +260,31 @@ class BookmarksPage extends StatelessWidget {
       showSearch: false,
       emptyTitle: 'No saved freelancers',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, f, _) => AppFreelancerCard(
-        freelancer: f.copyWith(
-          isSaved: BookmarkManager.instance.isBookmarked(
-            BookmarkManager.categoryFreelancers,
-            f.id,
-          ),
-        ),
-        onTap: () => context.push('${Routes.publicFreelancer}/${f.id}'),
-        onSave: () => BookmarkManager.instance.toggle(
-          BookmarkManager.categoryFreelancers,
-          f.id,
-        ),
-      ),
+      itemBuilder: (context, f, _) {
+        final bloc = context.read<ListBloc<Freelancer>>();
+        return AppFreelancerCard(
+          freelancer: f.copyWith(isSaved: true),
+          onTap: () => context.push('${Routes.publicFreelancer}/${f.id}'),
+          onSave: () async {
+            final result = await sl<FreelancerRepository>().toggleSave(f.id);
+            if (!context.mounted) return;
+            result.fold(
+              (failure) => context.showSnack(failure.message, isError: true),
+              (_) {
+                BookmarkManager.instance.syncItem(
+                  BookmarkManager.categoryFreelancers,
+                  f.id,
+                  false,
+                );
+                bloc.add(
+                  ListItemRemoved((item) => (item as Freelancer).id == f.id),
+                );
+                context.showSnack('Removed from saved');
+              },
+            );
+          },
+        );
+      },
     );
   }
 
@@ -297,10 +321,11 @@ class BookmarksPage extends StatelessWidget {
                   isSavedNow,
                 );
 
-                final updated = s.copyWith(isSaved: isSavedNow);
-                bloc.add(
-                  ListItemUpdated(updated, (old, newI) => old.id == newI.id),
-                );
+                if (!isSavedNow) {
+                  bloc.add(
+                    ListItemRemoved((item) => (item as Startup).id == s.id),
+                  );
+                }
                 context.showSnack(
                   isSavedNow ? 'Saved startup' : 'Removed from saved',
                 );
@@ -379,37 +404,59 @@ class BookmarksPage extends StatelessWidget {
       showSearch: false,
       emptyTitle: 'No saved investors',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, i, _) => AppCard(
-        onTap: () => context.push('${Routes.publicInvestor}/${i.id}'),
-        child: Row(
-          children: [
-            AppAvatar(name: i.name, imageUrl: i.avatarUrl, size: 48),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(i.name, style: context.text.titleSmall),
-                  Text(
-                    '${i.investorType} · ${i.company}',
-                    style: context.text.labelSmall,
-                  ),
-                ],
+      itemBuilder: (context, i, _) {
+        final bloc = context.read<ListBloc<Investor>>();
+        return AppCard(
+          onTap: () => context.push('${Routes.publicInvestor}/${i.id}'),
+          child: Row(
+            children: [
+              AppAvatar(name: i.name, imageUrl: i.avatarUrl, size: 48),
+              AppSizes.hGapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(i.name, style: context.text.titleSmall),
+                    Text(
+                      '${i.investorType} · ${i.company}',
+                      style: context.text.labelSmall,
+                    ),
+                  ],
+                ),
               ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.bookmark_rounded,
-                color: AppColors.primary,
+              IconButton(
+                icon: const Icon(
+                  Icons.bookmark_rounded,
+                  color: AppColors.primary,
+                ),
+                onPressed: () async {
+                final result = await sl<ApiClientHelper>().deleteAction(
+                  ApiEndpoints.investorWatchlistItem(i.id),
+                );
+                  if (!context.mounted) return;
+                  result.fold(
+                    (failure) =>
+                        context.showSnack(failure.message, isError: true),
+                    (_) {
+                      BookmarkManager.instance.syncItem(
+                        BookmarkManager.categoryInvestors,
+                        i.id,
+                        false,
+                      );
+                      bloc.add(
+                        ListItemRemoved(
+                          (item) => (item as Investor).id == i.id,
+                        ),
+                      );
+                      context.showSnack('Removed from saved');
+                    },
+                  );
+                },
               ),
-              onPressed: () => BookmarkManager.instance.toggle(
-                BookmarkManager.categoryInvestors,
-                i.id,
-              ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -475,13 +522,13 @@ class BookmarksPage extends StatelessWidget {
                         isSavedNow,
                       );
 
-                      final updated = f.copyWith(isSaved: isSavedNow);
-                      bloc.add(
-                        ListItemUpdated(
-                          updated,
-                          (old, newI) => old.id == newI.id,
-                        ),
-                      );
+                      if (!isSavedNow) {
+                        bloc.add(
+                          ListItemRemoved(
+                            (item) => (item as Founder).id == f.id,
+                          ),
+                        );
+                      }
                       context.showSnack(
                         isSavedNow ? 'Saved founder' : 'Removed from saved',
                       );
@@ -502,34 +549,61 @@ class BookmarksPage extends StatelessWidget {
       showSearch: false,
       emptyTitle: 'No saved technologies',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, t, _) => AppCard(
-        onTap: () => context.push('${Routes.technologyDetails}/${t.id}'),
-        child: Row(
-          children: [
-            const Icon(Icons.code_rounded, color: AppColors.primary, size: 28),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(t.name, style: context.text.titleSmall),
-                  Text(t.category, style: context.text.labelSmall),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.bookmark_rounded,
+      itemBuilder: (context, t, _) {
+        final bloc = context.read<ListBloc<Technology>>();
+        return AppCard(
+          onTap: () => context.push('${Routes.technologyDetails}/${t.id}'),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.code_rounded,
                 color: AppColors.primary,
+                size: 28,
               ),
-              onPressed: () => BookmarkManager.instance.toggle(
-                BookmarkManager.categoryTechnologies,
-                t.id,
+              AppSizes.hGapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(t.name, style: context.text.titleSmall),
+                    Text(t.category, style: context.text.labelSmall),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+              IconButton(
+                icon: const Icon(
+                  Icons.bookmark_rounded,
+                  color: AppColors.primary,
+                ),
+                onPressed: () async {
+                  final result = await sl<ApiClientHelper>().postAction(
+                    '${ApiEndpoints.favorites}/toggle',
+                    body: {'entityType': 'technology', 'entityId': t.id},
+                  );
+                  if (!context.mounted) return;
+                  result.fold(
+                    (failure) =>
+                        context.showSnack(failure.message, isError: true),
+                    (_) {
+                      BookmarkManager.instance.syncItem(
+                        BookmarkManager.categoryTechnologies,
+                        t.id,
+                        false,
+                      );
+                      bloc.add(
+                        ListItemRemoved(
+                          (item) => (item as Technology).id == t.id,
+                        ),
+                      );
+                      context.showSnack('Removed from saved');
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -539,41 +613,64 @@ class BookmarksPage extends StatelessWidget {
       showSearch: false,
       emptyTitle: 'No saved categories',
       emptyIcon: Icons.bookmark_outline_rounded,
-      itemBuilder: (context, c, _) => AppCard(
-        onTap: () => context.push('${Routes.categoryDetails}/${c.id}'),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.category_outlined,
-              color: AppColors.primary,
-              size: 28,
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(c.name, style: context.text.titleSmall),
-                  Text(
-                    '${c.projectsCount} projects · ${c.freelancersCount} freelancers',
-                    style: context.text.labelSmall,
-                  ),
-                ],
-              ),
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.bookmark_rounded,
+      itemBuilder: (context, c, _) {
+        final bloc = context.read<ListBloc<CategoryItem>>();
+        return AppCard(
+          onTap: () => context.push('${Routes.categoryDetails}/${c.id}'),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.category_outlined,
                 color: AppColors.primary,
+                size: 28,
               ),
-              onPressed: () => BookmarkManager.instance.toggle(
-                BookmarkManager.categoryCategories,
-                c.id,
+              AppSizes.hGapMd,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(c.name, style: context.text.titleSmall),
+                    Text(
+                      '${c.projectsCount} projects · ${c.freelancersCount} freelancers',
+                      style: context.text.labelSmall,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+              IconButton(
+                icon: const Icon(
+                  Icons.bookmark_rounded,
+                  color: AppColors.primary,
+                ),
+                onPressed: () async {
+                  final result = await sl<ApiClientHelper>().postAction(
+                    '${ApiEndpoints.favorites}/toggle',
+                    body: {'entityType': 'category', 'entityId': c.id},
+                  );
+                  if (!context.mounted) return;
+                  result.fold(
+                    (failure) =>
+                        context.showSnack(failure.message, isError: true),
+                    (_) {
+                      BookmarkManager.instance.syncItem(
+                        BookmarkManager.categoryCategories,
+                        c.id,
+                        false,
+                      );
+                      bloc.add(
+                        ListItemRemoved(
+                          (item) => (item as CategoryItem).id == c.id,
+                        ),
+                      );
+                      context.showSnack('Removed from saved');
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

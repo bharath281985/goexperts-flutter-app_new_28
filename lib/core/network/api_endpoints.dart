@@ -73,6 +73,7 @@ class ApiEndpoints {
   static String publicFounder(String id) => '/public/founders/$id';
 
   // ── Shared ────────────────────────────────────────────────────────────────
+  static const referrals = '/referrals';
   static const notifications = '/notifications';
   static const notificationsUnreadCount = '/notifications/unread-count';
   static String notificationRead(String id) => '/notifications/$id/read';
@@ -300,6 +301,9 @@ class ApiEndpoints {
   static const clientReviews = '/client/reviews';
   static const clientAnalytics = '/client/analytics';
   static const clientTeam = '/client/team';
+  static const clientTeamInvite = '/client/team/invite';
+  static String clientTeamMember(String id) => '/client/team/$id';
+  static String clientTeamMemberRole(String id) => '/client/team/$id/role';
   static const clientSupportTickets = '/client/support/tickets';
   static const clientDocuments = '/client/documents';
 
@@ -378,6 +382,7 @@ class ApiEndpoints {
   static const founderPitchDeck = '/founder/pitch-deck';
   static const founderBusinessPlan = '/founder/business-plan';
   static const founderTeam = '/founder/team';
+  static String founderTeamMember(String id) => '/founder/team/$id';
   static const founderDocuments = '/founder/documents';
   static const founderDocumentsUpload = '/founder/documents/upload';
   static const founderMeetings = '/founder/meetings';

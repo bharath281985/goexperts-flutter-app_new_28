@@ -77,6 +77,8 @@ import '../../features/startup_ideas/presentation/pages/startup_details_page.dar
 import '../../features/subscriptions/presentation/pages/current_subscription_page.dart';
 import '../../features/subscriptions/presentation/pages/subscription_selection_page.dart';
 import '../../features/support/presentation/pages/support_page.dart';
+import '../../features/team/data/team_repository.dart';
+import '../../features/team/presentation/pages/team_members_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
 import 'route_names.dart';
 
@@ -682,7 +684,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.clientTeams,
-        builder: (_, __) => const ClientTeamsPage(),
+        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.client),
       ),
       GoRoute(
         path: Routes.clientReports,
@@ -734,7 +736,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.founderTeam,
-        builder: (_, __) => const FounderTeamLivePage(),
+        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.founder),
       ),
       GoRoute(
         path: Routes.founderHiring,

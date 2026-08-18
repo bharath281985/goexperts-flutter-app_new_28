@@ -63,8 +63,7 @@ class InvestorVerificationPage extends StatefulWidget {
       _InvestorVerificationPageState();
 }
 
-class _InvestorVerificationPageState
-    extends State<InvestorVerificationPage> {
+class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
   final _emailOtp = TextEditingController();
   final _phoneController = TextEditingController();
   final Map<String, TextEditingController> _itemValueControllers = {};
@@ -156,49 +155,51 @@ class _InvestorVerificationPageState
     final res = await _repo.getVerificationDetails();
     if (!mounted) return;
 
-    res.fold(
-      (f) {},
-      (data) {
-        if (data.isNotEmpty) {
-          final payload = (data['data'] is Map)
-              ? Map<String, dynamic>.from(data['data'] as Map)
-              : data;
+    res.fold((f) {}, (data) {
+      if (data.isNotEmpty) {
+        final payload = (data['data'] is Map)
+            ? Map<String, dynamic>.from(data['data'] as Map)
+            : data;
 
-          final rawItems = payload['items'] as List?;
-          if (rawItems != null && rawItems.isNotEmpty) {
-            _items = rawItems
-                .map((e) => VerificationItem.fromJson(
-                    Map<String, dynamic>.from(e as Map)))
-                .where((item) =>
-                    item.key != 'selfie' &&
-                    item.key != 'address')
-                .toList();
+        final rawItems = payload['items'] as List?;
+        if (rawItems != null && rawItems.isNotEmpty) {
+          _items = rawItems
+              .map(
+                (e) => VerificationItem.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .where((item) => item.key != 'selfie' && item.key != 'address')
+              .toList();
 
-            for (final item in _items) {
-              if (item.value.isNotEmpty && item.value != 'Not submitted') {
-                final ctrl = _itemValueControllers[item.key];
-                if (ctrl != null) {
-                  ctrl.text = item.value;
-                }
+          for (final item in _items) {
+            if (item.value.isNotEmpty && item.value != 'Not submitted') {
+              final ctrl = _itemValueControllers[item.key];
+              if (ctrl != null) {
+                ctrl.text = item.value;
               }
             }
           }
-
-          _trustScore =
-              _parseInt(payload['trustScore'] ?? payload['trust_score']);
-          _verifiedCount =
-              _parseInt(payload['verifiedCount'] ?? payload['verified_count']);
-          _pendingCount =
-              _parseInt(payload['pendingCount'] ?? payload['pending_count']);
-          _missingCount =
-              _parseInt(payload['missingCount'] ?? payload['missing_count']);
-          _accountVerified = payload['accountVerified'] == true;
-          _headerName =
-              payload['fullName']?.toString() ?? user?.fullName ?? 'User';
-          _headerEmail = payload['email']?.toString() ?? user?.email ?? '';
         }
-      },
-    );
+
+        _trustScore = _parseInt(
+          payload['trustScore'] ?? payload['trust_score'],
+        );
+        _verifiedCount = _parseInt(
+          payload['verifiedCount'] ?? payload['verified_count'],
+        );
+        _pendingCount = _parseInt(
+          payload['pendingCount'] ?? payload['pending_count'],
+        );
+        _missingCount = _parseInt(
+          payload['missingCount'] ?? payload['missing_count'],
+        );
+        _accountVerified = payload['accountVerified'] == true;
+        _headerName =
+            payload['fullName']?.toString() ?? user?.fullName ?? 'User';
+        _headerEmail = payload['email']?.toString() ?? user?.email ?? '';
+      }
+    });
 
     if (_items.isEmpty) {
       _items = [
@@ -342,16 +343,13 @@ class _InvestorVerificationPageState
       _editingPhone = false;
     });
 
-    updateRes.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : 'Phone number submitted for verification';
-        context.showSnack(displayMsg);
-        _load();
-      },
-    );
+    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : 'Phone number submitted for verification';
+      context.showSnack(displayMsg);
+      _load();
+    });
   }
 
   Future<void> _pickFile(String key) async {
@@ -383,7 +381,10 @@ class _InvestorVerificationPageState
 
     final path = _selectedFilePaths[item.key];
     if (path == null || path.isEmpty) {
-      context.showSnack('Please choose an image or PDF file first', isError: true);
+      context.showSnack(
+        'Please choose an image or PDF file first',
+        isError: true,
+      );
       return;
     }
 
@@ -416,18 +417,15 @@ class _InvestorVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-    updateRes.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : '${item.label} submitted for verification';
-        context.showSnack(displayMsg);
-        _selectedFilePaths.remove(item.key);
-        _selectedFileNames.remove(item.key);
-        _load();
-      },
-    );
+    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : '${item.label} submitted for verification';
+      context.showSnack(displayMsg);
+      _selectedFilePaths.remove(item.key);
+      _selectedFileNames.remove(item.key);
+      _load();
+    });
   }
 
   Future<void> _deleteItem(VerificationItem item) async {
@@ -472,18 +470,15 @@ class _InvestorVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : '${item.label} submission deleted';
-        context.showSnack(displayMsg);
-        _selectedFilePaths.remove(item.key);
-        _selectedFileNames.remove(item.key);
-        _load();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : '${item.label} submission deleted';
+      context.showSnack(displayMsg);
+      _selectedFilePaths.remove(item.key);
+      _selectedFileNames.remove(item.key);
+      _load();
+    });
   }
 
   IconData _iconForKey(String key) {
@@ -519,13 +514,13 @@ class _InvestorVerificationPageState
   Widget build(BuildContext context) {
     final user = context.watch<AuthBloc>().state.user;
     final email = _headerEmail.isNotEmpty ? _headerEmail : (user?.email ?? '');
-    final name = _headerName.isNotEmpty ? _headerName : (user?.fullName ?? 'User');
+    final name = _headerName.isNotEmpty
+        ? _headerName
+        : (user?.fullName ?? 'User');
 
     return AppScaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Investor Verification'),
       ),
       body: _loading
@@ -606,7 +601,11 @@ class _InvestorVerificationPageState
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColors.success,
+                  size: 18,
+                ),
                 AppSizes.hGapXs,
                 Text(
                   'Verified',
@@ -636,7 +635,10 @@ class _InvestorVerificationPageState
                   color: AppColors.danger.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.email_outlined, color: AppColors.danger),
+                child: const Icon(
+                  Icons.email_outlined,
+                  color: AppColors.danger,
+                ),
               ),
               AppSizes.hGapMd,
               Expanded(
@@ -663,7 +665,11 @@ class _InvestorVerificationPageState
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, color: AppColors.danger, size: 16),
+                  const Icon(
+                    Icons.error_outline,
+                    color: AppColors.danger,
+                    size: 16,
+                  ),
                   AppSizes.hGapXs,
                   Text(
                     'Not verified',
@@ -755,13 +761,16 @@ class _InvestorVerificationPageState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: (item.isVerified ? AppColors.success : AppColors.danger)
-                        .withValues(alpha: 0.1),
+                    color:
+                        (item.isVerified ? AppColors.success : AppColors.danger)
+                            .withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.phone_outlined,
-                    color: item.isVerified ? AppColors.success : AppColors.danger,
+                    color: item.isVerified
+                        ? AppColors.success
+                        : AppColors.danger,
                   ),
                 ),
                 AppSizes.hGapMd,
@@ -793,14 +802,18 @@ class _InvestorVerificationPageState
                       item.isVerified
                           ? Icons.check_circle_outline
                           : Icons.error_outline,
-                      color: item.isVerified ? AppColors.success : AppColors.danger,
+                      color: item.isVerified
+                          ? AppColors.success
+                          : AppColors.danger,
                       size: 16,
                     ),
                     AppSizes.hGapXs,
                     Text(
                       item.isVerified ? 'Verified' : 'Not verified',
                       style: context.text.labelSmall?.copyWith(
-                        color: item.isVerified ? AppColors.success : AppColors.danger,
+                        color: item.isVerified
+                            ? AppColors.success
+                            : AppColors.danger,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -870,7 +883,10 @@ class _InvestorVerificationPageState
                                     style: context.text.bodyMedium,
                                   ),
                                 ),
-                                const Icon(Icons.arrow_drop_down, size: AppSizes.iconSm),
+                                const Icon(
+                                  Icons.arrow_drop_down,
+                                  size: AppSizes.iconSm,
+                                ),
                               ],
                             ),
                           ),
@@ -912,7 +928,9 @@ class _InvestorVerificationPageState
                 ],
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _submittingPhone ? null : () => _submitPhone(item),
+                    onPressed: _submittingPhone
+                        ? null
+                        : () => _submitPhone(item),
                     icon: _submittingPhone
                         ? const SizedBox(
                             width: 16,
@@ -978,8 +996,11 @@ class _InvestorVerificationPageState
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.hourglass_empty_rounded,
-                        color: AppColors.warning, size: 16),
+                    const Icon(
+                      Icons.hourglass_empty_rounded,
+                      color: AppColors.warning,
+                      size: 16,
+                    ),
                     AppSizes.hGapXs,
                     Text(
                       'Pending',
@@ -994,13 +1015,18 @@ class _InvestorVerificationPageState
                 InkWell(
                   onTap: isSubmitting ? null : () => _deleteItem(item),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.delete_outline,
-                            size: 14, color: AppColors.danger),
+                        const Icon(
+                          Icons.delete_outline,
+                          size: 14,
+                          color: AppColors.danger,
+                        ),
                         AppSizes.hGapXs,
                         Text(
                           'Delete',
@@ -1063,8 +1089,11 @@ class _InvestorVerificationPageState
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle_outline,
-                      color: AppColors.success, size: 16),
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.success,
+                    size: 16,
+                  ),
                   AppSizes.hGapXs,
                   Text(
                     'Done',
@@ -1094,13 +1123,18 @@ class _InvestorVerificationPageState
                   setState(() => _editingPhone = true);
                 },
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.upload_outlined,
-                          size: 14, color: AppColors.primary),
+                      const Icon(
+                        Icons.upload_outlined,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
                       AppSizes.hGapXs,
                       Text(
                         'Change',
@@ -1171,8 +1205,11 @@ class _InvestorVerificationPageState
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle_outline,
-                        color: AppColors.success, size: 16),
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.success,
+                      size: 16,
+                    ),
                     AppSizes.hGapXs,
                     Text(
                       'Done',
@@ -1186,17 +1223,24 @@ class _InvestorVerificationPageState
                 AppSizes.vGapXs,
                 InkWell(
                   onTap: () {
-                    controller.text =
-                        item.value == 'Not submitted' ? '' : item.value;
+                    controller.text = item.value == 'Not submitted'
+                        ? ''
+                        : item.value;
                     setState(() => _editingKeys.add(item.key));
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.upload_outlined,
-                            size: 14, color: AppColors.primary),
+                        const Icon(
+                          Icons.upload_outlined,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         AppSizes.hGapXs,
                         Text(
                           'Change',
@@ -1259,8 +1303,11 @@ class _InvestorVerificationPageState
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.hourglass_empty_rounded,
-                        color: AppColors.warning, size: 16),
+                    const Icon(
+                      Icons.hourglass_empty_rounded,
+                      color: AppColors.warning,
+                      size: 16,
+                    ),
                     AppSizes.hGapXs,
                     Text(
                       'Pending',
@@ -1275,13 +1322,18 @@ class _InvestorVerificationPageState
                 InkWell(
                   onTap: isSubmitting ? null : () => _deleteItem(item),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.delete_outline,
-                            size: 14, color: AppColors.danger),
+                        const Icon(
+                          Icons.delete_outline,
+                          size: 14,
+                          color: AppColors.danger,
+                        ),
                         AppSizes.hGapXs,
                         Text(
                           'Delete',
@@ -1313,21 +1365,20 @@ class _InvestorVerificationPageState
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: (item.isVerified
-                          ? AppColors.success
-                          : (item.isPending
-                              ? AppColors.warning
-                              : AppColors.danger))
-                      .withValues(alpha: 0.1),
+                  color:
+                      (item.isVerified
+                              ? AppColors.success
+                              : (item.isPending
+                                    ? AppColors.warning
+                                    : AppColors.danger))
+                          .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
                   color: item.isVerified
                       ? AppColors.success
-                      : (item.isPending
-                          ? AppColors.warning
-                          : AppColors.danger),
+                      : (item.isPending ? AppColors.warning : AppColors.danger),
                 ),
               ),
               AppSizes.hGapMd,
@@ -1359,13 +1410,13 @@ class _InvestorVerificationPageState
                     item.isVerified
                         ? Icons.check_circle_outline
                         : (item.isPending
-                            ? Icons.hourglass_empty_rounded
-                            : Icons.error_outline),
+                              ? Icons.hourglass_empty_rounded
+                              : Icons.error_outline),
                     color: item.isVerified
                         ? AppColors.success
                         : (item.isPending
-                            ? AppColors.warning
-                            : AppColors.danger),
+                              ? AppColors.warning
+                              : AppColors.danger),
                     size: 16,
                   ),
                   AppSizes.hGapXs,
@@ -1377,8 +1428,8 @@ class _InvestorVerificationPageState
                       color: item.isVerified
                           ? AppColors.success
                           : (item.isPending
-                              ? AppColors.warning
-                              : AppColors.danger),
+                                ? AppColors.warning
+                                : AppColors.danger),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1501,8 +1552,10 @@ class _HeaderCard extends StatelessWidget {
               ),
               AppSizes.hGapSm,
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: accountVerified
                       ? AppColors.success.withValues(alpha: 0.1)
@@ -1541,8 +1594,9 @@ class _HeaderCard extends StatelessWidget {
                         value: progressValue,
                         minHeight: 8,
                         backgroundColor: context.theme.dividerColor,
-                        valueColor:
-                            const AlwaysStoppedAnimation(AppColors.primary),
+                        valueColor: const AlwaysStoppedAnimation(
+                          AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -1600,9 +1654,7 @@ class _StatBadge extends StatelessWidget {
         AppSizes.hGapXs,
         Text(
           '$label: ',
-          style: context.text.labelSmall?.copyWith(
-            color: AppColors.mutedText,
-          ),
+          style: context.text.labelSmall?.copyWith(color: AppColors.mutedText),
         ),
         Text(
           '$count',

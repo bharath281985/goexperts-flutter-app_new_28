@@ -240,7 +240,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     ),
                     const Spacer(),
                     IconButton(
-                      onPressed: () => context.push(Routes.settings),
+                      onPressed: () => context.push(Routes.changePassword),
                       icon: const Icon(
                         Icons.settings_outlined,
                         color: Colors.white,
@@ -390,17 +390,12 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     'Subscription',
                     () => context.push(Routes.subscriptionsManage),
                   ),
-                  _tile(
-                    context,
-                    Icons.account_balance_wallet_outlined,
-                    'Wallet',
-                    () => context.push(Routes.wallet),
-                  ),
+                 
                   _tile(
                     context,
                     Icons.shield_outlined,
                     'Security Center',
-                    () => context.push(Routes.securityCenter),
+                    () => context.push(Routes.changePassword),
                   ),
                   _tile(
                     context,
@@ -408,12 +403,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     'Bookmarks',
                     () => context.push(Routes.bookmarks),
                   ),
-                  _tile(
-                    context,
-                    Icons.settings_outlined,
-                    'Settings',
-                    () => context.push(Routes.settings),
-                  ),
+                 
                   _tile(
                     context,
                     Icons.help_outline_rounded,

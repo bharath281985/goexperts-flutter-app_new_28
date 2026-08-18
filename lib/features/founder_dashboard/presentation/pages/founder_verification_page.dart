@@ -63,8 +63,7 @@ class FounderVerificationPage extends StatefulWidget {
       _FounderVerificationPageState();
 }
 
-class _FounderVerificationPageState
-    extends State<FounderVerificationPage> {
+class _FounderVerificationPageState extends State<FounderVerificationPage> {
   final _emailOtp = TextEditingController();
   final _phoneController = TextEditingController();
   final Map<String, TextEditingController> _itemValueControllers = {};
@@ -156,51 +155,57 @@ class _FounderVerificationPageState
     final res = await _repo.getVerificationDetails();
     if (!mounted) return;
 
-    res.fold(
-      (f) {},
-      (data) {
-        if (data.isNotEmpty) {
-          final payload = (data['data'] is Map)
-              ? Map<String, dynamic>.from(data['data'] as Map)
-              : data;
+    res.fold((f) {}, (data) {
+      if (data.isNotEmpty) {
+        final payload = (data['data'] is Map)
+            ? Map<String, dynamic>.from(data['data'] as Map)
+            : data;
 
-          final rawItems = payload['items'] as List?;
-          if (rawItems != null && rawItems.isNotEmpty) {
-            _items = rawItems
-                .map((e) => VerificationItem.fromJson(
-                    Map<String, dynamic>.from(e as Map)))
-                .where((item) =>
+        final rawItems = payload['items'] as List?;
+        if (rawItems != null && rawItems.isNotEmpty) {
+          _items = rawItems
+              .map(
+                (e) => VerificationItem.fromJson(
+                  Map<String, dynamic>.from(e as Map),
+                ),
+              )
+              .where(
+                (item) =>
                     item.key != 'selfie' &&
                     item.key != 'address' &&
                     item.key != 'gst' &&
-                    item.key != 'company')
-                .toList();
+                    item.key != 'company',
+              )
+              .toList();
 
-            for (final item in _items) {
-              if (item.value.isNotEmpty && item.value != 'Not submitted') {
-                final ctrl = _itemValueControllers[item.key];
-                if (ctrl != null) {
-                  ctrl.text = item.value;
-                }
+          for (final item in _items) {
+            if (item.value.isNotEmpty && item.value != 'Not submitted') {
+              final ctrl = _itemValueControllers[item.key];
+              if (ctrl != null) {
+                ctrl.text = item.value;
               }
             }
           }
-
-          _trustScore =
-              _parseInt(payload['trustScore'] ?? payload['trust_score']);
-          _verifiedCount =
-              _parseInt(payload['verifiedCount'] ?? payload['verified_count']);
-          _pendingCount =
-              _parseInt(payload['pendingCount'] ?? payload['pending_count']);
-          _missingCount =
-              _parseInt(payload['missingCount'] ?? payload['missing_count']);
-          _accountVerified = payload['accountVerified'] == true;
-          _headerName =
-              payload['fullName']?.toString() ?? user?.fullName ?? 'User';
-          _headerEmail = payload['email']?.toString() ?? user?.email ?? '';
         }
-      },
-    );
+
+        _trustScore = _parseInt(
+          payload['trustScore'] ?? payload['trust_score'],
+        );
+        _verifiedCount = _parseInt(
+          payload['verifiedCount'] ?? payload['verified_count'],
+        );
+        _pendingCount = _parseInt(
+          payload['pendingCount'] ?? payload['pending_count'],
+        );
+        _missingCount = _parseInt(
+          payload['missingCount'] ?? payload['missing_count'],
+        );
+        _accountVerified = payload['accountVerified'] == true;
+        _headerName =
+            payload['fullName']?.toString() ?? user?.fullName ?? 'User';
+        _headerEmail = payload['email']?.toString() ?? user?.email ?? '';
+      }
+    });
 
     if (_items.isEmpty) {
       _items = [
@@ -330,16 +335,13 @@ class _FounderVerificationPageState
       _editingPhone = false;
     });
 
-    updateRes.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : 'Phone number submitted for verification';
-        context.showSnack(displayMsg);
-        _load();
-      },
-    );
+    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : 'Phone number submitted for verification';
+      context.showSnack(displayMsg);
+      _load();
+    });
   }
 
   Future<void> _pickFile(String key) async {
@@ -371,7 +373,10 @@ class _FounderVerificationPageState
 
     final path = _selectedFilePaths[item.key];
     if (path == null || path.isEmpty) {
-      context.showSnack('Please choose an image or PDF file first', isError: true);
+      context.showSnack(
+        'Please choose an image or PDF file first',
+        isError: true,
+      );
       return;
     }
 
@@ -404,18 +409,15 @@ class _FounderVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-    updateRes.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : '${item.label} submitted for verification';
-        context.showSnack(displayMsg);
-        _selectedFilePaths.remove(item.key);
-        _selectedFileNames.remove(item.key);
-        _load();
-      },
-    );
+    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : '${item.label} submitted for verification';
+      context.showSnack(displayMsg);
+      _selectedFilePaths.remove(item.key);
+      _selectedFileNames.remove(item.key);
+      _load();
+    });
   }
 
   Future<void> _deleteItem(VerificationItem item) async {
@@ -460,18 +462,15 @@ class _FounderVerificationPageState
       _editingKeys.remove(item.key);
     });
 
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (msg) {
-        final displayMsg = (msg != null && msg.trim().isNotEmpty)
-            ? msg.trim()
-            : '${item.label} submission deleted';
-        context.showSnack(displayMsg);
-        _selectedFilePaths.remove(item.key);
-        _selectedFileNames.remove(item.key);
-        _load();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (msg) {
+      final displayMsg = (msg != null && msg.trim().isNotEmpty)
+          ? msg.trim()
+          : '${item.label} submission deleted';
+      context.showSnack(displayMsg);
+      _selectedFilePaths.remove(item.key);
+      _selectedFileNames.remove(item.key);
+      _load();
+    });
   }
 
   IconData _iconForKey(String key) {
@@ -503,52 +502,265 @@ class _FounderVerificationPageState
     }
   }
 
+  Widget _buildSection({
+    required BuildContext context,
+    required String title,
+    required IconData icon,
+    required List<VerificationItem> items,
+    required int requiredCount,
+  }) {
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    final submittedItems = items.where((i) => !i.isMissing).toList();
+    final submittedCount = submittedItems.length;
+    final isMet = submittedCount >= requiredCount;
+    final displayItems = isMet ? submittedItems : items;
+    final width = MediaQuery.of(context).size.width;
+    final cardWidth = (width - (AppSizes.screenPadding * 2) - AppSizes.sm) / 2;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        AppSizes.vGapXl,
+        Row(
+          children: [
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(icon, color: AppColors.primary, size: 20),
+                  ),
+                  AppSizes.hGapSm,
+                  Expanded(
+                    child: Text(
+                      title.toUpperCase(),
+                      style: context.text.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.hGapSm,
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isMet
+                    ? AppColors.success.withValues(alpha: 0.1)
+                    : AppColors.warning.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isMet ? AppColors.success : AppColors.warning,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 14,
+                    color: isMet ? AppColors.success : AppColors.warning,
+                  ),
+                  AppSizes.hGapXs,
+                  Text(
+                    '$submittedCount/$requiredCount submitted',
+                    style: context.text.labelSmall?.copyWith(
+                      color: isMet ? AppColors.success : AppColors.warning,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        AppSizes.vGapSm,
+        Text(
+          'Upload any $requiredCount of the following proofs',
+          style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+        ),
+        AppSizes.vGapLg,
+        Wrap(
+          spacing: AppSizes.sm,
+          runSpacing: AppSizes.md,
+          children: displayItems.map((item) {
+            final isEditing =
+                _editingKeys.contains(item.key) ||
+                (!item.isMissing && _editingKeys.contains(item.key));
+
+            if (!item.isMissing || isEditing) {
+              return SizedBox(
+                width: width - (AppSizes.screenPadding * 2),
+                child: _buildItemCard(item),
+              );
+            }
+
+            return InkWell(
+              onTap: () {
+                setState(() => _editingKeys.add(item.key));
+              },
+              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+              child: Container(
+                width: cardWidth,
+                padding: const EdgeInsets.all(AppSizes.md),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          _iconForKey(item.key),
+                          color: AppColors.mutedText,
+                          size: 24,
+                        ),
+                        const Spacer(),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 2,
+                          ),
+                          color: context.theme.canvasColor,
+                          child: Text(
+                            'NOT SUBMITTED',
+                            style: context.text.labelSmall?.copyWith(
+                              fontSize: 8,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    AppSizes.vGapMd,
+                    Text(
+                      item.label,
+                      style: context.text.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    AppSizes.vGapMd,
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'Click to select',
+                        style: context.text.labelSmall?.copyWith(
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthBloc>().state.user;
     final email = _headerEmail.isNotEmpty ? _headerEmail : (user?.email ?? '');
-    final name = _headerName.isNotEmpty ? _headerName : (user?.fullName ?? 'User');
+    final name = _headerName.isNotEmpty
+        ? _headerName
+        : (user?.fullName ?? 'User');
 
-    return AppScaffold(
-      appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
-        title: const Text('Founder Verification'),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _load,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSizes.screenPadding),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _HeaderCard(
-                      fullName: name,
-                      email: email,
-                      trustScore: _trustScore,
-                      verifiedCount: _verifiedCount,
-                      pendingCount: _pendingCount,
-                      missingCount: _missingCount,
-                      accountVerified: _accountVerified,
-                    ),
-                    AppSizes.vGapMd,
-                    for (final item in _items) ...[
-                      if (item.key == 'email')
-                        _buildEmailCard(item, email)
-                      else if (item.key == 'phone' || item.key == 'mobile')
-                        _buildPhoneCard(item)
-                      else
-                        _buildItemCard(item),
-                      AppSizes.vGapMd,
-                    ],
-                  ],
-                ),
-              ),
+    final identityKeys = ['identity', 'pancard', 'passport', 'driving'];
+    final businessKeys = ['gst', 'udyam', 'company', 'pan_business'];
+
+    final identityItems = _items
+        .where((i) => identityKeys.contains(i.key))
+        .toList();
+    final businessItems = _items
+        .where((i) => businessKeys.contains(i.key))
+        .toList();
+    final basicItems = _items
+        .where(
+          (i) => !identityKeys.contains(i.key) && !businessKeys.contains(i.key),
+        )
+        .toList();
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth;
+        return AppScaffold(
+          appBar: AppBar(
+            leading: IconTapWidget(
+              onTap: () => Navigator.of(context).maybePop(),
             ),
+            title: const Text('Founder Verification'),
+          ),
+          body: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _load,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(AppSizes.screenPadding),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _HeaderCard(
+                          fullName: name,
+                          email: email,
+                          trustScore: _trustScore,
+                          verifiedCount: _verifiedCount,
+                          pendingCount: _pendingCount,
+                          missingCount: _missingCount,
+                          accountVerified: _accountVerified,
+                        ),
+                        AppSizes.vGapMd,
+                        for (final item in basicItems) ...[
+                          if (item.key == 'email')
+                            _buildEmailCard(item, email)
+                          else if (item.key == 'phone' || item.key == 'mobile')
+                            _buildPhoneCard(item)
+                          else
+                            SizedBox(
+                              width: width - (AppSizes.screenPadding * 2),
+                              child: _buildItemCard(item),
+                            ),
+                          AppSizes.vGapMd,
+                        ],
+                        _buildSection(
+                          context: context,
+                          title: 'Identity Documents',
+                          icon: Icons.person_outline,
+                          items: identityItems,
+                          requiredCount: 2,
+                        ),
+                        _buildSection(
+                          context: context,
+                          title: 'Business Documents',
+                          icon: Icons.business_outlined,
+                          items: businessItems,
+                          requiredCount: 2,
+                        ),
+                        AppSizes.vGapLg,
+                      ],
+                    ),
+                  ),
+                ),
+        );
+      },
     );
   }
 
@@ -594,7 +806,11 @@ class _FounderVerificationPageState
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.check_circle, color: AppColors.success, size: 18),
+                const Icon(
+                  Icons.check_circle,
+                  color: AppColors.success,
+                  size: 18,
+                ),
                 AppSizes.hGapXs,
                 Text(
                   'Verified',
@@ -624,7 +840,10 @@ class _FounderVerificationPageState
                   color: AppColors.danger.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.email_outlined, color: AppColors.danger),
+                child: const Icon(
+                  Icons.email_outlined,
+                  color: AppColors.danger,
+                ),
               ),
               AppSizes.hGapMd,
               Expanded(
@@ -651,7 +870,11 @@ class _FounderVerificationPageState
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, color: AppColors.danger, size: 16),
+                  const Icon(
+                    Icons.error_outline,
+                    color: AppColors.danger,
+                    size: 16,
+                  ),
                   AppSizes.hGapXs,
                   Text(
                     'Not verified',
@@ -743,13 +966,16 @@ class _FounderVerificationPageState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: (item.isVerified ? AppColors.success : AppColors.danger)
-                        .withValues(alpha: 0.1),
+                    color:
+                        (item.isVerified ? AppColors.success : AppColors.danger)
+                            .withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.phone_outlined,
-                    color: item.isVerified ? AppColors.success : AppColors.danger,
+                    color: item.isVerified
+                        ? AppColors.success
+                        : AppColors.danger,
                   ),
                 ),
                 AppSizes.hGapMd,
@@ -781,14 +1007,18 @@ class _FounderVerificationPageState
                       item.isVerified
                           ? Icons.check_circle_outline
                           : Icons.error_outline,
-                      color: item.isVerified ? AppColors.success : AppColors.danger,
+                      color: item.isVerified
+                          ? AppColors.success
+                          : AppColors.danger,
                       size: 16,
                     ),
                     AppSizes.hGapXs,
                     Text(
                       item.isVerified ? 'Verified' : 'Not verified',
                       style: context.text.labelSmall?.copyWith(
-                        color: item.isVerified ? AppColors.success : AppColors.danger,
+                        color: item.isVerified
+                            ? AppColors.success
+                            : AppColors.danger,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -858,7 +1088,10 @@ class _FounderVerificationPageState
                                     style: context.text.bodyMedium,
                                   ),
                                 ),
-                                const Icon(Icons.arrow_drop_down, size: AppSizes.iconSm),
+                                const Icon(
+                                  Icons.arrow_drop_down,
+                                  size: AppSizes.iconSm,
+                                ),
                               ],
                             ),
                           ),
@@ -900,7 +1133,9 @@ class _FounderVerificationPageState
                 ],
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _submittingPhone ? null : () => _submitPhone(item),
+                    onPressed: _submittingPhone
+                        ? null
+                        : () => _submitPhone(item),
                     icon: _submittingPhone
                         ? const SizedBox(
                             width: 16,
@@ -966,8 +1201,11 @@ class _FounderVerificationPageState
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.hourglass_empty_rounded,
-                        color: AppColors.warning, size: 16),
+                    const Icon(
+                      Icons.hourglass_empty_rounded,
+                      color: AppColors.warning,
+                      size: 16,
+                    ),
                     AppSizes.hGapXs,
                     Text(
                       'Pending',
@@ -982,13 +1220,18 @@ class _FounderVerificationPageState
                 InkWell(
                   onTap: isSubmitting ? null : () => _deleteItem(item),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.delete_outline,
-                            size: 14, color: AppColors.danger),
+                        const Icon(
+                          Icons.delete_outline,
+                          size: 14,
+                          color: AppColors.danger,
+                        ),
                         AppSizes.hGapXs,
                         Text(
                           'Delete',
@@ -1051,8 +1294,11 @@ class _FounderVerificationPageState
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.check_circle_outline,
-                      color: AppColors.success, size: 16),
+                  const Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.success,
+                    size: 16,
+                  ),
                   AppSizes.hGapXs,
                   Text(
                     'Done',
@@ -1082,13 +1328,18 @@ class _FounderVerificationPageState
                   setState(() => _editingPhone = true);
                 },
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.upload_outlined,
-                          size: 14, color: AppColors.primary),
+                      const Icon(
+                        Icons.upload_outlined,
+                        size: 14,
+                        color: AppColors.primary,
+                      ),
                       AppSizes.hGapXs,
                       Text(
                         'Change',
@@ -1159,8 +1410,11 @@ class _FounderVerificationPageState
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.check_circle_outline,
-                        color: AppColors.success, size: 16),
+                    const Icon(
+                      Icons.check_circle_outline,
+                      color: AppColors.success,
+                      size: 16,
+                    ),
                     AppSizes.hGapXs,
                     Text(
                       'Done',
@@ -1174,17 +1428,24 @@ class _FounderVerificationPageState
                 AppSizes.vGapXs,
                 InkWell(
                   onTap: () {
-                    controller.text =
-                        item.value == 'Not submitted' ? '' : item.value;
+                    controller.text = item.value == 'Not submitted'
+                        ? ''
+                        : item.value;
                     setState(() => _editingKeys.add(item.key));
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.upload_outlined,
-                            size: 14, color: AppColors.primary),
+                        const Icon(
+                          Icons.upload_outlined,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
                         AppSizes.hGapXs,
                         Text(
                           'Change',
@@ -1247,8 +1508,11 @@ class _FounderVerificationPageState
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.hourglass_empty_rounded,
-                        color: AppColors.warning, size: 16),
+                    const Icon(
+                      Icons.hourglass_empty_rounded,
+                      color: AppColors.warning,
+                      size: 16,
+                    ),
                     AppSizes.hGapXs,
                     Text(
                       'Pending',
@@ -1263,13 +1527,18 @@ class _FounderVerificationPageState
                 InkWell(
                   onTap: isSubmitting ? null : () => _deleteItem(item),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.delete_outline,
-                            size: 14, color: AppColors.danger),
+                        const Icon(
+                          Icons.delete_outline,
+                          size: 14,
+                          color: AppColors.danger,
+                        ),
                         AppSizes.hGapXs,
                         Text(
                           'Delete',
@@ -1301,21 +1570,20 @@ class _FounderVerificationPageState
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: (item.isVerified
-                          ? AppColors.success
-                          : (item.isPending
-                              ? AppColors.warning
-                              : AppColors.danger))
-                      .withValues(alpha: 0.1),
+                  color:
+                      (item.isVerified
+                              ? AppColors.success
+                              : (item.isPending
+                                    ? AppColors.warning
+                                    : AppColors.danger))
+                          .withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
                   icon,
                   color: item.isVerified
                       ? AppColors.success
-                      : (item.isPending
-                          ? AppColors.warning
-                          : AppColors.danger),
+                      : (item.isPending ? AppColors.warning : AppColors.danger),
                 ),
               ),
               AppSizes.hGapMd,
@@ -1347,13 +1615,13 @@ class _FounderVerificationPageState
                     item.isVerified
                         ? Icons.check_circle_outline
                         : (item.isPending
-                            ? Icons.hourglass_empty_rounded
-                            : Icons.error_outline),
+                              ? Icons.hourglass_empty_rounded
+                              : Icons.error_outline),
                     color: item.isVerified
                         ? AppColors.success
                         : (item.isPending
-                            ? AppColors.warning
-                            : AppColors.danger),
+                              ? AppColors.warning
+                              : AppColors.danger),
                     size: 16,
                   ),
                   AppSizes.hGapXs,
@@ -1365,8 +1633,8 @@ class _FounderVerificationPageState
                       color: item.isVerified
                           ? AppColors.success
                           : (item.isPending
-                              ? AppColors.warning
-                              : AppColors.danger),
+                                ? AppColors.warning
+                                : AppColors.danger),
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1489,8 +1757,10 @@ class _HeaderCard extends StatelessWidget {
               ),
               AppSizes.hGapSm,
               Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: accountVerified
                       ? AppColors.success.withValues(alpha: 0.1)
@@ -1529,8 +1799,9 @@ class _HeaderCard extends StatelessWidget {
                         value: progressValue,
                         minHeight: 8,
                         backgroundColor: context.theme.dividerColor,
-                        valueColor:
-                            const AlwaysStoppedAnimation(AppColors.primary),
+                        valueColor: const AlwaysStoppedAnimation(
+                          AppColors.primary,
+                        ),
                       ),
                     ),
                   ],
@@ -1588,9 +1859,7 @@ class _StatBadge extends StatelessWidget {
         AppSizes.hGapXs,
         Text(
           '$label: ',
-          style: context.text.labelSmall?.copyWith(
-            color: AppColors.mutedText,
-          ),
+          style: context.text.labelSmall?.copyWith(color: AppColors.mutedText),
         ),
         Text(
           '$count',
