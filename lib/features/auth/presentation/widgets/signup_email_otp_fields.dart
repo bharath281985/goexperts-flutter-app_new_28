@@ -41,9 +41,11 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
   bool _isSending = false;
   bool _isVerifying = false;
   bool _isVerified = false;
+  bool _otpSent = false;
   int _resendSecondsRemaining = 0;
   Timer? _resendTimer;
   String? _verifiedEmail;
+  String? _otpSentEmail;
 
   @override
   void initState() {
@@ -70,6 +72,14 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
   void _handleEmailChanged() {
     final email = widget.emailController.text.trim();
     final cachedEmail = widget.initialVerifiedEmail?.trim();
+    if (_otpSent && email != _otpSentEmail) {
+      _resendTimer?.cancel();
+      setState(() {
+        _otpSent = false;
+        _otpSentEmail = null;
+        _resendSecondsRemaining = 0;
+      });
+    }
     if (!_isVerified &&
         cachedEmail != null &&
         cachedEmail.isNotEmpty &&
@@ -87,6 +97,8 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
       _resendTimer?.cancel();
       setState(() {
         _isVerified = false;
+        _otpSent = false;
+        _otpSentEmail = null;
         _verifiedEmail = null;
         _resendSecondsRemaining = 0;
       });
@@ -142,7 +154,13 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         isSuccess: true,
       );
       _verifiedEmail = email;
-      _startResendTimer();
+      if (widget.emailController.text.trim() == email) {
+        setState(() {
+          _otpSent = true;
+          _otpSentEmail = email;
+        });
+        _startResendTimer();
+      }
     } catch (e) {
       _showMessage(
         _messageFromError(e, 'Failed to send email OTP'),
@@ -203,116 +221,248 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            const Expanded(
-              child: Text(
-                'Email Verification (OTP sent to Mail) *',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+    final theme = Theme.of(context);
+    final fieldTheme = theme.inputDecorationTheme;
+
+    return Theme(
+      data: theme.copyWith(
+        inputDecorationTheme: fieldTheme.copyWith(
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 16,
+          ),
+          prefixIconColor: const Color(0xFF4B4B50),
+          hintStyle: theme.textTheme.bodyMedium?.copyWith(
+            color: AppColors.mutedText,
+            fontWeight: FontWeight.w400,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.danger),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
+          ),
+          disabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: const BorderSide(color: AppColors.border),
+          ),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'Email Verification (OTP sent to Mail) *',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: AppColors.darkText,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    height: 1.3,
+                  ),
+                ),
               ),
-            ),
-            if (_isVerified)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
+              if (_isVerified) ...[
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF3),
+                    border: Border.all(color: const Color(0xFFA7E8C3)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: AppColors.success,
+                        size: 16,
+                      ),
+                      SizedBox(width: 5),
+                      Text(
+                        'Verified',
+                        style: TextStyle(
+                          color: Color(0xFF087A43),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD8FBE8),
-                  border: Border.all(color: const Color(0xFF7CE0A7)),
-                  borderRadius: BorderRadius.circular(14),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: AppTextField(
+                  controller: widget.emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  hint: 'Enter email address',
+                  prefixIcon: Icons.alternate_email_rounded,
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.check_circle_outline_rounded,
-                      color: Color(0xFF009966),
-                      size: 16,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Verified',
-                      style: TextStyle(
-                        color: Color(0xFF007A52),
+              ),
+              if (!_isVerified && !_otpSent) ...[
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 104,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isSending ? null : _sendOtp,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlack,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: const Color(0xFF737378),
+                      disabledForegroundColor: Colors.white,
+                      elevation: 0,
+                      shadowColor: Colors.transparent,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                  ],
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        AppTextField(
-          controller: widget.emailController,
-          keyboardType: TextInputType.emailAddress,
-          hint: 'Enter email address',
-          prefixIcon: Icons.alternate_email,
-        ),
-        if (!_isVerified) ...[
-          const SizedBox(height: 12),
-          AppTextField(
-            controller: _otpController,
-            keyboardType: TextInputType.number,
-            hint: 'Enter Email OTP',
-            prefixIcon: Icons.password_rounded,
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: (_isVerifying || _isVerified) ? null : _verifyOtp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: _isVerifying
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
+                    child: _isSending
+                        ? const SizedBox(
+                            height: 19,
+                            width: 19,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('Get OTP', maxLines: 1),
                           ),
-                        )
-                      : const Text('Verify OTP'),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed:
-                      (_isSending || _isVerified || _resendSecondsRemaining > 0)
-                      ? null
-                      : _sendOtp,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF111111),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: _isSending
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(_sendOtpLabel),
                 ),
-              ),
+              ],
             ],
           ),
+          if (!_isVerified && _otpSent) ...[
+            const SizedBox(height: 12),
+            AppTextField(
+              controller: _otpController,
+              keyboardType: TextInputType.number,
+              hint: 'Enter Email OTP',
+              prefixIcon: Icons.password_rounded,
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                SizedBox(
+                  width: 120,
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed: (_isVerifying || _isVerified)
+                          ? null
+                          : _verifyOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.primary.withValues(
+                          alpha: 0.45,
+                        ),
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: _isVerifying
+                          ? const SizedBox(
+                              height: 19,
+                              width: 19,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text('Verify OTP'),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: SizedBox(
+                    height: 50,
+                    child: ElevatedButton(
+                      onPressed:
+                          (_isSending ||
+                              _isVerified ||
+                              _resendSecondsRemaining > 0)
+                          ? null
+                          : _sendOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryBlack,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: const Color(0xFF737378),
+                        disabledForegroundColor: Colors.white,
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      child: _isSending
+                          ? const SizedBox(
+                              height: 19,
+                              width: 19,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(_sendOtpLabel, maxLines: 1),
+                            ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

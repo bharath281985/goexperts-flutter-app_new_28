@@ -1,7 +1,3 @@
-import 'package:dio/dio.dart';
-
-import '../../../../app/config/app_config.dart';
-import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/public_catalog_client.dart';
 import '../../../../core/utils/result.dart';
@@ -17,6 +13,8 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   final PublicCatalogClient _client;
   final Map<String, String> _countryCodesByName = {};
+  final Map<String, String> _countryNamesById = {};
+  final Map<String, String> _countryIdsByName = {};
 
   @override
   Future<Result<List<SkillCategory>>> getSkillCategories({
@@ -161,38 +159,28 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   @override
   Future<Result<List<String>>> getStates(String countryName) async {
-    try {
-      if (_countryCodesByName.isEmpty) {
-        await getCountries();
+    if (_countryIdsByName.isEmpty) {
+      final countriesResult = await getCountriesOptions();
+      if (countriesResult.isFailure) {
+        return Err(countriesResult.failureOrNull!);
       }
-      final countryCode =
-          _countryCodesByName[countryName] ??
-          (countryName.toLowerCase() == 'india' ? 'IN' : countryName);
-      final dio = Dio(
-        BaseOptions(
-          baseUrl: AppConfig.publicBaseUrl,
-          connectTimeout: AppConfig.connectTimeout,
-          receiveTimeout: AppConfig.receiveTimeout,
-          headers: const {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-        ),
-      );
-      final response = await dio.get<Map<String, dynamic>>(
-        ApiEndpoints.publicStates,
-        queryParameters: {'countryId': countryCode},
-      );
-      final raw = response.data?['data'];
-      final list = (raw is List ? raw : const [])
-          .whereType<Map>()
-          .map((item) => item['name']?.toString() ?? '')
-          .where((name) => name.trim().isNotEmpty)
-          .toList();
-      return Success(list);
-    } catch (e) {
-      return Err(ServerFailure(e.toString()));
     }
+
+    final normalizedName = countryName.trim().toLowerCase();
+    final countryId = _countryIdsByName[normalizedName] ?? countryName;
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicStates,
+      query: {'countryId': countryId, 'limit': 500},
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+
+    return Success(
+      result.valueOrNull!.rows
+          .where((state) => state.name.trim().isNotEmpty)
+          .map((state) => state.name)
+          .toList(),
+    );
   }
 
   @override
@@ -319,6 +307,16 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     final list = result.valueOrNull!.rows
         .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
         .toList();
+    _countryNamesById
+      ..clear()
+      ..addEntries(list.map((country) => MapEntry(country.id, country.name)));
+    _countryIdsByName
+      ..clear()
+      ..addEntries(
+        list.map(
+          (country) => MapEntry(country.name.trim().toLowerCase(), country.id),
+        ),
+      );
     return Success(list);
   }
 
@@ -339,7 +337,11 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
         return Success(list);
       }
     } catch (_) {}
-    final strStatesRes = await getStates(countryIdOrCode);
+    if (_countryNamesById.isEmpty) {
+      await getCountriesOptions();
+    }
+    final countryName = _countryNamesById[countryIdOrCode] ?? countryIdOrCode;
+    final strStatesRes = await getStates(countryName);
     if (strStatesRes.isSuccess) {
       return Success(
         strStatesRes.valueOrNull!
