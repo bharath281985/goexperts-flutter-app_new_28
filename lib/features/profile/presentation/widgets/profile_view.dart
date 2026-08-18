@@ -791,12 +791,12 @@ class ProfileView extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _bannerAction(context, Icons.share_outlined, onShare ?? () {}),
-                _bannerAction(
-                  context,
-                  Icons.more_vert_rounded,
-                  () => _more(context),
-                ),
+                // _bannerAction(context, Icons.share_outlined, onShare ?? () {}),
+                // _bannerAction(
+                //   context,
+                //   Icons.more_vert_rounded,
+                //   () => _more(context),
+                // ),
               ],
             ),
           ),
