@@ -164,19 +164,102 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
         final rawItems = payload['items'] as List?;
         if (rawItems != null && rawItems.isNotEmpty) {
           _items = rawItems
-              .map(
-                (e) => VerificationItem.fromJson(
-                  Map<String, dynamic>.from(e as Map),
-                ),
-              )
-              .where(
-                (item) =>
-                    item.key != 'selfie' &&
-                    item.key != 'address' &&
-                    item.key != 'gst' &&
-                    item.key != 'company',
-              )
+              .map((e) {
+                final map = Map<String, dynamic>.from(e as Map);
+                final key = map['key']?.toString().toLowerCase() ?? '';
+                if (key == 'personal_id_1' ||
+                    key == 'aadhaar' ||
+                    key == 'govt_id') {
+                  map['key'] = 'identity';
+                  map['label'] = 'Aadhaar Card / Govt ID';
+                } else if (key == 'personal_id_2' || key == 'pan') {
+                  map['key'] = 'pancard';
+                  map['label'] = 'PAN Card';
+                } else if (key == 'company' ||
+                    key == 'business' ||
+                    key == 'business_proof' ||
+                    key == 'company_registration') {
+                  map['key'] = 'company';
+                  map['label'] = 'Business Proof';
+                } else if (key == 'gst') {
+                  map['key'] = 'gst';
+                  map['label'] = 'GST Certificate';
+                }
+                return VerificationItem.fromJson(map);
+              })
+              .where((item) => item.key != 'selfie' && item.key != 'address')
               .toList();
+
+          final seenKeys = <String>{};
+          _items = _items.where((i) => seenKeys.add(i.key)).toList();
+
+          final keysPresent = _items.map((i) => i.key).toSet();
+          if (!keysPresent.contains('identity')) {
+            _items.add(
+              VerificationItem(
+                key: 'identity',
+                label: 'Aadhaar Card / Govt ID',
+                value: 'Not submitted',
+                status: 'missing',
+                required: true,
+              ),
+            );
+          }
+          if (!keysPresent.contains('pancard')) {
+            _items.add(
+              VerificationItem(
+                key: 'pancard',
+                label: 'PAN Card',
+                value: 'Not submitted',
+                status: 'missing',
+                required: false,
+              ),
+            );
+          }
+          if (!keysPresent.contains('passport')) {
+            _items.add(
+              VerificationItem(
+                key: 'passport',
+                label: 'Passport',
+                value: 'Not submitted',
+                status: 'missing',
+                required: false,
+              ),
+            );
+          }
+          if (!keysPresent.contains('driving')) {
+            _items.add(
+              VerificationItem(
+                key: 'driving',
+                label: 'Driving License',
+                value: 'Not submitted',
+                status: 'missing',
+                required: false,
+              ),
+            );
+          }
+          if (!keysPresent.contains('company')) {
+            _items.add(
+              VerificationItem(
+                key: 'company',
+                label: 'Business Proof',
+                value: 'Not submitted',
+                status: 'missing',
+                required: false,
+              ),
+            );
+          }
+          if (!keysPresent.contains('gst')) {
+            _items.add(
+              VerificationItem(
+                key: 'gst',
+                label: 'GST Certificate',
+                value: 'Not submitted',
+                status: 'missing',
+                required: false,
+              ),
+            );
+          }
 
           for (final item in _items) {
             if (item.value.isNotEmpty && item.value != 'Not submitted') {
@@ -247,6 +330,20 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
         VerificationItem(
           key: 'driving',
           label: 'Driving License',
+          value: 'Not submitted',
+          status: 'missing',
+          required: false,
+        ),
+        VerificationItem(
+          key: 'company',
+          label: 'Business Proof',
+          value: 'Not submitted',
+          status: 'missing',
+          required: false,
+        ),
+        VerificationItem(
+          key: 'gst',
+          label: 'GST Certificate',
           value: 'Not submitted',
           status: 'missing',
           required: false,
@@ -734,20 +831,23 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
         ? _headerName
         : (user?.fullName ?? 'User');
 
+    final basicKeys = ['email', 'phone', 'mobile'];
     final identityKeys = ['identity', 'pancard', 'passport', 'driving'];
-    final businessKeys = ['gst', 'udyam', 'company', 'pan_business'];
+    final businessKeys = ['company', 'gst', 'udyam', 'pan_business'];
 
-    final identityItems = _items
-        .where((i) => identityKeys.contains(i.key))
-        .toList();
-    final businessItems = _items
-        .where((i) => businessKeys.contains(i.key))
-        .toList();
-    final basicItems = _items
-        .where(
-          (i) => !identityKeys.contains(i.key) && !businessKeys.contains(i.key),
-        )
-        .toList();
+    final basicItems = _items.where((i) => basicKeys.contains(i.key)).toList();
+    final identityItems =
+        _items.where((i) => identityKeys.contains(i.key)).toList()..sort(
+          (a, b) => identityKeys
+              .indexOf(a.key)
+              .compareTo(identityKeys.indexOf(b.key)),
+        );
+    final businessItems =
+        _items.where((i) => businessKeys.contains(i.key)).toList()..sort(
+          (a, b) => businessKeys
+              .indexOf(a.key)
+              .compareTo(businessKeys.indexOf(b.key)),
+        );
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1113,7 +1213,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                   child: AppTextField(
                     controller: _phoneController,
                     label: 'Mobile number',
-                    hint: '9515362625',
+                    hint: 'Enter Mobile Number',
                     keyboardType: TextInputType.phone,
                     prefixIcon: Icons.phone_outlined,
                     inputFormatters: [

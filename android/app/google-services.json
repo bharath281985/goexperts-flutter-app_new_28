@@ -30,6 +30,14 @@
           }
         },
         {
+          "client_id": "817575811603-soku03tin6dts61urcuv20h15maoepcb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.doorstephub.goexperts",
+            "certificate_hash": "813e536fa88b93bd98aed5e238eb02be1f4df8d9"
+          }
+        },
+        {
           "client_id": "817575811603-sjk8n64ib4a7mt6nrojjtgg5uhti6j0q.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -43,7 +51,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "817575811603-sjk8n64ib4a7mt6nrojjtgg5uhti6j0q.apps.googleusercontent.com",
+              "client_id": "817575811603-132hevs3ekm6pkrm9phppt8eq1t9m9fs.apps.googleusercontent.com",
               "client_type": 3
             },
             {
