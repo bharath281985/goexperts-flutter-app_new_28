@@ -56,7 +56,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
   String? _selectedAccreditedStatus;
 
   // Step 3 Preferences
-  List<String> _preferredIndustries = [];
+  String? _preferredIndustry;
   String? _selectedStage;
   final _minCheckSizeController = TextEditingController();
   final _maxCheckSizeController = TextEditingController();
@@ -135,7 +135,10 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
     _selectedStage = restoredStages.isNotEmpty
         ? restoredStages.first
         : fields['preferredStage']?.toString();
-    _preferredIndustries = _stringList(fields['focusAreas']);
+    final restoredIndustries = _stringList(fields['focusAreas']);
+    _preferredIndustry = restoredIndustries.isNotEmpty
+        ? restoredIndustries.first
+        : fields['focusAreas']?.toString();
   }
 
   Map<String, dynamic> _fields({bool completed = false}) => {
@@ -155,7 +158,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
     'ticketMin': num.tryParse(_minCheckSizeController.text.trim()),
     'ticketMax': num.tryParse(_maxCheckSizeController.text.trim()),
     'preferredStage': _selectedStage == null ? [] : [_selectedStage],
-    'focusAreas': _preferredIndustries,
+    'focusAreas': _preferredIndustry == null ? [] : [_preferredIndustry],
   };
 
   Future<bool> _registerIfNeeded() async {
@@ -294,10 +297,10 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       await _saveProgress(3);
       setState(() => _currentStep = 3);
     } else if (_currentStep == 3) {
-      if (_preferredIndustries.isEmpty) {
+      if (_preferredIndustry == null) {
         showSignupTopMessage(
           context,
-          'Please select at least 1 preferred industry',
+          'Please select a preferred industry',
           isSuccess: false,
         );
         return;
@@ -453,13 +456,14 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       case 3:
         return Column(
           children: [
-            SignupMultiSelectSheet(
-              label: 'Focus Industries / Sector',
-              selectedItems: _preferredIndustries,
-              availableOptions: _industries,
-              minSelection: 1,
-              onChanged: (items) {
-                setState(() => _preferredIndustries = items);
+            AppDropdown<String>(
+              label: 'Focus Industries / Sector *',
+              hint: 'Select Focus Industry / Sector',
+              value: _preferredIndustry,
+              items: _industries,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _preferredIndustry = val);
                 _persistCurrentProgress();
               },
             ),

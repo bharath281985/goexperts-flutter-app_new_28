@@ -15,6 +15,7 @@ class AppDropdown<T> extends StatelessWidget {
     this.onChanged,
     this.validator,
     this.prefixIcon,
+    this.onTap,
   });
 
   final List<T> items;
@@ -25,6 +26,7 @@ class AppDropdown<T> extends StatelessWidget {
   final ValueChanged<T?>? onChanged;
   final String? Function(T?)? validator;
   final IconData? prefixIcon;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +47,7 @@ class AppDropdown<T> extends StatelessWidget {
           isExpanded: true,
           style: context.text.bodyMedium,
           validator: validator,
+          onTap: onTap,
           decoration: InputDecoration(
             hintText: generatedHint == null ? null : context.tr(generatedHint),
             hintStyle: context.theme.inputDecorationTheme.hintStyle,

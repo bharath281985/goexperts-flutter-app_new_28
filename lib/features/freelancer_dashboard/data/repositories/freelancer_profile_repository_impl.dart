@@ -74,9 +74,9 @@ class FreelancerProfileRepositoryImpl implements FreelancerProfileRepository {
   }) {
     final body = <String, dynamic>{
       'key': key,
-      if (value != null) 'value': value,
-      'status': status ?? 'pending',
-      if (documentUrl != null) 'documentUrl': documentUrl,
+      'value': value ?? '',
+      'status': 'pending',
+      'file': documentUrl,
     };
     return _api.patchEnvelope<String?>(
       ApiEndpoints.freelancerVerification,

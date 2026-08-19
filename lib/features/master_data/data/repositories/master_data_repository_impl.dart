@@ -224,6 +224,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   Future<Result<List<String>>> _getLabelValueOptions(String path) async {
     final result = await _client.getList<String>(
       path: path,
+      query: const {'limit': 500},
       itemParser: (json) {
         final val = json['label'] ?? json['value'] ?? json['name'] ?? '';
         return val.toString();
@@ -261,7 +262,7 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   @override
   Future<Result<List<String>>> getDesignations() async {
-    return getMasters('designation');
+    return _getLabelValueOptions('/public/designations');
   }
 
   @override

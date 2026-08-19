@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
@@ -109,9 +111,10 @@ class _RefreshInterceptor extends Interceptor {
   final Dio _dio;
   final SecureStorage _storage;
   final SessionHandler _sessionHandler;
-  bool _isRefreshing = false;
-  final List<({RequestOptions options, ErrorInterceptorHandler handler})>
-  _queue = [];
+
+  /// Non-null while a refresh is in flight.
+  /// Concurrent 401s await this completer instead of triggering another refresh.
+  Completer<String>? _refreshCompleter;
 
   @override
   Future<void> onError(
@@ -136,16 +139,25 @@ class _RefreshInterceptor extends Interceptor {
       return handler.next(err);
     }
 
-    if (_isRefreshing) {
-      _queue.add((options: err.requestOptions, handler: handler));
+    // If a refresh is already in flight, piggyback on its result.
+    if (_refreshCompleter != null) {
+      try {
+        final newAccess = await _refreshCompleter!.future;
+        final retried = await _retry(err.requestOptions, newAccess);
+        handler.resolve(retried);
+      } catch (_) {
+        handler.next(err);
+      }
       return;
     }
 
-    _isRefreshing = true;
+    // This is the first 401 — own the refresh.
+    _refreshCompleter = Completer<String>();
     try {
       final refreshToken = await _storage.refreshToken;
       if (refreshToken == null || refreshToken.isEmpty) {
         await _handleExpired();
+        _refreshCompleter!.completeError('no_refresh_token');
         return handler.next(err);
       }
 
@@ -161,6 +173,7 @@ class _RefreshInterceptor extends Interceptor {
 
       if (newAccess == null) {
         await _handleExpired(_messageFromResponse(response));
+        _refreshCompleter!.completeError('no_access_token');
         return handler.next(err);
       }
 
@@ -168,30 +181,21 @@ class _RefreshInterceptor extends Interceptor {
       if (newRefresh != null) await _storage.saveRefreshToken(newRefresh);
       await _sessionHandler.notifyTokenRefreshed();
 
-      final retry = await _retry(err.requestOptions, newAccess);
-      handler.resolve(retry);
+      // Broadcast the new token to all waiters.
+      _refreshCompleter!.complete(newAccess);
 
-      for (final pending in _queue) {
-        final retried = await _retry(pending.options, newAccess);
-        pending.handler.resolve(retried);
-      }
-      _queue.clear();
+      final retried = await _retry(err.requestOptions, newAccess);
+      handler.resolve(retried);
     } on DioException catch (refreshErr) {
       await _handleExpired(_messageFromResponse(refreshErr.response));
+      _refreshCompleter!.completeError(refreshErr);
       handler.next(err);
-      for (final pending in _queue) {
-        pending.handler.next(err);
-      }
-      _queue.clear();
-    } catch (_) {
+    } catch (e) {
       await _handleExpired();
+      _refreshCompleter!.completeError(e);
       handler.next(err);
-      for (final pending in _queue) {
-        pending.handler.next(err);
-      }
-      _queue.clear();
     } finally {
-      _isRefreshing = false;
+      _refreshCompleter = null;
     }
   }
 

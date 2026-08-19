@@ -238,12 +238,15 @@ class _SocialButton extends StatelessWidget {
                     color: isDark ? AppColors.white : AppColors.darkText,
                   ),
               const SizedBox(width: 10),
-              Text(
-                label,
-                style: context.text.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: isDark ? AppColors.white : AppColors.darkText,
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: isDark ? AppColors.white : AppColors.darkText,
+                  ),
                 ),
               ),
             ],

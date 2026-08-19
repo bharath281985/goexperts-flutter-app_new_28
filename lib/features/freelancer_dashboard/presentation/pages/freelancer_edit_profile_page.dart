@@ -503,7 +503,35 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       final msg =
           data['message']?.toString() ?? 'Profile updated successfully!';
       context.showSnack(msg);
-      context.read<AuthBloc>().add(const AuthRefreshUser());
+      // Patch the cached user locally — no extra /me round-trip needed.
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null) {
+        final city = _city.text.trim();
+        final country = _selectedCountry?.name ?? '';
+        final locationParts = [city, country]
+            .where((s) => s.isNotEmpty)
+            .toList();
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(
+            current.copyWith(
+              fullName: _fullName.text.trim().isNotEmpty
+                  ? _fullName.text.trim()
+                  : null,
+              headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
+              location: locationParts.isNotEmpty
+                  ? locationParts.join(', ')
+                  : null,
+              categoryId: _selectedCategoryId,
+              industryId: _selectedCategoryId,
+              skillIds: _selectedSkillIds.isNotEmpty
+                  ? _selectedSkillIds.toList()
+                  : null,
+              avatarUrl:
+                  _currentAvatarUrl?.isNotEmpty == true ? _currentAvatarUrl : null,
+            ),
+          ),
+        );
+      }
       // Stay on page and refresh data
       await _load();
     });
@@ -517,15 +545,30 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final res = await sl<FreelancerProfileRepository>().uploadAvatar(path);
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
-    res.fold((f) => context.showSnack(f.message, isError: true), (url) async {
-      setState(() {
-        _localAvatarPath = null;
-        _currentAvatarUrl = url;
-      });
-      context.read<AuthBloc>().add(const AuthRefreshUser());
-      context.showSnack('Avatar updated successfully!');
-      await _load();
-    });
+    res.fold((failure) => context.showSnack(failure.message, isError: true),
+      (url) {
+        if (url.trim().isEmpty) {
+          context.showSnack(
+            'Photo uploaded, but the server did not return its URL.',
+            isError: true,
+          );
+          return;
+        }
+        setState(() {
+          _localAvatarPath = null;
+          _currentAvatarUrl = url;
+        });
+        // Patch only the avatar in the cached user.
+        final current = context.read<AuthBloc>().state.user;
+        if (current != null) {
+          context.read<AuthBloc>().add(
+            AuthUserUpdated(current.copyWith(avatarUrl: url)),
+          );
+        }
+        context.showSnack('Avatar updated successfully!');
+        _load();
+      },
+    );
   }
 
   void _onCategorySelected(String categoryId) {

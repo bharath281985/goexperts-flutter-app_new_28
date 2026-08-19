@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -80,6 +80,7 @@ import '../../features/support/presentation/pages/support_page.dart';
 import '../../features/team/data/team_repository.dart';
 import '../../features/team/presentation/pages/team_members_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
+import '../../core/widgets/app_error_state.dart';
 import 'route_names.dart';
 
 /// Bridges a Bloc stream to a [Listenable] so GoRouter re-evaluates redirects.
@@ -136,6 +137,13 @@ GoRouter createRouter(AuthBloc authBloc) {
   return GoRouter(
     initialLocation: Routes.splash,
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
+    errorBuilder: (context, state) => Scaffold(
+      body: AppErrorState(
+        title: 'Page Not Found',
+        message: state.error?.message ?? 'The page you\'re looking for doesn\'t exist.',
+        onRetry: () => context.go(Routes.splash),
+      ),
+    ),
     redirect: (context, state) {
       final auth = authBloc.state;
       final loc = state.matchedLocation;

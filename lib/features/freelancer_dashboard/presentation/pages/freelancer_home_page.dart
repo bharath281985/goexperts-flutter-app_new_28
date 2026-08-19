@@ -17,6 +17,7 @@ import '../../../../core/widgets/app_segmented_tabs.dart';
 import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
+import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../meetings/presentation/widgets/meeting_card.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 
@@ -61,6 +62,14 @@ class FreelancerHomePage extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 12),
+                          if (state.shouldShowVerificationPrompt) ...[
+                            VerificationPromptCard(
+                                missingCount: state.verificationMissingCount,
+                                accountVerified: state.accountVerified,
+                                route: Routes.freelancerVerification,
+                              ),
+                              const SizedBox(height: 16),
+                          ],
                           _buildQuickActions(context),
                           const SizedBox(height: 24),
                           _buildMetricsGrid(context, state),

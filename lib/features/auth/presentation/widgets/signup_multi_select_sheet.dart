@@ -12,6 +12,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
   final int minSelection;
   final Future<List<String>> Function(String query)? onSearchApi;
   final String? errorText;
+  final VoidCallback? onTap;
 
   const SignupMultiSelectSheet({
     super.key,
@@ -22,6 +23,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
     this.minSelection = 1,
     this.onSearchApi,
     this.errorText,
+    this.onTap,
   });
 
   void _showSheet(BuildContext context) {
@@ -92,7 +94,10 @@ class SignupMultiSelectSheet extends StatelessWidget {
           initialValue: selectedItems.join(', '),
           hint: 'Tap to search & select $label...',
           readOnly: true,
-          onTap: () => _showSheet(context),
+          onTap: () {
+            onTap?.call();
+            _showSheet(context);
+          },
           suffixIcon: const Icon(Icons.search),
         ),
 

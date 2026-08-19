@@ -489,7 +489,27 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           res.valueOrNull?['message']?.toString() ??
           'Investor profile updated successfully';
       context.showSnack(msg);
-      context.read<AuthBloc>().add(const AuthRefreshUser());
+      // Patch the cached user locally — no extra /me round-trip needed.
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null) {
+        final city = _city.text.trim();
+        final country = _selectedCountry?.name ?? '';
+        final locationParts = [city, country]
+            .where((s) => s.isNotEmpty)
+            .toList();
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(
+            current.copyWith(
+              fullName: fullName.isNotEmpty ? fullName : null,
+              headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
+              location: locationParts.isNotEmpty
+                  ? locationParts.join(', ')
+                  : null,
+              avatarUrl: (_avatarUrl?.isNotEmpty == true) ? _avatarUrl : null,
+            ),
+          ),
+        );
+      }
       // Stay on page and refresh data
       await _load();
     } else {
@@ -523,7 +543,13 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           _avatarUrl = url;
           _localAvatarPath = null;
         });
-        context.read<AuthBloc>().add(const AuthRefreshUser());
+        // Patch only the avatar in the cached user.
+        final current = context.read<AuthBloc>().state.user;
+        if (current != null) {
+          context.read<AuthBloc>().add(
+            AuthUserUpdated(current.copyWith(avatarUrl: url)),
+          );
+        }
       },
     );
   }

@@ -51,7 +51,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   // Step 2 Startup Details
   final _startupNameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  List<String> _selectedIndustries = [];
+  String? _selectedIndustry;
   String? _selectedStage;
 
   // Step 3 Founder Profile
@@ -136,7 +136,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     _termsAccepted = fields['termsAccepted'] == true;
     _startupNameController.text = fields['startupName']?.toString() ?? '';
     _descriptionController.text = fields['pitch']?.toString() ?? '';
-    _selectedIndustries = _stringList(fields['industry']);
+    final restoredIndustries = _stringList(fields['industry']);
+    _selectedIndustry = restoredIndustries.isNotEmpty
+        ? restoredIndustries.first
+        : fields['industry']?.toString();
     _selectedStage = fields['stage']?.toString();
     _selectedDesignation = fields['founderRole']?.toString();
     _founderBioController.text = fields['founderBio']?.toString() ?? '';
@@ -165,7 +168,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     'raised': num.tryParse(_capitalRaisedController.text.trim()),
     'targetRaise': num.tryParse(_targetFundraiseController.text.trim()),
     'teamSize': _selectedTeamSize,
-    'industry': _selectedIndustries,
+    'industry': _selectedIndustry == null ? [] : [_selectedIndustry],
     'primaryGoal': _selectedGoals,
   };
 
@@ -299,6 +302,14 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         showSignupTopMessage(
           context,
           'Please enter Startup / Idea Name',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (_selectedIndustry == null) {
+        showSignupTopMessage(
+          context,
+          'Please select an Industry',
           isSuccess: false,
         );
         return;
@@ -447,13 +458,14 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               hint: 'Enter Startup Name',
             ),
             const SizedBox(height: 16),
-            SignupMultiSelectSheet(
-              label: 'Industry',
-              selectedItems: _selectedIndustries,
-              availableOptions: _industries,
-              minSelection: 1,
-              onChanged: (items) {
-                setState(() => _selectedIndustries = items);
+            AppDropdown<String>(
+              label: 'Industry *',
+              hint: 'Select Industry',
+              value: _selectedIndustry,
+              items: _industries,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _selectedIndustry = val);
                 _persistCurrentProgress();
               },
             ),

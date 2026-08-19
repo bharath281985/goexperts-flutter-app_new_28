@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -99,6 +100,22 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
   final Map<String, String> _selectedFilePaths = {};
   final Map<String, String> _selectedFileNames = {};
 
+  String _selectedBusinessProofKey = 'gst';
+  String _selectedIdentityKey = 'pan';
+  static const Map<String, String> _businessProofOptions = {
+    'gst': 'GST Certificate',
+    'udyam': 'Udyam Aadhaar',
+    'incorporation': 'Incorporation Proof',
+    'business_pan': 'Business PAN',
+    'company': 'Company Registration',
+  };
+
+  static const Map<String, String> _identityOptions = {
+    'pan': 'PAN Card',
+    'aadhaar': 'Aadhaar Card',
+    'driving_licence': 'Driving Licence',
+  };
+
   FounderRepository get _repo => sl<FounderRepository>();
 
   @override
@@ -167,99 +184,17 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
               .map((e) {
                 final map = Map<String, dynamic>.from(e as Map);
                 final key = map['key']?.toString().toLowerCase() ?? '';
-                if (key == 'personal_id_1' ||
-                    key == 'aadhaar' ||
-                    key == 'govt_id') {
-                  map['key'] = 'identity';
-                  map['label'] = 'Aadhaar Card / Govt ID';
-                } else if (key == 'personal_id_2' || key == 'pan') {
-                  map['key'] = 'pancard';
-                  map['label'] = 'PAN Card';
-                } else if (key == 'company' ||
-                    key == 'business' ||
-                    key == 'business_proof' ||
-                    key == 'company_registration') {
-                  map['key'] = 'company';
-                  map['label'] = 'Business Proof';
-                } else if (key == 'gst') {
-                  map['key'] = 'gst';
-                  map['label'] = 'GST Certificate';
+                // Ensure proper labels if not provided by backend
+                if (_businessProofOptions.containsKey(key) && map['label'] == null) {
+                  map['label'] = _businessProofOptions[key];
+                }
+                if (_identityOptions.containsKey(key) && map['label'] == null) {
+                  map['label'] = _identityOptions[key];
                 }
                 return VerificationItem.fromJson(map);
               })
               .where((item) => item.key != 'selfie' && item.key != 'address')
               .toList();
-
-          final seenKeys = <String>{};
-          _items = _items.where((i) => seenKeys.add(i.key)).toList();
-
-          final keysPresent = _items.map((i) => i.key).toSet();
-          if (!keysPresent.contains('identity')) {
-            _items.add(
-              VerificationItem(
-                key: 'identity',
-                label: 'Aadhaar Card / Govt ID',
-                value: 'Not submitted',
-                status: 'missing',
-                required: true,
-              ),
-            );
-          }
-          if (!keysPresent.contains('pancard')) {
-            _items.add(
-              VerificationItem(
-                key: 'pancard',
-                label: 'PAN Card',
-                value: 'Not submitted',
-                status: 'missing',
-                required: false,
-              ),
-            );
-          }
-          if (!keysPresent.contains('passport')) {
-            _items.add(
-              VerificationItem(
-                key: 'passport',
-                label: 'Passport',
-                value: 'Not submitted',
-                status: 'missing',
-                required: false,
-              ),
-            );
-          }
-          if (!keysPresent.contains('driving')) {
-            _items.add(
-              VerificationItem(
-                key: 'driving',
-                label: 'Driving License',
-                value: 'Not submitted',
-                status: 'missing',
-                required: false,
-              ),
-            );
-          }
-          if (!keysPresent.contains('company')) {
-            _items.add(
-              VerificationItem(
-                key: 'company',
-                label: 'Business Proof',
-                value: 'Not submitted',
-                status: 'missing',
-                required: false,
-              ),
-            );
-          }
-          if (!keysPresent.contains('gst')) {
-            _items.add(
-              VerificationItem(
-                key: 'gst',
-                label: 'GST Certificate',
-                value: 'Not submitted',
-                status: 'missing',
-                required: false,
-              ),
-            );
-          }
 
           for (final item in _items) {
             if (item.value.isNotEmpty && item.value != 'Not submitted') {
@@ -270,7 +205,6 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
             }
           }
         }
-
         _trustScore = _parseInt(
           payload['trustScore'] ?? payload['trust_score'],
         );
@@ -306,52 +240,36 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
           status: user?.isVerified == true ? 'verified' : 'missing',
           required: true,
         ),
+      ];
+    }
+
+    final keysPresent = _items.map((i) => i.key).toSet();
+    
+    final presentIdentityKeys = keysPresent.intersection(_identityOptions.keys.toSet());
+    if (presentIdentityKeys.length < 2 && !keysPresent.contains('identity')) {
+      _items.add(
         VerificationItem(
           key: 'identity',
-          label: 'Aadhard Card/Identity (Government ID)',
+          label: 'Identity Document',
           value: 'Not submitted',
           status: 'missing',
           required: true,
         ),
-        VerificationItem(
-          key: 'pancard',
-          label: 'PAN Card',
-          value: 'Not submitted',
-          status: 'missing',
-          required: false,
-        ),
-        VerificationItem(
-          key: 'passport',
-          label: 'Passport',
-          value: 'Not submitted',
-          status: 'missing',
-          required: false,
-        ),
-        VerificationItem(
-          key: 'driving',
-          label: 'Driving License',
-          value: 'Not submitted',
-          status: 'missing',
-          required: false,
-        ),
-        VerificationItem(
-          key: 'company',
-          label: 'Business Proof',
-          value: 'Not submitted',
-          status: 'missing',
-          required: false,
-        ),
-        VerificationItem(
-          key: 'gst',
-          label: 'GST Certificate',
-          value: 'Not submitted',
-          status: 'missing',
-          required: false,
-        ),
-      ];
+      );
     }
 
-    if (mounted) setState(() => _loading = false);
+    final presentBusinessKeys = keysPresent.intersection(_businessProofOptions.keys.toSet());
+    if (presentBusinessKeys.length < 2 && !keysPresent.contains('business_proof')) {
+      _items.add(
+        VerificationItem(
+          key: 'business_proof',
+          label: 'Business Document',
+          value: 'Not submitted',
+          status: 'missing',
+          required: true,
+        ),
+      );
+    }    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _sendEmailOtp(String email) async {
@@ -410,11 +328,11 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
     });
   }
 
-  Future<void> _submitPhone(VerificationItem item) async {
+  Future<bool> _submitPhone(VerificationItem item) async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty) {
       context.showSnack('Please enter a mobile number', isError: true);
-      return;
+      return false;
     }
 
     final fullPhone = '$_countryCode $phone';
@@ -426,19 +344,24 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       status: 'pending',
     );
 
-    if (!mounted) return;
+    if (!mounted) return false;
     setState(() {
       _submittingPhone = false;
       _editingPhone = false;
     });
 
-    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
-      final displayMsg = (msg != null && msg.trim().isNotEmpty)
-          ? msg.trim()
-          : 'Phone number submitted for verification';
-      context.showSnack(displayMsg);
-      _load();
-    });
+    if (updateRes.isFailure) {
+      context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit phone number', isError: true);
+      return false;
+    }
+
+    final msg = updateRes.valueOrNull;
+    final displayMsg = (msg != null && msg.trim().isNotEmpty)
+        ? msg.trim()
+        : 'Phone number submitted for verification';
+    context.showSnack(displayMsg);
+    _load();
+    return true;
   }
 
   Future<void> _pickFile(String key) async {
@@ -459,22 +382,46 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
     }
   }
 
-  Future<void> _submitDocument(VerificationItem item) async {
+  String? _validateDocument(String key, String value) {
+    final Map<String, Map<String, dynamic>> validators = {
+      'pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
+      'business_pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
+      'aadhaar': {'regex': RegExp(r'^[0-9\s]{12,14}$'), 'message': 'Invalid Aadhaar format (12 digits)'},
+      'gst': {'regex': RegExp(r'^[A-Z0-9]{15}$', caseSensitive: false), 'message': 'Invalid GST format (15 characters)'},
+      'udyam': {'regex': RegExp(r'^[A-Z0-9-]{10,25}$', caseSensitive: false), 'message': 'Invalid Udyam format'},
+      'driving': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
+      'driving_licence': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
+      'incorporation': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Incorporation Number format'},
+      'company': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Company Registration format'},
+    };
+    if (validators.containsKey(key)) {
+      final RegExp regex = validators[key]!['regex'];
+      if (!regex.hasMatch(value)) {
+        return validators[key]!['message'];
+      }
+    }
+    return null;
+  }
+
+  Future<bool> _submitDocument(VerificationItem item, {String? explicitValue}) async {
     final controller = _getController(item.key, item.value);
-    final valueText = controller.text.trim();
+    final valueText = explicitValue ?? controller.text.trim();
+
+    final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
+    final isIdentityCard = item.key == 'identity' || _identityOptions.containsKey(item.key);
+    final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
+    final actualLabel = isBusinessCard ? (_businessProofOptions[actualKey] ?? item.label) : (isIdentityCard ? (_identityOptions[actualKey] ?? item.label) : item.label);
 
     if (valueText.isEmpty) {
-      context.showSnack('Please enter ${item.label}', isError: true);
-      return;
+      context.showSnack('Please enter $actualLabel Number', isError: true);
+      return false;
     }
 
     final path = _selectedFilePaths[item.key];
+
     if (path == null || path.isEmpty) {
-      context.showSnack(
-        'Please choose an image or PDF file first',
-        isError: true,
-      );
-      return;
+      context.showSnack('Please select a document to upload', isError: true);
+      return false;
     }
 
     setState(() {
@@ -482,23 +429,53 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       _submittingKey = item.key;
     });
 
+    bool isSuccess = false;
+    String? displayMsg;
     String? documentUrl;
-    final uploadRes = await sl<FileUploadHelper>().uploadUrl(
-      path: path,
-      endpoint: ApiEndpoints.filesUpload,
-      fields: {'category': 'verification', 'key': item.key},
-    );
 
-    documentUrl = uploadRes.valueOrNull ?? path;
+    if (path != null && path.isNotEmpty) {
+      final uploadRes = await sl<FileUploadHelper>().upload(
+        path: path,
+        endpoint: ApiEndpoints.filesUpload,
+        method: 'post',
+      );
+
+      if (uploadRes.isFailure) {
+        if (!mounted) return false;
+        setState(() {
+          _submittingItem = false;
+          _submittingKey = null;
+        });
+        context.showSnack('File upload failed: ${uploadRes.failureOrNull?.message}', isError: true);
+        return false;
+      }
+
+      final data = uploadRes.valueOrNull;
+      if (data != null) {
+        documentUrl = data['publicUrl']?.toString() ?? data['url']?.toString();
+      }
+    }
 
     final updateRes = await _repo.updateVerificationDetail(
-      key: item.key,
+      key: actualKey,
       value: valueText,
       status: 'pending',
       documentUrl: documentUrl,
     );
 
-    if (!mounted) return;
+    if (updateRes.isFailure) {
+      if (!mounted) return false;
+      setState(() {
+        _submittingItem = false;
+        _submittingKey = null;
+      });
+      context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit verification', isError: true);
+      return false;
+    }
+    isSuccess = true;
+    displayMsg = updateRes.valueOrNull;
+
+    if (!mounted) return false;
 
     setState(() {
       _submittingItem = false;
@@ -506,15 +483,16 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       _editingKeys.remove(item.key);
     });
 
-    updateRes.fold((f) => context.showSnack(f.message, isError: true), (msg) {
-      final displayMsg = (msg != null && msg.trim().isNotEmpty)
-          ? msg.trim()
+    if (isSuccess) {
+      final msg = (displayMsg != null && displayMsg!.trim().isNotEmpty)
+          ? displayMsg!.trim()
           : '${item.label} submitted for verification';
-      context.showSnack(displayMsg);
+      context.showSnack(msg);
       _selectedFilePaths.remove(item.key);
       _selectedFileNames.remove(item.key);
       _load();
-    });
+    }
+    return true;
   }
 
   Future<void> _deleteItem(VerificationItem item) async {
@@ -587,12 +565,10 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       case 'driving':
         return Icons.card_membership_outlined;
       case 'gst':
-        return Icons.receipt_long_outlined;
-      case 'address':
-        return Icons.location_on_outlined;
-      case 'selfie':
-        return Icons.face_outlined;
-      case 'company':
+      case 'msme':
+      case 'incorporation':
+      case 'tan_card':
+      case 'business_proof':
         return Icons.business_outlined;
       default:
         return Icons.verified_user_outlined;
@@ -601,7 +577,9 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
 
   Widget _buildSection({
     required BuildContext context,
+    required String sectionTitle,
     required String title,
+    required String subtitle,
     required IconData icon,
     required List<VerificationItem> items,
     required int requiredCount,
@@ -612,39 +590,61 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
     final submittedCount = submittedItems.length;
     final isMet = submittedCount >= requiredCount;
     final displayItems = isMet ? submittedItems : items;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         AppSizes.vGapXl,
         Row(
           children: [
+            const Expanded(child: Divider()),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
+              child: Text(
+                sectionTitle.toUpperCase(),
+                style: context.text.labelSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.mutedText,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
+            const Expanded(child: Divider()),
+          ],
+        ),
+        AppSizes.vGapLg,
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.danger, size: 24),
+            ),
+            AppSizes.hGapMd,
             Expanded(
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      shape: BoxShape.circle,
+                  Text(
+                    title,
+                    style: context.text.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
-                    child: Icon(icon, color: AppColors.primary, size: 20),
                   ),
-                  AppSizes.hGapSm,
-                  Expanded(
-                    child: Text(
-                      title.toUpperCase(),
-                      style: context.text.titleSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  AppSizes.vGapXs,
+                  Text(
+                    subtitle,
+                    style: context.text.bodySmall?.copyWith(
+                      color: AppColors.mutedText,
                     ),
                   ),
                 ],
               ),
             ),
-            AppSizes.hGapSm,
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -677,11 +677,6 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
             ),
           ],
         ),
-        AppSizes.vGapSm,
-        Text(
-          'Upload any $requiredCount of the following proofs',
-          style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
-        ),
         AppSizes.vGapLg,
         LayoutBuilder(
           builder: (context, constraints) {
@@ -693,81 +688,9 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
               spacing: gap,
               runSpacing: AppSizes.md,
               children: displayItems.map((item) {
-                final isEditing =
-                    _editingKeys.contains(item.key) ||
-                    (!item.isMissing && _editingKeys.contains(item.key));
-
-                if (!item.isMissing || isEditing) {
-                  return SizedBox(
-                    width: cardWidth,
-                    child: _buildItemCard(item),
-                  );
-                }
-
-                return InkWell(
-                  onTap: () {
-                    setState(() => _editingKeys.add(item.key));
-                  },
-                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                  child: Container(
-                    width: cardWidth,
-                    padding: const EdgeInsets.all(AppSizes.md),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              _iconForKey(item.key),
-                              color: AppColors.mutedText,
-                              size: 24,
-                            ),
-                            const Spacer(),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                                vertical: 2,
-                              ),
-                              color: context.theme.canvasColor,
-                              child: Text(
-                                'NOT SUBMITTED',
-                                style: context.text.labelSmall?.copyWith(
-                                  fontSize: 8,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        AppSizes.vGapMd,
-                        Text(
-                          item.label,
-                          style: context.text.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        AppSizes.vGapMd,
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'Click to select',
-                            style: context.text.labelSmall?.copyWith(
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                return SizedBox(
+                  width: cardWidth,
+                  child: _buildItemCard(item),
                 );
               }).toList(),
             );
@@ -832,22 +755,43 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
         : (user?.fullName ?? 'User');
 
     final basicKeys = ['email', 'phone', 'mobile'];
-    final identityKeys = ['identity', 'pancard', 'passport', 'driving'];
-    final businessKeys = ['company', 'gst', 'udyam', 'pan_business'];
+    final identityKeys = ['identity', ..._identityOptions.keys];
+    final businessKeys = ['business_proof', ..._businessProofOptions.keys];
 
     final basicItems = _items.where((i) => basicKeys.contains(i.key)).toList();
     final identityItems =
-        _items.where((i) => identityKeys.contains(i.key)).toList()..sort(
+        _items.where((i) => identityKeys.contains(i.key) || i.key == 'pancard').toList()..sort(
           (a, b) => identityKeys
               .indexOf(a.key)
               .compareTo(identityKeys.indexOf(b.key)),
         );
+    
+    while (identityItems.length < 2) {
+      identityItems.add( VerificationItem(
+        key: 'identity',
+        label: 'Additional Identity Document',
+        value: '',
+        status: 'missing',
+        required: true,
+      ));
+    }
+
     final businessItems =
         _items.where((i) => businessKeys.contains(i.key)).toList()..sort(
           (a, b) => businessKeys
               .indexOf(a.key)
               .compareTo(businessKeys.indexOf(b.key)),
         );
+    
+    while (businessItems.length < 2) {
+      businessItems.add( VerificationItem(
+        key: 'business_proof',
+        label: 'Additional Business Document',
+        value: '',
+        status: 'missing',
+        required: true,
+      ));
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -903,20 +847,26 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                             );
                           },
                         ),
-                        _buildSection(
-                          context: context,
-                          title: 'Identity Documents',
-                          icon: Icons.person_outline,
-                          items: identityItems,
-                          requiredCount: 2,
-                        ),
-                        _buildSection(
-                          context: context,
-                          title: 'Business Documents',
-                          icon: Icons.business_outlined,
-                          items: businessItems,
-                          requiredCount: 2,
-                        ),
+                        if (identityItems.isNotEmpty)
+                          _buildSection(
+                            context: context,
+                            sectionTitle: 'Identity Documents',
+                            title: 'Personal Documents',
+                            subtitle: 'Upload any 2 of the following personal identity proofs',
+                            icon: Icons.person_outline,
+                            items: identityItems,
+                            requiredCount: 2,
+                          ),
+                        if (businessItems.isNotEmpty)
+                          _buildSection(
+                            context: context,
+                            sectionTitle: 'Business Documents',
+                            title: 'Business Documents',
+                            subtitle: 'Upload any 2 of the following business registration proofs',
+                            icon: Icons.domain_outlined,
+                            items: businessItems,
+                            requiredCount: 2,
+                          ),
                         AppSizes.vGapLg,
                       ],
                     ),
@@ -1057,207 +1007,91 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
   }
 
   Widget _buildPhoneCard(VerificationItem item) {
-    final isEditing = _editingPhone || item.isMissing;
     final isSubmitting = _submittingItem && _submittingKey == item.key;
-
-    if (isEditing) {
+    if (item.isMissing) {
       return AppCard(
         radius: AppSizes.radiusMd,
         padding: const EdgeInsets.all(AppSizes.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Row(
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.phone_outlined, color: AppColors.danger),
+            ),
+            AppSizes.hGapMd,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Phone number',
+                    style: context.text.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    item.value.isNotEmpty ? item.value : 'Not verified',
+                    style: context.text.bodySmall?.copyWith(
+                      color: AppColors.mutedText,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.hGapSm,
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color:
-                        (item.isVerified ? AppColors.success : AppColors.danger)
-                            .withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.phone_outlined,
-                    color: item.isVerified
-                        ? AppColors.success
-                        : AppColors.danger,
-                  ),
-                ),
-                AppSizes.hGapMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Phone number',
-                        style: context.text.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      Text(
-                        'Enter your mobile number to submit.',
-                        style: context.text.bodySmall?.copyWith(
-                          color: AppColors.mutedText,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-                AppSizes.hGapSm,
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      item.isVerified
-                          ? Icons.check_circle_outline
-                          : Icons.error_outline,
-                      color: item.isVerified
-                          ? AppColors.success
-                          : AppColors.danger,
+                    const Icon(
+                      Icons.error_outline,
+                      color: AppColors.danger,
                       size: 16,
                     ),
                     AppSizes.hGapXs,
                     if (MediaQuery.sizeOf(context).width >= 600)
                       Text(
-                        item.isVerified ? 'Verified' : 'Not verified',
+                        'Not verified',
                         style: context.text.labelSmall?.copyWith(
-                          color: item.isVerified
-                              ? AppColors.success
-                              : AppColors.danger,
+                          color: AppColors.danger,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
                   ],
                 ),
-              ],
-            ),
-            AppSizes.vGapMd,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Code', style: context.text.titleSmall),
-                      AppSizes.vGapSm,
-                      InputDecorator(
-                        decoration: const InputDecoration(
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: AppSizes.sm,
-                            vertical: AppSizes.md,
-                          ),
-                        ),
-                        child: CountryCodePicker(
-                          initialSelection: _countryIsoCode,
-                          onInit: (code) {
-                            if (code == null) return;
-                            _countryCode = code.dialCode ?? '+91';
-                            _countryIsoCode = code.code ?? 'IN';
-                          },
-                          onChanged: (code) {
-                            setState(() {
-                              _countryCode = code.dialCode ?? '+91';
-                              _countryIsoCode = code.code ?? 'IN';
-                            });
-                          },
-                          showCountryOnly: false,
-                          showOnlyCountryWhenClosed: false,
-                          showDropDownButton: false,
-                          alignLeft: true,
-                          padding: EdgeInsets.zero,
-                          flagWidth: 22,
-                          textStyle: context.text.bodyMedium,
-                          dialogTextStyle: context.text.bodyMedium,
-                          searchDecoration: const InputDecoration(
-                            hintText: 'Search country',
-                          ),
-                          builder: (code) => SizedBox(
-                            height: 32,
-                            child: Row(
-                              children: [
-                                if (code?.flagUri != null) ...[
-                                  Image.asset(
-                                    code!.flagUri!,
-                                    package: 'country_code_picker',
-                                    width: 20,
-                                  ),
-                                  AppSizes.hGapXs,
-                                ],
-                                Expanded(
-                                  child: Text(
-                                    code?.dialCode ?? '+91',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: context.text.bodyMedium,
-                                  ),
-                                ),
-                                const Icon(
-                                  Icons.arrow_drop_down,
-                                  size: AppSizes.iconSm,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                AppSizes.vGapSm,
-                SizedBox(
-                  width: double.infinity,
-                  child: AppTextField(
-                    controller: _phoneController,
-                    label: 'Mobile number',
-                    hint: 'Enter Mobile Number',
-                    keyboardType: TextInputType.phone,
-                    prefixIcon: Icons.phone_outlined,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(10),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            AppSizes.vGapMd,
-            Column(
-              children: [
-                if (item.isVerified) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => setState(() => _editingPhone = false),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                      ),
-                      child: const Text('Cancel'),
+                AppSizes.vGapXs,
+                InkWell(
+                  onTap: () => _showPhoneBottomSheet(item),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
                     ),
-                  ),
-                  AppSizes.vGapSm,
-                ],
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _submittingPhone
-                        ? null
-                        : () => _submitPhone(item),
-                    icon: _submittingPhone
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.check_circle_outline, size: 18),
-                    label: const Text('Submit'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.white,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.add_circle_outline,
+                          size: 14,
+                          color: AppColors.primary,
+                        ),
+                        AppSizes.hGapXs,
+                        Text(
+                          'Add',
+                          style: context.text.labelSmall?.copyWith(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1421,22 +1255,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
               ),
               AppSizes.vGapXs,
               InkWell(
-                onTap: () {
-                  String digits = item.value;
-                  if (digits.startsWith('+91')) {
-                    _countryCode = '+91';
-                    _countryIsoCode = 'IN';
-                    digits = digits.replaceAll('+91', '').trim();
-                  } else if (digits.contains(' ')) {
-                    final parts = digits.split(' ');
-                    if (parts.length >= 2) {
-                      _countryCode = parts[0];
-                      digits = parts.sublist(1).join(' ').trim();
-                    }
-                  }
-                  _phoneController.text = digits;
-                  setState(() => _editingPhone = true);
-                },
+                onTap: () => _showPhoneBottomSheet(item),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 4,
@@ -1469,96 +1288,499 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
     );
   }
 
+  void _showPhoneBottomSheet(VerificationItem item) {
+    String digits = item.value;
+    if (digits.startsWith('+91')) {
+      _countryCode = '+91';
+      _countryIsoCode = 'IN';
+      digits = digits.replaceAll('+91', '').trim();
+    } else if (digits.contains(' ')) {
+      final parts = digits.split(' ');
+      if (parts.length >= 2) {
+        _countryCode = parts[0];
+        digits = parts.sublist(1).join(' ').trim();
+      }
+    }
+    _phoneController.text = digits;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLg)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+                left: AppSizes.md,
+                right: AppSizes.md,
+                top: AppSizes.md,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Update Phone Number',
+                          style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    AppSizes.vGapMd,
+                    Text('Code', style: context.text.titleSmall),
+                    AppSizes.vGapSm,
+                    InputDecorator(
+                      decoration: const InputDecoration(
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: AppSizes.sm,
+                          vertical: AppSizes.md,
+                        ),
+                      ),
+                      child: CountryCodePicker(
+                        initialSelection: _countryIsoCode,
+                        onInit: (code) {
+                          if (code == null) return;
+                          _countryCode = code.dialCode ?? '+91';
+                          _countryIsoCode = code.code ?? 'IN';
+                        },
+                        onChanged: (code) {
+                          setSheetState(() {
+                            _countryCode = code.dialCode ?? '+91';
+                            _countryIsoCode = code.code ?? 'IN';
+                          });
+                        },
+                        favorite: const ['+91', 'IN'],
+                        showCountryOnly: false,
+                        showOnlyCountryWhenClosed: false,
+                        alignLeft: true,
+                        padding: EdgeInsets.zero,
+                        textStyle: context.text.bodyMedium,
+                        searchStyle: context.text.bodyMedium,
+                        dialogTextStyle: context.text.bodyMedium,
+                      ),
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
+                      controller: _phoneController,
+                      label: 'Mobile Number',
+                      hint: 'Enter Mobile Number',
+                      keyboardType: TextInputType.phone,
+                      prefixIcon: Icons.phone_outlined,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                    ),
+                    AppSizes.vGapMd,
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _submittingPhone
+                            ? null
+                            : () async {
+                                setSheetState(() => _submittingPhone = true);
+                                final success = await _submitPhone(item);
+                                if (mounted) {
+                                  setSheetState(() => _submittingPhone = false);
+                                  if (success) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        icon: _submittingPhone
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                              )
+                            : const Icon(Icons.check_circle_outline, size: 18),
+                        label: const Text('Submit'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.white,
+                        ),
+                      ),
+                    ),
+                    AppSizes.vGapLg,
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri != null && await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) context.showSnack('Could not open document', isError: true);
+    }
+  }
+
+  void _showDocumentBottomSheet(VerificationItem item, [IconData? icon]) {
+    final controller = TextEditingController();
+    if (item.value != 'Not submitted') controller.text = item.value;
+    final keysPresent = _items.map((i) => i.key).toSet();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLg)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final isSubmitting = _submittingItem && _submittingKey == item.key;
+            final chosenFileName = _selectedFileNames[item.key];
+
+            final submittedIdentityKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
+            
+            final availableIdentityOptions = Map.fromEntries(
+              _identityOptions.entries.where((e) => !submittedIdentityKeys.contains(e.key) || item.key == e.key)
+            );
+            if (!availableIdentityOptions.containsKey(_selectedIdentityKey) && availableIdentityOptions.isNotEmpty) {
+              _selectedIdentityKey = availableIdentityOptions.keys.first;
+            }
+
+            final submittedBusinessKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
+            final availableBusinessOptions = Map.fromEntries(
+              _businessProofOptions.entries.where((e) => !submittedBusinessKeys.contains(e.key) || item.key == e.key)
+            );
+            if (!availableBusinessOptions.containsKey(_selectedBusinessProofKey) && availableBusinessOptions.isNotEmpty) {
+              _selectedBusinessProofKey = availableBusinessOptions.keys.first;
+            }
+
+            final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
+            final isIdentityCard = item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key);
+            final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
+            final actualLabel = isBusinessCard ? (_businessProofOptions[actualKey] ?? item.label) : (isIdentityCard ? (_identityOptions[actualKey] ?? item.label) : item.label);
+
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.viewInsetsOf(context).bottom,
+                left: AppSizes.md,
+                right: AppSizes.md,
+                top: AppSizes.md,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Upload $actualLabel',
+                          style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    AppSizes.vGapMd,
+                    if (item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key) || item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key)) ...[
+                      if (isIdentityCard)
+                        DropdownButtonFormField<String>(
+                          value: _selectedIdentityKey,
+                          decoration: const InputDecoration(
+                            labelText: 'Document Type',
+                            prefixIcon: Icon(Icons.description_outlined),
+                          ),
+                          items: availableIdentityOptions.entries
+                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) setSheetState(() => _selectedIdentityKey = val);
+                          },
+                        ),
+                      if (isBusinessCard)
+                        DropdownButtonFormField<String>(
+                          value: _selectedBusinessProofKey,
+                          decoration: const InputDecoration(
+                            labelText: 'Document Type',
+                            prefixIcon: Icon(Icons.description_outlined),
+                          ),
+                          items: availableBusinessOptions.entries
+                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) setSheetState(() => _selectedBusinessProofKey = val);
+                          },
+                        ),
+                      AppSizes.vGapMd,
+                    ],
+                    Builder(
+                      builder: (context) {
+                        int? maxLength;
+                        TextInputType? keyboardType;
+                        String hintText = 'Enter document number';
+
+                        switch (actualKey) {
+                          case 'pan':
+                          case 'business_pan':
+                            maxLength = 10;
+                            hintText = 'e.g. ABCDE1234F';
+                            break;
+                          case 'aadhaar':
+                            maxLength = 14;
+                            keyboardType = TextInputType.number;
+                            hintText = 'e.g. 1234 5678 9012';
+                            break;
+                          case 'gst':
+                            maxLength = 15;
+                            hintText = '15-character GSTIN';
+                            break;
+                          case 'udyam':
+                            hintText = 'e.g. UDYAM-MH-18-0123456';
+                            break;
+                          case 'driving':
+                          case 'driving_licence':
+                            maxLength = 20;
+                            break;
+                          case 'incorporation':
+                          case 'company':
+                            maxLength = 25;
+                            break;
+                        }
+
+                        return AppTextField(
+                          controller: controller,
+                          label: '${actualLabel} Number',
+                          hint: hintText,
+                          prefixIcon: icon,
+                          keyboardType: keyboardType,
+                          maxLength: maxLength,
+                          textInputAction: TextInputAction.done,
+                        );
+                      }
+                    ),
+                    AppSizes.vGapMd,
+                    OutlinedButton.icon(
+                      onPressed: isSubmitting
+                          ? null
+                          : () async {
+                              final result = await FilePicker.platform.pickFiles(
+                                type: FileType.custom,
+                                allowedExtensions: ['pdf'],
+                              );
+                              if (result != null && result.files.isNotEmpty) {
+                                final file = result.files.first;
+                                setSheetState(() {
+                                  _selectedFilePaths[item.key] = file.path!;
+                                  _selectedFileNames[item.key] = file.name;
+                                });
+                                // Also update parent state
+                                setState(() {
+                                  _selectedFilePaths[item.key] = file.path!;
+                                  _selectedFileNames[item.key] = file.name;
+                                });
+                              }
+                            },
+                      icon: const Icon(Icons.upload_file_outlined),
+                      label: Text(chosenFileName ?? 'Choose pdf'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        alignment: Alignment.centerLeft,
+                      ),
+                    ),
+                    AppSizes.vGapLg,
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
+                                final isIdentityCard = item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key);
+                                final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
+                                
+                                final valueText = controller.text.trim();
+                                if (valueText.isEmpty) {
+                                  context.showSnack('Please enter document number', isError: true);
+                                  return;
+                                }
+
+                                final validationError = _validateDocument(actualKey, valueText);
+                                if (validationError != null) {
+                                  context.showSnack(validationError, isError: true);
+                                  return;
+                                }
+
+                                final path = _selectedFilePaths[item.key];
+                                if (path == null || path.isEmpty) {
+                                  context.showSnack('Please select a document to upload', isError: true);
+                                  return;
+                                }
+
+                                setSheetState(() {
+                                  _submittingItem = true;
+                                  _submittingKey = item.key;
+                                });
+                                // Call parent method
+                                final success = await _submitDocument(item, explicitValue: valueText);
+                                if (mounted) {
+                                  setSheetState(() {
+                                    _submittingItem = false;
+                                    _submittingKey = null;
+                                  });
+                                  if (success) {
+                                    Navigator.pop(context);
+                                  }
+                                }
+                              },
+                        icon: isSubmitting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                              )
+                            : const Icon(Icons.check_circle_outline, size: 18),
+                        label: const Text('Submit Document'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size.fromHeight(48),
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: AppColors.white,
+                        ),
+                      ),
+                    ),
+                    AppSizes.vGapLg,
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildItemCard(VerificationItem item) {
-    final icon = _iconForKey(item.key);
-    final chosenFileName = _selectedFileNames[item.key];
     final isSubmitting = _submittingItem && _submittingKey == item.key;
+    final icon = _iconForKey(item.key);
     final isEditing = _editingKeys.contains(item.key) || item.isMissing;
     final controller = _getController(item.key, item.value);
 
-    if (item.isVerified && !isEditing) {
-      return AppCard(
-        radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.sm),
-        child: Row(
+    // Determine colors
+    Color color;
+    if (item.isVerified) {
+      color = AppColors.success;
+    } else if (item.isPending) {
+      color = AppColors.warning;
+    } else {
+      color = AppColors.danger;
+    }
+
+    // Determine status text/icon
+    IconData statusIcon;
+    String statusText;
+    if (item.isVerified) {
+      statusIcon = Icons.check_circle_outline;
+      statusText = 'Verified';
+    } else if (item.isPending) {
+      statusIcon = Icons.hourglass_empty_rounded;
+      statusText = 'Pending';
+    } else {
+      statusIcon = Icons.error_outline;
+      statusText = 'Missing';
+    }
+
+    String subtitle = item.isPending
+        ? 'Submitted for review'
+        : (item.isVerified ? item.value : 'Please upload your ${item.label}.');
+
+    return AppCard(
+      radius: AppSizes.radiusMd,
+      padding: const EdgeInsets.all(AppSizes.sm),
+      child: _compactCardHeader(
+        icon: icon,
+        color: color,
+        title: item.label,
+        subtitle: subtitle,
+        status: Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.success.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.success),
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.label,
-                    style: context.text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (item.value.isNotEmpty)
-                    Text(
-                      item.value,
-                      style: context.text.bodySmall?.copyWith(
-                        color: AppColors.mutedText,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                ],
-              ),
-            ),
-            AppSizes.hGapSm,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.check_circle_outline,
-                      color: AppColors.success,
-                      size: 16,
-                    ),
-                    AppSizes.hGapXs,
-                    Text(
-                      'Done',
-                      style: context.text.labelMedium?.copyWith(
-                        color: AppColors.success,
-                        fontWeight: FontWeight.w700,
+                Icon(statusIcon, color: color, size: 16),
+                AppSizes.hGapXs,
+                Text(
+                  statusText,
+                  style: context.text.labelSmall?.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+            AppSizes.vGapXs,
+            // Action Buttons Row
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (item.documentUrl != null && item.documentUrl!.isNotEmpty) ...[
+                  InkWell(
+                    onTap: () => _launchUrl(item.documentUrl!),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.visibility_outlined, size: 14, color: AppColors.primary),
+                          AppSizes.hGapXs,
+                          Text(
+                            'View',
+                            style: context.text.labelSmall?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-                AppSizes.vGapXs,
+                  ),
+                  AppSizes.hGapSm,
+                ],
                 InkWell(
-                  onTap: () {
-                    controller.text = item.value == 'Not submitted'
-                        ? ''
-                        : item.value;
-                    setState(() => _editingKeys.add(item.key));
-                  },
+                  onTap: isSubmitting ? null : () => _showDocumentBottomSheet(item),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
-                          Icons.upload_outlined,
+                        Icon(
+                          item.isPending || item.isVerified
+                              ? Icons.edit_outlined
+                              : Icons.add_circle_outline,
                           size: 14,
                           color: AppColors.primary,
                         ),
                         AppSizes.hGapXs,
                         Text(
-                          'Change',
+                          item.isPending || item.isVerified ? 'Change' : 'Add',
                           style: context.text.labelSmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
@@ -1572,239 +1794,6 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
             ),
           ],
         ),
-      );
-    }
-
-    if (item.isPending && !isEditing) {
-      return AppCard(
-        radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.sm),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.warning),
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.label,
-                    style: context.text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    item.value.isNotEmpty ? item.value : 'Submitted for review',
-                    style: context.text.bodySmall?.copyWith(
-                      color: AppColors.mutedText,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            AppSizes.hGapSm,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.hourglass_empty_rounded,
-                      color: AppColors.warning,
-                      size: 16,
-                    ),
-                    AppSizes.hGapXs,
-                    Text(
-                      'Pending',
-                      style: context.text.labelMedium?.copyWith(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                AppSizes.vGapXs,
-                InkWell(
-                  onTap: isSubmitting ? null : () => _deleteItem(item),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.delete_outline,
-                          size: 14,
-                          color: AppColors.danger,
-                        ),
-                        AppSizes.hGapXs,
-                        Text(
-                          'Delete',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    // Status: Missing or Editing
-    return AppCard(
-      radius: AppSizes.radiusMd,
-      padding: const EdgeInsets.all(AppSizes.sm),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color:
-                      (item.isVerified
-                              ? AppColors.success
-                              : (item.isPending
-                                    ? AppColors.warning
-                                    : AppColors.danger))
-                          .withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: item.isVerified
-                      ? AppColors.success
-                      : (item.isPending ? AppColors.warning : AppColors.danger),
-                ),
-              ),
-              AppSizes.hGapMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.label,
-                      style: context.text.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      'Please enter details & upload your ${item.label}.',
-                      style: context.text.bodySmall?.copyWith(
-                        color: AppColors.mutedText,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              AppSizes.hGapSm,
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    item.isVerified
-                        ? Icons.check_circle_outline
-                        : (item.isPending
-                              ? Icons.hourglass_empty_rounded
-                              : Icons.error_outline),
-                    color: item.isVerified
-                        ? AppColors.success
-                        : (item.isPending
-                              ? AppColors.warning
-                              : AppColors.danger),
-                    size: 16,
-                  ),
-                  AppSizes.hGapXs,
-                  if (MediaQuery.sizeOf(context).width >= 600)
-                    Text(
-                      item.isVerified
-                          ? 'Verified'
-                          : (item.isPending ? 'Pending' : 'Not verified'),
-                      style: context.text.labelSmall?.copyWith(
-                        color: item.isVerified
-                            ? AppColors.success
-                            : (item.isPending
-                                  ? AppColors.warning
-                                  : AppColors.danger),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
-              ),
-            ],
-          ),
-          AppSizes.vGapMd,
-          AppTextField(
-            controller: controller,
-            label: item.label,
-            hint: 'Enter ${item.label}',
-            prefixIcon: icon,
-            textInputAction: TextInputAction.next,
-          ),
-          AppSizes.vGapMd,
-          OutlinedButton.icon(
-            onPressed: isSubmitting ? null : () => _pickFile(item.key),
-            icon: const Icon(Icons.upload_file_outlined),
-            label: Text(
-              chosenFileName ?? 'Choose file',
-              overflow: TextOverflow.ellipsis,
-            ),
-            style: OutlinedButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-              side: const BorderSide(color: AppColors.border),
-            ),
-          ),
-          AppSizes.vGapMd,
-          Column(
-            children: [
-              if (item.isVerified || item.isPending) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: () =>
-                        setState(() => _editingKeys.remove(item.key)),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                AppSizes.vGapSm,
-              ],
-              SizedBox(
-                width: double.infinity,
-                child: AppPrimaryButton(
-                  label: 'Submit',
-                  icon: Icons.check_circle_outline,
-                  isLoading: isSubmitting,
-                  onPressed: (isSubmitting || chosenFileName == null)
-                      ? null
-                      : () => _submitDocument(item),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

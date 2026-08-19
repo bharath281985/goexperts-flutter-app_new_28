@@ -61,7 +61,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   final _hourlyRateController = TextEditingController();
 
   // Step 3 Skills
-  List<String> _selectedIndustries = [];
+  String? _selectedIndustry;
   List<String> _selectedSkills = [];
 
   // Step 4 Experience
@@ -143,7 +143,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     _githubController.text = fields['githubUrl']?.toString() ?? '';
     _linkedinController.text = fields['linkedInUrl']?.toString() ?? '';
     _experienceLevel = fields['experienceLevel']?.toString();
-    _selectedIndustries = _stringList(fields['industry']);
+    final restoredIndustries = _stringList(fields['industry']);
+    _selectedIndustry = restoredIndustries.isNotEmpty
+        ? restoredIndustries.first
+        : fields['industry']?.toString();
     _selectedSkills = _stringList(fields['skills']);
     _selectedWorkModes = _stringList(fields['workMode']);
   }
@@ -190,7 +193,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     'portfolioUrl': _portfolioController.text.trim(),
     'linkedInUrl': _linkedinController.text.trim(),
     'githubUrl': _githubController.text.trim(),
-    'industry': _selectedIndustries,
+    'industry': _selectedIndustry == null ? [] : [_selectedIndustry],
     'skills': _selectedSkills.map((name) {
       final option = _skillsMap[name];
       final skillId =
@@ -312,9 +315,9 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
 
   Future<List<SkillOption>> _fetchSkillsApi({String? query}) async {
     String? industryId;
-    if (_selectedIndustries.isNotEmpty && _availableIndustries.isNotEmpty) {
+    if (_selectedIndustry != null && _availableIndustries.isNotEmpty) {
       final match = _availableIndustries.firstWhere(
-        (ind) => ind.name == _selectedIndustries.first,
+        (ind) => ind.name == _selectedIndustry,
         orElse: () => const SkillCategory(id: '', name: ''),
       );
       if (match.id.isNotEmpty) {
@@ -396,6 +399,14 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       await _saveProgress(3);
       setState(() => _currentStep = 3);
     } else if (_currentStep == 3) {
+      if (_selectedIndustry == null) {
+        showSignupTopMessage(
+          context,
+          'Please select an Industry',
+          isSuccess: false,
+        );
+        return;
+      }
       if (!await _submitDraft(step: 3)) return;
       await _saveProgress(4);
       setState(() => _currentStep = 4);
@@ -556,13 +567,14 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       case 3:
         return Column(
           children: [
-            SignupMultiSelectSheet(
-              label: 'Industry',
-              selectedItems: _selectedIndustries,
-              availableOptions: _industries,
-              minSelection: 1,
-              onChanged: (items) {
-                setState(() => _selectedIndustries = items);
+            AppDropdown<String>(
+              label: 'Industry *',
+              hint: 'Select Industry',
+              value: _selectedIndustry,
+              items: _industries,
+              itemLabel: (value) => value,
+              onChanged: (val) {
+                setState(() => _selectedIndustry = val);
                 _persistCurrentProgress();
                 _fetchSkillsApi().then((skills) {
                   if (!mounted) return;

@@ -57,7 +57,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   String? _selectedState;
 
   // Step 3 Profile
-  final _jobRoleController = TextEditingController();
+  String? _selectedJobRole;
   List<String> _selectedHiringGoals = [];
 
   // Step 4 Team (Optional)
@@ -71,6 +71,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   List<String> _budgetRanges = [];
   List<String> _countries = [];
   List<String> _states = [];
+  List<String> _designations = [];
 
   @override
   void initState() {
@@ -93,7 +94,6 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       _cityController,
       _businessNameController,
       _companySiteController,
-      _jobRoleController,
     ]) {
       controller.addListener(_persistCurrentProgress);
     }
@@ -136,7 +136,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         ? restoredIndustries.first
         : fields['industry']?.toString();
     _selectedCompanySize = fields['companySize']?.toString();
-    _jobRoleController.text = fields['jobRole']?.toString() ?? '';
+    final restoredJobRole = fields['jobRole']?.toString();
+    _selectedJobRole = restoredJobRole != null && restoredJobRole.isNotEmpty ? restoredJobRole : null;
     _selectedHiringGoals = _stringList(fields['hiringGoal']);
     _selectedTeamSize = fields['currentTeam']?.toString();
     _selectedBudgetRange = fields['projectHireBudget']?.toString();
@@ -162,7 +163,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     'projectHireBudget': _selectedBudgetRange,
     'projectHireBudgetId': _selectedBudgetRange,
     'industry': _selectedIndustry == null ? [] : [_selectedIndustry],
-    'jobRole': _jobRoleController.text.trim(),
+    'jobRole': _selectedJobRole ?? '',
     'hiringGoal': _selectedHiringGoals,
     'hiringGoalIds': _selectedHiringGoals,
   };
@@ -216,6 +217,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     final hgRes = await repo.getHiringGoals();
     final budgetRes = await repo.getHiringBudgetRanges();
     final cRes = await repo.getCountries();
+    final desigRes = await repo.getDesignations();
 
     if (!mounted) return;
     setState(() {
@@ -225,23 +227,17 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       if (csRes.isSuccess && csRes.valueOrNull!.isNotEmpty) {
         _companySizes = csRes.valueOrNull!;
       }
+      if (desigRes.isSuccess && desigRes.valueOrNull!.isNotEmpty) {
+        _designations = desigRes.valueOrNull!.toSet().toList();
+      }
       if (hgRes.isSuccess && hgRes.valueOrNull!.isNotEmpty) {
-        _hiringGoals = hgRes.valueOrNull!;
+        _hiringGoals = hgRes.valueOrNull!.toSet().toList();
       }
       if (budgetRes.isSuccess && budgetRes.valueOrNull!.isNotEmpty) {
         _budgetRanges = budgetRes.valueOrNull!;
       }
       if (cRes.isSuccess && cRes.valueOrNull!.isNotEmpty) {
         _countries = cRes.valueOrNull!;
-      }
-
-      if (_hiringGoals.isEmpty) {
-        _hiringGoals = [
-          'Hire freelancers',
-          'Build project team',
-          'Consult experts',
-          'Long-term hiring',
-        ];
       }
     });
   }
@@ -476,10 +472,21 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       case 3:
         return Column(
           children: [
-            AppTextField(
-              controller: _jobRoleController,
+            AppDropdown<String>(
               label: 'Job Role',
-              hint: 'Enter Job Role',
+              hint: 'Select Job Role',
+              value: _selectedJobRole,
+              items: _designations,
+              itemLabel: (value) => value,
+              onTap: () {
+                if (_designations.isEmpty) {
+                  _loadMasterData();
+                }
+              },
+              onChanged: (val) {
+                setState(() => _selectedJobRole = val);
+                _persistCurrentProgress();
+              },
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
@@ -487,6 +494,11 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               selectedItems: _selectedHiringGoals,
               availableOptions: _hiringGoals,
               minSelection: 1,
+              onTap: () {
+                if (_hiringGoals.isEmpty) {
+                  _loadMasterData();
+                }
+              },
               onChanged: (items) {
                 setState(() => _selectedHiringGoals = items);
                 _persistCurrentProgress();

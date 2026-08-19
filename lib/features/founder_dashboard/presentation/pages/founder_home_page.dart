@@ -15,6 +15,7 @@ import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
+import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../meetings/domain/entities/meeting.dart';
 
 class FounderHomePage extends StatelessWidget {
@@ -50,6 +51,19 @@ class FounderHomePage extends StatelessWidget {
                       ),
                     ),
                     _buildHeroBanner(context, state),
+                    if (state.shouldShowVerificationPrompt) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.screenPadding,
+                        ),
+                        child: VerificationPromptCard(
+                          missingCount: state.verificationMissingCount,
+                          accountVerified: state.accountVerified,
+                          route: Routes.founderVerification,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     _buildActionButtons(context),
                     Padding(
                       padding: const EdgeInsets.symmetric(

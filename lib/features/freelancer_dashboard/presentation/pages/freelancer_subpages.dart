@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -29,6 +30,7 @@ import '../../../../core/widgets/catalog_view.dart';
 import '../../../../core/widgets/category_skills_picker.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/icon_widget.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/widgets/signup_multi_select_sheet.dart';
 import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
@@ -250,6 +252,8 @@ class _FreelancerCertificatesPageState
       (_) {
         setState(() => _saving = false);
         context.showSnack(successMessage);
+        // Certificates aren't an AppUser field — re-fetch /me to sync cache.
+        context.read<AuthBloc>().add(const AuthRefreshUser());
       },
     );
   }
@@ -1667,7 +1671,18 @@ class _FreelancerSkillsPageState extends State<FreelancerSkillsPage> {
     setState(() => _saving = false);
     res.fold(
       (f) => context.showSnack(f.message, isError: true),
-      (_) => context.showSnack('Skills saved'),
+      (_) {
+        context.showSnack('Skills saved');
+        // skillIds is an AppUser field — patch cache directly, no round-trip.
+        final current = context.read<AuthBloc>().state.user;
+        if (current != null) {
+          context.read<AuthBloc>().add(
+            AuthUserUpdated(
+              current.copyWith(skillIds: _selectedSkillIds.toList()),
+            ),
+          );
+        }
+      },
     );
   }
 
@@ -2628,6 +2643,8 @@ class _FreelancerEducationPageState extends State<FreelancerEducationPage> {
       (_) {
         setState(() => _saving = false);
         context.showSnack(successMessage);
+        // Education isn't an AppUser field — re-fetch /me to sync cache.
+        context.read<AuthBloc>().add(const AuthRefreshUser());
       },
     );
   }

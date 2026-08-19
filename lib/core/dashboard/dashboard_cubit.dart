@@ -140,8 +140,58 @@ class DashboardState extends Equatable {
     return [];
   }
 
+  String get debugKeys => dashboardData.keys.toString();
+
   String get investorStartupsFollowing =>
       (dashboardData['watchlistCount'] ?? 0).toString();
+
+  dynamic _dashboardValue(String camelKey, [String? snakeKey]) {
+    dynamic readFrom(Map<dynamic, dynamic> source) =>
+        source[camelKey] ?? (snakeKey == null ? null : source[snakeKey]);
+
+    final directValue = readFrom(dashboardData);
+    if (directValue != null) return directValue;
+
+    for (final nestedKey in const [
+      'data',
+      'profile',
+      'dashboard',
+      'freelancerDetails',
+      'founderDetails',
+      'investorDetails',
+    ]) {
+      final nested = dashboardData[nestedKey];
+      if (nested is Map) {
+        final nestedValue = readFrom(nested);
+        if (nestedValue != null) return nestedValue;
+      }
+    }
+
+    return null;
+  }
+
+  int get verificationMissingCount {
+    var value = _dashboardValue(
+      'verificationMissingCount',
+      'verification_missing_count',
+    );
+    print("verificationMissingCount value inside getter: $value");
+  
+    if (value is num) return value.toInt();
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  
+
+  bool get accountVerified {
+    final value = _dashboardValue('accountVerified', 'account_verified');
+    if (value is bool) return value;
+    return value?.toString().toLowerCase() == 'true';
+  }
+  
+
+  bool get shouldShowVerificationPrompt =>
+      verificationMissingCount > 0 || accountVerified == false;
 
   // --- Founder Dashboard Getters ---
   String get founderProfileStrength =>
@@ -363,7 +413,11 @@ class DashboardCubit extends Cubit<DashboardState> {
 
           final chartList = summaryData['charts']?['portfolioGrowth'] as List?;
           final chart =
-              chartList?.map((e) => (e as num?)?.toDouble() ?? 0).toList() ??
+              chartList?.map((e) {
+                if (e is num) return e.toDouble();
+                if (e is Map) return (e['amount'] as num?)?.toDouble() ?? 0.0;
+                return 0.0;
+              }).toList() ??
               const <double>[];
 
           final recommendedList =
@@ -476,6 +530,11 @@ class DashboardCubit extends Cubit<DashboardState> {
                 (summaryData['unreadMessages'] as num?)?.toInt() ?? 0,
             dashboardData: summaryData as Map<String, dynamic>,
           );
+          print("================ DEBUG DASHBOARD ==================");
+          print("dashboardData keys: ${next.dashboardData.keys}");
+          print("verificationMissingCount in data: ${next.dashboardData['verificationMissingCount']}");
+          print("accountVerified in data: ${next.dashboardData['accountVerified']}");
+          print("===================================================");
         });
       }
 

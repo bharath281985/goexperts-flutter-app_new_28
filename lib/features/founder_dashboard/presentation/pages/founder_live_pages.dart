@@ -73,7 +73,37 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   @override
   void initState() {
     super.initState();
+    // Pre-fill instantly from the locally cached AuthBloc user
+    // so the user sees data immediately before _load() finishes.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prefillFromCachedUser());
     _load();
+  }
+
+  void _prefillFromCachedUser() {
+    if (!mounted) return;
+    final user = context.read<AuthBloc>().state.user;
+    if (user == null) return;
+
+    if (user.fullName.isNotEmpty && _fullName.text.isEmpty) {
+      _fullName.text = user.fullName;
+    }
+    if ((user.headline?.isNotEmpty == true) && _bio.text.isEmpty) {
+      _bio.text = user.headline!;
+    }
+    if ((user.location?.isNotEmpty == true) && _city.text.isEmpty) {
+      final parts = user.location!.split(',');
+      _city.text = parts.first.trim();
+    }
+    // Pre-fill industry display from cached id so dropdown shows something
+    final cachedIndustryId = user.industryId ?? user.categoryId;
+    if (cachedIndustryId != null &&
+        cachedIndustryId.isNotEmpty &&
+        _selectedIndustry == null) {
+      setState(() {
+        _selectedIndustry = MasterOption(id: cachedIndustryId, name: cachedIndustryId);
+        _industryDisplayController.text = cachedIndustryId;
+      });
+    }
   }
 
   @override
@@ -199,6 +229,21 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
             _selectedIndustry = MasterOption(id: iId, name: iName);
             _industryDisplayController.text = iName;
           }
+        } else if (rawIndustry is List && rawIndustry.isNotEmpty) {
+          // industry returned as an array — pick first element
+          final first = rawIndustry.first;
+          if (first is Map) {
+            final indMap = Map<String, dynamic>.from(first);
+            final iId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
+            final iName = (indMap['name'] ?? indMap['label'])?.toString() ?? iId;
+            if (iId.isNotEmpty) {
+              _selectedIndustry = MasterOption(id: iId, name: iName);
+              _industryDisplayController.text = iName;
+            }
+          } else if (first is String && first.isNotEmpty) {
+            _selectedIndustry = MasterOption(id: first, name: first);
+            _industryDisplayController.text = first;
+          }
         } else if (rawIndustry is String) {
           final iStr = rawIndustry.toString();
           if (iStr.isNotEmpty) {
@@ -317,6 +362,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       }
       if (_industries.isNotEmpty) {
         _selectedIndustry = _matchOption(_selectedIndustry, _industries);
+        if (_selectedIndustry != null) {
+          // Always update with the proper name from master data
+          _industryDisplayController.text = _selectedIndustry!.name;
+        }
       }
       if (_stages.isNotEmpty) {
         _selectedStage = _matchOption(_selectedStage, _stages);
@@ -332,6 +381,11 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           _selectedPrimaryGoal,
           _founderGoals,
         );
+        // Also update goal display text if it wasn't set during load
+        if (_selectedFounderGoalIds.isNotEmpty &&
+            _primaryGoalDisplayController.text.isEmpty) {
+          _updateFounderGoalsDisplayText();
+        }
       }
     });
   }
@@ -594,7 +648,34 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           res.valueOrNull?['message']?.toString() ??
           'Founder profile updated successfully';
       context.showSnack(msg);
-      context.read<AuthBloc>().add(const AuthRefreshUser());
+      // Patch the cached user locally — no extra /me round-trip needed.
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null) {
+        final city = _city.text.trim();
+        final country = _selectedCountry?.name ?? '';
+        final locationParts = [city, country]
+            .where((s) => s.isNotEmpty)
+            .toList();
+        final industryId = _selectedIndustry?.id ?? current.industryId;
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(
+            current.copyWith(
+              fullName: fullName.isNotEmpty ? fullName : null,
+              headline: _pitch.text.trim().isNotEmpty
+                  ? _pitch.text.trim()
+                  : _bio.text.trim().isNotEmpty
+                  ? _bio.text.trim()
+                  : null,
+              location: locationParts.isNotEmpty
+                  ? locationParts.join(', ')
+                  : null,
+              avatarUrl: (_avatarUrl?.isNotEmpty == true) ? _avatarUrl : null,
+              industryId: industryId,
+              categoryId: industryId,
+            ),
+          ),
+        );
+      }
       // Stay on page and refresh data
       await _load();
     } else {
@@ -628,7 +709,13 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           _avatarUrl = url;
           _localAvatarPath = null;
         });
-        context.read<AuthBloc>().add(const AuthRefreshUser());
+        // Patch only the avatar in the cached user.
+        final current = context.read<AuthBloc>().state.user;
+        if (current != null) {
+          context.read<AuthBloc>().add(
+            AuthUserUpdated(current.copyWith(avatarUrl: url)),
+          );
+        }
       },
     );
   }

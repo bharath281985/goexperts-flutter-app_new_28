@@ -551,7 +551,33 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           res.valueOrNull?['message']?.toString() ??
           'Company profile updated successfully';
       context.showSnack(msg);
-      context.read<AuthBloc>().add(const AuthRefreshUser());
+      // Patch the cached user locally — no extra /me round-trip needed.
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null) {
+        final city = _city.text.trim();
+        final country = _selectedCountry?.name ?? '';
+        final locationParts = [city, country]
+            .where((s) => s.isNotEmpty)
+            .toList();
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(
+            current.copyWith(
+              fullName: _name.text.trim().isNotEmpty
+                  ? _name.text.trim()
+                  : null,
+              headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
+              location: locationParts.isNotEmpty
+                  ? locationParts.join(', ')
+                  : null,
+              categoryId: _selectedCategoryId,
+              industryId: _selectedCategoryId,
+              avatarUrl: (uploadedAvatarUrl?.isNotEmpty == true)
+                  ? uploadedAvatarUrl
+                  : null,
+            ),
+          ),
+        );
+      }
       // Stay on page and refresh data
       await _load();
     } else {

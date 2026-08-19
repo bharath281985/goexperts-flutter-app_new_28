@@ -16,6 +16,7 @@ import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 
 class InvestorHomePage extends StatelessWidget {
@@ -51,6 +52,19 @@ class InvestorHomePage extends StatelessWidget {
                       ),
                     ),
                     _buildTopHeader(context, state),
+                    if (state.shouldShowVerificationPrompt || true) ...[
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSizes.screenPadding,
+                        ),
+                        child: VerificationPromptCard(
+                          missingCount: state.verificationMissingCount,
+                          accountVerified: state.accountVerified,
+                          route: Routes.investorVerification,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     _buildActionButtons(context),
                     Padding(
                       padding: const EdgeInsets.symmetric(

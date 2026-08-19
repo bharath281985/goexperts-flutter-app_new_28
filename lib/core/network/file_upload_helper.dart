@@ -23,7 +23,7 @@ class FileUploadHelper {
     required String path,
     required String endpoint,
     String fileField = 'file',
-    String method = 'put',
+    String method = 'post',
     Map<String, dynamic>? fields,
     void Function(int sent, int total)? onProgress,
   }) async {
@@ -99,7 +99,7 @@ class FileUploadHelper {
     required String path,
     required String endpoint,
     String fileField = 'file',
-    String method = 'put',
+    String method = 'post',
     Map<String, dynamic>? fields,
     void Function(int sent, int total)? onProgress,
   }) async {

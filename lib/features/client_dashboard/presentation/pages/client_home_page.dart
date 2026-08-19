@@ -14,6 +14,7 @@ import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/app_segmented_tabs.dart';
+import '../../../../core/widgets/verification_prompt_card.dart';
 
 class ClientHomePage extends StatelessWidget {
   const ClientHomePage({super.key});
@@ -57,6 +58,14 @@ class ClientHomePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (state.shouldShowVerificationPrompt) ...[
+                        VerificationPromptCard(
+                          missingCount: state.verificationMissingCount,
+                          accountVerified: state.accountVerified,
+                          route: Routes.clientVerification,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
                       _buildQuickActions(context),
                       const SizedBox(height: 24),
                       _buildMetricsGrid(context, state),

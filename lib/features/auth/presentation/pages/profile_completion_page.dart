@@ -202,9 +202,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       if (userMap['profile'] is Map) {
         final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
 
-        final compVal = (pMap['company'] ?? pMap['firm'])?.toString();
+        final compVal = (pMap['company'] ?? pMap['firm'] ?? pMap['startupName'])?.toString();
         if (compVal != null && compVal.isNotEmpty) {
           _company.text = compVal;
+        }
+
+        final pitchVal = pMap['pitch']?.toString();
+        if (pitchVal != null && pitchVal.isNotEmpty) {
+          _pitch.text = pitchVal;
         }
 
         final headlineVal =
@@ -232,6 +237,77 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         if (tMax != null) {
           _ticketMax.text = tMax.toString();
           _rawTicketMax = num.tryParse(tMax.toString());
+        }
+
+        final raiseVal = pMap['targetRaise'] ?? pMap['target_raise'];
+        if (raiseVal != null) {
+          _targetRaise.text = raiseVal.toString();
+        }
+
+        if (pMap['stageId'] is Map) {
+          final sMap = Map<String, dynamic>.from(pMap['stageId'] as Map);
+          final sId = (sMap['id'] ?? sMap['_id'])?.toString() ?? '';
+          final sName = (sMap['name'] ?? sMap['label'])?.toString() ?? sId;
+          if (sId.isNotEmpty && sName.isNotEmpty) {
+            _selectedFounderStage = MasterOption(id: sId, name: sName);
+          }
+        } else if (pMap['stage'] is Map) {
+          final sMap = Map<String, dynamic>.from(pMap['stage'] as Map);
+          final sId = (sMap['id'] ?? sMap['_id'])?.toString() ?? '';
+          final sName = (sMap['name'] ?? sMap['label'])?.toString() ?? sId;
+          if (sId.isNotEmpty && sName.isNotEmpty) {
+            _selectedFounderStage = MasterOption(id: sId, name: sName);
+          }
+        } else if (pMap['stageId'] is String && pMap['stageId'].toString().isNotEmpty) {
+          final sId = pMap['stageId'].toString();
+          _selectedFounderStage = MasterOption(id: sId, name: sId);
+        } else if (pMap['stage'] is String && pMap['stage'].toString().isNotEmpty) {
+          final sId = pMap['stage'].toString();
+          _selectedFounderStage = MasterOption(id: sId, name: sId);
+        }
+
+        if (pMap['founderRoleId'] is Map) {
+          final rMap = Map<String, dynamic>.from(pMap['founderRoleId'] as Map);
+          final rId = (rMap['id'] ?? rMap['_id'])?.toString() ?? '';
+          final rName = (rMap['name'] ?? rMap['label'])?.toString() ?? rId;
+          if (rId.isNotEmpty && rName.isNotEmpty) {
+            _selectedFounderRole = MasterOption(id: rId, name: rName);
+          }
+        } else if (pMap['founderRole'] is Map) {
+          final rMap = Map<String, dynamic>.from(pMap['founderRole'] as Map);
+          final rId = (rMap['id'] ?? rMap['_id'])?.toString() ?? '';
+          final rName = (rMap['name'] ?? rMap['label'])?.toString() ?? rId;
+          if (rId.isNotEmpty && rName.isNotEmpty) {
+            _selectedFounderRole = MasterOption(id: rId, name: rName);
+          }
+        } else if (pMap['founderRoleId'] is String && pMap['founderRoleId'].toString().isNotEmpty) {
+          final rId = pMap['founderRoleId'].toString();
+          _selectedFounderRole = MasterOption(id: rId, name: rId);
+        } else if (pMap['founderRole'] is String && pMap['founderRole'].toString().isNotEmpty) {
+          final rId = pMap['founderRole'].toString();
+          _selectedFounderRole = MasterOption(id: rId, name: rId);
+        }
+
+        if (pMap['teamSizeId'] is Map) {
+          final tMap = Map<String, dynamic>.from(pMap['teamSizeId'] as Map);
+          final tId = (tMap['id'] ?? tMap['_id'])?.toString() ?? '';
+          final tName = (tMap['name'] ?? tMap['label'])?.toString() ?? tId;
+          if (tId.isNotEmpty && tName.isNotEmpty) {
+            _selectedTeamSize = MasterOption(id: tId, name: tName);
+          }
+        } else if (pMap['teamSize'] is Map) {
+          final tMap = Map<String, dynamic>.from(pMap['teamSize'] as Map);
+          final tId = (tMap['id'] ?? tMap['_id'])?.toString() ?? '';
+          final tName = (tMap['name'] ?? tMap['label'])?.toString() ?? tId;
+          if (tId.isNotEmpty && tName.isNotEmpty) {
+            _selectedTeamSize = MasterOption(id: tId, name: tName);
+          }
+        } else if (pMap['teamSizeId'] is String && pMap['teamSizeId'].toString().isNotEmpty) {
+          final tId = pMap['teamSizeId'].toString();
+          _selectedTeamSize = MasterOption(id: tId, name: tId);
+        } else if (pMap['teamSize'] is String && pMap['teamSize'].toString().isNotEmpty) {
+          final tId = pMap['teamSize'].toString();
+          _selectedTeamSize = MasterOption(id: tId, name: tId);
         }
 
         if (pMap['investorTypeId'] is Map) {
@@ -319,6 +395,42 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             if (indName != null && indName.isNotEmpty) {
               _categoryDisplayController.text = indName;
             }
+            // Also populate founder industry field
+            _selectedFounderIndustry = MasterOption(
+              id: indId,
+              name: indName ?? indId,
+            );
+            _founderIndustryDisplayController.text = indName ?? indId;
+          }
+        } else if (pMap['industry'] is List) {
+          // industry stored as array
+          final indList = pMap['industry'] as List;
+          if (indList.isNotEmpty) {
+            final first = indList.first;
+            if (first is Map) {
+              final indId = (first['id'] ?? first['_id'])?.toString() ?? '';
+              final indName = (first['name'] ?? first['label'])?.toString() ?? indId;
+              if (indId.isNotEmpty) {
+                _selectedCategoryId = indId;
+                _selectedFounderIndustry = MasterOption(id: indId, name: indName);
+                _categoryDisplayController.text = indName;
+                _founderIndustryDisplayController.text = indName;
+              }
+            } else if (first is String && first.isNotEmpty) {
+              _selectedCategoryId = first;
+              _selectedFounderIndustry = MasterOption(id: first, name: first);
+              _founderIndustryDisplayController.text = first;
+            }
+          }
+        } else if (pMap['industry'] is Map) {
+          final indMap = Map<String, dynamic>.from(pMap['industry'] as Map);
+          final indId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
+          final indName = (indMap['name'] ?? indMap['label'])?.toString() ?? indId;
+          if (indId.isNotEmpty) {
+            _selectedCategoryId = indId;
+            _selectedFounderIndustry = MasterOption(id: indId, name: indName);
+            _categoryDisplayController.text = indName;
+            _founderIndustryDisplayController.text = indName;
           }
         }
 
@@ -376,13 +488,36 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           _selectedFounderGoalIds.add(pgStr);
           _primaryGoalDisplayController.text = pgStr;
         }
+
+        if (pMap['hiringGoalId'] is List) {
+          final hgList = pMap['hiringGoalId'] as List;
+          final names = <String>[];
+          _selectedHiringGoalIds.clear();
+          for (final goal in hgList) {
+            if (goal is Map) {
+              final gid = (goal['id'] ?? goal['_id'])?.toString();
+              final gname = (goal['name'] ?? goal['label'])?.toString();
+              if (gid != null && gid.isNotEmpty) {
+                _selectedHiringGoalIds.add(gid);
+              }
+              if (gname != null && gname.isNotEmpty) names.add(gname);
+            } else if (goal is String && goal.isNotEmpty) {
+              _selectedHiringGoalIds.add(goal);
+              names.add(goal);
+            }
+          }
+          if (names.isNotEmpty) {
+            _hiringGoalsDisplayController.text = names.join(', ');
+          }
+        }
       }
       _matchAllDropdowns();
     } catch (_) {}
   }
 
   MasterOption? _matchOption(MasterOption? current, List<MasterOption> list) {
-    if (current == null || list.isEmpty) return null;
+    if (current == null) return null;
+    if (list.isEmpty) return current;
     for (final item in list) {
       if (item == current) return item;
       if (current.id.isNotEmpty && item.id == current.id) return item;
@@ -391,7 +526,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         return item;
       }
     }
-    return null;
+    return current;
   }
 
   void _matchAllDropdowns() {
@@ -478,6 +613,9 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           _selectedFounderIndustry,
           _focusAreaOptions,
         );
+        if (_selectedFounderIndustry != null) {
+          _founderIndustryDisplayController.text = _selectedFounderIndustry!.name;
+        }
       }
     });
   }
@@ -1451,24 +1589,40 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 _ticketMax.text.trim(),
         },
       } else if (role == UserRole.founder) ...{
-        if (_company.text.trim().isNotEmpty)
+        if (_company.text.trim().isNotEmpty) ...{
           'startupName': _company.text.trim(),
+          'companyName': _company.text.trim(),
+        },
         if (_pitch.text.trim().isNotEmpty) 'pitch': _pitch.text.trim(),
-        if (_selectedFounderIndustry != null)
+        if (_selectedFounderIndustry != null) ...{
           'industryId': _selectedFounderIndustry!.id,
-        if (_selectedFounderStage != null) 'stageId': _selectedFounderStage!.id,
-        if (_selectedFounderRole != null)
+          'industry': [_selectedFounderIndustry!.id],
+        },
+        if (_selectedFounderStage != null) ...{
+          'stageId': _selectedFounderStage!.id,
+          'stage': _selectedFounderStage!.id,
+        },
+        if (_selectedFounderRole != null) ...{
           'founderRoleId': _selectedFounderRole!.id,
-        if (_selectedTeamSize != null) 'teamSizeId': _selectedTeamSize!.id,
-        if (_selectedFounderGoalIds.isNotEmpty)
+          'founderRole': _selectedFounderRole!.id,
+        },
+        if (_selectedTeamSize != null) ...{
+          'teamSizeId': _selectedTeamSize!.id,
+          'teamSize': _selectedTeamSize!.id,
+        },
+        if (_selectedFounderGoalIds.isNotEmpty) ...{
           'primaryGoalId': _selectedFounderGoalIds.toList(),
-        if (_targetRaise.text.trim().isNotEmpty)
+          'primaryGoal': _selectedFounderGoalIds.toList(),
+        },
+        if (_targetRaise.text.trim().isNotEmpty) ...{
           'targetRaise':
               double.tryParse(_targetRaise.text.trim()) ??
               _targetRaise.text.trim(),
+        },
       } else ...{
         if (_selectedCategoryId != null) ...{
           'industryId': _selectedCategoryId,
+          'industry': [_selectedCategoryId],
           'categoryId': _selectedCategoryId,
         },
         if (_selectedExperience != null) ...{
@@ -2000,20 +2154,20 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       ),
                     ] else ...[
                       AppSizes.vGapLg,
-                      AppTextField(
-                        controller: _headline,
-                        label: isClient ? 'Job Title *' : 'Headline *',
-                        hint: isClient
-                            ? 'Enter Job Title'
-                            : role == UserRole.founder
-                            ? 'Enter your title'
-                            : 'Enter your job title',
-                        validator: (v) => Validators.minLength(
-                          v,
-                          2,
-                          field: isClient ? 'Job Title' : 'Headline',
-                        ),
-                      ),
+                      // AppTextField(
+                      //   controller: _headline,
+                      //   label: isClient ? 'Job Title *' : 'Headline *',
+                      //   hint: isClient
+                      //       ? 'Enter Job Title'
+                      //       : role == UserRole.founder
+                      //       ? 'Enter your title'
+                      //       : 'Enter your job title',
+                      //   // validator: (v) => Validators.minLength(
+                      //   //   v,
+                      //   //   2,
+                      //   //   field: isClient ? 'Job Title' : 'Headline',
+                      //   // ),
+                      // ),
                       if (isClient) ...[
                         AppSizes.vGapLg,
                         AppTextField(

@@ -49,7 +49,11 @@ class _GoExpertsAppState extends State<GoExpertsApp> {
       _authBloc.add(const AuthLoggedOut(remote: false));
       GlobalErrorBus.instance.emit(message);
     };
-    _bootstrapPushAndUpdates();
+    _bootstrapPushAndUpdates().catchError((Object error, StackTrace stack) {
+      FlutterError.reportError(
+        FlutterErrorDetails(exception: error, stack: stack),
+      );
+    });
     _authSub = _authBloc.stream.listen((state) {
       if (state.status == AuthStatus.authenticated) {
         sl<DeviceTokenRegistrationService>().registerIfPossible();
@@ -64,20 +68,27 @@ class _GoExpertsAppState extends State<GoExpertsApp> {
   }
 
   Future<void> _bootstrapPushAndUpdates() async {
-    final push = sl<PushNotificationService>();
-    final deviceTokens = sl<DeviceTokenRegistrationService>();
-    deviceTokens.listenForTokenRefresh();
-    await push.initialize();
-    await FirebaseAnalytics.instance.logAppOpen();
-    push.setOnMessageOpenedHandler((data) {
-      NotificationRouter(_router).handle(data);
-    });
-    push.setOnForegroundMessage((data) {
-      final ctx = _router.routerDelegate.navigatorKey.currentContext;
-      if (ctx != null && ctx.mounted) {
-        ctx.showTopSnack(data['title']?.toString() ?? 'New notification');
-      }
-    });
+    try {
+      final push = sl<PushNotificationService>();
+      final deviceTokens = sl<DeviceTokenRegistrationService>();
+      deviceTokens.listenForTokenRefresh();
+      await push.initialize();
+      await FirebaseAnalytics.instance.logAppOpen();
+      push.setOnMessageOpenedHandler((data) {
+        NotificationRouter(_router).handle(data);
+      });
+      push.setOnForegroundMessage((data) {
+        final ctx = _router.routerDelegate.navigatorKey.currentContext;
+        if (ctx != null && ctx.mounted) {
+          ctx.showTopSnack(data['title']?.toString() ?? 'New notification');
+        }
+      });
+    } catch (error, stack) {
+      // Non-fatal: push notifications may be unavailable (e.g. simulator).
+      FlutterError.reportError(
+        FlutterErrorDetails(exception: error, stack: stack),
+      );
+    }
   }
 
   @override
