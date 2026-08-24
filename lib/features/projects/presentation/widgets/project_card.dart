@@ -33,9 +33,32 @@ class AppProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final budget = project.isHourly
-        ? '${Formatters.compactCurrency(project.budgetMin)} - ${Formatters.compactCurrency(project.budgetMax)} /hr'
-        : '${Formatters.compactCurrency(project.budgetMin)} - ${Formatters.compactCurrency(project.budgetMax)}';
+    final String budget;
+    if (project.isHourly) {
+      if (project.budgetMin > 0 &&
+          project.budgetMax > 0 &&
+          project.budgetMin != project.budgetMax) {
+        budget =
+            '${Formatters.compactCurrency(project.budgetMin)} - ${Formatters.compactCurrency(project.budgetMax)} /hr';
+      } else {
+        final val = project.budgetMax > 0
+            ? project.budgetMax
+            : project.budgetMin;
+        budget = '${Formatters.compactCurrency(val)} /hr';
+      }
+    } else {
+      if (project.budgetMin > 0 &&
+          project.budgetMax > 0 &&
+          project.budgetMin != project.budgetMax) {
+        budget =
+            '${Formatters.compactCurrency(project.budgetMin)} - ${Formatters.compactCurrency(project.budgetMax)}';
+      } else {
+        final val = project.budgetMax > 0
+            ? project.budgetMax
+            : project.budgetMin;
+        budget = Formatters.compactCurrency(val);
+      }
+    }
     final isOwner = project.isOwner;
 
     return Material(

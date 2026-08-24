@@ -24,7 +24,13 @@ class Project extends Equatable {
     this.skillIds = const [],
     this.proposalsCount = 0,
     this.workMode = 'Remote',
+    this.workModeId,
     this.experienceLevel = 'intermediate',
+    this.experienceLevelId,
+    this.budgetRangeId,
+    this.budgetRangeName = '',
+    this.startDate,
+    this.endDate,
     this.isSaved = false,
     this.isApplied = false,
     this.isOwner = false,
@@ -55,7 +61,13 @@ class Project extends Equatable {
   final DateTime postedAt;
   final int proposalsCount;
   final String workMode;
+  final String? workModeId;
   final String experienceLevel;
+  final String? experienceLevelId;
+  final String? budgetRangeId;
+  final String budgetRangeName;
+  final DateTime? startDate;
+  final DateTime? endDate;
   final bool isSaved;
   final bool isApplied;
   final bool isOwner;
@@ -69,6 +81,12 @@ class Project extends Equatable {
     bool? isOwner,
     EntityStatus? status,
     int? proposalsCount,
+    String? workModeId,
+    String? experienceLevelId,
+    String? budgetRangeId,
+    String? budgetRangeName,
+    DateTime? startDate,
+    DateTime? endDate,
   }) => Project(
     id: id,
     title: title,
@@ -91,7 +109,13 @@ class Project extends Equatable {
     postedAt: postedAt,
     proposalsCount: proposalsCount ?? this.proposalsCount,
     workMode: workMode,
+    workModeId: workModeId ?? this.workModeId,
     experienceLevel: experienceLevel,
+    experienceLevelId: experienceLevelId ?? this.experienceLevelId,
+    budgetRangeId: budgetRangeId ?? this.budgetRangeId,
+    budgetRangeName: budgetRangeName ?? this.budgetRangeName,
+    startDate: startDate ?? this.startDate,
+    endDate: endDate ?? this.endDate,
     isSaved: isSaved ?? this.isSaved,
     isApplied: isApplied ?? this.isApplied,
     isOwner: isOwner ?? this.isOwner,
@@ -114,7 +138,18 @@ class Project extends Equatable {
   static List<String> _nameList(dynamic raw) {
     if (raw is List) {
       return raw
-          .map((e) => e.toString().trim())
+          .map((e) {
+            if (e is Map) {
+              return (e['skillName'] ??
+                      e['name'] ??
+                      e['label'] ??
+                      e['title'] ??
+                      '')
+                  .toString()
+                  .trim();
+            }
+            return e.toString().trim();
+          })
           .where((e) => e.isNotEmpty && !_uuid.hasMatch(e))
           .toList();
     }
@@ -131,7 +166,12 @@ class Project extends Equatable {
   static List<String> _idList(dynamic raw) {
     if (raw is List) {
       return raw
-          .map((e) => e.toString().trim())
+          .map((e) {
+            if (e is Map) {
+              return (e['skillId'] ?? e['id'] ?? '').toString().trim();
+            }
+            return e.toString().trim();
+          })
           .where((e) => e.isNotEmpty)
           .toList();
     }
@@ -179,12 +219,117 @@ class Project extends Equatable {
                   ? clientObj
                   : null);
 
-    final categoryRaw = json['category'] as String? ?? 'General';
+    final industryObj = json['industry'];
+    final industryId = json['industryId']?.toString() ??
+        (industryObj is Map ? industryObj['id']?.toString() : null) ??
+        (industryObj is String && _uuid.hasMatch(industryObj)
+            ? industryObj
+            : null);
+    final industryName = json['industryName']?.toString() ??
+        (industryObj is Map ? industryObj['name']?.toString() : null) ??
+        (industryObj is String && !_uuid.hasMatch(industryObj)
+            ? industryObj
+            : null) ??
+        '';
+
+    final categoryObj = json['category'];
+    final categoryRaw = (categoryObj is Map
+            ? categoryObj['name']?.toString()
+            : categoryObj?.toString()) ??
+        json['categoryName']?.toString() ??
+        (industryName.isNotEmpty ? industryName : 'General');
+    final categoryId = json['categoryId']?.toString() ??
+        (categoryObj is Map ? categoryObj['id']?.toString() : null) ??
+        (_uuid.hasMatch(categoryRaw) ? categoryRaw : null);
+
     final skillNames = _nameList(json['skills']).isNotEmpty
         ? _nameList(json['skills'])
         : _nameList(json['techStack']).isNotEmpty
         ? _nameList(json['techStack'])
         : _nameList(json['technology']);
+
+    final workModeObj = json['workMode'];
+    final rawWorkModeId = (json['workModeId'] ??
+            (workModeObj is Map ? workModeObj['id'] : null))
+        ?.toString()
+        .trim();
+    final rawWorkModeName = (workModeObj is Map
+            ? workModeObj['name']?.toString()
+            : workModeObj?.toString()) ??
+        json['workMode']?.toString() ??
+        '';
+
+    final String? workModeId;
+    final String workMode;
+    if (rawWorkModeId != null && rawWorkModeId.isNotEmpty) {
+      workModeId = rawWorkModeId;
+      workMode = rawWorkModeName.isNotEmpty ? rawWorkModeName : 'Remote';
+    } else if (rawWorkModeName.isNotEmpty && _uuid.hasMatch(rawWorkModeName.trim())) {
+      workModeId = rawWorkModeName.trim();
+      workMode = 'Remote';
+    } else {
+      workModeId = null;
+      workMode = rawWorkModeName.isNotEmpty ? rawWorkModeName : 'Remote';
+    }
+
+    final expObj = json['experienceLevel'];
+    final rawExpId = (json['experienceLevelId'] ??
+            (expObj is Map ? expObj['id'] : null))
+        ?.toString()
+        .trim();
+    final rawExpName = (expObj is Map
+            ? expObj['name']?.toString() ?? expObj['id']?.toString()
+            : expObj?.toString()) ??
+        json['experienceLevel']?.toString() ??
+        '';
+
+    final String? experienceLevelId;
+    final String experienceLevel;
+    if (rawExpId != null && rawExpId.isNotEmpty) {
+      experienceLevelId = rawExpId;
+      experienceLevel = rawExpName.isNotEmpty ? rawExpName : 'intermediate';
+    } else if (rawExpName.isNotEmpty &&
+        (rawExpName.startsWith('mo_') || _uuid.hasMatch(rawExpName.trim()))) {
+      experienceLevelId = rawExpName.trim();
+      experienceLevel = rawExpName
+          .replaceAll('mo_experience_level_', '')
+          .replaceAll('_', ' ')
+          .trim();
+    } else {
+      experienceLevelId = null;
+      experienceLevel = rawExpName.isNotEmpty ? rawExpName : 'intermediate';
+    }
+
+    final budgetRangeObj = json['budgetRange'];
+    final rawBudgetId = (json['budgetRangeId'] ??
+            (budgetRangeObj is Map ? budgetRangeObj['id'] : null))
+        ?.toString()
+        .trim();
+    final rawBudgetName = (budgetRangeObj is Map
+            ? budgetRangeObj['name']?.toString() ??
+                budgetRangeObj['label']?.toString()
+            : budgetRangeObj?.toString()) ??
+        '';
+
+    final String? budgetRangeId;
+    final String budgetRangeName;
+    if (rawBudgetId != null && rawBudgetId.isNotEmpty) {
+      budgetRangeId = rawBudgetId;
+      budgetRangeName = rawBudgetName;
+    } else if (rawBudgetName.isNotEmpty && _uuid.hasMatch(rawBudgetName.trim())) {
+      budgetRangeId = rawBudgetName.trim();
+      budgetRangeName = rawBudgetName.trim();
+    } else {
+      budgetRangeId = null;
+      budgetRangeName = rawBudgetName;
+    }
+
+    final startDate = json['startDate'] != null
+        ? DateTime.tryParse(json['startDate'].toString())
+        : null;
+    final endDate = json['endDate'] != null
+        ? DateTime.tryParse(json['endDate'].toString())
+        : null;
 
     return Project(
       id: json['id']?.toString() ?? '',
@@ -201,15 +346,15 @@ class Project extends Equatable {
           (json['clientAvatar'] as String?) ??
           (json['avatarUrl'] as String?) ??
           (clientObj is Map ? clientObj['avatarUrl']?.toString() : null),
-      industryId: json['industryId']?.toString(),
-      industryName: json['industryName']?.toString() ?? '',
+      industryId: industryId,
+      industryName: industryName,
       category: _uuid.hasMatch(categoryRaw) ? 'General' : categoryRaw,
-      categoryId:
-          json['categoryId']?.toString() ??
-          (_uuid.hasMatch(categoryRaw) ? categoryRaw : null),
+      categoryId: categoryId,
       skills: skillNames,
       skillIds: _idList(json['skillIds']).isNotEmpty
           ? _idList(json['skillIds'])
+          : _idList(json['skills']).isNotEmpty
+          ? _idList(json['skills'])
           : _idList(json['technology']).where(_uuid.hasMatch).toList(),
       techStack: _nameList(json['techStack']).isNotEmpty
           ? _nameList(json['techStack'])
@@ -230,8 +375,14 @@ class Project extends Equatable {
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
       proposalsCount: (json['proposalsCount'] as num?)?.toInt() ?? 0,
-      workMode: json['workMode'] as String? ?? 'Remote',
-      experienceLevel: json['experienceLevel'] as String? ?? 'intermediate',
+      workMode: workMode,
+      workModeId: workModeId,
+      experienceLevel: experienceLevel,
+      experienceLevelId: experienceLevelId,
+      budgetRangeId: budgetRangeId,
+      budgetRangeName: budgetRangeName,
+      startDate: startDate,
+      endDate: endDate,
       location:
           json['location'] as String? ?? json['city'] as String? ?? 'Remote',
       attachments: _attachments(json['attachments']),

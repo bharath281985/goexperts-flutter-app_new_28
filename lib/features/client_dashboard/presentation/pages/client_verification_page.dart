@@ -442,9 +442,7 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
         'message': 'Invalid Aadhaar format (12 digits)',
       },
       'gst': {
-        'regex': RegExp(
-          r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$',
-        ),
+        'regex': RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'),
         'message': 'Invalid GSTIN format (e.g. 27ABCDE1234F1Z5)',
       },
       'udyam': {
@@ -716,6 +714,52 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
     );
   }
 
+  Widget _buildCardRowGrid(List<Widget> cardWidgets) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 300 ? 2 : 1;
+        if (columns == 1) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (int i = 0; i < cardWidgets.length; i++) ...[
+                if (i > 0) AppSizes.vGapMd,
+                cardWidgets[i],
+              ],
+            ],
+          );
+        }
+
+        final rows = <Widget>[];
+        for (int i = 0; i < cardWidgets.length; i += 2) {
+          final hasSecond = i + 1 < cardWidgets.length;
+          if (i > 0) {
+            rows.add(AppSizes.vGapMd);
+          }
+          rows.add(
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: cardWidgets[i]),
+                  AppSizes.hGapSm,
+                  if (hasSecond)
+                    Expanded(child: cardWidgets[i + 1])
+                  else
+                    const Expanded(child: SizedBox.shrink()),
+                ],
+              ),
+            ),
+          );
+        }
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: rows,
+        );
+      },
+    );
+  }
+
   Widget _buildSection({
     required BuildContext context,
     required String sectionTitle,
@@ -819,20 +863,8 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
           ],
         ),
         AppSizes.vGapLg,
-        LayoutBuilder(
-          builder: (context, constraints) {
-            const gap = AppSizes.sm;
-            final columns = constraints.maxWidth >= 300 ? 2 : 1;
-            final cardWidth =
-                (constraints.maxWidth - gap * (columns - 1)) / columns;
-            return Wrap(
-              spacing: gap,
-              runSpacing: AppSizes.md,
-              children: displayItems.map((item) {
-                return SizedBox(width: cardWidth, child: _buildItemCard(item));
-              }).toList(),
-            );
-          },
+        _buildCardRowGrid(
+          displayItems.map((item) => _buildItemCard(item)).toList(),
         ),
       ],
     );
@@ -917,26 +949,15 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                       accountVerified: _accountVerified,
                     ),
                     AppSizes.vGapMd,
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        const gap = AppSizes.sm;
-                        final columns = constraints.maxWidth >= 300 ? 2 : 1;
-                        final cardWidth =
-                            (constraints.maxWidth - gap * (columns - 1)) /
-                            columns;
-                        return Wrap(
-                          spacing: gap,
-                          runSpacing: AppSizes.md,
-                          children: basicItems.map((item) {
-                            final card = item.key == 'email'
-                                ? _buildEmailCard(item, email)
-                                : item.key == 'phone' || item.key == 'mobile'
-                                ? _buildPhoneCard(item)
-                                : _buildItemCard(item);
-                            return SizedBox(width: cardWidth, child: card);
-                          }).toList(),
-                        );
-                      },
+                    _buildCardRowGrid(
+                      basicItems.map((item) {
+                        final card = item.key == 'email'
+                            ? _buildEmailCard(item, email)
+                            : item.key == 'phone' || item.key == 'mobile'
+                            ? _buildPhoneCard(item)
+                            : _buildItemCard(item);
+                        return card;
+                      }).toList(),
                     ),
                     if (identityItems.isNotEmpty)
                       _buildSection(
@@ -1103,225 +1124,12 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
       return AppCard(
         radius: AppSizes.radiusMd,
         padding: const EdgeInsets.all(AppSizes.sm),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.danger.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.phone_outlined, color: AppColors.danger),
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Phone number',
-                    style: context.text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    item.value.isNotEmpty ? item.value : 'Not verified',
-                    style: context.text.bodySmall?.copyWith(
-                      color: AppColors.mutedText,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            AppSizes.hGapSm,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: AppColors.danger,
-                      size: 16,
-                    ),
-                    AppSizes.hGapXs,
-                    if (MediaQuery.sizeOf(context).width >= 600)
-                      Text(
-                        'Not verified',
-                        style: context.text.labelSmall?.copyWith(
-                          color: AppColors.danger,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                  ],
-                ),
-                AppSizes.vGapXs,
-                InkWell(
-                  onTap: () => _showPhoneBottomSheet(item),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.add_circle_outline,
-                          size: 14,
-                          color: AppColors.primary,
-                        ),
-                        AppSizes.hGapXs,
-                        Text(
-                          'Add',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (item.isPending) {
-      return AppCard(
-        radius: AppSizes.radiusMd,
-        padding: const EdgeInsets.all(AppSizes.sm),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: AppColors.warning.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.phone_outlined, color: AppColors.warning),
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.label,
-                    style: context.text.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Text(
-                    item.value.isNotEmpty ? item.value : 'Submitted for review',
-                    style: context.text.bodySmall?.copyWith(
-                      color: AppColors.mutedText,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            AppSizes.hGapSm,
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.hourglass_empty_rounded,
-                      color: AppColors.warning,
-                      size: 16,
-                    ),
-                    AppSizes.hGapXs,
-                    Text(
-                      'Pending',
-                      style: context.text.labelMedium?.copyWith(
-                        color: AppColors.warning,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                AppSizes.vGapXs,
-                InkWell(
-                  onTap: isSubmitting ? null : () => _deleteItem(item),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.delete_outline,
-                          size: 14,
-                          color: AppColors.danger,
-                        ),
-                        AppSizes.hGapXs,
-                        Text(
-                          'Delete',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.danger,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      );
-    }
-
-    return AppCard(
-      radius: AppSizes.radiusMd,
-      padding: const EdgeInsets.all(AppSizes.sm),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: AppColors.success.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.phone_outlined, color: AppColors.success),
-          ),
-          AppSizes.hGapMd,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Phone number',
-                  style: context.text.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  item.value,
-                  style: context.text.bodySmall?.copyWith(
-                    color: AppColors.mutedText,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          AppSizes.hGapSm,
-          Column(
+        child: _compactCardHeader(
+          icon: Icons.phone_outlined,
+          color: AppColors.danger,
+          title: 'Phone number',
+          subtitle: item.value.isNotEmpty ? item.value : 'Not verified',
+          status: Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -1329,15 +1137,15 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
-                    Icons.check_circle_outline,
-                    color: AppColors.success,
+                    Icons.error_outline,
+                    color: AppColors.danger,
                     size: 16,
                   ),
                   AppSizes.hGapXs,
                   Text(
-                    'Done',
-                    style: context.text.labelMedium?.copyWith(
-                      color: AppColors.success,
+                    'Not verified',
+                    style: context.text.labelSmall?.copyWith(
+                      color: AppColors.danger,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1355,13 +1163,13 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
-                        Icons.upload_outlined,
+                        Icons.add_circle_outline,
                         size: 14,
                         color: AppColors.primary,
                       ),
                       AppSizes.hGapXs,
                       Text(
-                        'Change',
+                        'Add',
                         style: context.text.labelSmall?.copyWith(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w600,
@@ -1373,7 +1181,129 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
               ),
             ],
           ),
-        ],
+        ),
+      );
+    }
+
+    if (item.isPending) {
+      return AppCard(
+        radius: AppSizes.radiusMd,
+        padding: const EdgeInsets.all(AppSizes.sm),
+        child: _compactCardHeader(
+          icon: Icons.phone_outlined,
+          color: AppColors.warning,
+          title: item.label,
+          subtitle: item.value.isNotEmpty ? item.value : 'Submitted for review',
+          status: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.hourglass_empty_rounded,
+                    color: AppColors.warning,
+                    size: 16,
+                  ),
+                  AppSizes.hGapXs,
+                  Text(
+                    'Pending',
+                    style: context.text.labelMedium?.copyWith(
+                      color: AppColors.warning,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              AppSizes.vGapXs,
+              InkWell(
+                onTap: isSubmitting ? null : () => _deleteItem(item),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 2,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.delete_outline,
+                        size: 14,
+                        color: AppColors.danger,
+                      ),
+                      AppSizes.hGapXs,
+                      Text(
+                        'Delete',
+                        style: context.text.labelSmall?.copyWith(
+                          color: AppColors.danger,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return AppCard(
+      radius: AppSizes.radiusMd,
+      padding: const EdgeInsets.all(AppSizes.sm),
+      child: _compactCardHeader(
+        icon: Icons.phone_outlined,
+        color: AppColors.success,
+        title: 'Phone number',
+        subtitle: item.value,
+        status: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              color: AppColors.success,
+              size: 16,
+            ),
+            AppSizes.hGapXs,
+            Text(
+              'Done',
+              style: context.text.labelMedium?.copyWith(
+                color: AppColors.success,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            AppSizes.hGapXs,
+            InkWell(
+              onTap: () => _showPhoneBottomSheet(item),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 4,
+                  vertical: 2,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.upload_outlined,
+                      size: 14,
+                      color: AppColors.primary,
+                    ),
+                    AppSizes.hGapXs,
+                    Text(
+                      'Change',
+                      style: context.text.labelSmall?.copyWith(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1989,7 +1919,6 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
   }
 
   Widget _buildItemCard(VerificationItem item) {
-    final isSubmitting = _submittingItem && _submittingKey == item.key;
     final icon = _iconForKey(item.key);
 
     // Determine colors

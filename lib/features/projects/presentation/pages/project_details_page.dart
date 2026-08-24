@@ -19,6 +19,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_status_chip.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/share_sheet.dart';
 import '../../../client_dashboard/domain/repositories/client_proposal_repository.dart';
 import '../../../client_dashboard/presentation/widgets/client_proposal_action_bar.dart';
@@ -191,6 +192,9 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
 
             return Scaffold(
               appBar: AppBar(
+                leading: IconTapWidget(
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
                 title: const Text('Project Details'),
                 actions: [
                   if (isOwner)
@@ -304,9 +308,24 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
   }
 
   Widget _content(BuildContext context, Project p) {
-    final budget = p.isHourly
-        ? '${Formatters.currency(p.budgetMin)} - ${Formatters.currency(p.budgetMax)} / hr'
-        : '${Formatters.currency(p.budgetMin)} - ${Formatters.currency(p.budgetMax)}';
+    final String budget;
+    if (p.isHourly) {
+      if (p.budgetMin > 0 && p.budgetMax > 0 && p.budgetMin != p.budgetMax) {
+        budget =
+            '${Formatters.currency(p.budgetMin)} - ${Formatters.currency(p.budgetMax)} / hr';
+      } else {
+        final val = p.budgetMax > 0 ? p.budgetMax : p.budgetMin;
+        budget = '${Formatters.currency(val)} / hr';
+      }
+    } else {
+      if (p.budgetMin > 0 && p.budgetMax > 0 && p.budgetMin != p.budgetMax) {
+        budget =
+            '${Formatters.currency(p.budgetMin)} - ${Formatters.currency(p.budgetMax)}';
+      } else {
+        final val = p.budgetMax > 0 ? p.budgetMax : p.budgetMin;
+        budget = Formatters.currency(val);
+      }
+    }
     return ListView(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
       children: [

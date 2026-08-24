@@ -503,6 +503,44 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   }
 
   @override
+  Future<Result<List<MasterOption>>> getWorkModeOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicWorkModes,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList();
+    return Success(list);
+  }
+
+  @override
+  Future<Result<List<MasterOption>>> getBudgetRangeOptions() async {
+    final result = await _client.getList<MasterOption>(
+      path: ApiEndpoints.publicHiringBudgetRanges,
+      itemParser: MasterOption.fromJson,
+    );
+    if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
+      final list = result.valueOrNull!.rows
+          .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+          .toList();
+      return Success(list);
+    }
+    final fallbackResult = await _client.getList<MasterOption>(
+      path: '/public/budget-ranges',
+      itemParser: MasterOption.fromJson,
+    );
+    if (fallbackResult.isSuccess && fallbackResult.valueOrNull!.rows.isNotEmpty) {
+      final list = fallbackResult.valueOrNull!.rows
+          .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+          .toList();
+      return Success(list);
+    }
+    return getHiringBudgetOptions();
+  }
+
+  @override
   Future<Result<List<MasterOption>>> getStartupStageOptions() async {
     final result = await _client.getList<MasterOption>(
       path: ApiEndpoints.publicStartupStages,
