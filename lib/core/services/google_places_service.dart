@@ -29,18 +29,30 @@ class GooglePlacesService {
 
   final Dio _dio;
 
-  Future<List<PlacePrediction>> searchPlaces(String input) async {
+  Future<List<PlacePrediction>> searchPlaces(String input, {String? country}) async {
     final query = input.trim();
     if (query.length < 2) return [];
+
+    final String searchQuery = (country != null &&
+            country.trim().isNotEmpty &&
+            !query.toLowerCase().contains(country.trim().toLowerCase()))
+        ? '$query, ${country.trim()}'
+        : query;
+
+    final Map<String, dynamic> params = {
+      'input': searchQuery,
+      'key': GoogleMapsConfig.apiKey,
+      'types': 'geocode',
+    };
+
+    if (country != null && country.trim().length == 2) {
+      params['components'] = 'country:${country.trim().toLowerCase()}';
+    }
 
     try {
       final response = await _dio.get<Map<String, dynamic>>(
         GoogleMapsConfig.placesAutocompleteUrl,
-        queryParameters: {
-          'input': query,
-          'key': GoogleMapsConfig.apiKey,
-          'types': 'geocode',
-        },
+        queryParameters: params,
         options: Options(
           receiveTimeout: AppConfig.connectTimeout,
           sendTimeout: AppConfig.connectTimeout,
@@ -51,7 +63,7 @@ class GooglePlacesService {
       if (data == null || data['status'] != 'OK') return [];
 
       final predictions = data['predictions'] as List? ?? [];
-      return predictions
+      final list = predictions
           .whereType<Map>()
           .map(
             (item) => PlacePrediction(
@@ -63,6 +75,19 @@ class GooglePlacesService {
             (item) => item.placeId.isNotEmpty && item.description.isNotEmpty,
           )
           .toList();
+
+      if (country != null && country.trim().isNotEmpty) {
+        final targetCountry = country.trim().toLowerCase();
+        list.sort((a, b) {
+          final aMatch = a.description.toLowerCase().contains(targetCountry);
+          final bMatch = b.description.toLowerCase().contains(targetCountry);
+          if (aMatch && !bMatch) return -1;
+          if (!aMatch && bMatch) return 1;
+          return 0;
+        });
+      }
+
+      return list;
     } catch (_) {
       return [];
     }

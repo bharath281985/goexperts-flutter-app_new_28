@@ -13,12 +13,13 @@ class AppUser extends Equatable {
     this.avatarUrl,
     this.isVerified = false,
     this.isProfileComplete = false,
+    this.isSocialLogin = false,
     this.subscriptionPlan,
     this.subscriptionStatus,
     this.headline,
     this.location,
     this.profileCompletion = 0,
-    this.redirectTo,
+    
     this.serverHasSubscription,
     this.categoryId,
     this.industryId,
@@ -34,6 +35,7 @@ class AppUser extends Equatable {
   final String? avatarUrl;
   final bool isVerified;
   final bool isProfileComplete;
+  final bool isSocialLogin;
   final String? subscriptionPlan;
 
   /// Backend gate: `active` | `expired` | `none`.
@@ -43,7 +45,7 @@ class AppUser extends Equatable {
   final int profileCompletion;
 
   /// Explicit redirect path from server (e.g. "/founder/dashboard").
-  final String? redirectTo;
+
 
   /// `hasSubscription` / `isSubscribed` flag as returned directly by the API.
   final bool? serverHasSubscription;
@@ -58,6 +60,7 @@ class AppUser extends Equatable {
     String? avatarUrl,
     bool? isVerified,
     bool? isProfileComplete,
+    bool? isSocialLogin,
     String? subscriptionPlan,
     String? subscriptionStatus,
     String? headline,
@@ -65,7 +68,7 @@ class AppUser extends Equatable {
     int? profileCompletion,
     String? phone,
     String? countryCode,
-    String? redirectTo,
+  
     bool? serverHasSubscription,
     String? categoryId,
     String? industryId,
@@ -81,12 +84,13 @@ class AppUser extends Equatable {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isVerified: isVerified ?? this.isVerified,
       isProfileComplete: isProfileComplete ?? this.isProfileComplete,
+      isSocialLogin: isSocialLogin ?? this.isSocialLogin,
       subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
       headline: headline ?? this.headline,
       location: location ?? this.location,
       profileCompletion: profileCompletion ?? this.profileCompletion,
-      redirectTo: redirectTo ?? this.redirectTo,
+
       serverHasSubscription:
           serverHasSubscription ?? this.serverHasSubscription,
       categoryId: categoryId ?? this.categoryId,
@@ -201,6 +205,7 @@ class AppUser extends Equatable {
       isProfileComplete:
           flag('isProfileComplete', 'is_profile_complete') ||
           profileCompletion >= 80,
+      isSocialLogin: flag('isSocialLogin', 'is_social_login'),
       profileCompletion: profileCompletion,
       // Prefer human-readable plan name; never store raw plan UUIDs.
       subscriptionPlan:
@@ -212,7 +217,7 @@ class AppUser extends Equatable {
       subscriptionStatus: str('subscriptionStatus', 'subscription_status'),
       headline: str('headline', 'headline') ?? str('bio', 'bio'),
       location: str('location', 'location') ?? joinedLocation,
-      redirectTo: str('redirectTo', 'redirect_to'),
+    
       serverHasSubscription: serverHasSubscription,
       categoryId: str('categoryId', 'category_id'),
       industryId: str('industryId', 'industry_id'),
@@ -230,12 +235,13 @@ class AppUser extends Equatable {
     'avatar_url': avatarUrl,
     'is_verified': isVerified,
     'is_profile_complete': isProfileComplete,
+    'is_social_login': isSocialLogin,
     'subscription_plan': subscriptionPlan,
     'subscription_status': subscriptionStatus,
     'headline': headline,
     'location': location,
     'profile_completion': profileCompletion,
-    if (redirectTo != null) 'redirect_to': redirectTo,
+ 
     if (serverHasSubscription != null)
       'has_subscription': serverHasSubscription,
     'category_id': categoryId,
@@ -252,6 +258,7 @@ class AppUser extends Equatable {
     role,
     isVerified,
     isProfileComplete,
+    isSocialLogin,
     subscriptionPlan,
     subscriptionStatus,
     categoryId,

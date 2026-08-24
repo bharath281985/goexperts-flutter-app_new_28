@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -50,7 +51,11 @@ class VerificationItem {
       value: json['value']?.toString() ?? '',
       status: json['status']?.toString() ?? 'missing',
       documentUrl:
-          json['documentUrl']?.toString() ?? json['document_url']?.toString(),
+          json['documentUrl']?.toString() ??
+          json['document_url']?.toString() ??
+          json['publicUrl']?.toString() ??
+          json['url']?.toString() ??
+          json['file']?.toString(),
       required: json['required'] == true,
     );
   }
@@ -173,30 +178,33 @@ class _FreelancerVerificationPageState
 
         final rawItems = payload['items'] as List?;
         if (rawItems != null && rawItems.isNotEmpty) {
-          _items = rawItems.map((e) {
-            final map = Map<String, dynamic>.from(e as Map);
-            final key = map['key']?.toString().toLowerCase() ?? '';
-            if (key == 'personal_id_1' ||
-                key == 'aadhaar' ||
-                key == 'govt_id') {
-              map['key'] = 'identity';
-              map['label'] = 'Aadhaar Card / Govt ID';
-            } else if (key == 'personal_id_2' || key == 'pan') {
-              map['key'] = 'pancard';
-              map['label'] = 'PAN Card';
-            }
-            return VerificationItem.fromJson(map);
-          }).where(
-            (item) =>
-                item.key != 'selfie' &&
-                item.key != 'address' &&
-                item.key != 'gst' &&
-                item.key != 'company' &&
-                item.key != 'business_proof' &&
-                item.key != 'business_pan' &&
-                item.key != 'udyam' &&
-                item.key != 'incorporation',
-          ).toList();
+          _items = rawItems
+              .map((e) {
+                final map = Map<String, dynamic>.from(e as Map);
+                final key = map['key']?.toString().toLowerCase() ?? '';
+                if (key == 'personal_id_1' ||
+                    key == 'aadhaar' ||
+                    key == 'govt_id') {
+                  map['key'] = 'identity';
+                  map['label'] = 'Aadhaar Card / Govt ID';
+                } else if (key == 'personal_id_2' || key == 'pan') {
+                  map['key'] = 'pancard';
+                  map['label'] = 'PAN Card';
+                }
+                return VerificationItem.fromJson(map);
+              })
+              .where(
+                (item) =>
+                    item.key != 'selfie' &&
+                    item.key != 'address' &&
+                    item.key != 'gst' &&
+                    item.key != 'company' &&
+                    item.key != 'business_proof' &&
+                    item.key != 'business_pan' &&
+                    item.key != 'udyam' &&
+                    item.key != 'incorporation',
+              )
+              .toList();
 
           for (final item in _items) {
             if (item.value.isNotEmpty && item.value != 'Not submitted') {
@@ -383,11 +391,25 @@ class _FreelancerVerificationPageState
   }
 
   String? _validateDocument(String key, String value) {
-    final actualKey = (key == 'identity' || key == 'pancard' || _identityOptions.containsKey(key)) ? _selectedIdentityKey : key;
+    final actualKey =
+        (key == 'identity' ||
+            key == 'pancard' ||
+            _identityOptions.containsKey(key))
+        ? _selectedIdentityKey
+        : key;
     final Map<String, Map<String, dynamic>> validators = {
-      'pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'aadhaar': {'regex': RegExp(r'^[0-9\s]{12,14}$'), 'message': 'Invalid Aadhaar format (12 digits)'},
-      'driving_licence': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
+      'pan': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', caseSensitive: false),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'aadhaar': {
+        'regex': RegExp(r'^\d{4}\s?\d{4}\s?\d{4}$'),
+        'message': 'Invalid Aadhaar format (12 digits)',
+      },
+      'driving_licence': {
+        'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false),
+        'message': 'Invalid Driving Licence format',
+      },
     };
     if (validators.containsKey(actualKey)) {
       final RegExp regex = validators[actualKey]!['regex'];
@@ -424,40 +446,44 @@ class _FreelancerVerificationPageState
     }
 
     final path = _selectedFilePaths[item.key];
+    final hasExistingDoc =
+        item.documentUrl != null && item.documentUrl!.isNotEmpty;
 
-    if (path == null || path.isEmpty) {
+    if ((path == null || path.isEmpty) && !hasExistingDoc) {
       context.showSnack('Please select a document to upload', isError: true);
       return false;
     }
-    String? documentUrl;
+    String? documentUrl = item.documentUrl;
 
     setState(() {
       _submittingItem = true;
       _submittingKey = item.key;
     });
 
-    final uploadRes = await sl<FileUploadHelper>().upload(
-      path: path,
-      endpoint: ApiEndpoints.filesUpload,
-      method: 'post',
-    );
-
-    if (uploadRes.isFailure) {
-      if (!mounted) return false;
-      setState(() {
-        _submittingItem = false;
-        _submittingKey = null;
-      });
-      context.showSnack(
-        'File upload failed: ${uploadRes.failureOrNull?.message}',
-        isError: true,
+    if (path != null && path.isNotEmpty) {
+      final uploadRes = await sl<FileUploadHelper>().upload(
+        path: path,
+        endpoint: ApiEndpoints.filesUpload,
+        method: 'post',
       );
-      return false;
-    }
 
-    final data = uploadRes.valueOrNull;
-    if (data != null) {
-      documentUrl = data['publicUrl']?.toString() ?? data['url']?.toString();
+      if (uploadRes.isFailure) {
+        if (!mounted) return false;
+        setState(() {
+          _submittingItem = false;
+          _submittingKey = null;
+        });
+        context.showSnack(
+          'File upload failed: ${uploadRes.failureOrNull?.message}',
+          isError: true,
+        );
+        return false;
+      }
+
+      final data = uploadRes.valueOrNull;
+      if (data != null) {
+        documentUrl = data['publicUrl']?.toString() ?? data['url']?.toString();
+      }
     }
 
     final updateRes = await _repo.updateVerificationDetail(
@@ -728,10 +754,7 @@ class _FreelancerVerificationPageState
               spacing: gap,
               runSpacing: AppSizes.md,
               children: displayItems.map((item) {
-                return SizedBox(
-                  width: cardWidth,
-                  child: _buildItemCard(item),
-                );
+                return SizedBox(width: cardWidth, child: _buildItemCard(item));
               }).toList(),
             );
           },
@@ -753,20 +776,25 @@ class _FreelancerVerificationPageState
 
     final basicItems = _items.where((i) => basicKeys.contains(i.key)).toList();
     final identityItems =
-        _items.where((i) => identityKeys.contains(i.key) || i.key == 'pancard').toList()..sort(
-          (a, b) => identityKeys
-              .indexOf(a.key)
-              .compareTo(identityKeys.indexOf(b.key)),
-        );
-        
+        _items
+            .where((i) => identityKeys.contains(i.key) || i.key == 'pancard')
+            .toList()
+          ..sort(
+            (a, b) => identityKeys
+                .indexOf(a.key)
+                .compareTo(identityKeys.indexOf(b.key)),
+          );
+
     while (identityItems.length < 2) {
-      identityItems.add( VerificationItem(
-        key: 'identity',
-        label: 'Additional Identity Document',
-        value: '',
-        status: 'missing',
-        required: true,
-      ));
+      identityItems.add(
+        VerificationItem(
+          key: 'identity',
+          label: 'Additional Identity Document',
+          value: '',
+          status: 'missing',
+          required: true,
+        ),
+      );
     }
 
     return AppScaffold(
@@ -820,7 +848,8 @@ class _FreelancerVerificationPageState
                         context: context,
                         sectionTitle: 'Identity Documents',
                         title: 'Personal Documents',
-                        subtitle: 'Upload any 2 of the following personal identity proofs',
+                        subtitle:
+                            'Upload any 2 of the following personal identity proofs',
                         icon: Icons.person_outline,
                         items: identityItems,
                         requiredCount: 2,
@@ -1375,13 +1404,65 @@ class _FreelancerVerificationPageState
     );
   }
 
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) context.showSnack('Could not open document', isError: true);
+  Future<void> _launchUrl(String rawUrl) async {
+    String url = rawUrl.trim();
+    if (url.isEmpty) {
+      if (mounted) context.showSnack('Document URL is empty', isError: true);
+      return;
     }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+      url = '$base${url.startsWith('/') ? '' : '/'}$url';
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      if (mounted) context.showSnack('Invalid document URL', isError: true);
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        final fallback = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!fallback) {
+          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (e) {
+        if (mounted)
+          context.showSnack('Could not open document', isError: true);
+      }
+    }
+  }
+
+  Future<void> _viewDocument(VerificationItem item) async {
+    final documentUrl = item.documentUrl?.trim();
+    final value = item.value.trim();
+
+    String? url = (documentUrl != null && documentUrl.isNotEmpty)
+        ? documentUrl
+        : null;
+    if (url == null &&
+        value.isNotEmpty &&
+        value != 'Not submitted' &&
+        value != 'Submitted for review') {
+      url = value;
+    }
+
+    if (url == null) {
+      if (mounted)
+        context.showSnack('Document is not available to view', isError: true);
+      return;
+    }
+    await _launchUrl(url);
   }
 
   void _showDocumentBottomSheet(VerificationItem item, [IconData? icon]) {
@@ -1408,15 +1489,27 @@ class _FreelancerVerificationPageState
           builder: (context, setSheetState) {
             final isSubmitting = _submittingItem && _submittingKey == item.key;
             final chosenFileName = _selectedFileNames[item.key];
+            final hasExistingDoc =
+                item.documentUrl != null && item.documentUrl!.isNotEmpty;
             final submittedIdentityKeys = _items
                 .where((i) => !i.isMissing)
-                .map((i) => i.key)
+                .expand((i) {
+                  final keys = [i.key];
+                  if (i.key == 'identity') keys.add('aadhaar');
+                  if (i.key == 'pancard') keys.add('pan');
+                  return keys;
+                })
                 .toList();
+
+            final currentItemKeys = [item.key];
+            if (item.key == 'identity') currentItemKeys.add('aadhaar');
+            if (item.key == 'pancard') currentItemKeys.add('pan');
+
             final availableIdentityOptions = Map.fromEntries(
               _identityOptions.entries.where(
                 (entry) =>
                     !submittedIdentityKeys.contains(entry.key) ||
-                    item.key == entry.key,
+                    currentItemKeys.contains(entry.key),
               ),
             );
             if (!availableIdentityOptions.containsKey(_selectedIdentityKey) &&
@@ -1494,16 +1587,23 @@ class _FreelancerVerificationPageState
 
                         switch (actualKey) {
                           case 'pan':
+                          case 'pancard':
                             maxLength = 10;
                             hintText = 'e.g. ABCDE1234F';
                             break;
                           case 'aadhaar':
-                            maxLength = 14;
+                            maxLength = 12;
                             keyboardType = TextInputType.number;
                             hintText = 'e.g. 1234 5678 9012';
                             break;
+                          case 'driving':
                           case 'driving_licence':
                             maxLength = 20;
+                            hintText = 'e.g. DL1420110012345';
+                            break;
+                          case 'passport':
+                            maxLength = 12;
+                            hintText = 'e.g. A1234567';
                             break;
                         }
 
@@ -1528,7 +1628,10 @@ class _FreelancerVerificationPageState
                             },
                       icon: const Icon(Icons.upload_file_outlined),
                       label: Text(
-                        chosenFileName ?? 'Choose image or pdf',
+                        chosenFileName ??
+                            (hasExistingDoc
+                                ? 'Document previously uploaded (Click to change)'
+                                : 'Choose image or pdf'),
                         overflow: TextOverflow.ellipsis,
                       ),
                       style: OutlinedButton.styleFrom(
@@ -1565,7 +1668,8 @@ class _FreelancerVerificationPageState
                                 }
 
                                 final path = _selectedFilePaths[item.key];
-                                if (path == null || path.isEmpty) {
+                                if ((path == null || path.isEmpty) &&
+                                    !hasExistingDoc) {
                                   context.showSnack(
                                     'Please select a document to upload',
                                     isError: true,
@@ -1677,10 +1781,9 @@ class _FreelancerVerificationPageState
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (item.documentUrl != null &&
-                    item.documentUrl!.isNotEmpty) ...[
+                if (item.isVerified)
                   InkWell(
-                    onTap: () => _launchUrl(item.documentUrl!),
+                    onTap: () => _viewDocument(item),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 4,
@@ -1705,40 +1808,39 @@ class _FreelancerVerificationPageState
                         ],
                       ),
                     ),
-                  ),
-                  AppSizes.hGapSm,
-                ],
-                InkWell(
-                  onTap: isSubmitting
-                      ? null
-                      : () => _showDocumentBottomSheet(item, icon),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 4,
-                      vertical: 2,
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          item.isPending || item.isVerified
-                              ? Icons.edit_outlined
-                              : Icons.add_circle_outline,
-                          size: 14,
-                          color: AppColors.primary,
-                        ),
-                        AppSizes.hGapXs,
-                        Text(
-                          item.isPending || item.isVerified ? 'Change' : 'Add',
-                          style: context.text.labelSmall?.copyWith(
+                  )
+                else
+                  InkWell(
+                    onTap: isSubmitting
+                        ? null
+                        : () => _showDocumentBottomSheet(item, icon),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            item.isPending
+                                ? Icons.edit_outlined
+                                : Icons.add_circle_outline,
+                            size: 14,
                             color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
                           ),
-                        ),
-                      ],
+                          AppSizes.hGapXs,
+                          Text(
+                            item.isPending ? 'Change' : 'Add',
+                            style: context.text.labelSmall?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ],

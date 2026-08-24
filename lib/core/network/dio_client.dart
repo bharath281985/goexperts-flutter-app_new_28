@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 
@@ -31,6 +33,18 @@ class DioClient {
     );
     _dio.interceptors.add(_GlobalErrorInterceptor());
     if (kDebugMode) {
+      // ── Debug-only SSL bypass ────────────────────────────────────────────
+      // The backend (apiai.goexperts.in) sends an incomplete certificate chain
+      // which Android rejects with HandshakeException. In debug builds we
+      // skip certificate validation so development is unblocked.
+      // The Android network_security_config.xml handles this more elegantly
+      // for most cases; this adapter-level bypass covers the rest.
+      // DO NOT ship this in a release build — kDebugMode guards it.
+      (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+        final client = HttpClient();
+        client.badCertificateCallback = (cert, host, port) => true;
+        return client;
+      };
       _dio.interceptors.add(
         PrettyDioLogger(
           requestHeader: true,
@@ -258,11 +272,27 @@ class _GlobalErrorInterceptor extends Interceptor {
     } else if (err.type == DioExceptionType.connectionError ||
         err.type == DioExceptionType.connectionTimeout ||
         err.type == DioExceptionType.receiveTimeout ||
-        err.type == DioExceptionType.sendTimeout) {
+        err.type == DioExceptionType.sendTimeout ||
+        err.type == DioExceptionType.unknown) {
+      // DioExceptionType.unknown wraps raw dart:io errors such as
+      // SocketException (DNS/network failure) and HandshakeException
+      // (SSL/TLS certificate errors). Log the underlying cause so it
+      // appears in the debug console for easier diagnosis.
+      if (kDebugMode) {
+        debugPrint(
+          '[DioClient] Unknown network error — underlying: ${err.error}',
+        );
+      }
+      final isConnectivity =
+          err.error?.toString().contains('SocketException') == true ||
+          err.error?.toString().contains('HandshakeException') == true ||
+          err.type == DioExceptionType.connectionError;
       GlobalErrorBus.instance.emit(
         AppErrorMessages.forStatus(
           null,
-          serverMessage: 'No internet connection. Please try again.',
+          serverMessage: isConnectivity
+              ? 'No internet connection. Please try again.'
+              : 'Network error. Please try again.',
         ),
       );
     }

@@ -49,6 +49,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
   num? _rawTicketMin;
   num? _rawTicketMax;
   final Set<String> _selectedFocusAreaIds = {};
+  final Map<String, String> _focusAreaNameMap = {};
 
   List<MasterOption> _countries = [];
   List<MasterOption> _states = [];
@@ -156,15 +157,15 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
         }
       }
 
-      if (userMap['state'] is Map) {
-        final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
-        final sid =
-            (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
-        final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
-        if (sid.isNotEmpty && sname.isNotEmpty) {
-          _selectedState = MasterOption(id: sid, name: sname);
-        }
-      }
+      // if (userMap['state'] is Map) {
+      //   final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
+      //   final sid =
+      //       (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
+      //   final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
+      //   if (sid.isNotEmpty && sname.isNotEmpty) {
+      //     _selectedState = MasterOption(id: sid, name: sname);
+      //   }
+      // }
 
       if (userMap['profile'] is Map) {
         final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
@@ -218,26 +219,71 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           }
         }
 
+        bool isFuzzyMatch(String str1, String str2) {
+          final s1 = str1.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+          final s2 = str2.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+          if (s1.isEmpty || s2.isEmpty) return false;
+          if (s1 == s2) return true;
+          if (s1.contains(s2) || s2.contains(s1)) return true;
+
+          final words1 = s1.split(' ').where((w) => w.length > 2).toSet();
+          final words2 = s2.split(' ').where((w) => w.length > 2).toSet();
+          if (words1.isEmpty || words2.isEmpty) return false;
+          final common = words1.intersection(words2);
+          if (common.length >= words1.length || common.length >= words2.length) return true;
+          if (words1.length > 1 && words2.length > 1 && common.length >= 2) return true;
+          return false;
+        }
+
+        void addFocusAreaMatch(String? rawId, String? rawName) {
+          final rId = (rawId ?? '').trim();
+          final rName = (rawName ?? '').trim();
+          if (rId.isEmpty && rName.isEmpty) return;
+
+          final options = _focusAreaOptions.isNotEmpty
+              ? _focusAreaOptions
+              : _categories
+                    .map((c) => MasterOption(id: c.id, name: c.name))
+                    .toList();
+
+          if (options.isNotEmpty) {
+            for (final c in options) {
+              final cId = c.id;
+              final cName = c.name.trim();
+
+              if (rId.isNotEmpty && cId == rId) {
+                _selectedFocusAreaIds.add(cId);
+                return;
+              }
+              if (rName.isNotEmpty && isFuzzyMatch(cName, rName)) {
+                _selectedFocusAreaIds.add(cId);
+                return;
+              }
+              if (rId.isNotEmpty && isFuzzyMatch(cName, rId)) {
+                _selectedFocusAreaIds.add(cId);
+                return;
+              }
+            }
+          }
+          if (rId.isNotEmpty) {
+            _selectedFocusAreaIds.add(rId);
+            if (rName.isNotEmpty) _focusAreaNameMap[rId] = rName;
+          }
+        }
+
         if (pMap['focusAreasId'] is List) {
           final faList = pMap['focusAreasId'] as List;
+          _selectedFocusAreaIds.clear();
+          _focusAreaNameMap.clear();
           _prefilledFocusAreaNames.clear();
           for (final area in faList) {
             if (area is Map) {
               final fid = (area['id'] ?? area['_id'])?.toString();
               final fname = (area['name'] ?? area['label'])?.toString();
-              if (fid != null && fid.isNotEmpty) _selectedFocusAreaIds.add(fid);
-              if (fname != null && fname.isNotEmpty) {
-                _prefilledFocusAreaNames.add(fname);
-              }
+              addFocusAreaMatch(fid, fname);
             } else if (area is String && area.isNotEmpty) {
-              _selectedFocusAreaIds.add(area);
-              _prefilledFocusAreaNames.add(area);
+              addFocusAreaMatch(area, area);
             }
-          }
-          if (_prefilledFocusAreaNames.isNotEmpty) {
-            _focusAreasDisplayController.text = _prefilledFocusAreaNames.join(
-              ', ',
-            );
           }
         }
       }
@@ -317,15 +363,30 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
             final options = _focusAreaOptions.isNotEmpty
-                ? _focusAreaOptions
+                ? List<MasterOption>.from(_focusAreaOptions)
                 : _categories
                       .map((c) => MasterOption(id: c.id, name: c.name))
                       .toList();
-            final filtered = search.isEmpty
-                ? options
+
+            for (final selId in _selectedFocusAreaIds) {
+              if (!options.any((o) => o.id == selId)) {
+                final displayName = _focusAreaNameMap[selId] ?? selId;
+                options.add(MasterOption(id: selId, name: displayName));
+              }
+            }
+
+            final filtered = (search.isEmpty
+                ? List<MasterOption>.from(options)
                 : options
                       .where((c) => c.name.toLowerCase().contains(search))
-                      .toList();
+                      .toList())
+              ..sort((a, b) {
+                final aSel = _selectedFocusAreaIds.contains(a.id);
+                final bSel = _selectedFocusAreaIds.contains(b.id);
+                if (aSel && !bSel) return -1;
+                if (!aSel && bSel) return 1;
+                return 0;
+              });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -451,7 +512,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       'city': _city.text.trim(),
       if (_bio.text.trim().isNotEmpty) 'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
-      if (_selectedState != null) 'stateId': _selectedState!.id,
+      // if (_selectedState != null) 'stateId': _selectedState!.id,
       'firm': _firm.text.trim(),
       if (_selectedInvestorType != null)
         'investorTypeId': _selectedInvestorType!.id,
@@ -659,17 +720,17 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                     }
                   },
                 ),
-                AppSizes.vGapMd,
-                AppDropdown<MasterOption>(
-                  label: 'State *',
-                  hint: 'Select State',
-                  prefixIcon: Icons.map_outlined,
-                  value: _selectedState,
-                  items: _states,
-                  itemLabel: (item) => item.name,
-                  onChanged: (opt) => setState(() => _selectedState = opt),
-                ),
-                AppSizes.vGapMd,
+                // AppSizes.vGapMd,
+                // AppDropdown<MasterOption>(
+                //   label: 'State *',
+                //   hint: 'Select State',
+                //   prefixIcon: Icons.map_outlined,
+                //   value: _selectedState,
+                //   items: _states,
+                //   itemLabel: (item) => item.name,
+                //   onChanged: (opt) => setState(() => _selectedState = opt),
+                // ),
+                // AppSizes.vGapMd,
                 AppDropdown<TicketSizeOption>(
                   label: 'Ticket Size *',
                   hint: 'Select Ticket Size',

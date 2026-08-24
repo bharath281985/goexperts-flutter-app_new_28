@@ -11,15 +11,18 @@ class LocationSearchSheet extends StatefulWidget {
   const LocationSearchSheet({
     super.key,
     this.initialQuery = '',
+    this.country,
     this.placesService,
   });
 
   final String initialQuery;
+  final String? country;
   final GooglePlacesService? placesService;
 
   static Future<SelectedPlace?> show(
     BuildContext context, {
     String initialQuery = '',
+    String? country,
     GooglePlacesService? placesService,
   }) {
     return showModalBottomSheet<SelectedPlace>(
@@ -32,6 +35,7 @@ class LocationSearchSheet extends StatefulWidget {
         ),
         child: LocationSearchSheet(
           initialQuery: initialQuery,
+          country: country,
           placesService: placesService,
         ),
       ),
@@ -90,7 +94,7 @@ class _LocationSearchSheetState extends State<LocationSearchSheet> {
       _error = null;
     });
 
-    final results = await _placesService.searchPlaces(query);
+    final results = await _placesService.searchPlaces(query, country: widget.country);
     if (!mounted) return;
 
     setState(() {

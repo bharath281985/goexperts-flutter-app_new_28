@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -50,7 +51,11 @@ class VerificationItem {
       value: json['value']?.toString() ?? '',
       status: json['status']?.toString() ?? 'missing',
       documentUrl:
-          json['documentUrl']?.toString() ?? json['document_url']?.toString(),
+          json['documentUrl']?.toString() ??
+          json['document_url']?.toString() ??
+          json['publicUrl']?.toString() ??
+          json['url']?.toString() ??
+          json['file']?.toString(),
       required: json['required'] == true,
     );
   }
@@ -179,35 +184,43 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
 
         final rawItems = payload['items'] as List?;
         if (rawItems != null && rawItems.isNotEmpty) {
-          _items = rawItems.map((e) {
-            final map = Map<String, dynamic>.from(e as Map);
-            final key = map['key']?.toString().toLowerCase() ?? '';
-            if (key == 'personal_id_1' ||
-                key == 'aadhaar' ||
-                key == 'govt_id') {
-              map['key'] = 'identity';
-              map['label'] = 'Aadhaar Card / Govt ID';
-            } else if (key == 'personal_id_2' || key == 'pan') {
-              map['key'] = 'pancard';
-              map['label'] = 'PAN Card';
-            } else {
-              // Ensure proper labels if not provided by backend
-              if (_businessProofOptions.containsKey(key) &&
-                  map['label'] == null) {
-                map['label'] = _businessProofOptions[key];
-              }
-            }
-            return VerificationItem.fromJson(map);
-          }).where((item) => item.key != 'selfie' && item.key != 'address')
+          _items = rawItems
+              .map((e) {
+                final map = Map<String, dynamic>.from(e as Map);
+                final key = map['key']?.toString().toLowerCase() ?? '';
+                if (key == 'personal_id_1' ||
+                    key == 'aadhaar' ||
+                    key == 'govt_id') {
+                  map['key'] = 'identity';
+                  map['label'] = 'Aadhaar Card / Govt ID';
+                } else if (key == 'personal_id_2' || key == 'pan') {
+                  map['key'] = 'pancard';
+                  map['label'] = 'PAN Card';
+                } else {
+                  // Ensure proper labels if not provided by backend
+                  if (_businessProofOptions.containsKey(key) &&
+                      map['label'] == null) {
+                    map['label'] = _businessProofOptions[key];
+                  }
+                }
+                return VerificationItem.fromJson(map);
+              })
+              .where((item) => item.key != 'selfie' && item.key != 'address')
               .toList();
 
           setState(() {
-            final presentBusinessKeys = _items.map((e) => e.key).where((k) => _businessProofOptions.containsKey(k)).toList();
+            final presentBusinessKeys = _items
+                .map((e) => e.key)
+                .where((k) => _businessProofOptions.containsKey(k))
+                .toList();
             if (presentBusinessKeys.isNotEmpty) {
               _selectedBusinessProofKey = presentBusinessKeys.first;
             }
 
-            final presentIdentityKeys = _items.map((e) => e.key).where((k) => _identityOptions.containsKey(k)).toList();
+            final presentIdentityKeys = _items
+                .map((e) => e.key)
+                .where((k) => _identityOptions.containsKey(k))
+                .toList();
             if (presentIdentityKeys.isNotEmpty) {
               _selectedIdentityKey = presentIdentityKeys.first;
             }
@@ -262,7 +275,9 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
     }
 
     final keysPresent = _items.map((i) => i.key).toSet();
-    final presentIdentityKeys = keysPresent.intersection(_identityOptions.keys.toSet());
+    final presentIdentityKeys = keysPresent.intersection(
+      _identityOptions.keys.toSet(),
+    );
     if (presentIdentityKeys.length < 2 && !keysPresent.contains('identity')) {
       _items.add(
         VerificationItem(
@@ -275,8 +290,11 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
       );
     }
 
-    final presentBusinessKeys = keysPresent.intersection(_businessProofOptions.keys.toSet());
-    if (presentBusinessKeys.length < 2 && !keysPresent.contains('business_proof')) {
+    final presentBusinessKeys = keysPresent.intersection(
+      _businessProofOptions.keys.toSet(),
+    );
+    if (presentBusinessKeys.length < 2 &&
+        !keysPresent.contains('business_proof')) {
       _items.add(
         VerificationItem(
           key: 'business_proof',
@@ -370,7 +388,10 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
     });
 
     if (updateRes.isFailure) {
-      context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit phone number', isError: true);
+      context.showSnack(
+        updateRes.failureOrNull?.message ?? 'Failed to submit phone number',
+        isError: true,
+      );
       return false;
     }
 
@@ -402,55 +423,106 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
   }
 
   String? _validateDocument(String key, String value) {
+    final normalized = value.trim().toUpperCase().replaceAll(' ', '');
     final Map<String, Map<String, dynamic>> validators = {
-      'pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'business_pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'aadhaar': {'regex': RegExp(r'^[0-9\s]{12,14}$'), 'message': 'Invalid Aadhaar format (12 digits)'},
-      'gst': {'regex': RegExp(r'^[A-Z0-9]{15}$', caseSensitive: false), 'message': 'Invalid GST format (15 characters)'},
-      'udyam': {'regex': RegExp(r'^[A-Z0-9-]{10,25}$', caseSensitive: false), 'message': 'Invalid Udyam format'},
-      'driving': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
-      'driving_licence': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
-      'incorporation': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Incorporation Number format'},
-      'company': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Company Registration format'},
+      'pan': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'pancard': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'business_pan': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'aadhaar': {
+        'regex': RegExp(r'^\d{4}\s?\d{4}\s?\d{4}$'),
+        'message': 'Invalid Aadhaar format (12 digits)',
+      },
+      'gst': {
+        'regex': RegExp(
+          r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$',
+        ),
+        'message': 'Invalid GSTIN format (e.g. 27ABCDE1234F1Z5)',
+      },
+      'udyam': {
+        'regex': RegExp(r'^UDYAM-[A-Z]{2}-[0-9]{2}-[0-9]{7}$'),
+        'message': 'Invalid Udyam number (e.g. UDYAM-MH-18-0123456)',
+      },
+      'driving': {
+        'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false),
+        'message': 'Invalid Driving Licence format',
+      },
+      'driving_licence': {
+        'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false),
+        'message': 'Invalid Driving Licence format',
+      },
+      'incorporation': {
+        'regex': RegExp(r'^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$'),
+        'message': 'Invalid CIN format (e.g. U12345MH2020PTC123456)',
+      },
+      'company': {
+        'regex': RegExp(r'^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$'),
+        'message': 'Invalid CIN format (e.g. U12345MH2020PTC123456)',
+      },
     };
     if (validators.containsKey(key)) {
       final RegExp regex = validators[key]!['regex'];
-      if (!regex.hasMatch(value)) {
+      if (!regex.hasMatch(normalized)) {
         return validators[key]!['message'];
       }
     }
     return null;
   }
 
-  Future<bool> _submitDocument(VerificationItem item, {String? explicitValue}) async {
+  Future<bool> _submitDocument(
+    VerificationItem item, {
+    String? explicitValue,
+  }) async {
     final controller = _getController(item.key, item.value);
-    final valueText = explicitValue ?? controller.text.trim();
+    final valueText = (explicitValue ?? controller.text).trim().toUpperCase();
 
-    final isBusinessCard = item.key == 'business_proof' || _businessProofOptions.containsKey(item.key);
-    final isIdentityCard = item.key == 'identity' || _identityOptions.containsKey(item.key);
-    final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
-    final actualLabel = isBusinessCard ? (_businessProofOptions[actualKey] ?? item.label) : (isIdentityCard ? (_identityOptions[actualKey] ?? item.label) : item.label);
+    final isBusinessCard =
+        item.key == 'business_proof' ||
+        _businessProofOptions.containsKey(item.key);
+    final isIdentityCard =
+        item.key == 'identity' || _identityOptions.containsKey(item.key);
+    final actualKey = isBusinessCard
+        ? _selectedBusinessProofKey
+        : (isIdentityCard ? _selectedIdentityKey : item.key);
+    final actualLabel = isBusinessCard
+        ? (_businessProofOptions[actualKey] ?? item.label)
+        : (isIdentityCard
+              ? (_identityOptions[actualKey] ?? item.label)
+              : item.label);
 
     if (valueText.isEmpty) {
       context.showSnack('Please enter $actualLabel Number', isError: true);
       return false;
     }
 
-    final path = _selectedFilePaths[item.key];
+    final validationError = _validateDocument(actualKey, valueText);
+    if (validationError != null) {
+      context.showSnack(validationError, isError: true);
+      return false;
+    }
 
-    if (path == null || path.isEmpty) {
+    final path = _selectedFilePaths[item.key];
+    final hasExistingDoc =
+        item.documentUrl != null && item.documentUrl!.isNotEmpty;
+
+    if ((path == null || path.isEmpty) && !hasExistingDoc) {
       context.showSnack('Please select a document to upload', isError: true);
       return false;
     }
+    String? documentUrl = item.documentUrl;
 
     setState(() {
       _submittingItem = true;
       _submittingKey = item.key;
     });
-
-    bool isSuccess = false;
-    String? displayMsg;
-    String? documentUrl;
 
     if (path != null && path.isNotEmpty) {
       final uploadRes = await sl<FileUploadHelper>().upload(
@@ -465,7 +537,10 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
           _submittingItem = false;
           _submittingKey = null;
         });
-        context.showSnack('File upload failed: ${uploadRes.failureOrNull?.message}', isError: true);
+        context.showSnack(
+          'File upload failed: ${uploadRes.failureOrNull?.message}',
+          isError: true,
+        );
         return false;
       }
 
@@ -488,11 +563,14 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
         _submittingItem = false;
         _submittingKey = null;
       });
-      context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit verification', isError: true);
+      context.showSnack(
+        updateRes.failureOrNull?.message ?? 'Failed to submit verification',
+        isError: true,
+      );
       return false;
     }
-    isSuccess = true;
-    displayMsg = updateRes.valueOrNull;
+    bool isSuccess = true;
+    String? displayMsg = updateRes.valueOrNull;
 
     if (!mounted) return false;
 
@@ -751,10 +829,7 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
               spacing: gap,
               runSpacing: AppSizes.md,
               children: displayItems.map((item) {
-                return SizedBox(
-                  width: cardWidth,
-                  child: _buildItemCard(item),
-                );
+                return SizedBox(width: cardWidth, child: _buildItemCard(item));
               }).toList(),
             );
           },
@@ -777,20 +852,25 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
 
     final basicItems = _items.where((i) => basicKeys.contains(i.key)).toList();
     final identityItems =
-        _items.where((i) => identityKeys.contains(i.key) || i.key == 'pancard').toList()..sort(
-          (a, b) => identityKeys
-              .indexOf(a.key)
-              .compareTo(identityKeys.indexOf(b.key)),
-        );
-    
+        _items
+            .where((i) => identityKeys.contains(i.key) || i.key == 'pancard')
+            .toList()
+          ..sort(
+            (a, b) => identityKeys
+                .indexOf(a.key)
+                .compareTo(identityKeys.indexOf(b.key)),
+          );
+
     while (identityItems.length < 2) {
-      identityItems.add( VerificationItem(
-        key: 'identity',
-        label: 'Additional Identity Document',
-        value: '',
-        status: 'missing',
-        required: true,
-      ));
+      identityItems.add(
+        VerificationItem(
+          key: 'identity',
+          label: 'Additional Identity Document',
+          value: '',
+          status: 'missing',
+          required: true,
+        ),
+      );
     }
 
     final businessItems =
@@ -799,15 +879,17 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
               .indexOf(a.key)
               .compareTo(businessKeys.indexOf(b.key)),
         );
-    
+
     while (businessItems.length < 2) {
-      businessItems.add( VerificationItem(
-        key: 'business_proof',
-        label: 'Additional Business Document',
-        value: '',
-        status: 'missing',
-        required: true,
-      ));
+      businessItems.add(
+        VerificationItem(
+          key: 'business_proof',
+          label: 'Additional Business Document',
+          value: '',
+          status: 'missing',
+          required: true,
+        ),
+      );
     }
 
     return AppScaffold(
@@ -861,7 +943,8 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                         context: context,
                         sectionTitle: 'Identity Documents',
                         title: 'Personal Documents',
-                        subtitle: 'Upload any 2 of the following personal identity proofs',
+                        subtitle:
+                            'Upload any 2 of the following personal identity proofs',
                         icon: Icons.person_outline,
                         items: identityItems,
                         requiredCount: 2,
@@ -871,7 +954,8 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                         context: context,
                         sectionTitle: 'Business Documents',
                         title: 'Business Documents',
-                        subtitle: 'Upload any 2 of the following business registration proofs',
+                        subtitle:
+                            'Upload any 2 of the following business registration proofs',
                         icon: Icons.domain_outlined,
                         items: businessItems,
                         requiredCount: 2,
@@ -1314,7 +1398,9 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radiusLg),
+        ),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -1336,7 +1422,9 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                       children: [
                         Text(
                           'Update Phone Number',
-                          style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                          style: context.text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         IconButton(
                           onPressed: () => Navigator.pop(context),
@@ -1409,7 +1497,10 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.white,
+                                ),
                               )
                             : const Icon(Icons.check_circle_outline, size: 18),
                         label: const Text('Submit'),
@@ -1431,26 +1522,83 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
     );
   }
 
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) context.showSnack('Could not open document', isError: true);
+  Future<void> _launchUrl(String rawUrl) async {
+    String url = rawUrl.trim();
+    if (url.isEmpty) {
+      if (mounted) context.showSnack('Document URL is empty', isError: true);
+      return;
     }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+      url = '$base${url.startsWith('/') ? '' : '/'}$url';
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      if (mounted) context.showSnack('Invalid document URL', isError: true);
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        final fallback = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!fallback) {
+          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (e) {
+        if (mounted)
+          context.showSnack('Could not open document', isError: true);
+      }
+    }
+  }
+
+  Future<void> _viewDocument(VerificationItem item) async {
+    final documentUrl = item.documentUrl?.trim();
+    final value = item.value.trim();
+
+    String? url = (documentUrl != null && documentUrl.isNotEmpty)
+        ? documentUrl
+        : null;
+    if (url == null &&
+        value.isNotEmpty &&
+        value != 'Not submitted' &&
+        value != 'Submitted for review') {
+      url = value;
+    }
+
+    if (url == null) {
+      if (mounted)
+        context.showSnack('Document is not available to view', isError: true);
+      return;
+    }
+    await _launchUrl(url);
   }
 
   void _showDocumentBottomSheet(VerificationItem item, [IconData? icon]) {
     final controller = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    String? fileError;
     if (item.value != 'Not submitted') controller.text = item.value;
-    final keysPresent = _items.map((i) => i.key).toSet();
+    final hasExistingDoc =
+        item.documentUrl != null && item.documentUrl!.isNotEmpty;
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radiusLg),
+        ),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -1458,27 +1606,64 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
             final isSubmitting = _submittingItem && _submittingKey == item.key;
             final chosenFileName = _selectedFileNames[item.key];
 
-            final submittedIdentityKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
-            
+            final submittedIdentityKeys = _items
+                .where((i) => !i.isMissing)
+                .expand((i) {
+                  if (i.key == 'identity') return ['identity', 'aadhaar'];
+                  if (i.key == 'pancard') return ['pancard', 'pan'];
+                  return [i.key];
+                })
+                .toList();
+
+            final currentItemKeys = [item.key];
+            if (item.key == 'identity') currentItemKeys.add('aadhaar');
+            if (item.key == 'pancard') currentItemKeys.add('pan');
+
             final availableIdentityOptions = Map.fromEntries(
-              _identityOptions.entries.where((e) => !submittedIdentityKeys.contains(e.key) || item.key == e.key)
+              _identityOptions.entries.where(
+                (e) =>
+                    !submittedIdentityKeys.contains(e.key) ||
+                    currentItemKeys.contains(e.key),
+              ),
             );
-            if (!availableIdentityOptions.containsKey(_selectedIdentityKey) && availableIdentityOptions.isNotEmpty) {
+            if (!availableIdentityOptions.containsKey(_selectedIdentityKey) &&
+                availableIdentityOptions.isNotEmpty) {
               _selectedIdentityKey = availableIdentityOptions.keys.first;
             }
 
-            final submittedBusinessKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
+            final submittedBusinessKeys = _items
+                .where((i) => !i.isMissing)
+                .map((i) => i.key)
+                .toList();
             final availableBusinessOptions = Map.fromEntries(
-              _businessProofOptions.entries.where((e) => !submittedBusinessKeys.contains(e.key) || item.key == e.key)
+              _businessProofOptions.entries.where(
+                (e) =>
+                    !submittedBusinessKeys.contains(e.key) || item.key == e.key,
+              ),
             );
-            if (!availableBusinessOptions.containsKey(_selectedBusinessProofKey) && availableBusinessOptions.isNotEmpty) {
+            if (!availableBusinessOptions.containsKey(
+                  _selectedBusinessProofKey,
+                ) &&
+                availableBusinessOptions.isNotEmpty) {
               _selectedBusinessProofKey = availableBusinessOptions.keys.first;
             }
 
-            final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
-            final isIdentityCard = item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key);
-            final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
-            final actualLabel = isBusinessCard ? (_businessProofOptions[actualKey] ?? item.label) : (isIdentityCard ? (_identityOptions[actualKey] ?? item.label) : item.label);
+            final isBusinessCard =
+                item.key == 'business_proof' ||
+                item.key == 'company' ||
+                _businessProofOptions.containsKey(item.key);
+            final isIdentityCard =
+                item.key == 'identity' ||
+                item.key == 'pancard' ||
+                _identityOptions.containsKey(item.key);
+            final actualKey = isBusinessCard
+                ? _selectedBusinessProofKey
+                : (isIdentityCard ? _selectedIdentityKey : item.key);
+            final actualLabel = isBusinessCard
+                ? (_businessProofOptions[actualKey] ?? item.label)
+                : (isIdentityCard
+                      ? (_identityOptions[actualKey] ?? item.label)
+                      : item.label);
 
             return Padding(
               padding: EdgeInsets.only(
@@ -1487,192 +1672,313 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                 right: AppSizes.md,
                 top: AppSizes.md,
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Upload $actualLabel',
-                          style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.close),
-                        ),
-                      ],
-                    ),
-                    AppSizes.vGapMd,
-                    if (item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key) || item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key)) ...[
-                      if (isIdentityCard)
-                        DropdownButtonFormField<String>(
-                          value: _selectedIdentityKey,
-                          decoration: const InputDecoration(
-                            labelText: 'Document Type',
-                            prefixIcon: Icon(Icons.description_outlined),
+              child: Form(
+                key: formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            item.isVerified
+                                ? 'View $actualLabel'
+                                : 'Upload $actualLabel',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                          items: availableIdentityOptions.entries
-                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) setSheetState(() => _selectedIdentityKey = val);
-                          },
-                        ),
-                      if (isBusinessCard)
-                        DropdownButtonFormField<String>(
-                          value: _selectedBusinessProofKey,
-                          decoration: const InputDecoration(
-                            labelText: 'Document Type',
-                            prefixIcon: Icon(Icons.description_outlined),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.close),
                           ),
-                          items: availableBusinessOptions.entries
-                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
-                              .toList(),
-                          onChanged: (val) {
-                            if (val != null) setSheetState(() => _selectedBusinessProofKey = val);
-                          },
-                        ),
+                        ],
+                      ),
                       AppSizes.vGapMd,
-                    ],
-                    Builder(
-                      builder: (context) {
-                        int? maxLength;
-                        TextInputType? keyboardType;
-                        String hintText = 'Enter document number';
+                      if (item.key == 'business_proof' ||
+                          item.key == 'company' ||
+                          _businessProofOptions.containsKey(item.key) ||
+                          item.key == 'identity' ||
+                          item.key == 'pancard' ||
+                          _identityOptions.containsKey(item.key)) ...[
+                        if (isIdentityCard)
+                          DropdownButtonFormField<String>(
+                            value: _selectedIdentityKey,
+                            decoration: const InputDecoration(
+                              labelText: 'Document Type',
+                              prefixIcon: Icon(Icons.description_outlined),
+                            ),
+                            items: availableIdentityOptions.entries
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e.key,
+                                    child: Text(e.value),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: item.isVerified
+                                ? null
+                                : (val) {
+                                    if (val != null)
+                                      setSheetState(
+                                        () => _selectedIdentityKey = val,
+                                      );
+                                  },
+                          ),
+                        if (isBusinessCard)
+                          DropdownButtonFormField<String>(
+                            value: _selectedBusinessProofKey,
+                            decoration: const InputDecoration(
+                              labelText: 'Document Type',
+                              prefixIcon: Icon(Icons.description_outlined),
+                            ),
+                            items: availableBusinessOptions.entries
+                                .map(
+                                  (e) => DropdownMenuItem(
+                                    value: e.key,
+                                    child: Text(e.value),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: item.isVerified
+                                ? null
+                                : (val) {
+                                    if (val != null)
+                                      setSheetState(
+                                        () => _selectedBusinessProofKey = val,
+                                      );
+                                  },
+                          ),
+                        AppSizes.vGapMd,
+                      ],
+                      Builder(
+                        builder: (context) {
+                          int? maxLength;
+                          TextInputType? keyboardType;
+                          String hintText = 'Enter document number';
 
-                        switch (actualKey) {
-                          case 'pan':
-                          case 'business_pan':
-                            maxLength = 10;
-                            hintText = 'e.g. ABCDE1234F';
-                            break;
-                          case 'aadhaar':
-                            maxLength = 14;
-                            keyboardType = TextInputType.number;
-                            hintText = 'e.g. 1234 5678 9012';
-                            break;
-                          case 'gst':
-                            maxLength = 15;
-                            hintText = '15-character GSTIN';
-                            break;
-                          case 'udyam':
-                            hintText = 'e.g. UDYAM-MH-18-0123456';
-                            break;
-                          case 'driving':
-                          case 'driving_licence':
-                            maxLength = 20;
-                            break;
-                          case 'incorporation':
-                          case 'company':
-                            maxLength = 25;
-                            break;
-                        }
+                          switch (actualKey) {
+                            case 'pan':
+                            case 'business_pan':
+                            case 'pancard':
+                              maxLength = 10;
+                              hintText = 'e.g. ABCDE1234F';
+                              break;
+                            case 'aadhaar':
+                              maxLength = 12;
+                              keyboardType = TextInputType.number;
+                              hintText = 'e.g. 1234 5678 9012';
+                              break;
+                            case 'gst':
+                              maxLength = 15;
+                              hintText = '15-character GSTIN';
+                              break;
+                            case 'udyam':
+                              maxLength = 25;
+                              hintText = 'e.g. UDYAM-MH-18-0123456';
+                              break;
+                            case 'driving':
+                            case 'driving_licence':
+                              maxLength = 20;
+                              hintText = 'e.g. DL1420110012345';
+                              break;
+                            case 'passport':
+                              maxLength = 12;
+                              hintText = 'e.g. A1234567';
+                              break;
+                            case 'incorporation':
+                            case 'company':
+                              maxLength = 25;
+                              hintText = 'e.g. U12345MH2020PTC123456';
+                              break;
+                          }
 
-                        return AppTextField(
-                          controller: controller,
-                          label: '${actualLabel} Number',
-                          hint: hintText,
-                          prefixIcon: icon,
-                          keyboardType: keyboardType,
-                          maxLength: maxLength,
-                          textInputAction: TextInputAction.done,
-                        );
-                      }
-                    ),
-                    AppSizes.vGapMd,
-                    OutlinedButton.icon(
-                      onPressed: isSubmitting
-                          ? null
-                          : () async {
-                              final result = await FilePicker.platform.pickFiles(
-                                type: FileType.custom,
-                                allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
-                              );
-                              if (result != null && result.files.isNotEmpty) {
-                                final file = result.files.first;
-                                setSheetState(() {
-                                  _selectedFilePaths[item.key] = file.path!;
-                                  _selectedFileNames[item.key] = file.name;
-                                });
-                                // Also update parent state
-                                setState(() {
-                                  _selectedFilePaths[item.key] = file.path!;
-                                  _selectedFileNames[item.key] = file.name;
-                                });
-                              }
-                            },
-                      icon: const Icon(Icons.upload_file_outlined),
-                      label: Text(chosenFileName ?? 'Choose image or pdf'),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(48),
-                        alignment: Alignment.centerLeft,
+                          return AppTextField(
+                            controller: controller,
+                            label: '${actualLabel} Number',
+                            hint: hintText,
+                            prefixIcon: icon,
+                            keyboardType: keyboardType,
+                            maxLength: maxLength,
+                            textInputAction: TextInputAction.done,
+                            readOnly: item.isVerified,
+                            validator: item.isVerified
+                                ? null
+                                : (value) {
+                                    final trimmed = value?.trim() ?? '';
+                                    if (trimmed.isEmpty) {
+                                      return 'Please enter $actualLabel Number';
+                                    }
+                                    return _validateDocument(
+                                      actualKey,
+                                      trimmed,
+                                    );
+                                  },
+                          );
+                        },
                       ),
-                    ),
-                    AppSizes.vGapLg,
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: isSubmitting
-                            ? null
-                            : () async {
-                                final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
-                                final isIdentityCard = item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key);
-                                final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
-                                
-                                final valueText = controller.text.trim();
-                                if (valueText.isEmpty) {
-                                  context.showSnack('Please enter document number', isError: true);
-                                  return;
-                                }
-
-                                final validationError = _validateDocument(actualKey, valueText);
-                                if (validationError != null) {
-                                  context.showSnack(validationError, isError: true);
-                                  return;
-                                }
-
-                                final path = _selectedFilePaths[item.key];
-                                if (path == null || path.isEmpty) {
-                                  context.showSnack('Please select a document to upload', isError: true);
-                                  return;
-                                }
-
-                                setSheetState(() {
-                                  _submittingItem = true;
-                                  _submittingKey = item.key;
-                                });
-                                // Call parent method
-                                final success = await _submitDocument(item, explicitValue: valueText);
-                                if (mounted) {
-                                  setSheetState(() {
-                                    _submittingItem = false;
-                                    _submittingKey = null;
-                                  });
-                                  if (success) {
-                                    Navigator.pop(context);
+                      if (!item.isVerified) ...[
+                        AppSizes.vGapMd,
+                        OutlinedButton.icon(
+                          onPressed: isSubmitting
+                              ? null
+                              : () async {
+                                  final result = await FilePicker.platform
+                                      .pickFiles(
+                                        type: FileType.custom,
+                                        allowedExtensions: [
+                                          'jpg',
+                                          'jpeg',
+                                          'png',
+                                          'pdf',
+                                        ],
+                                      );
+                                  if (result != null &&
+                                      result.files.isNotEmpty) {
+                                    final file = result.files.first;
+                                    final path = file.path;
+                                    if (path == null || path.isEmpty) {
+                                      setSheetState(() {
+                                        fileError =
+                                            'Unable to access the selected file';
+                                      });
+                                      return;
+                                    }
+                                    if (file.size > 5 * 1024 * 1024) {
+                                      setSheetState(() {
+                                        fileError =
+                                            'File size must be 5 MB or less';
+                                      });
+                                      return;
+                                    }
+                                    setSheetState(() {
+                                      fileError = null;
+                                      _selectedFilePaths[item.key] = path;
+                                      _selectedFileNames[item.key] = file.name;
+                                    });
+                                    // Also update parent state
+                                    setState(() {
+                                      _selectedFilePaths[item.key] = path;
+                                      _selectedFileNames[item.key] = file.name;
+                                    });
                                   }
-                                }
-                              },
-                        icon: isSubmitting
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
-                              )
-                            : const Icon(Icons.check_circle_outline, size: 18),
-                        label: const Text('Submit Document'),
-                        style: ElevatedButton.styleFrom(
-                          minimumSize: const Size.fromHeight(48),
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: AppColors.white,
+                                },
+                          icon: const Icon(Icons.upload_file_outlined),
+                          label: Text(
+                            chosenFileName ??
+                                (hasExistingDoc
+                                    ? 'Document previously uploaded (Click to change)'
+                                    : 'Choose image or pdf'),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            alignment: Alignment.centerLeft,
+                          ),
+                        ),
+                        if (fileError != null) ...[
+                          AppSizes.vGapSm,
+                          Text(
+                            fileError!,
+                            style: context.text.bodySmall?.copyWith(
+                              color: AppColors.danger,
+                            ),
+                          ),
+                        ],
+                      ],
+                      AppSizes.vGapLg,
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: item.isVerified
+                              ? (hasExistingDoc
+                                    ? () async {
+                                        final url = Uri.parse(
+                                          item.documentUrl!,
+                                        );
+                                        if (await canLaunchUrl(url)) {
+                                          await launchUrl(url);
+                                        } else {
+                                          if (mounted)
+                                            context.showSnack(
+                                              'Could not launch document URL',
+                                              isError: true,
+                                            );
+                                        }
+                                      }
+                                    : null)
+                              : (isSubmitting
+                                    ? null
+                                    : () async {
+                                        final valueText = controller.text
+                                            .trim();
+                                        if (!(formKey.currentState
+                                                ?.validate() ??
+                                            false)) {
+                                          return;
+                                        }
+
+                                        final path =
+                                            _selectedFilePaths[item.key];
+                                        if ((path == null || path.isEmpty) &&
+                                            !hasExistingDoc) {
+                                          setSheetState(() {
+                                            fileError =
+                                                'Please select a document to upload';
+                                          });
+                                          return;
+                                        }
+
+                                        setSheetState(() {
+                                          _submittingItem = true;
+                                          _submittingKey = item.key;
+                                        });
+                                        // Call parent method
+                                        final success = await _submitDocument(
+                                          item,
+                                          explicitValue: valueText,
+                                        );
+                                        if (mounted) {
+                                          setSheetState(() {
+                                            _submittingItem = false;
+                                            _submittingKey = null;
+                                          });
+                                          if (success) {
+                                            Navigator.pop(context);
+                                          }
+                                        }
+                                      }),
+                          icon: item.isVerified
+                              ? const Icon(Icons.open_in_new, size: 18)
+                              : (isSubmitting
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: AppColors.white,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.check_circle_outline,
+                                        size: 18,
+                                      )),
+                          label: Text(
+                            item.isVerified
+                                ? 'View Document'
+                                : 'Submit Document',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: AppColors.white,
+                          ),
                         ),
                       ),
-                    ),
-                    AppSizes.vGapLg,
-                  ],
+                      AppSizes.vGapLg,
+                    ],
+                  ),
                 ),
               ),
             );
@@ -1745,15 +2051,24 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (item.documentUrl != null && item.documentUrl!.isNotEmpty) ...[
+                if (!item.isVerified &&
+                    item.documentUrl != null &&
+                    item.documentUrl!.isNotEmpty) ...[
                   InkWell(
                     onTap: () => _launchUrl(item.documentUrl!),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.visibility_outlined, size: 14, color: AppColors.primary),
+                          const Icon(
+                            Icons.visibility_outlined,
+                            size: 14,
+                            color: AppColors.primary,
+                          ),
                           AppSizes.hGapXs,
                           Text(
                             'View',
@@ -1769,22 +2084,31 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                   AppSizes.hGapSm,
                 ],
                 InkWell(
-                  onTap: () => _showDocumentBottomSheet(item),
+                  onTap: item.isVerified
+                      ? () => _viewDocument(item)
+                      : () => _showDocumentBottomSheet(item),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 2,
+                    ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          item.isPending || item.isVerified
-                              ? Icons.edit_outlined
-                              : Icons.add_circle_outline,
+                          item.isVerified
+                              ? Icons.visibility_outlined
+                              : (item.isPending
+                                    ? Icons.edit_outlined
+                                    : Icons.add_circle_outline),
                           size: 14,
                           color: AppColors.primary,
                         ),
                         AppSizes.hGapXs,
                         Text(
-                          item.isPending || item.isVerified ? 'Change' : 'Add',
+                          item.isVerified
+                              ? 'View'
+                              : (item.isPending ? 'Change' : 'Add'),
                           style: context.text.labelSmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,

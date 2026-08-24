@@ -20,7 +20,6 @@ import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/auth/presentation/pages/splash_page.dart';
 import '../../features/auth/presentation/pages/success_page.dart';
-import '../../features/auth/presentation/utils/signup_progress_store.dart';
 import '../../features/catalog/presentation/pages/business_plan_page.dart';
 import '../../features/catalog/presentation/pages/category_details_page.dart';
 import '../../features/catalog/presentation/pages/certificate_details_page.dart';
@@ -123,6 +122,7 @@ const _publicRoutes = {
   Routes.resetPassword,
   Routes.privacyPolicy,
   Routes.termsOfService,
+  Routes.subscription,
 };
 
 bool isPublicEntryRoute(String location) => _publicRoutes.contains(location);
@@ -130,7 +130,6 @@ bool isPublicEntryRoute(String location) => _publicRoutes.contains(location);
 const _onboardingRoutes = {
   Routes.roleSelection,
   Routes.profileCompletion,
-  Routes.subscription,
 };
 
 GoRouter createRouter(AuthBloc authBloc) {
@@ -168,13 +167,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       }
 
       final authed = auth.status == AuthStatus.authenticated;
-      final signupProgress = SignupProgressStore.read();
-
       if (!authed) {
-        if (signupProgress != null) {
-          if (loc == Routes.signup) return null;
-          return '${Routes.signup}?role=${signupProgress.role.name}';
-        }
         if (auth.pendingSignup != null) {
           if (loc == Routes.roleSelection || loc == Routes.signup) return null;
           return '${Routes.roleSelection}?from=signup';
@@ -187,38 +180,22 @@ GoRouter createRouter(AuthBloc authBloc) {
       }
 
       // Authenticated — navigate directly to role dashboard after login
-      if (signupProgress != null) {
-        if (loc == Routes.signup) return null;
-        return '${Routes.signup}?role=${signupProgress.role.name}';
-      }
       if (loc == Routes.signup) return null;
 
       if (!auth.hasRole) {
         return loc == Routes.roleSelection ? null : Routes.roleSelection;
       }
 
-      // Fully onboarded or logging in — keep them out of auth/onboarding routes
-      // and navigate directly to their role dashboard.
+      // If user's profile is incomplete (new user / social signup), redirect to step 2 of signup flow
       final isProfileComplete = auth.user?.isProfileComplete ?? false;
       final profileCompletion = auth.user?.profileCompletion ?? 0;
-
-      if (!isProfileComplete) {
-        if (profileCompletion < 30) {
-          if (loc == Routes.signup) return null;
-          return '${Routes.signup}?role=${auth.user?.role?.name ?? ''}&step=2';
-        }
-        return loc == Routes.profileCompletion
-            ? null
-            : Routes.profileCompletion;
+      if (!isProfileComplete && profileCompletion < 70) {
+        if (loc == Routes.signup) return null;
+        final stepParam = (auth.user?.isSocialLogin ?? false) ? '&step=2' : '';
+        return '${Routes.signup}?role=${auth.user?.role?.name ?? ''}$stepParam';
       }
 
       if (isAuthRoute || _onboardingRoutes.contains(loc)) {
-        final redirectTo = auth.user?.redirectTo;
-        if (redirectTo != null &&
-            redirectTo.startsWith('/') &&
-            redirectTo.contains('dashboard')) {
-          return redirectTo;
-        }
         return dashboardPathFor(auth.user!.role!);
       }
 

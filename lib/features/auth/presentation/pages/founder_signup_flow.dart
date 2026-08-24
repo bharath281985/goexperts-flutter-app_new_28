@@ -51,7 +51,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   // Step 2 Startup Details
   final _startupNameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String? _selectedIndustry;
+  List<String> _selectedIndustries = [];
   String? _selectedStage;
 
   // Step 3 Founder Profile
@@ -87,7 +87,11 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     if (progress?.role == UserRole.founder) {
       _registeredEmail = progress!.registeredEmail;
       _restoreFields(progress.fields);
+      if (progress.step >= 1) {
+        _currentStep = progress.step.clamp(1, 4).toInt();
+      }
     }
+    _populateFromAuthState();
     for (final controller in [
       _fullNameController,
       _emailController,
@@ -116,7 +120,6 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   }
 
   void _persistCurrentProgress() {
-    if (_currentStep <= 1 && _registeredEmail == null) return;
     _saveProgress(_currentStep);
   }
 
@@ -136,10 +139,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     _termsAccepted = fields['termsAccepted'] == true;
     _startupNameController.text = fields['startupName']?.toString() ?? '';
     _descriptionController.text = fields['pitch']?.toString() ?? '';
-    final restoredIndustries = _stringList(fields['industry']);
-    _selectedIndustry = restoredIndustries.isNotEmpty
-        ? restoredIndustries.first
-        : fields['industry']?.toString();
+    _selectedIndustries = _stringList(fields['industry']);
     _selectedStage = fields['stage']?.toString();
     _selectedDesignation = fields['founderRole']?.toString();
     _founderBioController.text = fields['founderBio']?.toString() ?? '';
@@ -149,44 +149,128 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     _selectedGoals = _stringList(fields['primaryGoal']);
   }
 
-  Map<String, dynamic> _fields({bool completed = false}) => {
-    'step': _currentStep,
-    'completed': completed,
-    'fullName': _fullNameController.text.trim(),
-    'email': _emailController.text.trim(),
-    'password': _passwordController.text,
-    'confirmPassword': _confirmPasswordController.text,
-    'country': _selectedCountry,
-    'state': _selectedState,
-    'city': _cityController.text.trim(),
-    'termsAccepted': _termsAccepted,
-    'startupName': _startupNameController.text.trim(),
-    'pitch': _descriptionController.text.trim(),
-    'founderRole': _selectedDesignation,
-    'founderBio': _founderBioController.text.trim(),
-    'stage': _selectedStage,
-    'raised': num.tryParse(_capitalRaisedController.text.trim()),
-    'targetRaise': num.tryParse(_targetFundraiseController.text.trim()),
-    'teamSize': _selectedTeamSize,
-    'industry': _selectedIndustry == null ? [] : [_selectedIndustry],
-    'primaryGoal': _selectedGoals,
-  };
+  void _populateFromAuthState() {
+    final authState = context.read<AuthBloc>().state;
+    final draft = authState.pendingSignup;
+    final user = authState.user;
+
+    if (draft != null) {
+      if (_fullNameController.text.isEmpty && draft.fullName.isNotEmpty) {
+        _fullNameController.text = draft.fullName;
+      }
+      if (_emailController.text.isEmpty && draft.email.isNotEmpty) {
+        _emailController.text = draft.email;
+      }
+      if (_mobileController.text.isEmpty && draft.phone.isNotEmpty) {
+        _mobileController.text = draft.phone;
+      }
+      if (draft.countryCode.isNotEmpty) {
+        _selectedMobileCountryCode = draft.countryCode;
+      }
+      final city = draft.signupData['city'] ?? draft.signupData['location'];
+      if (_cityController.text.isEmpty && city != null) {
+        _cityController.text = city.toString();
+      }
+      final country = draft.signupData['country'];
+      if (_selectedCountry == null && country != null) {
+        _selectedCountry = country.toString();
+      }
+    }
+
+    if (user != null) {
+      if ((user.isSocialLogin || _fullNameController.text.isEmpty) &&
+          user.fullName.isNotEmpty) {
+        _fullNameController.text = user.fullName;
+      }
+      if ((user.isSocialLogin || _emailController.text.isEmpty) &&
+          user.email.isNotEmpty) {
+        _emailController.text = user.email;
+      }
+      if (_mobileController.text.isEmpty && user.phone != null) {
+        _mobileController.text = user.phone!;
+      }
+      if (user.countryCode != null && user.countryCode!.isNotEmpty) {
+        _selectedMobileCountryCode = user.countryCode!;
+      }
+      if (_cityController.text.isEmpty && user.location != null) {
+        _cityController.text = user.location!;
+      }
+    }
+
+    if (user?.isSocialLogin == true ||
+        _emailController.text.trim().isNotEmpty) {
+      _emailVerified = true;
+    }
+  }
+
+  void _syncFromAuthState(BuildContext context, AuthState state) {
+    _populateFromAuthState();
+    if (mounted) setState(() {});
+  }
+
+  Map<String, dynamic> _fields({bool completed = false}) {
+    final isSocial =
+        context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
+    return {
+      'step': _currentStep,
+      'completed': completed,
+      'isSocialLogin': isSocial,
+      'isSocial': isSocial,
+      'fullName': _fullNameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'password': _passwordController.text,
+      'confirmPassword': _confirmPasswordController.text,
+      'country': _selectedCountry,
+      // 'state': _selectedState,
+      'city': _cityController.text.trim(),
+      'termsAccepted': _termsAccepted,
+      'startupName': _startupNameController.text.trim(),
+      'pitch': _descriptionController.text.trim(),
+      'founderRole': _selectedDesignation,
+      'founderBio': _founderBioController.text.trim(),
+      'stage': _selectedStage,
+      'raised': num.tryParse(_capitalRaisedController.text.trim()),
+      'targetRaise': num.tryParse(_targetFundraiseController.text.trim()),
+      'teamSize': _selectedTeamSize,
+      'industry': _selectedIndustries,
+      'primaryGoal': _selectedGoals,
+    };
+  }
 
   Future<bool> _registerIfNeeded() async {
     final email = _emailController.text.trim();
     if (_registeredEmail == email) return true;
+    if (widget.verifiedEmail != null && widget.verifiedEmail!.isNotEmpty) {
+      _registeredEmail = email;
+      return true;
+    }
+    final isSocial =
+        context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
+    final pwd = _passwordController.text.isNotEmpty
+        ? _passwordController.text
+        : 'Pass@123456';
     final result = await sl<AuthRepository>().signup(
       fullName: _fullNameController.text.trim(),
       email: email,
-      password: _passwordController.text,
+      password: pwd,
       role: UserRole.founder,
+      isSocialLogin: isSocial,
       signupData: {
+        'isSocialLogin': isSocial,
+        'isSocial': isSocial,
         'country': _selectedCountry,
-        'state': _selectedState,
         'city': _cityController.text.trim(),
       },
     );
     if (result.isFailure) {
+      final code = result.failureOrNull?.code;
+      final msg = result.failureOrNull?.message.toLowerCase() ?? '';
+      if (code == 'EMAIL_ALREADY_EXISTS' ||
+          msg.contains('already registered') ||
+          msg.contains('already exists')) {
+        _registeredEmail = email;
+        return true;
+      }
       if (!mounted) return false;
       showSignupTopMessage(
         context,
@@ -194,6 +278,9 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         isSuccess: false,
       );
       return false;
+    }
+    if (mounted && result.valueOrNull != null) {
+      context.read<AuthBloc>().add(AuthUserUpdated(result.valueOrNull!));
     }
     _registeredEmail = email;
     return true;
@@ -265,14 +352,21 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       return 'Please enter a valid email';
     }
     if (!_emailVerified) return 'Please verify email OTP';
-    if (_passwordController.text.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    if (_passwordController.text != _confirmPasswordController.text) {
-      return 'Password and confirm password must match';
+    final isSocial =
+        context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
+    if (!isSocial) {
+      if (_passwordController.text.isEmpty) {
+        return 'Please enter password';
+      }
+      if (_passwordController.text.length < 8) {
+        return 'Password must be at least 8 characters';
+      }
+      if (_passwordController.text != _confirmPasswordController.text) {
+        return 'Password and confirm password must match';
+      }
     }
     if (_selectedCountry == null) return 'Please select country';
-    if (_selectedState == null) return 'Please select state';
+    // if (_selectedState == null) return 'Please select state';
     if (_cityController.text.trim().isEmpty) return 'Please select city';
     if (!_termsAccepted) return 'Please accept terms and privacy policy';
     return null;
@@ -306,7 +400,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         );
         return;
       }
-      if (_selectedIndustry == null) {
+      if (_selectedIndustries.isEmpty) {
         showSignupTopMessage(
           context,
           'Please select an Industry',
@@ -314,6 +408,16 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         );
         return;
       }
+      final pitchDetail = _descriptionController.text.trim();
+      if (pitchDetail.isNotEmpty && pitchDetail.length < 20) {
+        showSignupTopMessage(
+          context,
+          'Short Pitch Detail must be at least 20 characters',
+          isSuccess: false,
+        );
+        return;
+      }
+      
       if (!await _submitDraft(step: 2)) return;
       await _saveProgress(3);
       setState(() => _currentStep = 3);
@@ -338,10 +442,14 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
 
   void _onBack() {
     if (_currentStep > 1) {
-      setState(() => _currentStep--);
+      final prevStep = _currentStep - 1;
+      _saveProgress(prevStep);
+      setState(() => _currentStep = prevStep);
     } else if (widget.onBackToRoleSelection != null) {
+      _saveProgress(1);
       widget.onBackToRoleSelection!();
     } else if (context.canPop()) {
+      _saveProgress(1);
       context.pop();
     }
   }
@@ -392,19 +500,21 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         break;
     }
 
-    return SignupScaffold(
-      title: title,
-      subtitle: subtitle,
-      currentStep: _currentStep,
-      totalSteps: 5,
-      onBack:
-          (_currentStep > widget.initialStep) ||
-              (widget.initialStep == 1 && _currentStep == 1)
-          ? _onBack
-          : null,
-      onContinue: _onContinue,
-      isLoading: _isLoading,
-      child: _buildStepContent(),
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          previous.user != current.user ||
+          previous.pendingSignup != current.pendingSignup,
+      listener: _syncFromAuthState,
+      child: SignupScaffold(
+        title: title,
+        subtitle: subtitle,
+        currentStep: _currentStep,
+        totalSteps: 5,
+        onBack: _onBack,
+        onContinue: _onContinue,
+        isLoading: _isLoading,
+        child: _buildStepContent(),
+      ),
     );
   }
 
@@ -420,9 +530,9 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           confirmPasswordController: _confirmPasswordController,
           cityController: _cityController,
           countries: _countries,
-          states: _states,
+          // states: _states,
           selectedCountry: _selectedCountry,
-          selectedState: _selectedState,
+          // selectedState: _selectedState,
           onCountryChanged: (val) {
             setState(() {
               _selectedCountry = val;
@@ -434,10 +544,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           },
           onMobileCountryCodeChanged: (val) =>
               setState(() => _selectedMobileCountryCode = val),
-          onStateChanged: (val) {
-            setState(() => _selectedState = val);
-            _persistCurrentProgress();
-          },
+          // onStateChanged: (val) {
+          //   setState(() => _selectedState = val);
+          //   _persistCurrentProgress();
+          // },
           termsAccepted: _termsAccepted,
           onTermsChanged: (val) {
             setState(() => _termsAccepted = val);
@@ -445,34 +555,33 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: _emailVerified
-              ? _emailController.text.trim()
-              : widget.verifiedEmail,
+          initialVerifiedEmail: widget.verifiedEmail,
+          isSocialLogin:
+              context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
       case 2:
         return Column(
           children: [
             AppTextField(
               controller: _startupNameController,
-              label: 'Startup Name *',
+              label: 'Startup/Project Name *',
               hint: 'Enter Startup Name',
             ),
             const SizedBox(height: 16),
-            AppDropdown<String>(
-              label: 'Industry *',
-              hint: 'Select Industry',
-              value: _selectedIndustry,
-              items: _industries,
-              itemLabel: (value) => value,
+            SignupMultiSelectSheet(
+              label: 'Industry / Sector *',
+              selectedItems: _selectedIndustries,
+              availableOptions: _industries,
+              minSelection: 1,
               onChanged: (val) {
-                setState(() => _selectedIndustry = val);
+                setState(() => _selectedIndustries = val);
                 _persistCurrentProgress();
               },
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(
-              label: 'Current Stage *',
-              hint: 'Select Current Stage',
+              label: 'Startup Stage *',
+              hint: 'Select Startup Stage',
               value: _selectedStage,
               items: _stages,
               itemLabel: (value) => value,
@@ -486,7 +595,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               controller: _descriptionController,
               maxLines: 3,
               label: 'Short Pitch Detail',
-              hint: 'Enter Short Pitch Detail',
+              hint: 'Enter Short Pitch Detail (minimum 20 characters)',
             ),
           ],
         );
@@ -519,15 +628,33 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             AppTextField(
               controller: _capitalRaisedController,
               keyboardType: TextInputType.number,
-              label: 'Capital Raised',
+              label: 'Capital Raised (₹) *',
               hint: 'Enter Capital Raised',
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter Capital Raised';
+                }
+                if (value.contains(RegExp(r'\D'))) {
+                  return 'Please enter a valid number';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _targetFundraiseController,
               keyboardType: TextInputType.number,
-              label: 'Target Fundraise',
+              label: 'Target Fundraise (₹) *',
               hint: 'Enter Target Fundraise',
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter Target Fundraise';
+                }
+                if (value.contains(RegExp(r'\D'))) {
+                  return 'Please enter a valid number';
+                }
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(

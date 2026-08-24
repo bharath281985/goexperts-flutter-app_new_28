@@ -1,10 +1,14 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:goexperts_app/app/router/route_names.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../bloc/auth_bloc.dart';
 import '../../../settings/presentation/pages/public_content_page.dart';
 import 'signup_email_otp_fields.dart';
 
@@ -36,16 +40,16 @@ class SignupAccountStep extends StatelessWidget {
     required this.confirmPasswordController,
     required this.cityController,
     required this.countries,
-    required this.states,
     required this.selectedCountry,
-    required this.selectedState,
+    // required this.selectedState,
     required this.onCountryChanged,
     required this.onMobileCountryCodeChanged,
-    required this.onStateChanged,
+    // required this.onStateChanged,
     required this.termsAccepted,
     required this.onTermsChanged,
     required this.onEmailVerificationChanged,
     this.initialVerifiedEmail,
+    this.isSocialLogin = false,
   });
 
   final TextEditingController fullNameController;
@@ -56,16 +60,17 @@ class SignupAccountStep extends StatelessWidget {
   final TextEditingController confirmPasswordController;
   final TextEditingController cityController;
   final List<String> countries;
-  final List<String> states;
+
   final String? selectedCountry;
-  final String? selectedState;
+  // final String? selectedState;
   final ValueChanged<String> onCountryChanged;
   final ValueChanged<String> onMobileCountryCodeChanged;
-  final ValueChanged<String> onStateChanged;
+  // final ValueChanged<String> onStateChanged;
   final bool termsAccepted;
   final ValueChanged<bool> onTermsChanged;
   final ValueChanged<bool> onEmailVerificationChanged;
   final String? initialVerifiedEmail;
+  final bool isSocialLogin;
 
   void _showContentDialog(BuildContext context, String title, String path) {
     showDialog(
@@ -74,6 +79,17 @@ class SignupAccountStep extends StatelessWidget {
       builder: (dialogContext) =>
           _ContentDialogWidget(title: title, path: path),
     );
+  }
+
+  Future<void> _clearSessionAndOpenLogin(BuildContext context) async {
+    final authBloc = context.read<AuthBloc>();
+    authBloc.add(const AuthLoggedOut(remote: false));
+    await authBloc.stream.firstWhere(
+      (state) => state.status == AuthStatus.unauthenticated,
+    );
+    if (context.mounted) {
+      context.go(Routes.login);
+    }
   }
 
   @override
@@ -87,27 +103,31 @@ class SignupAccountStep extends StatelessWidget {
           prefixIcon: Icons.person_outline,
         ),
         const SizedBox(height: 16),
+
         SignupEmailOtpFields(
           emailController: emailController,
           onVerificationChanged: onEmailVerificationChanged,
           initialVerifiedEmail: initialVerifiedEmail,
+          isReadOnly: isSocialLogin,
         ),
-        const SizedBox(height: 16),
-        AppTextField(
-          controller: passwordController,
-          obscure: true,
-          label: 'Password *',
-          hint: 'Enter password',
-          prefixIcon: Icons.lock_outline,
-        ),
-        const SizedBox(height: 16),
-        AppTextField(
-          controller: confirmPasswordController,
-          obscure: true,
-          label: 'Confirm Password *',
-          hint: 'Confirm password',
-          prefixIcon: Icons.lock_outline,
-        ),
+        if (!isSocialLogin) ...[
+          const SizedBox(height: 16),
+          AppTextField(
+            controller: passwordController,
+            obscure: true,
+            label: 'Password *',
+            hint: 'Enter password',
+            prefixIcon: Icons.lock_outline,
+          ),
+          const SizedBox(height: 16),
+          AppTextField(
+            controller: confirmPasswordController,
+            obscure: true,
+            label: 'Confirm Password *',
+            hint: 'Confirm password',
+            prefixIcon: Icons.lock_outline,
+          ),
+        ],
         const SizedBox(height: 16),
         AppDropdown<String>(
           label: 'Country *',
@@ -115,28 +135,29 @@ class SignupAccountStep extends StatelessWidget {
           value: selectedCountry,
           items: countries,
           itemLabel: (value) => value,
-          prefixIcon: Icons.public,
+          prefixIcon: Icons.flag,
           onChanged: (value) {
             if (value != null) onCountryChanged(value);
           },
         ),
-        const SizedBox(height: 16),
-        AppDropdown<String>(
-          label: 'State *',
-          hint: 'Select State',
-          value: selectedState,
-          items: states,
-          itemLabel: (value) => value,
-          prefixIcon: Icons.map_outlined,
-          onChanged: (value) {
-            if (value != null) onStateChanged(value);
-          },
-        ),
+        // const SizedBox(height: 16),
+        // AppDropdown<String>(
+        //   label: 'State *',
+        //   hint: 'Select State',
+        //   value: selectedState,
+        //   items: states,
+        //   itemLabel: (value) => value,
+        //   prefixIcon: Icons.map_outlined,
+        //   onChanged: (value) {
+        //     if (value != null) onStateChanged(value);
+        //   },
+        // ),
         const SizedBox(height: 16),
         AppLocationField(
           controller: cityController,
           label: 'City *',
           hint: 'Search and select city',
+          country: selectedCountry,
         ),
         const SizedBox(height: 16),
         Material(
@@ -205,6 +226,27 @@ class SignupAccountStep extends StatelessWidget {
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Already have an account? ",
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () => _clearSessionAndOpenLogin(context),
+              child: const Text(
+                "Login",
+                style: TextStyle(
+                  color: Color(0xFF044071),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );

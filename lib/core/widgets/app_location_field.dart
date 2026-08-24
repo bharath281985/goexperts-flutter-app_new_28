@@ -13,6 +13,7 @@ class AppLocationField extends StatelessWidget {
     required this.controller,
     this.label,
     this.hint,
+    this.country,
     this.validator,
     this.onPlaceSelected,
     this.placesService,
@@ -21,6 +22,7 @@ class AppLocationField extends StatelessWidget {
   final TextEditingController controller;
   final String? label;
   final String? hint;
+  final String? country;
   final String? Function(String?)? validator;
   final ValueChanged<SelectedPlace>? onPlaceSelected;
   final GooglePlacesService? placesService;
@@ -29,6 +31,7 @@ class AppLocationField extends StatelessWidget {
     final selected = await LocationSearchSheet.show(
       context,
       initialQuery: controller.text,
+      country: country,
       placesService: placesService,
     );
     if (selected == null) return;

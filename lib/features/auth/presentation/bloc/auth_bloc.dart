@@ -1,13 +1,14 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/subscription_status.dart';
 import '../../../subscriptions/domain/repositories/subscription_repository.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/repositories/auth_repository.dart';
+import 'auth_event.dart';
+import 'auth_state.dart';
 
-part 'auth_event.dart';
-part 'auth_state.dart';
+export 'auth_event.dart';
+export 'auth_state.dart';
 
 /// Owns the authentication + onboarding lifecycle. The router redirects based
 /// on this bloc's state (role → profile → subscription → dashboard).
@@ -293,7 +294,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     await _repository.updateCachedUser(event.user);
-    emit(state.copyWith(user: event.user));
+    await _emitAuthenticated(emit, event.user);
   }
 
   Future<void> _onRefreshUser(
@@ -308,10 +309,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(AuthLoggedOut event, Emitter<AuthState> emit) async {
-    if (event.remote) {
-      await _repository.logout();
-    }
-
+    await _repository.logout(remote: event.remote);
     emit(const AuthState(status: AuthStatus.unauthenticated));
   }
 }

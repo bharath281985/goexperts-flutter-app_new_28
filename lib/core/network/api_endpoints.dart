@@ -33,9 +33,12 @@ class ApiEndpoints {
   static const publicStartupStages = '/public/startup-stages';
   static const publicInvestorTypes = '/public/investor-types';
   static const publicInvestorStages = '/public/investor-stages';
+  static String get publicAccreditedStatuses =>
+      '${AppConfig.authBaseUrl}/public/accredited_statuses';
   static const publicHiringGoals = '/public/hiring-goals';
   static const publicHiringBudgetRanges = '/public/hiring-budget-ranges';
-  static const publicStartupRoles = '/public/start-roles';
+  static const publicStartupRoles = '/public/founder-roles';
+  static const publicFounderRoles = '/public/founder-roles';
   static const publicFounderGoals = '/public/founder-goals';
   static const publicRootInvestorTypes = '/investor-types';
   static const publicMobileStartupStages = '/startup-stages';

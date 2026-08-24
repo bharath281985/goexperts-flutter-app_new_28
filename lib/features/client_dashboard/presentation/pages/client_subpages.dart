@@ -567,9 +567,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           controller: _titleController,
                           label: 'Title *',
                           hint: 'Task title',
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Title is required'
-                              : null,
+                          
                         ),
                       ),
                       _fieldBox(
@@ -582,8 +580,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           readOnly: true,
                           onTap: _pickProject,
                           suffixIcon: const Icon(Icons.expand_more_rounded),
-                          validator: (_) =>
-                              _project == null ? 'Project is required' : null,
+                       
                         ),
                       ),
                       _fieldBox(
@@ -595,8 +592,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           hint: 'Select priority',
                           items: _priorities,
                           itemLabel: (v) => v,
-                          validator: (v) =>
-                              v == null ? 'Priority is required' : null,
+                        
                           onChanged: (v) => setState(() => _priority = v),
                         ),
                       ),
@@ -609,8 +605,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           hint: 'Select status',
                           items: _statuses,
                           itemLabel: (v) => v,
-                          validator: (v) =>
-                              v == null ? 'Status is required' : null,
+                       
                           onChanged: (v) => setState(() => _status = v),
                         ),
                       ),
@@ -622,13 +617,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           label: 'Progress',
                           hint: '0',
                           keyboardType: TextInputType.number,
-                          validator: (v) {
-                            final value = int.tryParse(v?.trim() ?? '0');
-                            if (value == null || value < 0 || value > 100) {
-                              return 'Enter 0 to 100';
-                            }
-                            return null;
-                          },
+                         
                         ),
                       ),
                       _fieldBox(

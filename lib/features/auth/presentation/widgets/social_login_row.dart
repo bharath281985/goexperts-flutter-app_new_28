@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:go_router/go_router.dart';
+
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../data/datasources/social_auth_service.dart';
@@ -94,6 +97,9 @@ class SocialLoginRow extends StatelessWidget {
           fullName: creds.fullName,
         ),
       );
+      if (context.mounted) {
+        context.go('${Routes.signup}?role=${selectedRole.name}&step=2');
+      }
     } catch (e) {
       if (e is SocialAuthCancelledException) return;
       if (!context.mounted) return;

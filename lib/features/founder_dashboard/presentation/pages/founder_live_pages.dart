@@ -50,7 +50,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
 
   MasterOption? _selectedCountry;
   MasterOption? _selectedState;
-  MasterOption? _selectedIndustry;
+  List<String> _selectedIndustryIds = [];
   final Set<String> _selectedFounderGoalIds = {};
   MasterOption? _selectedStage;
   MasterOption? _selectedRole;
@@ -98,9 +98,9 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     final cachedIndustryId = user.industryId ?? user.categoryId;
     if (cachedIndustryId != null &&
         cachedIndustryId.isNotEmpty &&
-        _selectedIndustry == null) {
+        _selectedIndustryIds.isEmpty) {
       setState(() {
-        _selectedIndustry = MasterOption(id: cachedIndustryId, name: cachedIndustryId);
+        _selectedIndustryIds.addAll(cachedIndustryId.split(',').map((e) => e.trim()));
         _industryDisplayController.text = cachedIndustryId;
       });
     }
@@ -179,14 +179,14 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         }
       }
 
-      if (userMap['state'] is Map) {
-        final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
-        final sid = sMap['id']?.toString() ?? '';
-        final sname = sMap['name']?.toString() ?? sid;
-        if (sid.isNotEmpty) {
-          _selectedState = MasterOption(id: sid, name: sname);
-        }
-      }
+      // if (userMap['state'] is Map) {
+      //   final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
+      //   final sid = sMap['id']?.toString() ?? '';
+      //   final sname = sMap['name']?.toString() ?? sid;
+      //   if (sid.isNotEmpty) {
+      //     _selectedState = MasterOption(id: sid, name: sname);
+      //   }
+      // }
 
       {
         final pMap = <String, dynamic>{
@@ -221,35 +221,29 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         }
 
         final rawIndustry = pMap['industryId'] ?? pMap['industry'];
-        if (rawIndustry is Map) {
-          final indMap = Map<String, dynamic>.from(rawIndustry);
-          final iId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
-          final iName = (indMap['name'] ?? indMap['label'])?.toString() ?? iId;
-          if (iId.isNotEmpty) {
-            _selectedIndustry = MasterOption(id: iId, name: iName);
-            _industryDisplayController.text = iName;
-          }
-        } else if (rawIndustry is List && rawIndustry.isNotEmpty) {
-          // industry returned as an array — pick first element
-          final first = rawIndustry.first;
-          if (first is Map) {
-            final indMap = Map<String, dynamic>.from(first);
-            final iId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
-            final iName = (indMap['name'] ?? indMap['label'])?.toString() ?? iId;
-            if (iId.isNotEmpty) {
-              _selectedIndustry = MasterOption(id: iId, name: iName);
-              _industryDisplayController.text = iName;
+        if (rawIndustry is List) {
+          for (final item in rawIndustry) {
+            if (item is Map) {
+              final id = (item['id'] ?? item['_id'])?.toString();
+              if (id != null) _selectedIndustryIds.add(id);
+            } else if (item is String) {
+              _selectedIndustryIds.add(item);
             }
-          } else if (first is String && first.isNotEmpty) {
-            _selectedIndustry = MasterOption(id: first, name: first);
-            _industryDisplayController.text = first;
           }
-        } else if (rawIndustry is String) {
-          final iStr = rawIndustry.toString();
-          if (iStr.isNotEmpty) {
-            _selectedIndustry = MasterOption(id: iStr, name: iStr);
-            _industryDisplayController.text = iStr;
+        } else if (rawIndustry is Map) {
+          final iId = (rawIndustry['id'] ?? rawIndustry['_id'])?.toString();
+          if (iId != null && iId.isNotEmpty) {
+            _selectedIndustryIds.add(iId);
           }
+        } else if (rawIndustry is String && rawIndustry.isNotEmpty) {
+          _selectedIndustryIds.addAll(rawIndustry.split(',').map((e) => e.trim()));
+        }
+
+        if (_selectedIndustryIds.isNotEmpty && _industries.isNotEmpty) {
+          _industryDisplayController.text = _industries
+              .where((c) => _selectedIndustryIds.contains(c.id))
+              .map((c) => c.name)
+              .join(', ');
         }
 
         final rawStage = pMap['stageId'] ?? pMap['stage'];
@@ -360,12 +354,11 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       if (_states.isNotEmpty) {
         _selectedState = _matchOption(_selectedState, _states);
       }
-      if (_industries.isNotEmpty) {
-        _selectedIndustry = _matchOption(_selectedIndustry, _industries);
-        if (_selectedIndustry != null) {
-          // Always update with the proper name from master data
-          _industryDisplayController.text = _selectedIndustry!.name;
-        }
+      if (_industries.isNotEmpty && _selectedIndustryIds.isNotEmpty) {
+        _industryDisplayController.text = _industries
+            .where((c) => _selectedIndustryIds.contains(c.id))
+            .map((c) => c.name)
+            .join(', ');
       }
       if (_stages.isNotEmpty) {
         _selectedStage = _matchOption(_selectedStage, _stages);
@@ -437,11 +430,25 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                   padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
                   child: Column(
                     children: [
-                      Text(
-                        'Select Industry',
-                        style: context.text.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Industry (${_selectedIndustryIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                       AppSizes.vGapSm,
                       AppTextField(
@@ -462,22 +469,32 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                 itemBuilder: (context, index) {
                                   final item = filtered[index];
                                   final isSelected =
-                                      _selectedIndustry?.id == item.id;
-                                  return ListTile(
+                                      _selectedIndustryIds.contains(item.id);
+                                  return CheckboxListTile(
                                     title: Text(item.name),
-                                    trailing: isSelected
-                                        ? const Icon(
-                                            Icons.check_circle,
-                                            color: AppColors.primary,
-                                          )
-                                        : null,
-                                    onTap: () {
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (_) {
                                       setState(() {
-                                        _selectedIndustry = item;
-                                        _industryDisplayController.text =
-                                            item.name;
+                                        if (isSelected) {
+                                          _selectedIndustryIds.remove(item.id);
+                                        } else {
+                                          _selectedIndustryIds.add(item.id);
+                                        }
                                       });
-                                      Navigator.of(context).pop();
+                                      setSheetState(() {});
+                                      
+                                      final names = <String>[];
+                                      for (final c in _industries) {
+                                        if (_selectedIndustryIds.contains(c.id)) {
+                                          names.add(c.name);
+                                        }
+                                      }
+                                      if (names.isNotEmpty) {
+                                        _industryDisplayController.text = names.join(', ');
+                                      } else {
+                                        _industryDisplayController.clear();
+                                      }
                                     },
                                   );
                                 },
@@ -616,10 +633,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       'city': _city.text.trim(),
       if (_bio.text.trim().isNotEmpty) 'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
-      if (_selectedState != null) 'stateId': _selectedState!.id,
+      // if (_selectedState != null) 'stateId': _selectedState!.id,
       'startupName': _startupName.text.trim(),
       if (_pitch.text.trim().isNotEmpty) 'pitch': _pitch.text.trim(),
-      if (_selectedIndustry != null) 'industryId': _selectedIndustry!.id,
+      if (_selectedIndustryIds.isNotEmpty) 'industryId': _selectedIndustryIds.join(','),
       if (_selectedStage != null) 'stageId': _selectedStage!.id,
       if (_selectedRole != null) 'founderRoleId': _selectedRole!.id,
       if (_selectedTeamSize != null) 'teamSizeId': _selectedTeamSize!.id,
@@ -656,7 +673,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         final locationParts = [city, country]
             .where((s) => s.isNotEmpty)
             .toList();
-        final industryId = _selectedIndustry?.id ?? current.industryId;
+        final industryId = _selectedIndustryIds.isNotEmpty ? _selectedIndustryIds.join(',') : current.industryId;
         context.read<AuthBloc>().add(
           AuthUserUpdated(
             current.copyWith(
@@ -763,7 +780,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _industryDisplayController,
-                      label: 'Industry *',
+                      label: _selectedIndustryIds.isEmpty ? 'Industry *' : 'Industry (${_selectedIndustryIds.length}) *',
                       hint: 'Select Industry',
                       readOnly: true,
                       suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
@@ -816,12 +833,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                       keyboardType: TextInputType.number,
                     ),
                     AppSizes.vGapMd,
-                    AppLocationField(
-                      controller: _city,
-                      label: 'City / Location *',
-                      hint: 'Select City / Location',
-                    ),
-                    AppSizes.vGapMd,
+                   
                     AppDropdown<MasterOption>(
                       label: 'Country *',
                       hint: 'Select Country',
@@ -839,19 +851,27 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                         }
                       },
                     ),
-                    if (_selectedCountry != null) ...[
-                      AppSizes.vGapMd,
-                      AppDropdown<MasterOption>(
-                        label: 'State *',
-                        hint: 'Select State',
-                        prefixIcon: Icons.map_outlined,
-                        value: _selectedState,
-                        items: _states,
-                        itemLabel: (item) => item.name,
-                        onChanged: (opt) =>
-                            setState(() => _selectedState = opt),
-                      ),
-                    ],
+                     AppLocationField(
+                      controller: _city,
+                      country: _selectedCountry?.name,
+                      
+                      label: 'City / Location *',
+                      hint: 'Select City / Location',
+                    ),
+                    AppSizes.vGapMd,
+                    // if (_selectedCountry != null) ...[
+                    //   AppSizes.vGapMd,
+                    //   AppDropdown<MasterOption>(
+                    //     label: 'State *',
+                    //     hint: 'Select State',
+                    //     prefixIcon: Icons.map_outlined,
+                    //     value: _selectedState,
+                    //     items: _states,
+                    //     itemLabel: (item) => item.name,
+                    //     onChanged: (opt) =>
+                    //         setState(() => _selectedState = opt),
+                    //   ),
+                    // ],
                   ],
                 ),
               ),

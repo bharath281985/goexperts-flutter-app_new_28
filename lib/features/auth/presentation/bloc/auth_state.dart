@@ -1,4 +1,7 @@
-part of 'auth_bloc.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../../../core/utils/subscription_status.dart';
+import '../../domain/entities/app_user.dart';
 
 /// Holds signup form data until role is selected and register API is called.
 class SignupDraft extends Equatable {
@@ -56,22 +59,8 @@ class AuthState extends Equatable {
   bool get isProfileComplete => user?.isProfileComplete ?? false;
   bool get hasSubscription =>
       subscriptionStatus == SubscriptionGateStatus.active ||
-      // Server explicitly says the user has a subscription
-      (user?.serverHasSubscription == true) ||
-      // Server provides a direct dashboard redirect — honour it
-      _serverRedirectsToDashboard;
+      (user?.serverHasSubscription == true);
   bool get needsSubscription => !hasSubscription;
-
-  /// True when the server explicitly redirects to a known dashboard path.
-  bool get _serverRedirectsToDashboard {
-    final r = user?.redirectTo;
-    if (r == null || r.isEmpty) return false;
-    return r.contains('dashboard') ||
-        r.contains('/founder/') ||
-        r.contains('/investor/') ||
-        r.contains('/client/') ||
-        r.contains('/freelancer/');
-  }
 
   AuthState copyWith({
     AuthStatus? status,

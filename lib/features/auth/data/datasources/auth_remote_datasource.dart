@@ -42,6 +42,7 @@ class AuthRemoteDatasource {
     required UserRole role,
     String? phone,
     String? countryCode,
+    bool isSocialLogin = false,
     Map<String, dynamic> signupData = const {},
   }) async {
     final device = await _deviceInfo.authPayload();
@@ -53,6 +54,8 @@ class AuthRemoteDatasource {
         'email': email,
         'password': password,
         'role': role.apiValue,
+        'isSocialLogin': isSocialLogin,
+        'isSocial': isSocialLogin,
         if (trimmedPhone.isNotEmpty) ...{
           'phone': trimmedPhone,
           if (countryCode != null && countryCode.trim().isNotEmpty)
@@ -294,6 +297,7 @@ class AuthRemoteDatasource {
       'isSubscribed',
       'redirectTo',
       'subscriptionPlan',
+      'isSocialLogin',
     ]) {
       if (!userJson.containsKey(key) && data.containsKey(key)) {
         userJson[key] = data[key];

@@ -7,6 +7,7 @@ import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../master_data/domain/entities/master_option.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
@@ -51,7 +52,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   // Step 2 Business
   final _businessNameController = TextEditingController();
   final _companySiteController = TextEditingController();
-  String? _selectedIndustry;
+  List<String> _selectedIndustries = [];
   String? _selectedCompanySize;
   String? _selectedCountry;
   String? _selectedState;
@@ -62,13 +63,13 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
 
   // Step 4 Team (Optional)
   String? _selectedTeamSize;
-  String? _selectedBudgetRange;
+  MasterOption? _selectedBudgetRange;
 
   // Dynamic API Master lists (100% Sourced from Backend APIs)
   List<String> _industries = [];
   List<String> _companySizes = [];
   List<String> _hiringGoals = [];
-  List<String> _budgetRanges = [];
+  List<MasterOption> _budgetRanges = [];
   List<String> _countries = [];
   List<String> _states = [];
   List<String> _designations = [];
@@ -85,7 +86,11 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     if (progress?.role == UserRole.client) {
       _registeredEmail = progress!.registeredEmail;
       _restoreFields(progress.fields);
+      if (progress.step >= 1) {
+        _currentStep = progress.step.clamp(1, 4).toInt();
+      }
     }
+    _populateFromAuthState();
     for (final controller in [
       _fullNameController,
       _emailController,
@@ -111,7 +116,6 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   }
 
   void _persistCurrentProgress() {
-    if (_currentStep <= 1 && _registeredEmail == null) return;
     _saveProgress(_currentStep);
   }
 
@@ -131,58 +135,153 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     _termsAccepted = fields['termsAccepted'] == true;
     _businessNameController.text = fields['companyName']?.toString() ?? '';
     _companySiteController.text = fields['companySite']?.toString() ?? '';
-    final restoredIndustries = _stringList(fields['industry']);
-    _selectedIndustry = restoredIndustries.isNotEmpty
-        ? restoredIndustries.first
-        : fields['industry']?.toString();
+    _selectedIndustries = _stringList(fields['industry']);
     _selectedCompanySize = fields['companySize']?.toString();
     final restoredJobRole = fields['jobRole']?.toString();
-    _selectedJobRole = restoredJobRole != null && restoredJobRole.isNotEmpty ? restoredJobRole : null;
-    _selectedHiringGoals = _stringList(fields['hiringGoal']);
+    _selectedJobRole = restoredJobRole != null && restoredJobRole.isNotEmpty
+        ? restoredJobRole
+        : null;
+    _selectedHiringGoals = _stringList(fields['hiringGoal']).take(1).toList();
     _selectedTeamSize = fields['currentTeam']?.toString();
-    _selectedBudgetRange = fields['projectHireBudget']?.toString();
+    final budgetId = fields['projectHireBudgetId']?.toString();
+    final budgetName = fields['projectHireBudget']?.toString();
+    if (budgetId != null && budgetId.isNotEmpty) {
+      _selectedBudgetRange = MasterOption(
+        id: budgetId,
+        name: budgetName?.isNotEmpty == true ? budgetName! : budgetId,
+      );
+    }
   }
 
-  Map<String, dynamic> _fields({bool completed = false}) => {
-    'step': _currentStep,
-    'completed': completed,
-    'fullName': _fullNameController.text.trim(),
-    'email': _emailController.text.trim(),
-    'password': _passwordController.text,
-    'confirmPassword': _confirmPasswordController.text,
-    'country': _selectedCountry,
-    'state': _selectedState,
-    'city': _cityController.text.trim(),
-    'termsAccepted': _termsAccepted,
-    'companyName': _businessNameController.text.trim(),
-    'companySite': _companySiteController.text.trim(),
-    'companySize': _selectedCompanySize,
-    'companySizeId': _selectedCompanySize,
-    'currentTeam': _selectedTeamSize,
-    'currentTeamId': _selectedTeamSize,
-    'projectHireBudget': _selectedBudgetRange,
-    'projectHireBudgetId': _selectedBudgetRange,
-    'industry': _selectedIndustry == null ? [] : [_selectedIndustry],
-    'jobRole': _selectedJobRole ?? '',
-    'hiringGoal': _selectedHiringGoals,
-    'hiringGoalIds': _selectedHiringGoals,
-  };
+  void _populateFromAuthState() {
+    final authState = context.read<AuthBloc>().state;
+    final draft = authState.pendingSignup;
+    final user = authState.user;
+
+    if (draft != null) {
+      if (_fullNameController.text.isEmpty && draft.fullName.isNotEmpty) {
+        _fullNameController.text = draft.fullName;
+      }
+      if (_emailController.text.isEmpty && draft.email.isNotEmpty) {
+        _emailController.text = draft.email;
+      }
+      if (_mobileController.text.isEmpty && draft.phone.isNotEmpty) {
+        _mobileController.text = draft.phone;
+      }
+      if (draft.countryCode.isNotEmpty) {
+        _selectedMobileCountryCode = draft.countryCode;
+      }
+      final city = draft.signupData['city'] ?? draft.signupData['location'];
+      if (_cityController.text.isEmpty && city != null) {
+        _cityController.text = city.toString();
+      }
+      final country = draft.signupData['country'];
+      if (_selectedCountry == null && country != null) {
+        _selectedCountry = country.toString();
+      }
+    }
+
+    if (user != null) {
+      if ((user.isSocialLogin || _fullNameController.text.isEmpty) &&
+          user.fullName.isNotEmpty) {
+        _fullNameController.text = user.fullName;
+      }
+      if ((user.isSocialLogin || _emailController.text.isEmpty) &&
+          user.email.isNotEmpty) {
+        _emailController.text = user.email;
+      }
+      if (_mobileController.text.isEmpty && user.phone != null) {
+        _mobileController.text = user.phone!;
+      }
+      if (user.countryCode != null && user.countryCode!.isNotEmpty) {
+        _selectedMobileCountryCode = user.countryCode!;
+      }
+      if (_cityController.text.isEmpty && user.location != null) {
+        _cityController.text = user.location!;
+      }
+    }
+
+    if (user?.isSocialLogin == true ||
+        _emailController.text.trim().isNotEmpty) {
+      _emailVerified = true;
+    }
+  }
+
+  void _syncFromAuthState(BuildContext context, AuthState state) {
+    _populateFromAuthState();
+    if (mounted) setState(() {});
+  }
+
+  Map<String, dynamic> _fields({bool completed = false}) {
+    final isSocial =
+        context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
+    return {
+      'step': _currentStep,
+      'completed': completed,
+      'isSocialLogin': isSocial,
+      'isSocial': isSocial,
+      'fullName': _fullNameController.text.trim(),
+      'email': _emailController.text.trim(),
+      'password': _passwordController.text,
+      'confirmPassword': _confirmPasswordController.text,
+      'country': _selectedCountry,
+      'state': _selectedState,
+      'city': _cityController.text.trim(),
+      'termsAccepted': _termsAccepted,
+      'companyName': _businessNameController.text.trim(),
+      'companySite': _companySiteController.text.trim(),
+      'companySize': _selectedCompanySize,
+      'companySizeId': _selectedCompanySize,
+      'currentTeam': _selectedTeamSize,
+      'currentTeamId': _selectedTeamSize,
+      'projectHireBudget': _selectedBudgetRange?.name,
+      'projectHireBudgetId': _selectedBudgetRange?.id,
+      'industry': _selectedIndustries,
+      'jobRole': _selectedJobRole ?? '',
+      'hiringGoal': _selectedHiringGoals,
+      'hiringGoalIds': _selectedHiringGoals,
+    };
+  }
 
   Future<bool> _registerIfNeeded() async {
     final email = _emailController.text.trim();
     if (_registeredEmail == email) return true;
+    if (widget.verifiedEmail != null && widget.verifiedEmail!.isNotEmpty) {
+      _registeredEmail = email;
+      return true;
+    }
+    final isSocial =
+        context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
+    if (isSocial) {
+      _registeredEmail = email;
+      return true;
+    }
+    final pwd = _passwordController.text.isNotEmpty
+        ? _passwordController.text
+        : 'Pass@123456';
     final result = await sl<AuthRepository>().signup(
       fullName: _fullNameController.text.trim(),
       email: email,
-      password: _passwordController.text,
+      password: pwd,
       role: UserRole.client,
+      isSocialLogin: isSocial,
       signupData: {
+        'isSocialLogin': isSocial,
+        'isSocial': isSocial,
         'country': _selectedCountry,
-        'state': _selectedState,
+        // 'state': _selectedState,
         'city': _cityController.text.trim(),
       },
     );
     if (result.isFailure) {
+      final code = result.failureOrNull?.code;
+      final msg = result.failureOrNull?.message.toLowerCase() ?? '';
+      if (code == 'EMAIL_ALREADY_EXISTS' ||
+          msg.contains('already registered') ||
+          msg.contains('already exists')) {
+        _registeredEmail = email;
+        return true;
+      }
       if (!mounted) return false;
       showSignupTopMessage(
         context,
@@ -190,6 +289,9 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         isSuccess: false,
       );
       return false;
+    }
+    if (mounted && result.valueOrNull != null) {
+      context.read<AuthBloc>().add(AuthUserUpdated(result.valueOrNull!));
     }
     _registeredEmail = email;
     return true;
@@ -215,7 +317,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     final indRes = await repo.getIndustries();
     final csRes = await repo.getCompanySizes();
     final hgRes = await repo.getHiringGoals();
-    final budgetRes = await repo.getHiringBudgetRanges();
+    final budgetRes = await repo.getHiringBudgetOptions();
     final cRes = await repo.getCountries();
     final desigRes = await repo.getDesignations();
 
@@ -235,6 +337,15 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       }
       if (budgetRes.isSuccess && budgetRes.valueOrNull!.isNotEmpty) {
         _budgetRanges = budgetRes.valueOrNull!;
+        final selected = _selectedBudgetRange;
+        if (selected != null) {
+          for (final option in _budgetRanges) {
+            if (option.id == selected.id || option.name == selected.name) {
+              _selectedBudgetRange = option;
+              break;
+            }
+          }
+        }
       }
       if (cRes.isSuccess && cRes.valueOrNull!.isNotEmpty) {
         _countries = cRes.valueOrNull!;
@@ -261,16 +372,49 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       return 'Please enter a valid email';
     }
     if (!_emailVerified) return 'Please verify email OTP';
-    if (_passwordController.text.length < 8) {
-      return 'Password must be at least 8 characters';
-    }
-    if (_passwordController.text != _confirmPasswordController.text) {
-      return 'Password and confirm password must match';
+    final isSocial =
+        context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
+    if (!isSocial) {
+      if (_passwordController.text.isEmpty) {
+        return 'Please enter password';
+      }
+      if (_passwordController.text.length < 8) {
+        return 'Password must be at least 8 characters';
+      }
+      if (_passwordController.text != _confirmPasswordController.text) {
+        return 'Password and confirm password must match';
+      }
     }
     if (_selectedCountry == null) return 'Please select country';
-    if (_selectedState == null) return 'Please select state';
+    // if (_selectedState == null) return 'Please select state';
+
     if (_cityController.text.trim().isEmpty) return 'Please select city';
     if (!_termsAccepted) return 'Please accept terms and privacy policy';
+    return null;
+  }
+
+  String? _businessValidationMessage() {
+    final companyName = _businessNameController.text.trim();
+    if (companyName.isEmpty) return 'Please enter Business / Company Name';
+    if (companyName.length < 2) {
+      return 'Company name must be at least 2 characters';
+    }
+    if (_selectedIndustries.isEmpty) return 'Please select an Industry';
+    if (_selectedCompanySize == null || _selectedCompanySize!.isEmpty) {
+      return 'Please select Company Size';
+    }
+
+    final website = _companySiteController.text.trim();
+    if (website.isNotEmpty) {
+      final normalized = website.contains('://') ? website : 'https://$website';
+      final uri = Uri.tryParse(normalized);
+      if (uri == null ||
+          (uri.scheme != 'http' && uri.scheme != 'https') ||
+          uri.host.isEmpty ||
+          !uri.host.contains('.')) {
+        return 'Please enter a valid company website';
+      }
+    }
     return null;
   }
 
@@ -294,12 +438,9 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         _currentStep = 2;
       });
     } else if (_currentStep == 2) {
-      if (_businessNameController.text.isEmpty) {
-        showSignupTopMessage(
-          context,
-          'Please enter Business / Company Name',
-          isSuccess: false,
-        );
+      final validationMessage = _businessValidationMessage();
+      if (validationMessage != null) {
+        showSignupTopMessage(context, validationMessage, isSuccess: false);
         return;
       }
       if (!await _submitDraft(step: 2)) return;
@@ -318,10 +459,14 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
 
   void _onBack() {
     if (_currentStep > 1) {
-      setState(() => _currentStep--);
+      final prevStep = _currentStep - 1;
+      _saveProgress(prevStep);
+      setState(() => _currentStep = prevStep);
     } else if (widget.onBackToRoleSelection != null) {
+      _saveProgress(1);
       widget.onBackToRoleSelection!();
     } else if (context.canPop()) {
+      _saveProgress(1);
       context.pop();
     }
   }
@@ -371,20 +516,22 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         break;
     }
 
-    return SignupScaffold(
-      title: title,
-      subtitle: subtitle,
-      currentStep: _currentStep,
-      totalSteps: 5,
-      onBack:
-          (_currentStep > widget.initialStep) ||
-              (widget.initialStep == 1 && _currentStep == 1)
-          ? _onBack
-          : null,
-      onContinue: _onContinue,
-      isLoading: _isLoading,
-      continueLabel: _currentStep == 4 ? 'Skip or Continue' : 'Continue',
-      child: _buildStepContent(),
+    return BlocListener<AuthBloc, AuthState>(
+      listenWhen: (previous, current) =>
+          previous.user != current.user ||
+          previous.pendingSignup != current.pendingSignup,
+      listener: _syncFromAuthState,
+      child: SignupScaffold(
+        title: title,
+        subtitle: subtitle,
+        currentStep: _currentStep,
+        totalSteps: 5,
+        onBack: _onBack,
+        onContinue: _onContinue,
+        isLoading: _isLoading,
+        continueLabel: _currentStep == 4 ? 'Skip or Continue' : 'Continue',
+        child: _buildStepContent(),
+      ),
     );
   }
 
@@ -400,9 +547,9 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           confirmPasswordController: _confirmPasswordController,
           cityController: _cityController,
           countries: _countries,
-          states: _states,
+          // states: _states,
           selectedCountry: _selectedCountry,
-          selectedState: _selectedState,
+          // selectedState: _selectedState,
           onCountryChanged: (val) {
             setState(() {
               _selectedCountry = val;
@@ -414,10 +561,10 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           },
           onMobileCountryCodeChanged: (val) =>
               setState(() => _selectedMobileCountryCode = val),
-          onStateChanged: (val) {
-            setState(() => _selectedState = val);
-            _persistCurrentProgress();
-          },
+          // onStateChanged: (val) {
+          //   setState(() => _selectedState = val);
+          //   _persistCurrentProgress();
+          // },
           termsAccepted: _termsAccepted,
           onTermsChanged: (val) {
             setState(() => _termsAccepted = val);
@@ -425,9 +572,9 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: _emailVerified
-              ? _emailController.text.trim()
-              : widget.verifiedEmail,
+          initialVerifiedEmail: widget.verifiedEmail??context.read<AuthBloc>().state.user?.email??'',
+          isSocialLogin:
+              context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
       case 2:
         return Column(
@@ -438,14 +585,13 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               hint: 'Enter Company Name',
             ),
             const SizedBox(height: 16),
-            AppDropdown<String>(
-              label: 'Industry *',
-              hint: 'Select Industry',
-              value: _selectedIndustry,
-              items: _industries,
-              itemLabel: (value) => value,
+            SignupMultiSelectSheet(
+              label: 'Industry / Sector *',
+              selectedItems: _selectedIndustries,
+              availableOptions: _industries,
+              minSelection: 1,
               onChanged: (val) {
-                setState(() => _selectedIndustry = val);
+                setState(() => _selectedIndustries = val);
                 _persistCurrentProgress();
               },
             ),
@@ -464,8 +610,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             const SizedBox(height: 16),
             AppTextField(
               controller: _companySiteController,
-              label: 'Company Site Link',
-              hint: 'Enter Company Site Link',
+              label: 'Company Website Link',
+              hint: 'Enter Company Website Link',
             ),
           ],
         );
@@ -473,8 +619,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         return Column(
           children: [
             AppDropdown<String>(
-              label: 'Job Role',
-              hint: 'Select Job Role',
+              label: 'Designation *',
+              hint: 'Select Your Designation',
               value: _selectedJobRole,
               items: _designations,
               itemLabel: (value) => value,
@@ -490,10 +636,11 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
-              label: 'Hiring Goal',
+              label: 'Primary Hiring Goal *',
               selectedItems: _selectedHiringGoals,
               availableOptions: _hiringGoals,
               minSelection: 1,
+              maxSelection: 1,
               onTap: () {
                 if (_hiringGoals.isEmpty) {
                   _loadMasterData();
@@ -522,12 +669,12 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               },
             ),
             const SizedBox(height: 16),
-            AppDropdown<String>(
-              label: 'Project / Hiring Budget Range',
-              hint: 'Select Project / Hiring Budget Range',
+            AppDropdown<MasterOption>(
+              label: 'Estimated Project / Hiring Budget Range',
+              hint: 'Select Budget Range',
               value: _selectedBudgetRange,
               items: _budgetRanges,
-              itemLabel: (value) => value,
+              itemLabel: (value) => value.name,
               onChanged: (val) {
                 setState(() => _selectedBudgetRange = val);
                 _persistCurrentProgress();

@@ -48,7 +48,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   MasterOption? _selectedState;
   MasterOption? _selectedCompanySize;
   MasterOption? _selectedBudgetRange;
-  String? _selectedCategoryId;
+  List<String> _selectedCategoryIds = [];
   final Set<String> _selectedHiringGoalIds = {};
 
   List<MasterOption> _countries = [];
@@ -151,15 +151,15 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         }
       }
 
-      if (userMap['state'] is Map) {
-        final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
-        final sid =
-            (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
-        final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
-        if (sid.isNotEmpty && sname.isNotEmpty) {
-          _selectedState = MasterOption(id: sid, name: sname);
-        }
-      }
+      // if (userMap['state'] is Map) {
+      //   final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
+      //   final sid =
+      //       (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
+      //   final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
+      //   if (sid.isNotEmpty && sname.isNotEmpty) {
+      //     _selectedState = MasterOption(id: sid, name: sname);
+      //   }
+      // }
 
       if (userMap['profile'] is Map) {
         final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
@@ -189,26 +189,72 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           _linkedin.text = linkVal;
         }
 
-        if (pMap['industryId'] is Map) {
-          final indMap = Map<String, dynamic>.from(pMap['industryId'] as Map);
-          final indId = (indMap['id'] ?? indMap['_id'])?.toString();
-          final indName = (indMap['name'] ?? indMap['label'])?.toString();
-          if (indId != null && indId.isNotEmpty) {
-            _selectedCategoryId = indId;
-            if (indName != null && indName.isNotEmpty) {
-              _categoryDisplayController.text = indName;
+        void addCategoryMatch(String? rawId, String? rawName) {
+          final rId = (rawId ?? '').trim();
+          final rName = (rawName ?? '').trim();
+          if (rId.isEmpty && rName.isEmpty) return;
+
+          if (_categories.isNotEmpty) {
+            for (final c in _categories) {
+              final cId = c.id;
+              final cName = c.name.trim();
+
+              if (rId.isNotEmpty && cId == rId) {
+                _selectedCategoryIds.add(cId);
+                return;
+              }
+              if (rName.isNotEmpty && cName.toLowerCase() == rName.toLowerCase()) {
+                _selectedCategoryIds.add(cId);
+                return;
+              }
+              if (rId.isNotEmpty && cName.toLowerCase() == rId.toLowerCase()) {
+                _selectedCategoryIds.add(cId);
+                return;
+              }
+              if (rName.isNotEmpty &&
+                  (cName.toLowerCase().contains(rName.toLowerCase()) ||
+                      rName.toLowerCase().contains(cName.toLowerCase()))) {
+                _selectedCategoryIds.add(cId);
+                return;
+              }
+              if (rId.isNotEmpty &&
+                  (cName.toLowerCase().contains(rId.toLowerCase()) ||
+                      rId.toLowerCase().contains(cName.toLowerCase()))) {
+                _selectedCategoryIds.add(cId);
+                return;
+              }
             }
           }
-        } else if (pMap['industry'] is Map) {
-          final indMap = Map<String, dynamic>.from(pMap['industry'] as Map);
-          final indId = (indMap['id'] ?? indMap['_id'])?.toString();
-          final indName = (indMap['name'] ?? indMap['label'])?.toString();
-          if (indId != null && indId.isNotEmpty) {
-            _selectedCategoryId = indId;
-            if (indName != null && indName.isNotEmpty) {
-              _categoryDisplayController.text = indName;
+          if (rId.isNotEmpty) _selectedCategoryIds.add(rId);
+        }
+
+        final indObj =
+            pMap['industryId'] ?? pMap['categoryId'] ?? pMap['industry'];
+        if (indObj is List) {
+          for (final item in indObj) {
+            if (item is Map) {
+              final id = (item['id'] ?? item['_id'])?.toString();
+              final name = (item['name'] ?? item['label'] ?? item['title'])?.toString();
+              addCategoryMatch(id, name);
+            } else if (item is String) {
+              addCategoryMatch(item, item);
             }
           }
+        } else if (indObj is Map) {
+          final indId = (indObj['id'] ?? indObj['_id'])?.toString();
+          final indName = (indObj['name'] ?? indObj['label'])?.toString();
+          addCategoryMatch(indId, indName);
+        } else if (indObj is String && indObj.isNotEmpty) {
+          for (final s in indObj.split(',')) {
+            addCategoryMatch(s.trim(), s.trim());
+          }
+        }
+
+        if (_selectedCategoryIds.isNotEmpty && _categories.isNotEmpty) {
+          _categoryDisplayController.text = _categories
+              .where((c) => _selectedCategoryIds.contains(c.id))
+              .map((c) => c.name)
+              .join(', ');
         }
 
         if (pMap['companySizeId'] is Map) {
@@ -313,11 +359,18 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
-            final filtered = search.isEmpty
-                ? _categories
+            final filtered = (search.isEmpty
+                ? List<MasterOption>.from(_categories)
                 : _categories
                       .where((c) => c.name.toLowerCase().contains(search))
-                      .toList();
+                      .toList())
+              ..sort((a, b) {
+                final aSel = _selectedCategoryIds.contains(a.id);
+                final bSel = _selectedCategoryIds.contains(b.id);
+                if (aSel && !bSel) return -1;
+                if (!aSel && bSel) return 1;
+                return 0;
+              });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -328,11 +381,25 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
                   child: Column(
                     children: [
-                      Text(
-                        'Select Category / Industry',
-                        style: context.text.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Category / Industry (${_selectedCategoryIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                       AppSizes.vGapMd,
                       AppTextField(
@@ -353,22 +420,32 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                                 itemBuilder: (context, index) {
                                   final cat = filtered[index];
                                   final isSelected =
-                                      cat.id == _selectedCategoryId;
-                                  return ListTile(
+                                      _selectedCategoryIds.contains(cat.id);
+                                  return CheckboxListTile(
                                     title: Text(cat.name),
-                                    trailing: isSelected
-                                        ? const Icon(
-                                            Icons.check_circle,
-                                            color: AppColors.primary,
-                                          )
-                                        : null,
-                                    onTap: () {
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    onChanged: (_) {
                                       setState(() {
-                                        _selectedCategoryId = cat.id;
-                                        _categoryDisplayController.text =
-                                            cat.name;
+                                        if (isSelected) {
+                                          _selectedCategoryIds.remove(cat.id);
+                                        } else {
+                                          _selectedCategoryIds.add(cat.id);
+                                        }
                                       });
-                                      Navigator.of(context).pop();
+                                      setSheetState(() {});
+                                      
+                                      final names = <String>[];
+                                      for (final c in _categories) {
+                                        if (_selectedCategoryIds.contains(c.id)) {
+                                          names.add(c.name);
+                                        }
+                                      }
+                                      if (names.isNotEmpty) {
+                                        _categoryDisplayController.text = names.join(', ');
+                                      } else {
+                                        _categoryDisplayController.clear();
+                                      }
                                     },
                                   );
                                 },
@@ -519,10 +596,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       'city': _city.text.trim(),
       'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
-      if (_selectedState != null) 'stateId': _selectedState!.id,
+      // if (_selectedState != null) 'stateId': _selectedState!.id,
       'company': _companyNameController.text.trim(),
       'jobTitle': _jobTitleController.text.trim(),
-      if (_selectedCategoryId != null) 'industryId': _selectedCategoryId,
+      if (_selectedCategoryIds.isNotEmpty) 'industryId': _selectedCategoryIds.join(','),
       if (_selectedCompanySize != null)
         'companySizeId': _selectedCompanySize!.id,
       if (_selectedBudgetRange != null)
@@ -569,8 +646,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
               location: locationParts.isNotEmpty
                   ? locationParts.join(', ')
                   : null,
-              categoryId: _selectedCategoryId,
-              industryId: _selectedCategoryId,
+              categoryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
+              industryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
               avatarUrl: (uploadedAvatarUrl?.isNotEmpty == true)
                   ? uploadedAvatarUrl
                   : null,
@@ -656,6 +733,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   controller: _city,
                   label: 'Location / City *',
                   hint: 'Select Location / City',
+                  country: _selectedCountry?.name,
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
@@ -675,16 +753,16 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                     }
                   },
                 ),
-                AppSizes.vGapMd,
-                AppDropdown<MasterOption>(
-                  label: 'State *',
-                  hint: 'Select State',
-                  prefixIcon: Icons.map_outlined,
-                  value: _selectedState,
-                  items: _states,
-                  itemLabel: (item) => item.name,
-                  onChanged: (opt) => setState(() => _selectedState = opt),
-                ),
+                // AppSizes.vGapMd,
+                // AppDropdown<MasterOption>(
+                //   label: 'State *',
+                //   hint: 'Select State',
+                //   prefixIcon: Icons.map_outlined,
+                //   value: _selectedState,
+                //   items: _states,
+                //   itemLabel: (item) => item.name,
+                //   onChanged: (opt) => setState(() => _selectedState = opt),
+                // ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _categoryDisplayController,

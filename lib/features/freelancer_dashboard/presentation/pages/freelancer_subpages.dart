@@ -2229,7 +2229,7 @@ class _FreelancerExperienceFormPageState
     try {
       final res = await sl<ApiClientHelper>().getEnvelope<List<SkillOption>>(
         ApiEndpoints.publicSkills,
-        query: {'industryId': industryId, 'page': 1, 'limit': 50},
+        query: {'page': 1, 'limit': 100},
         parser: (env) {
           dynamic list = env.data;
           if (list is Map) {
@@ -3739,7 +3739,6 @@ class _FreelancerPortfolioFormPageState
       final items = await _loadOptions(
         ApiEndpoints.publicSkills,
         query: {
-          'categoryId': categoryId,
           'page': 1,
           'limit': 100,
           'pageSize': 100,

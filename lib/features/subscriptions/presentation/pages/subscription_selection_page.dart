@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:goexperts_app/core/storage/local_storage.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/payments/payment_checkout_service.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/subscription_status.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -13,6 +17,7 @@ import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../../core/widgets/safe_bottom.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
+import '../../../auth/presentation/utils/signup_progress_store.dart';
 import '../../domain/entities/subscription_plan.dart';
 import '../../domain/repositories/subscription_repository.dart';
 
@@ -87,7 +92,30 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     final amount = _yearly ? plan.priceYearly : plan.priceMonthly;
     return amount <= 0 ||
         plan.id.toLowerCase() == 'free' ||
-        name.contains('free');
+        name == 'free' ||
+        name.endsWith(' free');
+  }
+
+  String get _selectedPlanName {
+    final plan = _plans.cast<SubscriptionPlan?>().firstWhere(
+      (p) => p?.id == _selected,
+      orElse: () => null,
+    );
+    return plan?.name ?? 'Starter';
+  }
+
+  void _openDashboardFor(UserRole userRole) {
+    final dashboardRoute = switch (userRole) {
+      UserRole.founder => Routes.founderDashboard,
+      UserRole.freelancer => Routes.freelancerDashboard,
+      UserRole.client => Routes.clientDashboard,
+      UserRole.investor => Routes.investorDashboard,
+    };
+    context.go(dashboardRoute);
+  }
+
+  void _skipSubscription() {
+    _skipWithFreePlan();
   }
 
   @override
@@ -95,7 +123,13 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        leading: IconTapWidget(
+          onTap: () {
+             
+              Navigator.of(context).maybePop();
+          
+          },
+        ),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
         title: Text(
@@ -108,7 +142,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
         actions: [
           if (widget.isOnboarding)
             TextButton(
-              onPressed: _loading || _saving ? null : _skipWithFreePlan,
+              onPressed: () { Navigator.of(context).maybePop();},
               child: const Text('Skip'),
             ),
         ],
@@ -135,7 +169,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
                   ),
                   child: AppPrimaryButton(
                     label: _isSelectedFree
-                        ? 'Continue with Starter'
+                        ? 'Continue with $_selectedPlanName'
                         : 'Subscribe',
                     isLoading: _saving,
                     onPressed: _submit,
@@ -240,7 +274,9 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
           ),
         ),
         AppSizes.vGapLg,
-        for (final plan in _plans)
+        for (final plan in _plans.where(
+          (p) => p.duration.toLowerCase() == (_yearly ? 'yearly' : 'monthly'),
+        ))
           Padding(
             padding: const EdgeInsets.only(bottom: AppSizes.md),
             child: _ExpandablePlanCard(
@@ -273,7 +309,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     // Always continue onboarding on Skip — even if the API write fails.
     res.fold(
       (f) => _onSubscriptionSuccess(
-        message: 'Continuing with Starter plan',
+        message: 'Continuing with $_selectedPlanName plan',
         planId: planId,
       ),
       (message) => _onSubscriptionSuccess(message: message, planId: planId),
@@ -286,7 +322,8 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
       final amount = _yearly ? p.priceYearly : p.priceMonthly;
       if (amount <= 0 ||
           p.id.toLowerCase() == 'free' ||
-          name.contains('free')) {
+          name == 'free' ||
+          name.endsWith(' free')) {
         return p;
       }
     }
@@ -305,10 +342,10 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     final isFree =
         amount <= 0 ||
         _selected.toLowerCase() == 'free' ||
-        name.contains('free');
+        name == 'free' ||
+        name.endsWith(' free');
 
     setState(() => _saving = true);
-
     if (!isFree) {
       final checkout = sl<PaymentCheckoutService>();
       final result = await checkout.checkoutWithEasebuzz(
@@ -316,6 +353,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
         amount: amount,
         planId: _selected,
         metadata: {'billingCycle': _yearly ? 'yearly' : 'monthly'},
+        endpoint: '/subscriptions/purchase',
       );
       if (!mounted) return;
 
@@ -361,10 +399,9 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     setState(() => _saving = false);
     res.fold(
       (f) {
-        // Free plan: if API fails, still unlock onboarding and show the error.
         context.showSnack(f.message, isError: true);
         _onSubscriptionSuccess(
-          message: 'Continuing with Starter plan',
+          message: 'Continuing with $_selectedPlanName plan',
           planId: _selected,
         );
       },
@@ -377,105 +414,26 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     String? planId,
   }) {
     context.showSnack(message);
-    if (widget.isOnboarding) {
-      final bloc = context.read<AuthBloc>();
-      if (planId != null && planId.isNotEmpty) {
-        final user = bloc.state.user;
-        final planName = _plans
-            .cast<SubscriptionPlan?>()
-            .firstWhere((p) => p?.id == planId, orElse: () => null)
-            ?.name;
-        if (user != null) {
-          bloc.add(
-            AuthUserUpdated(
-              user.copyWith(
-                subscriptionStatus: 'active',
-                subscriptionPlan: planName ?? planId,
-              ),
+    final bloc = context.read<AuthBloc>();
+    if (context.mounted) Navigator.of(context).pop();
+    if (planId != null && planId.isNotEmpty) {
+      final user = bloc.state.user;
+      final planName = _plans
+          .cast<SubscriptionPlan?>()
+          .firstWhere((p) => p?.id == planId, orElse: () => null)
+          ?.name;
+      if (user != null) {
+        bloc.add(
+          AuthUserUpdated(
+            user.copyWith(
+              subscriptionStatus: 'active',
+          subscriptionPlan: planName ?? planId,
             ),
-          );
-        }
+          ),
+        );
       }
-      // Mark active and keep it — do not bounce back to this screen.
-      bloc.add(const AuthSubscriptionActivated());
-    } else {
-      Navigator.of(context).maybePop();
     }
-  }
-}
-
-class _BillingToggle extends StatelessWidget {
-  const _BillingToggle({
-    required this.yearly,
-    required this.onMonthly,
-    required this.onYearly,
-  });
-
-  final bool yearly;
-  final VoidCallback onMonthly;
-  final VoidCallback onYearly;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: context.theme.cardColor,
-        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-        border: Border.all(color: context.theme.dividerColor),
-        boxShadow: const [
-          BoxShadow(
-            color: AppColors.shadow,
-            blurRadius: 14,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _ToggleOption(label: 'Monthly', active: !yearly, onTap: onMonthly),
-          _ToggleOption(label: 'Yearly', active: yearly, onTap: onYearly),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToggleOption extends StatelessWidget {
-  const _ToggleOption({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool active;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSizes.xl,
-          vertical: AppSizes.sm,
-        ),
-        decoration: BoxDecoration(
-          color: active ? AppColors.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-        ),
-        child: Text(
-          label,
-          style: context.text.labelMedium?.copyWith(
-            color: active ? Colors.white : AppColors.mutedText,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-      ),
-    );
+    bloc.add(const AuthSubscriptionActivated());
   }
 }
 
@@ -841,4 +799,79 @@ class _DetailRowData {
   final IconData icon;
   final String label;
   final String value;
+}
+
+class _BillingToggle extends StatelessWidget {
+  const _BillingToggle({
+    required this.yearly,
+    required this.onMonthly,
+    required this.onYearly,
+  });
+
+  final bool yearly;
+  final VoidCallback onMonthly;
+  final VoidCallback onYearly;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.theme.cardColor,
+        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+        border: Border.all(color: context.theme.dividerColor),
+        boxShadow: const [
+          BoxShadow(
+            color: AppColors.shadow,
+            blurRadius: 14,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _ToggleOption(label: 'Monthly', active: !yearly, onTap: onMonthly),
+          _ToggleOption(label: 'Yearly', active: yearly, onTap: onYearly),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleOption extends StatelessWidget {
+  const _ToggleOption({
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.xl,
+          vertical: AppSizes.sm,
+        ),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizes.radiusPill),
+        ),
+        child: Text(
+          label,
+          style: context.text.labelMedium?.copyWith(
+            color: active ? Colors.white : AppColors.mutedText,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
 }

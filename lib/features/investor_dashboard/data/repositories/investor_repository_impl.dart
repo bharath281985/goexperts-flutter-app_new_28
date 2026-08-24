@@ -275,7 +275,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
       'key': key,
       'value': value ?? '',
       'status': 'pending',
-      'file': documentUrl,
+      'documentUrl': documentUrl,
     };
     return _api.patchEnvelope<String?>(
       ApiEndpoints.investorVerification,

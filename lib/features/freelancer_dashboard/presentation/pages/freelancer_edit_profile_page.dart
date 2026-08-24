@@ -56,6 +56,16 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   MasterOption? _selectedExperience;
   MasterOption? _selectedAvailability;
 
+  String? _educationLevel;
+  final List<String> _educationLevels = [
+    'High School',
+    'Diploma',
+    'Bachelors',
+    'Masters',
+    'Doctorate (Ph.D.)',
+    'Other',
+  ];
+
   List<MasterOption> _countries = [];
   List<MasterOption> _states = [];
   List<MasterOption> _experienceLevels = [];
@@ -63,7 +73,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
   // Categories & Skills
   List<SkillCategory> _categories = [];
-  String? _selectedCategoryId;
+  List<String> _selectedCategoryIds = [];
   List<SkillOption> _visibleSkills = [];
   final Set<String> _selectedSkillIds = {};
   final Map<String, List<SkillOption>> _skillsByCategoryId = {};
@@ -143,27 +153,29 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     setState(() {
       _categories = categories;
       _loadingCategories = false;
-      if (_selectedCategoryId != null) {
-        final cat = _selectedCategory;
-        if (cat != null && _categoryDisplayController.text.isEmpty) {
-          _categoryDisplayController.text = cat.name;
+      if (_selectedCategoryIds.isNotEmpty) {
+        final names = _categories
+            .where((c) => _selectedCategoryIds.contains(c.id))
+            .map((c) => c.name)
+            .join(', ');
+        if (names.isNotEmpty && _categoryDisplayController.text.isEmpty) {
+          _categoryDisplayController.text = names;
         }
       }
     });
 
-    if (_selectedCategoryId != null) {
-      _loadSkillsForCategory(_selectedCategoryId!);
+    if (_selectedCategoryIds.isNotEmpty) {
+      _loadSkillsForCategory();
     }
   }
 
-  Future<void> _loadSkillsForCategory(String categoryId) async {
-    // The backend API returns all skills regardless of industryId.
-    // Cache under a fixed key so we only fetch once.
+  Future<void> _loadSkillsForCategory() async {
+    // Skills are a shared catalogue; the API does not support filtering them
+    // by industry, so cache the unfiltered result once.
     const cacheKey = '__all__';
     if (_skillsByCategoryId.containsKey(cacheKey) &&
         (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
       setState(() {
-        _selectedCategoryId = categoryId;
         _visibleSkills = _skillsByCategoryId[cacheKey] ?? [];
       });
       _updateSkillsDisplayText();
@@ -171,37 +183,13 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     }
 
     setState(() {
-      _selectedCategoryId = categoryId;
       _loadingSkills = true;
     });
 
     final repo = sl<MasterDataRepository>();
-    final allSkills = <SkillOption>[];
-    var page = 1;
     const pageSize = 100;
-    var total = 0;
-
-    while (true) {
-      final result = await repo.getSkills(
-        categoryId: categoryId,
-        page: page,
-        pageSize: pageSize,
-      );
-      if (!mounted) return;
-
-      final batch = result.valueOrNull ?? [];
-      if (batch.isEmpty) break;
-
-      allSkills.addAll(batch.where((skill) => skill.name.isNotEmpty));
-
-      if (page == 1) {
-        final totalResult = await repo.getSkillsTotal(categoryId: categoryId);
-        total = totalResult.valueOrNull ?? batch.length;
-      }
-
-      if (allSkills.length >= total || batch.length < pageSize) break;
-      page++;
-    }
+    final allSkills = await _fetchSkillsForSingleCategory(repo, null, pageSize);
+    if (!mounted) return;
 
     for (final skill in allSkills) {
       for (final sIdOrName in List<String>.from(_selectedSkillIds)) {
@@ -219,6 +207,35 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       _loadingSkills = false;
     });
     _updateSkillsDisplayText();
+  }
+
+  Future<List<SkillOption>> _fetchSkillsForSingleCategory(
+      MasterDataRepository repo, String? categoryId, int pageSize) async {
+    final list = <SkillOption>[];
+    var page = 1;
+    var total = 0;
+    while (true) {
+      final result = await repo.getSkills(
+        categoryId: categoryId ?? '',
+        page: page,
+        pageSize: pageSize,
+      );
+      if (!mounted) break;
+
+      final batch = result.valueOrNull ?? [];
+      if (batch.isEmpty) break;
+
+      list.addAll(batch.where((skill) => skill.name.isNotEmpty));
+
+      if (page == 1) {
+        final totalResult = await repo.getSkillsTotal(categoryId: categoryId ?? '');
+        total = totalResult.valueOrNull ?? batch.length;
+      }
+
+      if (list.length >= total || batch.length < pageSize) break;
+      page++;
+    }
+    return list;
   }
 
   MasterOption? _matchOption(MasterOption? current, List<MasterOption> list) {
@@ -241,9 +258,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       if (_countries.isNotEmpty) {
         _selectedCountry = _matchOption(_selectedCountry, _countries);
       }
-      if (_states.isNotEmpty) {
-        _selectedState = _matchOption(_selectedState, _states);
-      }
+     
       if (_experienceLevels.isNotEmpty) {
         _selectedExperience = _matchOption(
           _selectedExperience,
@@ -315,20 +330,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
           }
         }
 
-        if (userMap['state'] is Map) {
-          final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
-          final sid =
-              (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
-          final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
-          if (sid.isNotEmpty && sname.isNotEmpty) {
-            _selectedState = MasterOption(id: sid, name: sname);
-          }
-        } else if (userMap['state'] is String) {
-          final sstr = userMap['state'].toString();
-          if (sstr.isNotEmpty) {
-            _selectedState = MasterOption(id: sstr, name: sstr);
-          }
-        }
+      
 
         if (userMap['profile'] is Map) {
           final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
@@ -375,6 +377,11 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
             _selectedExperience = MasterOption(id: expObj, name: expObj);
           }
 
+          final eduObj = pMap['education'];
+          if (eduObj is String && eduObj.isNotEmpty) {
+            _educationLevel = eduObj;
+          }
+
           final availObj = pMap['Availability'] ??
               pMap['availability'] ??
               pMap['availabilityId'];
@@ -397,21 +404,74 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
             _selectedAvailability = MasterOption(id: availObj, name: availObj);
           }
 
-          final indObj =
-              pMap['industryId'] ?? pMap['categoryId'] ?? pMap['industry'];
-          if (indObj is Map) {
-            final indMap = Map<String, dynamic>.from(indObj);
-            final indId = (indMap['id'] ?? indMap['_id'])?.toString();
-            final indName = (indMap['name'] ?? indMap['label'])?.toString();
-            if (indId != null && indId.isNotEmpty) {
-              _selectedCategoryId = indId;
-              if (indName != null && indName.isNotEmpty) {
-                _categoryDisplayController.text = indName;
+          void addCategoryMatch(String? rawId, String? rawName) {
+            final rId = (rawId ?? '').trim();
+            final rName = (rawName ?? '').trim();
+            if (rId.isEmpty && rName.isEmpty) return;
+
+            if (_categories.isNotEmpty) {
+              for (final c in _categories) {
+                final cId = c.id;
+                final cName = c.name.trim();
+
+                if (rId.isNotEmpty && cId == rId) {
+                  _selectedCategoryIds.add(cId);
+                  return;
+                }
+                if (rName.isNotEmpty && cName.toLowerCase() == rName.toLowerCase()) {
+                  _selectedCategoryIds.add(cId);
+                  return;
+                }
+                if (rId.isNotEmpty && cName.toLowerCase() == rId.toLowerCase()) {
+                  _selectedCategoryIds.add(cId);
+                  return;
+                }
+                if (rName.isNotEmpty &&
+                    (cName.toLowerCase().contains(rName.toLowerCase()) ||
+                        rName.toLowerCase().contains(cName.toLowerCase()))) {
+                  _selectedCategoryIds.add(cId);
+                  return;
+                }
+                if (rId.isNotEmpty &&
+                    (cName.toLowerCase().contains(rId.toLowerCase()) ||
+                        rId.toLowerCase().contains(cName.toLowerCase()))) {
+                  _selectedCategoryIds.add(cId);
+                  return;
+                }
               }
             }
+            if (rId.isNotEmpty) _selectedCategoryIds.add(rId);
+          }
+
+          _addCategoryMatch(String? rId, String? rName) => addCategoryMatch(rId, rName);
+
+          final indObj =
+              pMap['industryId'] ?? pMap['categoryId'] ?? pMap['industry'];
+          if (indObj is List) {
+            for (final item in indObj) {
+              if (item is Map) {
+                final id = (item['id'] ?? item['_id'])?.toString();
+                final name = (item['name'] ?? item['label'] ?? item['title'])?.toString();
+                _addCategoryMatch(id, name);
+              } else if (item is String) {
+                _addCategoryMatch(item, item);
+              }
+            }
+          } else if (indObj is Map) {
+            final indId = (indObj['id'] ?? indObj['_id'])?.toString();
+            final indName = (indObj['name'] ?? indObj['label'])?.toString();
+            _addCategoryMatch(indId, indName);
           } else if (indObj is String && indObj.isNotEmpty) {
-            _selectedCategoryId = indObj;
-            _categoryDisplayController.text = indObj;
+            for (final s in indObj.split(',')) {
+              _addCategoryMatch(s.trim(), s.trim());
+            }
+          }
+          
+          if (_selectedCategoryIds.isNotEmpty && _categories.isNotEmpty) {
+            _categoryDisplayController.text = _categories
+                .where((c) => _selectedCategoryIds.contains(c.id))
+                .map((c) => c.name)
+                .join(', ');
           }
 
           if (pMap['skills'] is List) {
@@ -441,16 +501,16 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     } catch (_) {}
 
     _matchAllDropdowns();
-    if (_selectedCategoryId != null) {
-      await _loadSkillsForCategory(_selectedCategoryId!);
+    if (_selectedCategoryIds.isNotEmpty) {
+      await _loadSkillsForCategory();
     }
     if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedCategoryId == null) {
-      context.showSnack('Industry / Category is required', isError: true);
+    if (_selectedCategoryIds.isEmpty) {
+      context.showSnack('Industry / Domain is required', isError: true);
       return;
     }
 
@@ -462,19 +522,20 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       'bio': _bio.text.trim(),
       'city': _city.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
-      if (_selectedState != null) ...{
-        'stateId': _selectedState!.id,
-        'stateid': _selectedState!.id,
-      },
+      // if (_selectedState != null) ...{
+      //   'stateId': _selectedState!.id,
+      //   'stateid': _selectedState!.id,
+      // },
       if (_selectedExperience != null) ...{
         'experienceLevelId': _selectedExperience!.id,
         'experienceId': _selectedExperience!.id,
       },
+      if (_educationLevel != null) 'education': _educationLevel,
       if (_selectedAvailability != null)
         'availabilityId': _selectedAvailability!.id,
-      if (_selectedCategoryId != null) ...{
-        'industryId': _selectedCategoryId,
-        'categoryId': _selectedCategoryId,
+      if (_selectedCategoryIds.isNotEmpty) ...{
+        'industryId': _selectedCategoryIds.join(','),
+        'categoryId': _selectedCategoryIds.join(','),
       },
       if (_hourlyRate.text.trim().isNotEmpty)
         'hourlyRate':
@@ -521,8 +582,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
               location: locationParts.isNotEmpty
                   ? locationParts.join(', ')
                   : null,
-              categoryId: _selectedCategoryId,
-              industryId: _selectedCategoryId,
+              categoryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
+              industryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
               skillIds: _selectedSkillIds.isNotEmpty
                   ? _selectedSkillIds.toList()
                   : null,
@@ -571,26 +632,30 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     );
   }
 
-  void _onCategorySelected(String categoryId) {
-    if (categoryId == _selectedCategoryId) return;
+  void _toggleCategory(String categoryId) {
     setState(() {
-      _selectedCategoryId = categoryId;
+      if (_selectedCategoryIds.contains(categoryId)) {
+        _selectedCategoryIds.remove(categoryId);
+      } else {
+        _selectedCategoryIds.add(categoryId);
+      }
       _selectedSkillIds.clear();
       _skillsDisplayController.clear();
-      _visibleSkills = [];
     });
-    final cat = _selectedCategory;
-    if (cat != null) {
-      _categoryDisplayController.text = cat.name;
-    }
-    _loadSkillsForCategory(categoryId);
+    _updateCategoryDisplayText();
+    _loadSkillsForCategory();
   }
 
-  SkillCategory? get _selectedCategory {
-    for (final category in _categories) {
-      if (category.id == _selectedCategoryId) return category;
+  void _updateCategoryDisplayText() {
+    final selectedNames = _categories
+        .where((c) => _selectedCategoryIds.contains(c.id))
+        .map((c) => c.name)
+        .toList();
+    if (selectedNames.isNotEmpty) {
+      _categoryDisplayController.text = selectedNames.join(', ');
+    } else {
+      _categoryDisplayController.clear();
     }
-    return null;
   }
 
   void _toggleSkill(String skillId) {
@@ -635,11 +700,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
-            final filtered = search.isEmpty
-                ? _categories
+            final filtered = (search.isEmpty
+                ? List<SkillCategory>.from(_categories)
                 : _categories
                       .where((c) => c.name.toLowerCase().contains(search))
-                      .toList();
+                      .toList())
+              ..sort((a, b) {
+                final aSel = _selectedCategoryIds.contains(a.id);
+                final bSel = _selectedCategoryIds.contains(b.id);
+                if (aSel && !bSel) return -1;
+                if (!aSel && bSel) return 1;
+                return 0;
+              });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -650,11 +722,25 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                   padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
                   child: Column(
                     children: [
-                      Text(
-                        'Select Industry / Category',
-                        style: context.text.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Industry / Domain (${_selectedCategoryIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ),
                       AppSizes.vGapMd,
                       AppTextField(
@@ -677,21 +763,13 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                                 itemBuilder: (context, index) {
                                   final cat = filtered[index];
                                   final isSelected =
-                                      cat.id == _selectedCategoryId;
-                                  return ListTile(
+                                      _selectedCategoryIds.contains(cat.id);
+                                  return CheckboxListTile(
                                     title: Text(cat.name),
-                                    trailing: isSelected
-                                        ? const Icon(
-                                            Icons.check_circle,
-                                            color: AppColors.primary,
-                                          )
-                                        : null,
-                                    onTap: () {
-                                      _onCategorySelected(cat.id);
-                                      _categoryDisplayController.text =
-                                          cat.name;
-                                      _skillsDisplayController.clear();
-                                      Navigator.of(context).pop();
+                                    value: isSelected,
+                                    onChanged: (val) {
+                                      _toggleCategory(cat.id);
+                                      setSheetState(() {});
                                     },
                                   );
                                 },
@@ -709,9 +787,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   Future<void> _showSkillsBottomSheet() async {
-    if (_selectedCategoryId == null) {
+    if (_selectedCategoryIds.isEmpty) {
       context.showSnack(
-        'Please select an Industry / Category first',
+        'Please select an Industry / Domain first',
         isError: true,
       );
       return;
@@ -724,7 +802,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         _visibleSkills = _skillsByCategoryId[cacheKey]!;
       });
     } else {
-      await _loadSkillsForCategory(_selectedCategoryId!);
+      await _loadSkillsForCategory();
     }
 
     if (!mounted) return;
@@ -737,11 +815,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _skillSearch.text.trim().toLowerCase();
-            final filtered = search.isEmpty
-                ? _visibleSkills
+            final filtered = (search.isEmpty
+                ? List<SkillOption>.from(_visibleSkills)
                 : _visibleSkills
                       .where((s) => s.name.toLowerCase().contains(search))
-                      .toList();
+                      .toList())
+              ..sort((a, b) {
+                final aSel = _selectedSkillIds.contains(a.id);
+                final bSel = _selectedSkillIds.contains(b.id);
+                if (aSel && !bSel) return -1;
+                if (!aSel && bSel) return 1;
+                return 0;
+              });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -834,9 +919,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final checks = [
       _bio.text.trim().isNotEmpty,
       _hourlyRate.text.trim().isNotEmpty,
-      _selectedCategoryId != null,
+      _selectedCategoryIds.isNotEmpty,
       _selectedCountry != null,
-      _selectedState != null,
+     
       _selectedExperience != null,
       _selectedAvailability != null,
       _fullName.text.trim().isNotEmpty,
@@ -941,11 +1026,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       controller: _title,
                       label: 'Professional Title *',
                       hint: 'Enter Professional Title',
-                      validator: (v) => Validators.minLength(
-                        v,
-                        3,
-                        field: 'Professional Title',
-                      ),
+                    
                     ),
                     AppSizes.vGapLg,
 
@@ -954,10 +1035,10 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppSizes.vGapSm,
                     AppLocationField(
                       controller: _city,
+                      country: _selectedCountry?.name,
                       label: 'City / Location *',
                       hint: 'Select City / Location',
-                      validator: (v) =>
-                          Validators.required(v, field: 'City / Location'),
+                    
                     ),
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
@@ -966,8 +1047,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       value: _selectedCountry,
                       items: _countries,
                       itemLabel: (item) => item.name,
-                      validator: (v) =>
-                          Validators.required(v?.name, field: 'Country'),
+                     
                       onChanged: (opt) {
                         setState(() {
                           _selectedCountry = opt;
@@ -980,18 +1060,18 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       },
                     ),
                     AppSizes.vGapMd,
-                    AppDropdown<MasterOption>(
-                      label: 'State *',
-                      hint: 'Select State',
-                      prefixIcon: Icons.map_outlined,
-                      value: _selectedState,
-                      items: _states,
-                      itemLabel: (item) => item.name,
-                      validator: (v) =>
-                          Validators.required(v?.name, field: 'State'),
-                      onChanged: (opt) => setState(() => _selectedState = opt),
-                    ),
-                    AppSizes.vGapLg,
+                    // AppDropdown<MasterOption>(
+                    //   label: 'State *',
+                    //   hint: 'Select State',
+                    //   prefixIcon: Icons.map_outlined,
+                    //   value: _selectedState,
+                    //   items: _states,
+                    //   itemLabel: (item) => item.name,
+                    //   validator: (v) =>
+                    //       Validators.required(v?.name, field: 'State'),
+                    //   onChanged: (opt) => setState(() => _selectedState = opt),
+                    // ),
+                    // AppSizes.vGapLg,
 
                     // Professional Bio
                     const _SectionLabel('Professional Bio'),
@@ -1003,8 +1083,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                           'Tell clients about yourself, your expertise, and what makes you unique…',
                       maxLines: 4,
                       textInputAction: TextInputAction.newline,
-                      validator: (v) =>
-                          Validators.minLength(v, 10, field: 'Bio'),
+                    
                     ),
                     AppSizes.vGapLg,
 
@@ -1013,23 +1092,13 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppSizes.vGapSm,
                     AppTextField(
                       controller: _hourlyRate,
-                      label: 'Hourly Rate (\$/hr) *',
+                      label: 'Hourly Rate (₹/hr) *',
                       hint: 'Enter Hourly Rate',
                       prefixIcon: Icons.attach_money_rounded,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
-                      validator: (v) {
-                        final reqErr = Validators.required(
-                          v,
-                          field: 'Hourly Rate',
-                        );
-                        if (reqErr != null) return reqErr;
-                        if (double.tryParse(v!.trim()) == null) {
-                          return 'Please enter a valid rate (e.g. 230.99)';
-                        }
-                        return null;
-                      },
+                     
                     ),
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
@@ -1038,8 +1107,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       value: _selectedAvailability,
                       items: _availabilities,
                       itemLabel: (item) => item.name,
-                      validator: (v) =>
-                          Validators.required(v?.name, field: 'Availability'),
+                     
                       onChanged: (opt) =>
                           setState(() => _selectedAvailability = opt),
                     ),
@@ -1050,33 +1118,39 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       value: _selectedExperience,
                       items: _experienceLevels,
                       itemLabel: (item) => item.name,
-                      validator: (v) => Validators.required(
-                        v?.name,
-                        field: 'Experience Level',
-                      ),
+                     
                       onChanged: (opt) =>
                           setState(() => _selectedExperience = opt),
                     ),
-                    AppSizes.vGapLg,
+                    AppSizes.vGapMd,
+                    // AppDropdown<String>(
+                    //   label: 'Education Level *',
+                    //   hint: 'Select Education Level',
+                    //   value: _educationLevel,
+                    //   items: _educationLevels,
+                    //   itemLabel: (item) => item,
+                     
+                    //   onChanged: (val) => setState(() => _educationLevel = val),
+                    // ),
+                    // AppSizes.vGapLg,
 
                     // Industry & Skills
                     const _SectionLabel('Industry & Skills'),
                     AppSizes.vGapSm,
                     AppTextField(
                       controller: _categoryDisplayController,
-                      label: 'Industry / Category *',
-                      hint: 'Select Industry / Category',
+                      label: 'Industry / Domain *',
+                      hint: 'Select Industry / Domain',
                       readOnly: true,
                       suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                       onTap: _showCategoryBottomSheet,
-                      validator: (v) =>
-                          Validators.required(v, field: 'Industry / Category'),
+                    
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _skillsDisplayController,
                       label: 'Skills (optional)',
-                      hint: _selectedCategoryId == null
+                      hint: _selectedCategoryIds.isEmpty
                           ? 'Select industry first'
                           : 'Select skills',
                       readOnly: true,

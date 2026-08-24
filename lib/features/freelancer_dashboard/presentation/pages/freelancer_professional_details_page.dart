@@ -189,10 +189,8 @@ class _FreelancerProfessionalDetailsPageState
       final res = await sl<ApiClientHelper>().getEnvelope<List<SkillOption>>(
         ApiEndpoints.publicSkills,
         query: {
-          'categoryId': categoryId,
-          'industryId': categoryId,
           'page': 1,
-          'limit': 50,
+          'limit': 100,
         },
         parser: (env) {
           dynamic list = env.data;

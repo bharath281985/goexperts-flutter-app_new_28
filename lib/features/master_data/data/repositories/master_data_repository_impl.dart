@@ -65,14 +65,12 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     int page = 1,
     int pageSize = 100,
   }) async {
-    // Note: The backend skills API does not support filtering by industryId.
-    // Passing industryId returns empty results. Load all skills without filter.
+    // The public skills endpoint currently returns an empty list when an
+    // industry/category id is supplied. Fetch the shared skills catalogue and
+    // let callers reuse it for the selected industries.
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
-      query: {
-        'page': page,
-        'limit': pageSize,
-      },
+      query: {'page': page, 'limit': pageSize},
       itemParser: SkillOption.fromJson,
     );
     if (result.isFailure) {
@@ -83,14 +81,9 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   @override
   Future<Result<int>> getSkillsTotal({required String categoryId}) async {
-    // Note: The backend skills API does not support filtering by industryId.
-    // Get total count of all skills without filter.
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
-      query: {
-        'page': 1,
-        'limit': 1,
-      },
+      query: const {'page': 1, 'limit': 1},
       itemParser: SkillOption.fromJson,
     );
     if (result.isFailure) {
@@ -263,6 +256,25 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   @override
   Future<Result<List<String>>> getDesignations() async {
     return _getLabelValueOptions('/public/designations');
+  }
+
+  @override
+  Future<Result<List<String>>> getAccreditedStatuses() async {
+    final result = await _client.getList<String>(
+      path: ApiEndpoints.publicAccreditedStatuses,
+      itemParser: (json) {
+        final value = json['label'] ?? json['value'] ?? json['name'] ?? '';
+        return value.toString();
+      },
+    );
+    if (result.isFailure) return Err(result.failureOrNull!);
+    return Success(
+      result.valueOrNull!.rows
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList(),
+    );
   }
 
   @override

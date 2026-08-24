@@ -128,18 +128,32 @@ class _SearchSheetContentState extends State<_SearchSheetContent> {
   @override
   void initState() {
     super.initState();
-    _filteredOptions = widget.options;
+    _filteredOptions = List.from(widget.options);
+    _sortOptions();
+  }
+
+  void _sortOptions() {
+    if (widget.selected != null && widget.selected!.isNotEmpty) {
+      _filteredOptions.sort((a, b) {
+        final aSel = a == widget.selected;
+        final bSel = b == widget.selected;
+        if (aSel && !bSel) return -1;
+        if (!aSel && bSel) return 1;
+        return 0;
+      });
+    }
   }
 
   void _onSearchChanged(String query) {
     setState(() {
       if (query.isEmpty) {
-        _filteredOptions = widget.options;
+        _filteredOptions = List.from(widget.options);
       } else {
         _filteredOptions = widget.options
             .where((opt) => opt.toLowerCase().contains(query.toLowerCase()))
             .toList();
       }
+      _sortOptions();
     });
   }
 

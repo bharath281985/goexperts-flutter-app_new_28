@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 import '../errors/exceptions.dart';
 import '../errors/failures.dart';
@@ -22,6 +23,12 @@ class ApiExceptionHandler {
       case DioExceptionType.cancel:
         return const UnknownFailure('Request cancelled.');
       default:
+        if (kDebugMode) {
+          debugPrint(
+            '[ApiExceptionHandler] Unhandled DioException type=${error.type} '
+            'message="${error.message}" underlying=${error.error}',
+          );
+        }
         return UnknownFailure(error.message ?? 'Something went wrong.');
     }
   }

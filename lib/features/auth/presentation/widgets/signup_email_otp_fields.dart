@@ -14,11 +14,13 @@ class SignupEmailOtpFields extends StatefulWidget {
     required this.emailController,
     required this.onVerificationChanged,
     this.initialVerifiedEmail,
+    this.isReadOnly=false,
   });
 
   final TextEditingController emailController;
   final ValueChanged<bool> onVerificationChanged;
   final String? initialVerifiedEmail;
+  final bool isReadOnly;
 
   @override
   State<SignupEmailOtpFields> createState() => _SignupEmailOtpFieldsState();
@@ -50,13 +52,13 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
   @override
   void initState() {
     super.initState();
-    final initialEmail = widget.emailController.text.trim();
     final cachedEmail = widget.initialVerifiedEmail?.trim();
-    if (cachedEmail != null &&
-        cachedEmail.isNotEmpty &&
-        initialEmail == cachedEmail) {
+    if (widget.isReadOnly || (cachedEmail != null && cachedEmail.isNotEmpty)) {
       _isVerified = true;
-      _verifiedEmail = cachedEmail;
+      _verifiedEmail = cachedEmail ?? widget.emailController.text.trim();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onVerificationChanged(true);
+      });
     }
     widget.emailController.addListener(_handleEmailChanged);
   }
@@ -71,7 +73,8 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
 
   void _handleEmailChanged() {
     final email = widget.emailController.text.trim();
-    final cachedEmail = widget.initialVerifiedEmail?.trim();
+    final activeVerifiedEmail = _verifiedEmail ?? widget.initialVerifiedEmail?.trim();
+
     if (_otpSent && email != _otpSentEmail) {
       _resendTimer?.cancel();
       setState(() {
@@ -80,20 +83,10 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         _resendSecondsRemaining = 0;
       });
     }
-    if (!_isVerified &&
-        cachedEmail != null &&
-        cachedEmail.isNotEmpty &&
-        email == cachedEmail) {
-      _resendTimer?.cancel();
-      setState(() {
-        _isVerified = true;
-        _verifiedEmail = cachedEmail;
-        _resendSecondsRemaining = 0;
-      });
-      widget.onVerificationChanged(true);
-      return;
-    }
-    if (_verifiedEmail != null && email != _verifiedEmail) {
+
+    if (activeVerifiedEmail != null &&
+        activeVerifiedEmail.isNotEmpty &&
+        email != activeVerifiedEmail) {
       _resendTimer?.cancel();
       setState(() {
         _isVerified = false;
@@ -103,6 +96,14 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         _resendSecondsRemaining = 0;
       });
       widget.onVerificationChanged(false);
+    } else if (activeVerifiedEmail != null &&
+        activeVerifiedEmail.isNotEmpty &&
+        email == activeVerifiedEmail &&
+        !_isVerified) {
+      setState(() {
+        _isVerified = true;
+      });
+      widget.onVerificationChanged(true);
     }
   }
 
@@ -268,7 +269,8 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
             children: [
               Expanded(
                 child: Text(
-                  'Email Verification (OTP sent to Mail) *',
+                  'Email Address *',
+                  
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: AppColors.darkText,
                     fontSize: 14,
@@ -322,9 +324,11 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
                   keyboardType: TextInputType.emailAddress,
                   hint: 'Enter email address',
                   prefixIcon: Icons.alternate_email_rounded,
+                  readOnly: widget.isReadOnly,
                 ),
               ),
-              if (!_isVerified && !_otpSent) ...[
+
+              if( !widget.isReadOnly)if (!_isVerified && !_otpSent) ...[
                 const SizedBox(width: 10),
                 SizedBox(
                   width: 104,

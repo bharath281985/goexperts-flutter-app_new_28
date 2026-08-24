@@ -97,7 +97,7 @@ class ClientHomePage extends StatelessWidget {
               : 'No hiring data yet.',
         ),
         'Hiring Pipeline': _buildEmptyStateCard(
-          'Hiring Pipeline',
+          'Hiring Pipeline', 
           'Live view across every stage of your hiring funnel',
           state.freelancers.isNotEmpty
               ? 'You have ${state.freelancers.length} active candidates in your pipeline.'

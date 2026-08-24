@@ -10,6 +10,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
   final List<String> availableOptions;
   final ValueChanged<List<String>> onChanged;
   final int minSelection;
+  final int? maxSelection;
   final Future<List<String>> Function(String query)? onSearchApi;
   final String? errorText;
   final VoidCallback? onTap;
@@ -21,6 +22,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
     required this.availableOptions,
     required this.onChanged,
     this.minSelection = 1,
+    this.maxSelection,
     this.onSearchApi,
     this.errorText,
     this.onTap,
@@ -47,6 +49,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
               selectedItems: selectedItems,
               initialOptions: availableOptions,
               minSelection: minSelection,
+              maxSelection: maxSelection,
               onSearchApi: onSearchApi,
               onConfirm: (items) {
                 onChanged(items);
@@ -118,6 +121,7 @@ class _MultiSelectContent extends StatefulWidget {
   final List<String> selectedItems;
   final List<String> initialOptions;
   final int minSelection;
+  final int? maxSelection;
   final Future<List<String>> Function(String query)? onSearchApi;
   final ValueChanged<List<String>> onConfirm;
 
@@ -126,6 +130,7 @@ class _MultiSelectContent extends StatefulWidget {
     required this.selectedItems,
     required this.initialOptions,
     required this.minSelection,
+    this.maxSelection,
     this.onSearchApi,
     required this.onConfirm,
   });
@@ -144,8 +149,11 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
   @override
   void initState() {
     super.initState();
-    _currentSelected = List.from(widget.selectedItems);
+    _currentSelected = widget.maxSelection == null
+        ? List.from(widget.selectedItems)
+        : widget.selectedItems.take(widget.maxSelection!).toList();
     _options = List.from(widget.initialOptions);
+    _sortOptions();
   }
 
   @override
@@ -154,13 +162,24 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
     super.dispose();
   }
 
+  void _sortOptions() {
+    _options.sort((a, b) {
+      final aSel = _currentSelected.contains(a);
+      final bSel = _currentSelected.contains(b);
+      if (aSel && !bSel) return -1;
+      if (!aSel && bSel) return 1;
+      return 0;
+    });
+  }
+
   void _onSearchChanged(String query) {
     if (widget.onSearchApi != null) {
       _debounceTimer?.cancel();
       _debounceTimer = Timer(const Duration(milliseconds: 300), () async {
         if (query.trim().isEmpty) {
           setState(() {
-            _options = widget.initialOptions;
+            _options = List.from(widget.initialOptions);
+            _sortOptions();
           });
           return;
         }
@@ -169,7 +188,8 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
         try {
           final results = await widget.onSearchApi!(query.trim());
           setState(() {
-            _options = results;
+            _options = List.from(results);
+            _sortOptions();
             _isLoading = false;
           });
         } catch (_) {
@@ -179,12 +199,13 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
     } else {
       setState(() {
         if (query.isEmpty) {
-          _options = widget.initialOptions;
+          _options = List.from(widget.initialOptions);
         } else {
           _options = widget.initialOptions
               .where((item) => item.toLowerCase().contains(query.toLowerCase()))
               .toList();
         }
+        _sortOptions();
       });
     }
   }
@@ -194,8 +215,15 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
       if (_currentSelected.contains(item)) {
         _currentSelected.remove(item);
       } else {
+        if (widget.maxSelection == 1) {
+          _currentSelected.clear();
+        } else if (widget.maxSelection != null &&
+            _currentSelected.length >= widget.maxSelection!) {
+          return;
+        }
         _currentSelected.add(item);
       }
+      _sortOptions();
     });
   }
 
@@ -271,33 +299,50 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
 
           // Options List
           Expanded(
-            child: ListView.separated(
-              itemCount: _options.length,
-              separatorBuilder: (_, __) =>
-                  const Divider(height: 1, color: Color(0xFFF1F5F9)),
-              itemBuilder: (context, index) {
-                final item = _options[index];
-                final isSelected = _currentSelected.contains(item);
-
-                return CheckboxListTile(
-                  title: Text(
-                    item,
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isSelected
-                          ? AppColors.primary
-                          : const Color(0xFF1E293B),
+            child: _options.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Text(
+                        _isLoading
+                            ? 'Loading ${widget.title}...'
+                            : 'No ${widget.title.toLowerCase()} available. Please select an industry first.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                          height: 1.4,
+                        ),
+                      ),
                     ),
+                  )
+                : ListView.separated(
+                    itemCount: _options.length,
+                    separatorBuilder: (_, __) =>
+                        const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    itemBuilder: (context, index) {
+                      final item = _options[index];
+                      final isSelected = _currentSelected.contains(item);
+
+                      return CheckboxListTile(
+                        title: Text(
+                          item,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: isSelected
+                                ? AppColors.primary
+                                : const Color(0xFF1E293B),
+                          ),
+                        ),
+                        activeColor: AppColors.primary,
+                        value: isSelected,
+                        onChanged: (_) => _toggleItem(item),
+                      );
+                    },
                   ),
-                  activeColor: AppColors.primary,
-                  value: isSelected,
-                  onChanged: (_) => _toggleItem(item),
-                );
-              },
-            ),
           ),
 
           // Confirm Button

@@ -138,6 +138,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? countryCode,
     required String password,
     required UserRole role,
+    bool isSocialLogin = false,
     Map<String, dynamic> signupData = const {},
   }) async {
     try {
@@ -148,6 +149,7 @@ class AuthRepositoryImpl implements AuthRepository {
         phone: phone,
         countryCode: countryCode,
         role: role,
+        isSocialLogin: isSocialLogin,
         signupData: signupData,
       );
       await _cacheUser(user);
@@ -310,7 +312,8 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<bool>> saveOnboardingDraft(Map<String, dynamic> data) async {
     try {
-      await _api.saveOnboardingDraft(data);
+      final payload = Map<String, dynamic>.from(data)..remove('step');
+      await _api.saveOnboardingDraft(payload);
       return const Success(true);
     } catch (e) {
       return Err(_mapError(e));
@@ -344,16 +347,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> logout() async {
+  Future<void> logout({bool remote = true}) async {
     try {
-      await _api.logout();
+      if (remote) {
+        await _api.logout();
+      }
     } catch (_) {
       // Ignored: If API call fails (e.g., network error, already logged out),
       // we still want to clear local data.
     } finally {
       await _secureStorage.deleteAll();
       await _chatSocket?.disconnect();
-      await _localStorage.remove(LocalStorage.kCachedUser);
+      await _localStorage.clear();
     }
   }
 

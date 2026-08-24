@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:goexperts_app/app/router/route_names.dart';
 import '../../../../app/constants/app_assets.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../core/widgets/icon_widget.dart';
@@ -162,6 +164,7 @@ class SignupScaffold extends StatelessWidget {
                 ),
               ],
             ),
+              
 
             if (onContinue != null)
               Positioned(

@@ -136,7 +136,7 @@ class CompanyRepositoryImpl implements CompanyRepository {
       'key': key,
       'value': value ?? '',
       'status':'pending',
-      'file': documentUrl!,
+      'documentUrl': documentUrl,
     };
     return _api.patchEnvelope<String?>(
       ApiEndpoints.clientVerification,

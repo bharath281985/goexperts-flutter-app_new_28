@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android Network Security Configuration
+  =======================================
+  • debug builds  : trust system CAs + user-installed CAs (e.g., Charles, mitmproxy)
+  • release builds: trust system CAs only (default Android behaviour)
+
+  If the backend certificate chain is missing an intermediate CA, install
+  that CA on the device (or fix the chain server-side) and it will be
+  trusted here in debug mode automatically.
+-->
+<network-security-config>
+    <debug-overrides>
+        <trust-anchors>
+            <!-- System CAs (production certificates) -->
+            <certificates src="system" />
+            <!-- User-installed CAs (Charles, Fiddler, self-signed debug certs) -->
+            <certificates src="user" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

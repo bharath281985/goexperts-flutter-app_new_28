@@ -26,15 +26,30 @@ class PaymentInitiateResult {
   final String orderId;
   final Map<String, dynamic> gatewayPayload;
 
-  String? get accessKey =>
-      gatewayPayload['accessKey']?.toString() ??
-      gatewayPayload['access_key']?.toString();
+  String? get accessKey {
+    final raw =
+        gatewayPayload['accessKey'] ??
+        gatewayPayload['access_key'] ??
+        gatewayPayload['easebuzzAccessKey'] ??
+        gatewayPayload['key'] ??
+        gatewayPayload['token'] ??
+        (gatewayPayload['data'] is String ? gatewayPayload['data'] : null);
+    final value = raw?.toString().trim();
+    return value == null || value.isEmpty ? null : value;
+  }
 
   /// Easebuzz SDK expects `test` or `production`.
   String get payMode {
-    final raw = gatewayPayload['payMode']?.toString().toLowerCase();
-    if (raw == 'production' || raw == 'live') return 'production';
-    return 'test';
+    final raw =
+        (gatewayPayload['payMode'] ??
+                gatewayPayload['pay_mode'] ??
+                gatewayPayload['mode'] ??
+                gatewayPayload['environment'])
+            ?.toString()
+            .trim()
+            .toLowerCase();
+    if (raw == 'test' || raw == 'sandbox') return 'test';
+    return 'production';
   }
 }
 
@@ -74,33 +89,75 @@ class PaymentCheckoutService {
     Map<String, dynamic>? metadata,
     String? endpoint,
   }) async {
+    final isSubscriptionPurchase = endpoint == '/subscriptions/purchase';
     final res = await _api.post<Map<String, dynamic>>(
       endpoint ?? ApiEndpoints.paymentsInitiate,
-      body: {
-        'gateway': gateway,
-        'purpose': purpose,
-        'amount': amount,
-        'currency': currency,
-        if (planId != null) 'planId': planId,
-        if (metadata != null) 'metadata': metadata,
-      },
+      body: isSubscriptionPurchase
+          ? {
+              if (planId != null) 'planId': planId,
+              'gateway': gateway,
+            }
+          : {
+              'gateway': gateway,
+              'purpose': purpose,
+              'amount': amount,
+              'currency': currency,
+              if (planId != null) 'planId': planId,
+              if (metadata != null) 'metadata': metadata,
+            },
       parser: (data) => Map<String, dynamic>.from(data as Map),
     );
 
-    return res.fold(
-      Err.new,
-      (json) => Success(
+    return res.fold(Err.new, (json) {
+      final payment = json['payment'] is Map
+          ? Map<String, dynamic>.from(json['payment'] as Map)
+          : const <String, dynamic>{};
+      final checkout = json['checkout'] is Map
+          ? Map<String, dynamic>.from(json['checkout'] as Map)
+          : const <String, dynamic>{};
+      final gatewayPayload = json['gatewayPayload'] is Map
+          ? Map<String, dynamic>.from(json['gatewayPayload'] as Map)
+          : const <String, dynamic>{};
+
+      return Success(
         PaymentInitiateResult(
-          paymentId: json['paymentId']?.toString() ?? '',
-          gateway: json['gateway']?.toString() ?? gateway,
-          paymentUrl: json['paymentUrl']?.toString() ?? '',
-          orderId: json['orderId']?.toString() ?? '',
-          gatewayPayload: json['gatewayPayload'] is Map
-              ? Map<String, dynamic>.from(json['gatewayPayload'] as Map)
-              : const {},
+          paymentId:
+              json['paymentId']?.toString() ??
+              json['id']?.toString() ??
+              payment['id']?.toString() ??
+              payment['transactionId']?.toString() ??
+              '',
+          gateway:
+              json['gateway']?.toString() ??
+              checkout['gateway']?.toString() ??
+              gateway,
+          paymentUrl:
+              json['paymentUrl']?.toString() ??
+              json['checkoutUrl']?.toString() ??
+              checkout['url']?.toString() ??
+              '',
+          orderId:
+              json['orderId']?.toString() ??
+              payment['transactionId']?.toString() ??
+              payment['orderId']?.toString() ??
+              '',
+          gatewayPayload: {
+            ...json,
+            ...gatewayPayload,
+            if (checkout['accessKey'] != null)
+              'accessKey': checkout['accessKey'],
+            if (checkout['access_key'] != null)
+              'access_key': checkout['access_key'],
+            if (checkout['payMode'] != null) 'payMode': checkout['payMode'],
+            if (checkout['pay_mode'] != null)
+              'pay_mode': checkout['pay_mode'],
+            if (checkout['mode'] != null) 'mode': checkout['mode'],
+            if (checkout['environment'] != null)
+              'environment': checkout['environment'],
+          },
         ),
-      ),
-    );
+      );
+    });
   }
 
   /// Opens Easebuzz native checkout inside the app.
@@ -342,11 +399,16 @@ class PaymentCheckoutService {
         status == 'user_cancelled' ||
         status == 'payment_user_cancelled';
 
-    final message =
+    var message =
         map['error_Message']?.toString() ??
         map['error']?.toString() ??
-        nested['error']?.toString() ??
-        (cancelled
+        nested['error']?.toString();
+    
+    if (message == 'NA') {
+      message = null;
+    }
+
+    message ??= (cancelled
             ? 'Payment cancelled'
             : success
             ? 'Payment successful'

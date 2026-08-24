@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -50,7 +51,11 @@ class VerificationItem {
       value: json['value']?.toString() ?? '',
       status: json['status']?.toString() ?? 'missing',
       documentUrl:
-          json['documentUrl']?.toString() ?? json['document_url']?.toString(),
+          json['documentUrl']?.toString() ??
+          json['document_url']?.toString() ??
+          json['publicUrl']?.toString() ??
+          json['url']?.toString() ??
+          json['file']?.toString(),
       required: json['required'] == true,
     );
   }
@@ -383,20 +388,22 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
   }
 
   String? _validateDocument(String key, String value) {
+    final normalized = value.trim().toUpperCase().replaceAll(' ', '');
     final Map<String, Map<String, dynamic>> validators = {
-      'pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'business_pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'aadhaar': {'regex': RegExp(r'^[0-9\s]{12,14}$'), 'message': 'Invalid Aadhaar format (12 digits)'},
-      'gst': {'regex': RegExp(r'^[A-Z0-9]{15}$', caseSensitive: false), 'message': 'Invalid GST format (15 characters)'},
-      'udyam': {'regex': RegExp(r'^[A-Z0-9-]{10,25}$', caseSensitive: false), 'message': 'Invalid Udyam format'},
+      'pan': {'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'), 'message': 'Invalid PAN format (e.g. ABCDE1234F)'},
+      'pancard': {'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'), 'message': 'Invalid PAN format (e.g. ABCDE1234F)'},
+      'business_pan': {'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'), 'message': 'Invalid PAN format (e.g. ABCDE1234F)'},
+      'aadhaar': {'regex': RegExp(r'^\d{4}\s?\d{4}\s?\d{4}$'), 'message': 'Invalid Aadhaar format (12 digits)'},
+      'gst': {'regex': RegExp(r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$'), 'message': 'Invalid GSTIN format (e.g. 27ABCDE1234F1Z5)'},
+      'udyam': {'regex': RegExp(r'^UDYAM-[A-Z]{2}-[0-9]{2}-[0-9]{7}$'), 'message': 'Invalid Udyam number (e.g. UDYAM-MH-18-0123456)'},
       'driving': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
       'driving_licence': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
-      'incorporation': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Incorporation Number format'},
-      'company': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Company Registration format'},
+      'incorporation': {'regex': RegExp(r'^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$'), 'message': 'Invalid CIN format (e.g. U12345MH2020PTC123456)'},
+      'company': {'regex': RegExp(r'^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$'), 'message': 'Invalid CIN format (e.g. U12345MH2020PTC123456)'},
     };
     if (validators.containsKey(key)) {
       final RegExp regex = validators[key]!['regex'];
-      if (!regex.hasMatch(value)) {
+      if (!regex.hasMatch(normalized)) {
         return validators[key]!['message'];
       }
     }
@@ -405,7 +412,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
 
   Future<bool> _submitDocument(VerificationItem item, {String? explicitValue}) async {
     final controller = _getController(item.key, item.value);
-    final valueText = explicitValue ?? controller.text.trim();
+    final valueText = (explicitValue ?? controller.text).trim().toUpperCase();
 
     final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
     final isIdentityCard = item.key == 'identity' || _identityOptions.containsKey(item.key);
@@ -417,21 +424,25 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       return false;
     }
 
-    final path = _selectedFilePaths[item.key];
+    final validationError = _validateDocument(actualKey, valueText);
+    if (validationError != null) {
+      context.showSnack(validationError, isError: true);
+      return false;
+    }
 
-    if (path == null || path.isEmpty) {
+    final path = _selectedFilePaths[item.key];
+    final hasExistingDoc = item.documentUrl != null && item.documentUrl!.isNotEmpty;
+
+    if ((path == null || path.isEmpty) && !hasExistingDoc) {
       context.showSnack('Please select a document to upload', isError: true);
       return false;
     }
+    String? documentUrl = item.documentUrl;
 
     setState(() {
       _submittingItem = true;
       _submittingKey = item.key;
     });
-
-    bool isSuccess = false;
-    String? displayMsg;
-    String? documentUrl;
 
     if (path != null && path.isNotEmpty) {
       final uploadRes = await sl<FileUploadHelper>().upload(
@@ -472,8 +483,8 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit verification', isError: true);
       return false;
     }
-    isSuccess = true;
-    displayMsg = updateRes.valueOrNull;
+    bool isSuccess = true;
+    final displayMsg = updateRes.valueOrNull;
 
     if (!mounted) return false;
 
@@ -484,8 +495,8 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
     });
 
     if (isSuccess) {
-      final msg = (displayMsg != null && displayMsg!.trim().isNotEmpty)
-          ? displayMsg!.trim()
+      final msg = (displayMsg != null && displayMsg.trim().isNotEmpty)
+          ? displayMsg.trim()
           : '${item.label} submitted for verification';
       context.showSnack(msg);
       _selectedFilePaths.remove(item.key);
@@ -1424,20 +1435,62 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       },
     );
   }
-
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) context.showSnack('Could not open document', isError: true);
+  Future<void> _launchUrl(String rawUrl) async {
+    String url = rawUrl.trim();
+    if (url.isEmpty) {
+      if (mounted) context.showSnack('Document URL is empty', isError: true);
+      return;
     }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+      url = '$base${url.startsWith('/') ? '' : '/'}$url';
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      if (mounted) context.showSnack('Invalid document URL', isError: true);
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!launched) {
+        final fallback = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!fallback) {
+          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (e) {
+        if (mounted) context.showSnack('Could not open document', isError: true);
+      }
+    }
+  }
+
+  Future<void> _viewDocument(VerificationItem item) async {
+    final documentUrl = item.documentUrl?.trim();
+    final value = item.value.trim();
+
+    String? url = (documentUrl != null && documentUrl.isNotEmpty) ? documentUrl : null;
+    if (url == null && value.isNotEmpty && value != 'Not submitted' && value != 'Submitted for review') {
+      url = value;
+    }
+
+    if (url == null) {
+      if (mounted) context.showSnack('Document is not available to view', isError: true);
+      return;
+    }
+    await _launchUrl(url);
   }
 
   void _showDocumentBottomSheet(VerificationItem item, [IconData? icon]) {
     final controller = TextEditingController();
     if (item.value != 'Not submitted') controller.text = item.value;
     final keysPresent = _items.map((i) => i.key).toSet();
+    final hasExistingDoc = item.documentUrl != null && item.documentUrl!.isNotEmpty;
 
     showModalBottomSheet(
       context: context,
@@ -1452,10 +1505,18 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
             final isSubmitting = _submittingItem && _submittingKey == item.key;
             final chosenFileName = _selectedFileNames[item.key];
 
-            final submittedIdentityKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
+            final submittedIdentityKeys = _items.where((i) => !i.isMissing).expand((i) {
+              if (i.key == 'identity') return ['identity', 'aadhaar'];
+              if (i.key == 'pancard') return ['pancard', 'pan'];
+              return [i.key];
+            }).toList();
             
+            final currentItemKeys = [item.key];
+            if (item.key == 'identity') currentItemKeys.add('aadhaar');
+            if (item.key == 'pancard') currentItemKeys.add('pan');
+
             final availableIdentityOptions = Map.fromEntries(
-              _identityOptions.entries.where((e) => !submittedIdentityKeys.contains(e.key) || item.key == e.key)
+              _identityOptions.entries.where((e) => !submittedIdentityKeys.contains(e.key) || currentItemKeys.contains(e.key))
             );
             if (!availableIdentityOptions.containsKey(_selectedIdentityKey) && availableIdentityOptions.isNotEmpty) {
               _selectedIdentityKey = availableIdentityOptions.keys.first;
@@ -1540,11 +1601,12 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                         switch (actualKey) {
                           case 'pan':
                           case 'business_pan':
+                          case 'pancard':
                             maxLength = 10;
                             hintText = 'e.g. ABCDE1234F';
                             break;
                           case 'aadhaar':
-                            maxLength = 14;
+                            maxLength = 12;
                             keyboardType = TextInputType.number;
                             hintText = 'e.g. 1234 5678 9012';
                             break;
@@ -1553,15 +1615,22 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                             hintText = '15-character GSTIN';
                             break;
                           case 'udyam':
+                            maxLength = 25;
                             hintText = 'e.g. UDYAM-MH-18-0123456';
                             break;
                           case 'driving':
                           case 'driving_licence':
                             maxLength = 20;
+                            hintText = 'e.g. DL1420110012345';
+                            break;
+                          case 'passport':
+                            maxLength = 12;
+                            hintText = 'e.g. A1234567';
                             break;
                           case 'incorporation':
                           case 'company':
                             maxLength = 25;
+                            hintText = 'e.g. U12345MH2020PTC123456';
                             break;
                         }
 
@@ -1583,7 +1652,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                           : () async {
                               final result = await FilePicker.platform.pickFiles(
                                 type: FileType.custom,
-                                allowedExtensions: ['pdf'],
+                                allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
                               );
                               if (result != null && result.files.isNotEmpty) {
                                 final file = result.files.first;
@@ -1599,7 +1668,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                               }
                             },
                       icon: const Icon(Icons.upload_file_outlined),
-                      label: Text(chosenFileName ?? 'Choose pdf'),
+                      label: Text(chosenFileName ?? (hasExistingDoc ? 'Document previously uploaded (Click to change)' : 'Choose image or pdf')),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                         alignment: Alignment.centerLeft,
@@ -1629,7 +1698,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                                 }
 
                                 final path = _selectedFilePaths[item.key];
-                                if (path == null || path.isEmpty) {
+                                if ((path == null || path.isEmpty) && !hasExistingDoc) {
                                   context.showSnack('Please select a document to upload', isError: true);
                                   return;
                                 }
@@ -1741,7 +1810,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (item.documentUrl != null && item.documentUrl!.isNotEmpty) ...[
+                if (!item.isVerified && item.documentUrl != null && item.documentUrl!.isNotEmpty) ...[
                   InkWell(
                     onTap: () => _launchUrl(item.documentUrl!),
                     child: Padding(
@@ -1765,14 +1834,20 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                   AppSizes.hGapSm,
                 ],
                 InkWell(
-                  onTap: isSubmitting ? null : () => _showDocumentBottomSheet(item),
+                  onTap: isSubmitting
+                      ? null
+                      : item.isVerified
+                      ? () => _viewDocument(item)
+                      : () => _showDocumentBottomSheet(item),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          item.isPending || item.isVerified
+                          item.isVerified
+                              ? Icons.visibility_outlined
+                              : item.isPending
                               ? Icons.edit_outlined
                               : Icons.add_circle_outline,
                           size: 14,
@@ -1780,7 +1855,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                         ),
                         AppSizes.hGapXs,
                         Text(
-                          item.isPending || item.isVerified ? 'Change' : 'Add',
+                          item.isVerified ? 'View' : (item.isPending ? 'Change' : 'Add'),
                           style: context.text.labelSmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,

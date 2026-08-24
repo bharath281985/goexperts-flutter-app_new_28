@@ -918,18 +918,11 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<SkillCategory>.from(_categories)
+            final filtered = search.isEmpty
+                ? _categories
                 : _categories
                       .where((c) => c.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = a.id == _selectedCategoryId;
-                final bSel = b.id == _selectedCategoryId;
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1323,18 +1316,11 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _skillSearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<SkillOption>.from(_visibleSkills)
+            final filtered = search.isEmpty
+                ? _visibleSkills
                 : _visibleSkills
                       .where((s) => s.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = _selectedSkillIds.contains(a.id);
-                final bSel = _selectedSkillIds.contains(b.id);
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1784,14 +1770,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             }
             if (state.successMessage != null) {
               context.showSnack(state.successMessage!);
-              final role = state.user?.role;
-              final targetRoute = role == UserRole.client
-                  ? Routes.clientDashboard
-                  : role == UserRole.investor
+              final targetRoute =
+                  state.user?.redirectTo ??
+                  (isClient
+                      ? Routes.clientDashboard
+                      : isInvestor
                       ? Routes.investorDashboard
-                      : role == UserRole.founder
-                          ? Routes.founderDashboard
-                          : Routes.freelancerDashboard;
+                      : Routes.freelancerDashboard);
               context.go(targetRoute);
             }
           },
@@ -1989,7 +1974,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         controller: _location,
                         label: 'Location *',
                         hint: 'Select Location',
-                        country: _selectedCountry?.name,
                         validator: (v) =>
                             Validators.required(v, field: 'Location'),
                       ),
@@ -2122,7 +2106,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         controller: _location,
                         label: 'Location *',
                         hint: 'Select Location',
-                        country: _selectedCountry?.name,
                         validator: (v) =>
                             Validators.required(v, field: 'Location'),
                       ),
@@ -2206,7 +2189,6 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         controller: _location,
                         label: 'Location *',
                         hint: 'Select Location',
-                        country: _selectedCountry?.name,
                         validator: (v) =>
                             Validators.required(v, field: 'Location'),
                       ),

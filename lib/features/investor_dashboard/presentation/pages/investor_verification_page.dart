@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -50,7 +51,11 @@ class VerificationItem {
       value: json['value']?.toString() ?? '',
       status: json['status']?.toString() ?? 'missing',
       documentUrl:
-          json['documentUrl']?.toString() ?? json['document_url']?.toString(),
+          json['documentUrl']?.toString() ??
+          json['document_url']?.toString() ??
+          json['publicUrl']?.toString() ??
+          json['url']?.toString() ??
+          json['file']?.toString(),
       required: json['required'] == true,
     );
   }
@@ -185,7 +190,8 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                 final map = Map<String, dynamic>.from(e as Map);
                 final key = map['key']?.toString().toLowerCase() ?? '';
                 // Ensure proper labels if not provided by backend
-                if (_businessProofOptions.containsKey(key) && map['label'] == null) {
+                if (_businessProofOptions.containsKey(key) &&
+                    map['label'] == null) {
                   map['label'] = _businessProofOptions[key];
                 }
                 if (_identityOptions.containsKey(key) && map['label'] == null) {
@@ -195,14 +201,20 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
               })
               .where((item) => item.key != 'selfie' && item.key != 'address')
               .toList();
-              
+
           setState(() {
-            final presentBusinessKeys = _items.map((e) => e.key).where((k) => _businessProofOptions.containsKey(k)).toList();
+            final presentBusinessKeys = _items
+                .map((e) => e.key)
+                .where((k) => _businessProofOptions.containsKey(k))
+                .toList();
             if (presentBusinessKeys.isNotEmpty) {
               _selectedBusinessProofKey = presentBusinessKeys.first;
             }
 
-            final presentIdentityKeys = _items.map((e) => e.key).where((k) => _identityOptions.containsKey(k)).toList();
+            final presentIdentityKeys = _items
+                .map((e) => e.key)
+                .where((k) => _identityOptions.containsKey(k))
+                .toList();
             if (presentIdentityKeys.isNotEmpty) {
               _selectedIdentityKey = presentIdentityKeys.first;
             }
@@ -238,8 +250,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     });
 
     final keysPresent = _items.map((i) => i.key).toSet();
-    
-    final presentIdentityKeys = keysPresent.intersection(_identityOptions.keys.toSet());
+
+    final presentIdentityKeys = keysPresent.intersection(
+      _identityOptions.keys.toSet(),
+    );
     if (presentIdentityKeys.length < 2 && !keysPresent.contains('identity')) {
       _items.add(
         VerificationItem(
@@ -252,8 +266,11 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
       );
     }
 
-    final presentBusinessKeys = keysPresent.intersection(_businessProofOptions.keys.toSet());
-    if (presentBusinessKeys.length < 2 && !keysPresent.contains('business_proof')) {
+    final presentBusinessKeys = keysPresent.intersection(
+      _businessProofOptions.keys.toSet(),
+    );
+    if (presentBusinessKeys.length < 2 &&
+        !keysPresent.contains('business_proof')) {
       _items.add(
         VerificationItem(
           key: 'business_proof',
@@ -347,7 +364,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     });
 
     if (updateRes.isFailure) {
-      context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit phone number', isError: true);
+      context.showSnack(
+        updateRes.failureOrNull?.message ?? 'Failed to submit phone number',
+        isError: true,
+      );
       return false;
     }
 
@@ -361,55 +381,107 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
   }
 
   String? _validateDocument(String key, String value) {
+    final normalized = value.trim().toUpperCase().replaceAll(' ', '');
     final Map<String, Map<String, dynamic>> validators = {
-      'pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'business_pan': {'regex': RegExp(r'^[A-Z0-9]{10}$', caseSensitive: false), 'message': 'Invalid PAN format (10 characters)'},
-      'aadhaar': {'regex': RegExp(r'^[0-9\s]{12,14}$'), 'message': 'Invalid Aadhaar format (12 digits)'},
-      'gst': {'regex': RegExp(r'^[A-Z0-9]{15}$', caseSensitive: false), 'message': 'Invalid GST format (15 characters)'},
-      'udyam': {'regex': RegExp(r'^[A-Z0-9-]{10,25}$', caseSensitive: false), 'message': 'Invalid Udyam format'},
-      'driving': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
-      'driving_licence': {'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false), 'message': 'Invalid Driving Licence format'},
-      'incorporation': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Incorporation Number format'},
-      'company': {'regex': RegExp(r'^[A-Z0-9-\s]{5,25}$', caseSensitive: false), 'message': 'Invalid Company Registration format'},
+      'pan': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'pancard': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'business_pan': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'aadhaar': {
+        'regex': RegExp(r'^\d{4}\s?\d{4}\s?\d{4}$'),
+        'message': 'Invalid Aadhaar format (12 digits)',
+      },
+      'gst': {
+        'regex': RegExp(
+          r'^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$',
+        ),
+        'message': 'Invalid GSTIN format (e.g. 27ABCDE1234F1Z5)',
+      },
+      'udyam': {
+        'regex': RegExp(r'^UDYAM-[A-Z]{2}-[0-9]{2}-[0-9]{7}$'),
+        'message': 'Invalid Udyam number (e.g. UDYAM-MH-18-0123456)',
+      },
+      'driving': {
+        'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false),
+        'message': 'Invalid Driving Licence format',
+      },
+      'driving_licence': {
+        'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false),
+        'message': 'Invalid Driving Licence format',
+      },
+      'incorporation': {
+        'regex': RegExp(r'^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$'),
+        'message': 'Invalid CIN format (e.g. U12345MH2020PTC123456)',
+      },
+      'company': {
+        'regex': RegExp(r'^[LU][0-9]{5}[A-Z]{2}[0-9]{4}[A-Z]{3}[0-9]{6}$'),
+        'message': 'Invalid CIN format (e.g. U12345MH2020PTC123456)',
+      },
     };
     if (validators.containsKey(key)) {
       final RegExp regex = validators[key]!['regex'];
-      if (!regex.hasMatch(value)) {
+      if (!regex.hasMatch(normalized)) {
         return validators[key]!['message'];
       }
     }
     return null;
   }
 
-  Future<bool> _submitDocument(VerificationItem item, {String? explicitValue}) async {
+  Future<bool> _submitDocument(
+    VerificationItem item, {
+    String? explicitValue,
+  }) async {
     final controller = _getController(item.key, item.value);
-    final valueText = explicitValue ?? controller.text.trim();
+    final valueText = (explicitValue ?? controller.text).trim().toUpperCase();
 
-    final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
-    final isIdentityCard = item.key == 'identity' || _identityOptions.containsKey(item.key);
-    final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
-    final actualLabel = isBusinessCard ? (_businessProofOptions[actualKey] ?? item.label) : (isIdentityCard ? (_identityOptions[actualKey] ?? item.label) : item.label);
+    final isBusinessCard =
+        item.key == 'business_proof' ||
+        item.key == 'company' ||
+        _businessProofOptions.containsKey(item.key);
+    final isIdentityCard =
+        item.key == 'identity' || _identityOptions.containsKey(item.key);
+    final actualKey = isBusinessCard
+        ? _selectedBusinessProofKey
+        : (isIdentityCard ? _selectedIdentityKey : item.key);
+    final actualLabel = isBusinessCard
+        ? (_businessProofOptions[actualKey] ?? item.label)
+        : (isIdentityCard
+              ? (_identityOptions[actualKey] ?? item.label)
+              : item.label);
 
     if (valueText.isEmpty) {
       context.showSnack('Please enter $actualLabel Number', isError: true);
       return false;
     }
 
-    final path = _selectedFilePaths[item.key];
+    final validationError = _validateDocument(actualKey, valueText);
+    if (validationError != null) {
+      context.showSnack(validationError, isError: true);
+      return false;
+    }
 
-    if (path == null || path.isEmpty) {
+    final path = _selectedFilePaths[item.key];
+    final hasExistingDoc =
+        item.documentUrl != null && item.documentUrl!.isNotEmpty;
+
+    if ((path == null || path.isEmpty) && !hasExistingDoc) {
       context.showSnack('Please select a document to upload', isError: true);
       return false;
     }
+    String? documentUrl = item.documentUrl;
 
     setState(() {
       _submittingItem = true;
       _submittingKey = item.key;
     });
-
-    bool isSuccess = false;
-    String? displayMsg;
-    String? documentUrl;
 
     if (path != null && path.isNotEmpty) {
       final uploadRes = await sl<FileUploadHelper>().upload(
@@ -424,7 +496,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
           _submittingItem = false;
           _submittingKey = null;
         });
-        context.showSnack('File upload failed: ${uploadRes.failureOrNull?.message}', isError: true);
+        context.showSnack(
+          'File upload failed: ${uploadRes.failureOrNull?.message}',
+          isError: true,
+        );
         return false;
       }
 
@@ -447,11 +522,14 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
         _submittingItem = false;
         _submittingKey = null;
       });
-      context.showSnack(updateRes.failureOrNull?.message ?? 'Failed to submit verification', isError: true);
+      context.showSnack(
+        updateRes.failureOrNull?.message ?? 'Failed to submit verification',
+        isError: true,
+      );
       return false;
     }
-    isSuccess = true;
-    displayMsg = updateRes.valueOrNull;
+    bool isSuccess = true;
+    final displayMsg = updateRes.valueOrNull;
 
     if (!mounted) return false;
 
@@ -462,8 +540,8 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     });
 
     if (isSuccess) {
-      final msg = (displayMsg != null && displayMsg!.trim().isNotEmpty)
-          ? displayMsg!.trim()
+      final msg = (displayMsg != null && displayMsg.trim().isNotEmpty)
+          ? displayMsg.trim()
           : '${item.label} submitted for verification';
       context.showSnack(msg);
       _selectedFilePaths.remove(item.key);
@@ -714,10 +792,7 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
               spacing: gap,
               runSpacing: AppSizes.md,
               children: displayItems.map((item) {
-                return SizedBox(
-                  width: cardWidth,
-                  child: _buildItemCard(item),
-                );
+                return SizedBox(width: cardWidth, child: _buildItemCard(item));
               }).toList(),
             );
           },
@@ -740,20 +815,25 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
 
     final basicItems = _items.where((i) => basicKeys.contains(i.key)).toList();
     final identityItems =
-        _items.where((i) => identityKeys.contains(i.key) || i.key == 'pancard').toList()..sort(
-          (a, b) => identityKeys
-              .indexOf(a.key)
-              .compareTo(identityKeys.indexOf(b.key)),
-        );
-    
+        _items
+            .where((i) => identityKeys.contains(i.key) || i.key == 'pancard')
+            .toList()
+          ..sort(
+            (a, b) => identityKeys
+                .indexOf(a.key)
+                .compareTo(identityKeys.indexOf(b.key)),
+          );
+
     while (identityItems.length < 2) {
-      identityItems.add( VerificationItem(
-        key: 'identity',
-        label: 'Additional Identity Document',
-        value: '',
-        status: 'missing',
-        required: true,
-      ));
+      identityItems.add(
+        VerificationItem(
+          key: 'identity',
+          label: 'Additional Identity Document',
+          value: '',
+          status: 'missing',
+          required: true,
+        ),
+      );
     }
 
     final businessItems =
@@ -762,15 +842,17 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
               .indexOf(a.key)
               .compareTo(businessKeys.indexOf(b.key)),
         );
-    
+
     while (businessItems.length < 2) {
-      businessItems.add( VerificationItem(
-        key: 'business_proof',
-        label: 'Additional Business Document',
-        value: '',
-        status: 'missing',
-        required: true,
-      ));
+      businessItems.add(
+        VerificationItem(
+          key: 'business_proof',
+          label: 'Additional Business Document',
+          value: '',
+          status: 'missing',
+          required: true,
+        ),
+      );
     }
 
     return AppScaffold(
@@ -824,7 +906,8 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                         context: context,
                         sectionTitle: 'Identity Documents',
                         title: 'Personal Documents',
-                        subtitle: 'Upload any 2 of the following personal identity proofs',
+                        subtitle:
+                            'Upload any 2 of the following personal identity proofs',
                         icon: Icons.person_outline,
                         items: identityItems,
                         requiredCount: 2,
@@ -834,7 +917,8 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                         context: context,
                         sectionTitle: 'Business Documents',
                         title: 'Business Documents',
-                        subtitle: 'Upload any 2 of the following business registration proofs',
+                        subtitle:
+                            'Upload any 2 of the following business registration proofs',
                         icon: Icons.domain_outlined,
                         items: businessItems,
                         requiredCount: 2,
@@ -1277,7 +1361,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizes.radiusLg)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizes.radiusLg),
+        ),
       ),
       builder: (context) {
         return StatefulBuilder(
@@ -1299,7 +1385,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                       children: [
                         Text(
                           'Update Phone Number',
-                          style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                          style: context.text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         IconButton(
                           onPressed: () => Navigator.pop(context),
@@ -1372,7 +1460,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                             ? const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.white),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.white,
+                                ),
                               )
                             : const Icon(Icons.check_circle_outline, size: 18),
                         label: const Text('Submit'),
@@ -1394,18 +1485,71 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
     );
   }
 
-
-  Future<void> _launchUrl(String url) async {
-    final uri = Uri.tryParse(url);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) context.showSnack('Could not open document', isError: true);
+  Future<void> _launchUrl(String rawUrl) async {
+    String url = rawUrl.trim();
+    if (url.isEmpty) {
+      if (mounted) context.showSnack('Document URL is empty', isError: true);
+      return;
     }
+
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+      url = '$base${url.startsWith('/') ? '' : '/'}$url';
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      if (mounted) context.showSnack('Invalid document URL', isError: true);
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        final fallback = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!fallback) {
+          await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+        }
+      }
+    } catch (_) {
+      try {
+        await launchUrl(uri, mode: LaunchMode.inAppBrowserView);
+      } catch (e) {
+        if (mounted)
+          context.showSnack('Could not open document', isError: true);
+      }
+    }
+  }
+
+  Future<void> _viewDocument(VerificationItem item) async {
+    final documentUrl = item.documentUrl?.trim();
+    final value = item.value.trim();
+
+    String? url = (documentUrl != null && documentUrl.isNotEmpty)
+        ? documentUrl
+        : null;
+    if (url == null &&
+        value.isNotEmpty &&
+        value != 'Not submitted' &&
+        value != 'Submitted for review') {
+      url = value;
+    }
+
+    if (url == null) {
+      if (mounted)
+        context.showSnack('Document is not available to view', isError: true);
+      return;
+    }
+    await _launchUrl(url);
   }
 
   void _showDocumentBottomSheet(VerificationItem item, [IconData? icon]) {
     final controller = TextEditingController();
+    String? numberError;
+    String? fileError;
     if (item.value != 'Not submitted') controller.text = item.value;
     final keysPresent = _items.map((i) => i.key).toSet();
 
@@ -1423,28 +1567,67 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
           builder: (context, setSheetState) {
             final isSubmitting = _submittingItem && _submittingKey == item.key;
             final chosenFileName = _selectedFileNames[item.key];
+            final hasExistingDoc =
+                item.documentUrl != null && item.documentUrl!.isNotEmpty;
 
-            final submittedIdentityKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
-            
+            final submittedIdentityKeys = _items
+                .where((i) => !i.isMissing)
+                .expand((i) {
+                  if (i.key == 'identity') return ['identity', 'aadhaar'];
+                  if (i.key == 'pancard') return ['pancard', 'pan'];
+                  return [i.key];
+                })
+                .toList();
+
+            final currentItemKeys = [item.key];
+            if (item.key == 'identity') currentItemKeys.add('aadhaar');
+            if (item.key == 'pancard') currentItemKeys.add('pan');
+
             final availableIdentityOptions = Map.fromEntries(
-              _identityOptions.entries.where((e) => !submittedIdentityKeys.contains(e.key) || item.key == e.key)
+              _identityOptions.entries.where(
+                (e) =>
+                    !submittedIdentityKeys.contains(e.key) ||
+                    currentItemKeys.contains(e.key),
+              ),
             );
-            if (!availableIdentityOptions.containsKey(_selectedIdentityKey) && availableIdentityOptions.isNotEmpty) {
+            if (!availableIdentityOptions.containsKey(_selectedIdentityKey) &&
+                availableIdentityOptions.isNotEmpty) {
               _selectedIdentityKey = availableIdentityOptions.keys.first;
             }
 
-            final submittedBusinessKeys = _items.where((i) => !i.isMissing).map((i) => i.key).toList();
+            final submittedBusinessKeys = _items
+                .where((i) => !i.isMissing)
+                .map((i) => i.key)
+                .toList();
             final availableBusinessOptions = Map.fromEntries(
-              _businessProofOptions.entries.where((e) => !submittedBusinessKeys.contains(e.key) || item.key == e.key)
+              _businessProofOptions.entries.where(
+                (e) =>
+                    !submittedBusinessKeys.contains(e.key) || item.key == e.key,
+              ),
             );
-            if (!availableBusinessOptions.containsKey(_selectedBusinessProofKey) && availableBusinessOptions.isNotEmpty) {
+            if (!availableBusinessOptions.containsKey(
+                  _selectedBusinessProofKey,
+                ) &&
+                availableBusinessOptions.isNotEmpty) {
               _selectedBusinessProofKey = availableBusinessOptions.keys.first;
             }
 
-            final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
-            final isIdentityCard = item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key);
-            final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
-            final actualLabel = isBusinessCard ? (_businessProofOptions[actualKey] ?? item.label) : (isIdentityCard ? (_identityOptions[actualKey] ?? item.label) : item.label);
+            final isBusinessCard =
+                item.key == 'business_proof' ||
+                item.key == 'company' ||
+                _businessProofOptions.containsKey(item.key);
+            final isIdentityCard =
+                item.key == 'identity' ||
+                item.key == 'pancard' ||
+                _identityOptions.containsKey(item.key);
+            final actualKey = isBusinessCard
+                ? _selectedBusinessProofKey
+                : (isIdentityCard ? _selectedIdentityKey : item.key);
+            final actualLabel = isBusinessCard
+                ? (_businessProofOptions[actualKey] ?? item.label)
+                : (isIdentityCard
+                      ? (_identityOptions[actualKey] ?? item.label)
+                      : item.label);
 
             return Padding(
               padding: EdgeInsets.only(
@@ -1474,7 +1657,12 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                       ],
                     ),
                     AppSizes.vGapMd,
-                    if (item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key) || item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key)) ...[
+                    if (item.key == 'business_proof' ||
+                        item.key == 'company' ||
+                        _businessProofOptions.containsKey(item.key) ||
+                        item.key == 'identity' ||
+                        item.key == 'pancard' ||
+                        _identityOptions.containsKey(item.key)) ...[
                       if (isIdentityCard)
                         DropdownButtonFormField<String>(
                           value: _selectedIdentityKey,
@@ -1483,10 +1671,16 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                             prefixIcon: Icon(Icons.description_outlined),
                           ),
                           items: availableIdentityOptions.entries
-                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e.key,
+                                  child: Text(e.value),
+                                ),
+                              )
                               .toList(),
                           onChanged: (val) {
-                            if (val != null) setSheetState(() => _selectedIdentityKey = val);
+                            if (val != null)
+                              setSheetState(() => _selectedIdentityKey = val);
                           },
                         ),
                       if (isBusinessCard)
@@ -1497,10 +1691,18 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                             prefixIcon: Icon(Icons.description_outlined),
                           ),
                           items: availableBusinessOptions.entries
-                              .map((e) => DropdownMenuItem(value: e.key, child: Text(e.value)))
+                              .map(
+                                (e) => DropdownMenuItem(
+                                  value: e.key,
+                                  child: Text(e.value),
+                                ),
+                              )
                               .toList(),
                           onChanged: (val) {
-                            if (val != null) setSheetState(() => _selectedBusinessProofKey = val);
+                            if (val != null)
+                              setSheetState(
+                                () => _selectedBusinessProofKey = val,
+                              );
                           },
                         ),
                       AppSizes.vGapMd,
@@ -1514,11 +1716,12 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                         switch (actualKey) {
                           case 'pan':
                           case 'business_pan':
+                          case 'pancard':
                             maxLength = 10;
                             hintText = 'e.g. ABCDE1234F';
                             break;
                           case 'aadhaar':
-                            maxLength = 14;
+                            maxLength = 12;
                             keyboardType = TextInputType.number;
                             hintText = 'e.g. 1234 5678 9012';
                             break;
@@ -1527,15 +1730,22 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                             hintText = '15-character GSTIN';
                             break;
                           case 'udyam':
+                            maxLength = 25;
                             hintText = 'e.g. UDYAM-MH-18-0123456';
                             break;
                           case 'driving':
                           case 'driving_licence':
                             maxLength = 20;
+                            hintText = 'e.g. DL1420110012345';
+                            break;
+                          case 'passport':
+                            maxLength = 12;
+                            hintText = 'e.g. A1234567';
                             break;
                           case 'incorporation':
                           case 'company':
                             maxLength = 25;
+                            hintText = 'e.g. U12345MH2020PTC123456';
                             break;
                         }
 
@@ -1547,9 +1757,23 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                           keyboardType: keyboardType,
                           maxLength: maxLength,
                           textInputAction: TextInputAction.done,
+                          onChanged: (_) {
+                            if (numberError != null) {
+                              setSheetState(() => numberError = null);
+                            }
+                          },
                         );
-                      }
+                      },
                     ),
+                    if (numberError != null) ...[
+                      AppSizes.vGapSm,
+                      Text(
+                        numberError!,
+                        style: context.text.bodySmall?.copyWith(
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
                     AppSizes.vGapMd,
                     OutlinedButton.icon(
                       onPressed: isSubmitting
@@ -1567,24 +1791,54 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                                   );
                               if (result != null && result.files.isNotEmpty) {
                                 final file = result.files.first;
+                                final path = file.path;
+                                if (path == null || path.isEmpty) {
+                                  setSheetState(() {
+                                    fileError =
+                                        'Unable to access the selected file';
+                                  });
+                                  return;
+                                }
+                                if (file.size > 5 * 1024 * 1024) {
+                                  setSheetState(() {
+                                    fileError =
+                                        'File size must be 5 MB or less';
+                                  });
+                                  return;
+                                }
                                 setSheetState(() {
-                                  _selectedFilePaths[item.key] = file.path!;
+                                  fileError = null;
+                                  _selectedFilePaths[item.key] = path;
                                   _selectedFileNames[item.key] = file.name;
                                 });
                                 // Also update parent state
                                 setState(() {
-                                  _selectedFilePaths[item.key] = file.path!;
+                                  _selectedFilePaths[item.key] = path;
                                   _selectedFileNames[item.key] = file.name;
                                 });
                               }
                             },
                       icon: const Icon(Icons.upload_file_outlined),
-                      label: Text(chosenFileName ?? 'Choose image or pdf'),
+                      label: Text(
+                        chosenFileName ??
+                            (hasExistingDoc
+                                ? 'Document previously uploaded (Click to change)'
+                                : 'Choose image or pdf'),
+                      ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(48),
                         alignment: Alignment.centerLeft,
                       ),
                     ),
+                    if (fileError != null) ...[
+                      AppSizes.vGapSm,
+                      Text(
+                        fileError!,
+                        style: context.text.bodySmall?.copyWith(
+                          color: AppColors.danger,
+                        ),
+                      ),
+                    ],
                     AppSizes.vGapLg,
                     SizedBox(
                       width: double.infinity,
@@ -1592,25 +1846,47 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                         onPressed: isSubmitting
                             ? null
                             : () async {
-                                final isBusinessCard = item.key == 'business_proof' || item.key == 'company' || _businessProofOptions.containsKey(item.key);
-                                final isIdentityCard = item.key == 'identity' || item.key == 'pancard' || _identityOptions.containsKey(item.key);
-                                final actualKey = isBusinessCard ? _selectedBusinessProofKey : (isIdentityCard ? _selectedIdentityKey : item.key);
-                                
+                                final isBusinessCard =
+                                    item.key == 'business_proof' ||
+                                    item.key == 'company' ||
+                                    _businessProofOptions.containsKey(item.key);
+                                final isIdentityCard =
+                                    item.key == 'identity' ||
+                                    item.key == 'pancard' ||
+                                    _identityOptions.containsKey(item.key);
+                                final actualKey = isBusinessCard
+                                    ? _selectedBusinessProofKey
+                                    : (isIdentityCard
+                                          ? _selectedIdentityKey
+                                          : item.key);
+
                                 final valueText = controller.text.trim();
                                 if (valueText.isEmpty) {
-                                  context.showSnack('Please enter document number', isError: true);
+                                  setSheetState(() {
+                                    numberError =
+                                        'Please enter $actualLabel Number';
+                                  });
                                   return;
                                 }
 
-                                final validationError = _validateDocument(actualKey, valueText);
+                                final validationError = _validateDocument(
+                                  actualKey,
+                                  valueText,
+                                );
                                 if (validationError != null) {
-                                  context.showSnack(validationError, isError: true);
+                                  setSheetState(() {
+                                    numberError = validationError;
+                                  });
                                   return;
                                 }
 
                                 final path = _selectedFilePaths[item.key];
-                                if (path == null || path.isEmpty) {
-                                  context.showSnack('Please select a document to upload', isError: true);
+                                if ((path == null || path.isEmpty) &&
+                                    !hasExistingDoc) {
+                                  setSheetState(() {
+                                    fileError =
+                                        'Please select a document to upload';
+                                  });
                                   return;
                                 }
 
@@ -1619,7 +1895,10 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                                   _submittingKey = item.key;
                                 });
                                 // Call parent method
-                                final success = await _submitDocument(item, explicitValue: valueText);
+                                final success = await _submitDocument(
+                                  item,
+                                  explicitValue: valueText,
+                                );
                                 if (mounted) {
                                   setSheetState(() {
                                     _submittingItem = false;
@@ -1722,7 +2001,8 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (item.documentUrl != null &&
+                if (!item.isVerified &&
+                    item.documentUrl != null &&
                     item.documentUrl!.isNotEmpty) ...[
                   InkWell(
                     onTap: () => _launchUrl(item.documentUrl!),
@@ -1754,7 +2034,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                   AppSizes.hGapSm,
                 ],
                 InkWell(
-                  onTap: () => _showDocumentBottomSheet(item),
+                  onTap: item.isVerified
+                      ? () => _viewDocument(item)
+                      : () => _showDocumentBottomSheet(item),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 4,
@@ -1764,7 +2046,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          item.isPending || item.isVerified
+                          item.isVerified
+                              ? Icons.visibility_outlined
+                              : item.isPending
                               ? Icons.edit_outlined
                               : Icons.add_circle_outline,
                           size: 14,
@@ -1772,7 +2056,9 @@ class _InvestorVerificationPageState extends State<InvestorVerificationPage> {
                         ),
                         AppSizes.hGapXs,
                         Text(
-                          item.isPending || item.isVerified ? 'Change' : 'Add',
+                          item.isVerified
+                              ? 'View'
+                              : (item.isPending ? 'Change' : 'Add'),
                           style: context.text.labelSmall?.copyWith(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,

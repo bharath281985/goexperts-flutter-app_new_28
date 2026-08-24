@@ -20,75 +20,15 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   Future<UserRole?> _role([UserRole? override]) async =>
       override ?? await _tokenRoleHelper?.resolve();
 
-  String _plansPath(UserRole? role) {
-    switch (role) {
-      case UserRole.client:
-        return '/client/subscriptions/plans';
-      case UserRole.investor:
-        return '/investor/subscriptions/plans';
-      case UserRole.founder:
-        return ApiEndpoints.founderSubscriptionsPlans;
-      case UserRole.freelancer:
-      default:
-        return ApiEndpoints.freelancerSubscriptionPlans;
-    }
-  }
+  String _plansPath(UserRole? role) => '/subscriptions/plans';
 
-  String _currentPath(UserRole? role) {
-    switch (role) {
-      case UserRole.client:
-        return '/client/subscriptions/current';
-      case UserRole.investor:
-        return '/investor/subscriptions/current';
-      case UserRole.founder:
-        return ApiEndpoints.founderSubscriptionsCurrent;
-      case UserRole.freelancer:
-      default:
-        return ApiEndpoints.subscriptionCurrent;
-    }
-  }
+  String _currentPath(UserRole? role) => '/subscriptions/current';
 
-  String _upgradePath(UserRole? role) {
-    switch (role) {
-      case UserRole.client:
-        return '/client/subscriptions/upgrade';
-      case UserRole.investor:
-        return '/investor/subscriptions/purchase';
-      case UserRole.founder:
-        return '/founder/subscriptions/purchase';
-      case UserRole.freelancer:
-      default:
-        return ApiEndpoints.freelancerSubscriptionUpgrade;
-    }
-  }
+  String _upgradePath(UserRole? role) => '/subscriptions/purchase';
 
-  String _renewPath(UserRole? role) {
-    switch (role) {
-      case UserRole.client:
-        return '/client/subscriptions/renew';
-      case UserRole.investor:
-        return '/investor/subscriptions/renew';
-      case UserRole.founder:
-        return '/founder/subscriptions/renew';
-      case UserRole.freelancer:
-      default:
-        return ApiEndpoints.freelancerSubscriptionRenew;
-    }
-  }
+  String _renewPath(UserRole? role) => '/subscriptions/renew';
 
-  String _cancelPath(UserRole? role) {
-    switch (role) {
-      case UserRole.client:
-        return '/client/subscriptions/cancel';
-      case UserRole.investor:
-        return '/investor/subscriptions/cancel';
-      case UserRole.founder:
-        return '/founder/subscriptions/cancel';
-      case UserRole.freelancer:
-      default:
-        return ApiEndpoints.freelancerSubscriptionCancel;
-    }
-  }
+  String _cancelPath(UserRole? role) => '/subscriptions/cancel';
 
   @override
   Future<Result<List<SubscriptionPlan>>> getPlans() async {
@@ -266,16 +206,15 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
   }
 
   static SubscriptionPlan _fromJson(Map<String, dynamic> json) {
-    final monthly =
-        (json['priceMonthly'] as num?)?.toDouble() ??
+    final duration = json['duration']?.toString().toLowerCase().trim() ?? '';
+    final rawAmount = (json['priceMonthly'] as num?)?.toDouble() ??
         (json['monthlyPrice'] as num?)?.toDouble() ??
         (json['price'] as num?)?.toDouble() ??
         (json['amount'] as num?)?.toDouble() ??
         0;
-    final yearly =
-        (json['priceYearly'] as num?)?.toDouble() ??
-        (json['yearlyPrice'] as num?)?.toDouble() ??
-        (monthly * 10);
+
+    final monthly = duration == 'yearly' ? rawAmount / 12 : rawAmount;
+    final yearly = duration == 'yearly' ? rawAmount : rawAmount * 12;
 
     return SubscriptionPlan(
       id: json['id']?.toString() ?? '',

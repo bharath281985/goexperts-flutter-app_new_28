@@ -3,7 +3,7 @@ class AppErrorMessages {
   AppErrorMessages._();
 
   static String forStatus(int? status, {String? serverMessage}) {
-    if (serverMessage != null && serverMessage.isNotEmpty) {
+    if (serverMessage != null && serverMessage.isNotEmpty && serverMessage != 'NA') {
       return serverMessage;
     }
     switch (status) {

@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
+import '../../../../app/router/route_names.dart';
+import '../bloc/auth_bloc.dart';
+import '../utils/signup_progress_store.dart';
+import '../../../subscriptions/presentation/pages/subscription_selection_page.dart';
 
 /// Final completion view showing role signup summary & dashboard CTA
 class SignupSuccessView extends StatelessWidget {
@@ -107,21 +113,71 @@ class SignupSuccessView extends StatelessWidget {
               // Dashboard CTA Button
               SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: onGoToDashboard,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                child: Builder(
+                  builder: (context) {
+                    final next = GoRouterState.of(context).uri.queryParameters['next'];
+                    final hasNext = next != null && next.isNotEmpty;
+
+                    return ElevatedButton(
+                      onPressed: () async {
+                        await SignupProgressStore.clear();
+                        if (context.mounted) {
+                          context.read<AuthBloc>().add(const AuthCheckRequested());
+                          if (hasNext) {
+                            context.go(next);
+                          } else {
+                            onGoToDashboard();
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        hasNext ? 'Continue' : 'Go to Dashboard',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Premium Plans Button
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () async {
+                    // Navigate to dynamic subscription plans page
+                   
+                    if (context.mounted) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const SubscriptionSelectionPage(isOnboarding: true),
+                        ),
+                      );
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    side: const BorderSide(color: AppColors.primary, width: 1.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: const Text(
-                    'Go to Dashboard',
+                    'View Premium Plans',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),

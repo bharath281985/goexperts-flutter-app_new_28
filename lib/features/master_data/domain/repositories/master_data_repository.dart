@@ -32,6 +32,7 @@ abstract class MasterDataRepository {
   Future<Result<List<String>>> getHiringBudgetRanges();
   Future<Result<List<String>>> getInvestorTypes();
   Future<Result<List<String>>> getInvestorStages();
+  Future<Result<List<String>>> getAccreditedStatuses();
   Future<Result<List<String>>> getStartupStages();
   Future<Result<List<String>>> getStartupRoles();
   Future<Result<List<String>>> getCities();

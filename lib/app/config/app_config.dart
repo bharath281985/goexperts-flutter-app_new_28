@@ -18,26 +18,26 @@ class AppConfig {
   /// Set to `true` to use in-memory mock data instead of live APIs.
   static const bool useMockData = false;
 
-  static const String baseUrlDev = "https://apiai.goexperts.in/api/v1/mobile";
+  static const String baseUrlDev = "http://apiai.goexperts.in/api/v1/mobile";
 
   // 'https://mobileapi.goexperts.in/api/v1/mobile';
   static const String baseUrlStaging =
-      "https://apiai.goexperts.in/api/v1/mobile";
+      "http://apiai.goexperts.in/api/v1/mobile";
 
   // 'https://mobileapi.goexperts.in/api/v1/mobile';
-  static const String baseUrlProd = "https://apiai.goexperts.in/api/v1/mobile";
+  static const String baseUrlProd = "http://apiai.goexperts.in/api/v1/mobile";
   // 'https://mobileapi.goexperts.in/api/v1/mobile';
 
   /// Public catalog APIs (categories, skills) use the same mobile API host.
   @Deprecated('Use AppConfig.baseUrl — catalog lives on mobileapi')
   static const String publicCatalogBaseUrl =
-      "https://apiai.goexperts.in/api/v1/mobile";
+      "http://apiai.goexperts.in/api/v1/mobile";
   // 'https://mobileapi.goexperts.in/api/v1/mobile';
 
-  static const String publicBaseUrl = "https://apiai.goexperts.in/api/public";
+  static const String publicBaseUrl = "http://apiai.goexperts.in/api/public";
   static const String mobilePublicBaseUrl =
-      "https://apiai.goexperts.in/api/mobile/public";
-  static const String authBaseUrl = "https://apiai.goexperts.in/api";
+      "http://apiai.goexperts.in/api/mobile/public";
+  static const String authBaseUrl = "http://apiai.goexperts.in/api";
 
   static String get baseUrl {
     switch (flavor) {

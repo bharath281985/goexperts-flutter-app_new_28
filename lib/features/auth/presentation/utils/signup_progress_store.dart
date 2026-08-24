@@ -1,5 +1,3 @@
-import '../../../../app/dependency_injection/service_locator.dart';
-import '../../../../core/storage/local_storage.dart';
 import '../../../../core/utils/enums.dart';
 
 class SignupProgress {
@@ -21,29 +19,11 @@ class SignupProgress {
 class SignupProgressStore {
   SignupProgressStore._();
 
-  static const _key = 'signup_flow_progress';
-
   static SignupProgress? read() {
-    final json = sl<LocalStorage>().getJson(_key);
-    if (json == null) return null;
-    final roleName = json['role']?.toString();
-    final role = roleName == null || roleName.isEmpty
-        ? null
-        : UserRole.fromString(roleName);
-    final step = json['step'];
-    if (role == null || step is! int) return null;
-    return SignupProgress(
-      role: role,
-      step: step,
-      verifiedEmail: json['verifiedEmail']?.toString(),
-      registeredEmail: json['registeredEmail']?.toString(),
-      fields: json['fields'] is Map
-          ? Map<String, dynamic>.from(json['fields'] as Map)
-          : const {},
-    );
+    return null;
   }
 
-  static bool hasProgress() => read() != null;
+  static bool hasProgress() => false;
 
   static Future<void> save({
     required UserRole role,
@@ -52,18 +32,10 @@ class SignupProgressStore {
     String? registeredEmail,
     Map<String, dynamic> fields = const {},
   }) {
-    return sl<LocalStorage>().setJson(_key, {
-      'role': role.name,
-      'step': step,
-      if (verifiedEmail != null && verifiedEmail.trim().isNotEmpty)
-        'verifiedEmail': verifiedEmail.trim(),
-      if (registeredEmail != null && registeredEmail.trim().isNotEmpty)
-        'registeredEmail': registeredEmail.trim(),
-      'fields': fields,
-    });
+    return Future.value();
   }
 
   static Future<void> clear() {
-    return sl<LocalStorage>().remove(_key);
+    return Future.value();
   }
 }

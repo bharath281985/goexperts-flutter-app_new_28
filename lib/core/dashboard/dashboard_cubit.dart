@@ -528,7 +528,7 @@ class DashboardCubit extends Cubit<DashboardState> {
                 (summaryData['unreadNotifications'] as num?)?.toInt() ?? 0,
             unreadMessagesCount:
                 (summaryData['unreadMessages'] as num?)?.toInt() ?? 0,
-            dashboardData: summaryData as Map<String, dynamic>,
+            dashboardData: data,
           );
           print("================ DEBUG DASHBOARD ==================");
           print("dashboardData keys: ${next.dashboardData.keys}");

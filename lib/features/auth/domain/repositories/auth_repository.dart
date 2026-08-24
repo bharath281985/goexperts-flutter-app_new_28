@@ -15,6 +15,7 @@ abstract class AuthRepository {
     String? countryCode,
     required String password,
     required UserRole role,
+    bool isSocialLogin = false,
     Map<String, dynamic> signupData = const {},
   });
   Future<Result<AppUser>> socialLogin(
@@ -58,5 +59,5 @@ abstract class AuthRepository {
 
   Future<Result<AppUser>> currentUser();
   Future<void> updateCachedUser(AppUser user);
-  Future<void> logout();
+  Future<void> logout({bool remote = true});
 }

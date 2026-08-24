@@ -1,4 +1,7 @@
-part of 'auth_bloc.dart';
+import 'package:equatable/equatable.dart';
+
+import '../../../../core/utils/enums.dart';
+import '../../domain/entities/app_user.dart';
 
 sealed class AuthEvent extends Equatable {
   const AuthEvent();

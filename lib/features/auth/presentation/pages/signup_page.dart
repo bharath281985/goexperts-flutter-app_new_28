@@ -5,7 +5,6 @@ import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/enums.dart';
 import '../bloc/auth_bloc.dart';
 import '../widgets/choose_role_view.dart';
-import '../utils/signup_progress_store.dart';
 import 'freelancer_signup_flow.dart';
 import 'client_signup_flow.dart';
 import 'investor_signup_flow.dart';
@@ -30,8 +29,6 @@ class _SignupPageState extends State<SignupPage> {
     super.initState();
     if (widget.initialRole != null && widget.initialRole!.isNotEmpty) {
       _selectedRole = UserRole.fromString(widget.initialRole!);
-    } else {
-      _selectedRole = SignupProgressStore.read()?.role;
     }
   }
 
@@ -43,8 +40,6 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   void _onBackToRoleSelection() async {
-    await SignupProgressStore.clear();
-    if (!mounted) return;
     setState(() {
       _selectedRole = null;
     });
@@ -60,12 +55,13 @@ class _SignupPageState extends State<SignupPage> {
         ?.signupData['role']
         ?.toString();
     final routeRole = widget.initialRole;
-    final progress = SignupProgressStore.read();
+    final authState = context.watch<AuthBloc>().state;
     final activeRole =
         _selectedRole ??
         (routeRole == null || routeRole.isEmpty
             ? null
             : UserRole.fromString(routeRole)) ??
+        authState.user?.role ??
         (draftRole == null || draftRole.isEmpty
             ? null
             : UserRole.fromString(draftRole));
@@ -83,46 +79,40 @@ class _SignupPageState extends State<SignupPage> {
       );
     }
 
+    final verifiedEmailFromAuth = authState.pendingSignup?.email.trim() ??
+        authState.user?.email.trim();
+    final effectiveVerifiedEmail =
+        (verifiedEmailFromAuth != null && verifiedEmailFromAuth.isNotEmpty)
+            ? verifiedEmailFromAuth
+            : null;
+
+    final isSocialUser = authState.user?.isSocialLogin ?? false;
+    final resolvedStep = widget.initialStep ?? (isSocialUser ? 2 : 1);
+
     switch (activeRole) {
       case UserRole.client:
         return ClientSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.client
-              ? progress!.step
-              : (widget.initialStep ?? 1),
-          verifiedEmail: progress?.role == UserRole.client
-              ? progress!.verifiedEmail
-              : null,
+          initialStep: resolvedStep,
+          verifiedEmail: effectiveVerifiedEmail,
         );
       case UserRole.investor:
         return InvestorSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.investor
-              ? progress!.step
-              : (widget.initialStep ?? 1),
-          verifiedEmail: progress?.role == UserRole.investor
-              ? progress!.verifiedEmail
-              : null,
+          initialStep: resolvedStep,
+          verifiedEmail: effectiveVerifiedEmail,
         );
       case UserRole.founder:
         return FounderSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.founder
-              ? progress!.step
-              : (widget.initialStep ?? 1),
-          verifiedEmail: progress?.role == UserRole.founder
-              ? progress!.verifiedEmail
-              : null,
+          initialStep: resolvedStep,
+          verifiedEmail: effectiveVerifiedEmail,
         );
       case UserRole.freelancer:
         return FreelancerSignupFlow(
           onBackToRoleSelection: _onBackToRoleSelection,
-          initialStep: progress?.role == UserRole.freelancer
-              ? progress!.step
-              : (widget.initialStep ?? 1),
-          verifiedEmail: progress?.role == UserRole.freelancer
-              ? progress!.verifiedEmail
-              : null,
+          initialStep: resolvedStep,
+          verifiedEmail: effectiveVerifiedEmail,
         );
     }
   }

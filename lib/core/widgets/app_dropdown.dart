@@ -34,6 +34,7 @@ class AppDropdown<T> extends StatelessWidget {
     final generatedHint = normalizedLabel == null || normalizedLabel.isEmpty
         ? hint
         : selectHintForLabel(normalizedLabel);
+    final uniqueItems = items.toSet().toList(growable: false);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +57,7 @@ class AppDropdown<T> extends StatelessWidget {
                 : null,
           ),
           items: [
-            if (value != null && !items.contains(value))
+            if (value != null && !uniqueItems.contains(value))
               DropdownMenuItem<T>(
                 value: value,
                 child: Text(
@@ -64,7 +65,7 @@ class AppDropdown<T> extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-            ...items.map(
+            ...uniqueItems.map(
               (e) => DropdownMenuItem<T>(
                 value: e,
                 child: Text(
