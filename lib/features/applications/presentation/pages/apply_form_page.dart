@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_file_upload.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../../../proposals/domain/repositories/proposal_repository.dart';
@@ -48,7 +49,7 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
   final _coverLetter = TextEditingController();
   final _budget = TextEditingController();
   final _customTimeline = TextEditingController();
-  String _timeline = '1-2 weeks';
+  String? _timeline;
   String? _resume;
   String? _resumePath;
   String? _portfolio;
@@ -148,6 +149,10 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_isInvestment && (_timeline == null || _timeline!.isEmpty)) {
+      context.showSnack('Please select your timeline', isError: true);
+      return;
+    }
     setState(() => _submitting = true);
     if (_isProject && _isEdit) {
       final result = await sl<ProposalRepository>().updateProposal(
@@ -239,6 +244,9 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
         : 'Expected budget (₹)';
     return Scaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: Text(_isEdit ? 'Edit Proposal' : 'Apply · ${widget.type}'),
         actions: [
           if (!_isEdit)
@@ -342,11 +350,11 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
                 AppSizes.vGapLg,
                 AppDropdown<String>(
                   label: 'Expected timeline',
-                  hint: 'Select expected timeline',
+                  hint: 'Select your timeline',
                   value: _timeline,
                   items: _timelines,
                   itemLabel: (e) => e,
-                  onChanged: (v) => setState(() => _timeline = v ?? _timeline),
+                  onChanged: (v) => setState(() => _timeline = v),
                 ),
                 if (_hasCustomTimeline) ...[
                   AppSizes.vGapMd,

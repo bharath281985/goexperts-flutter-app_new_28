@@ -97,7 +97,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     if (!mounted) return;
     res.fold((f) => context.showSnack(f.message, isError: true), (_) {
       context.showSnack('Project deleted');
-      context.pop();
+      Navigator.of(context).maybePop(true);
     });
   }
 
@@ -193,7 +193,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
             return Scaffold(
               appBar: AppBar(
                 leading: IconTapWidget(
-                  onTap: () => Navigator.of(context).maybePop(),
+                  onTap: () => Navigator.of(context).maybePop(true),
                 ),
                 title: const Text('Project Details'),
                 actions: [

@@ -61,10 +61,16 @@ class _ProjectsListViewState extends State<ProjectsListView> {
   }
 
   Future<void> _openEditProject(BuildContext context, String projectId) async {
-    final changed = await context.push<bool>(
+    await context.push<bool>(
       '${Routes.clientCreateProject}?projectId=${Uri.encodeComponent(projectId)}',
     );
-    if (!context.mounted || changed != true) return;
+    if (!context.mounted) return;
+    context.read<ListBloc<Project>>().add(const ListRefreshed());
+  }
+
+  Future<void> _openProjectDetails(BuildContext context, String projectId) async {
+    await context.push<bool>('${Routes.projectDetails}/$projectId');
+    if (!context.mounted) return;
     context.read<ListBloc<Project>>().add(const ListRefreshed());
   }
 
@@ -156,16 +162,16 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       filterSections: _filterSections,
       itemBuilder: (context, project, _) => AppProjectCard(
         project: project,
-        onTap: () => context.push('${Routes.projectDetails}/${project.id}'),
+        onTap: () => _openProjectDetails(context, project.id),
         onSave: () => context.showSnack(
           project.isSaved ? 'Removed from saved' : 'Saved project',
         ),
-        onApply: () => context.push('${Routes.projectDetails}/${project.id}'),
+        onApply: () => _openProjectDetails(context, project.id),
         onEdit: project.isOwner
             ? () => _openEditProject(context, project.id)
             : null,
         onUpdateStatus: project.isOwner
-            ? () => context.push('${Routes.projectDetails}/${project.id}')
+            ? () => _openProjectDetails(context, project.id)
             : null,
       ),
     );
@@ -183,10 +189,10 @@ class _CreateProjectHeader extends StatelessWidget {
         alignment: Alignment.centerRight,
         child: FilledButton.icon(
           onPressed: () async {
-            final changed = await context.push<bool>(
+            await context.push<bool>(
               Routes.clientCreateProject,
             );
-            if (!context.mounted || changed != true) return;
+            if (!context.mounted) return;
             context.read<ListBloc<Project>>().add(const ListRefreshed());
           },
           icon: const Icon(Icons.add_rounded),
