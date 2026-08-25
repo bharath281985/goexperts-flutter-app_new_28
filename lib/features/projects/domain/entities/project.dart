@@ -301,13 +301,15 @@ class Project extends Equatable {
     }
 
     final budgetRangeObj = json['budgetRange'];
-    final rawBudgetId = (json['budgetRangeId'] ??
+    final rawBudgetId = (json['projectHireBudgetId'] ??
+            json['budgetRangeId'] ??
             (budgetRangeObj is Map ? budgetRangeObj['id'] : null))
         ?.toString()
         .trim();
     final rawBudgetName = (budgetRangeObj is Map
-            ? budgetRangeObj['name']?.toString() ??
-                budgetRangeObj['label']?.toString()
+            ? budgetRangeObj['label']?.toString() ??
+                budgetRangeObj['name']?.toString() ??
+                budgetRangeObj['value']?.toString()
             : budgetRangeObj?.toString()) ??
         '';
 
@@ -325,10 +327,12 @@ class Project extends Equatable {
     }
 
     final startDate = json['startDate'] != null
-        ? DateTime.tryParse(json['startDate'].toString())
-        : null;
+        ? DateTime.tryParse(json['startDate'].toString())?.toLocal()
+        : (json['timeline'] != null
+            ? DateTime.tryParse(json['timeline'].toString())?.toLocal()
+            : null);
     final endDate = json['endDate'] != null
-        ? DateTime.tryParse(json['endDate'].toString())
+        ? DateTime.tryParse(json['endDate'].toString())?.toLocal()
         : null;
 
     return Project(

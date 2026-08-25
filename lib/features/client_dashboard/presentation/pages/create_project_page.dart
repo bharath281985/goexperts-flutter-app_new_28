@@ -274,8 +274,22 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
             _budgetRanges.any((b) => b.id == rawBudgetName)) {
           _budgetRangeId = rawBudgetName;
         } else if (rawBudgetName.isNotEmpty) {
+          final cleanBudgetName = rawBudgetName
+              .replaceAll('₹', '')
+              .replaceAll(',', '')
+              .replaceAll(' ', '')
+              .toLowerCase();
           final match = _budgetRanges.firstWhere(
-            (b) => b.name.toLowerCase() == rawBudgetName.toLowerCase(),
+            (b) {
+              final cleanOptName = b.name
+                  .replaceAll('₹', '')
+                  .replaceAll(',', '')
+                  .replaceAll(' ', '')
+                  .toLowerCase();
+              return cleanOptName == cleanBudgetName ||
+                  b.id == rawBudgetId ||
+                  b.name.toLowerCase() == rawBudgetName.toLowerCase();
+            },
             orElse: () => const MasterOption(id: '', name: ''),
           );
           if (match.id.isNotEmpty) _budgetRangeId = match.id;
@@ -603,9 +617,11 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       'industryId': _industryId,
       'workModeId': _workModeId,
       'experienceLevelId': _experienceLevelId,
+      'projectHireBudgetId': _budgetRangeId,
       'budgetRangeId': _budgetRangeId,
       'skillIds': _selectedSkillIds.toList(),
-      if (_startDate != null) 'startDate': _startDate!.toUtc().toIso8601String(),
+      if (_startDate != null)
+        'startDate': _startDate!.toUtc().toIso8601String(),
       if (_endDate != null) 'endDate': _endDate!.toUtc().toIso8601String(),
       'attachments': [..._existingAttachmentUrls, ...attachmentUrls],
     };
@@ -660,8 +676,8 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
             final filtered = query.isEmpty
                 ? _visibleSkills
                 : _visibleSkills
-                    .where((s) => s.name.toLowerCase().contains(query))
-                    .toList();
+                      .where((s) => s.name.toLowerCase().contains(query))
+                      .toList();
 
             return DraggableScrollableSheet(
               expand: false,
@@ -754,9 +770,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: Text(_isEdit ? 'Edit Project' : 'Post a Project'),
       ),
       body: _loadingMasterData || _loadingExisting
@@ -837,10 +851,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           AppTextField(
             controller: _desc,
             label: 'Description',
-            hint: 'Describe your project requirements, goals, and deliverables…',
+            hint:
+                'Describe your project requirements, goals, and deliverables…',
             maxLines: 6,
-            validator: (v) =>
-                Validators.minLength(v, 20, field: 'Description'),
+            validator: (v) => Validators.minLength(v, 20, field: 'Description'),
           ),
         ],
       ),
@@ -858,13 +872,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               ? _industryId
               : null,
           items: _industries.map((i) => i.id).toList(),
-          itemLabel: (id) =>
-              _industries
-                  .firstWhere(
-                    (i) => i.id == id,
-                    orElse: () => const MasterOption(id: '', name: ''),
-                  )
-                  .name,
+          itemLabel: (id) => _industries
+              .firstWhere(
+                (i) => i.id == id,
+                orElse: () => const MasterOption(id: '', name: ''),
+              )
+              .name,
           onChanged: (id) {
             setState(() {
               _industryId = id;
@@ -886,7 +899,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           AppSizes.vGapXs,
           Text(
             _industryError!,
-            style: context.text.bodySmall?.copyWith(color: context.colors.error),
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.error,
+            ),
           ),
         ],
         AppSizes.vGapLg,
@@ -942,7 +957,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           AppSizes.vGapXs,
           Text(
             _skillsError!,
-            style: context.text.bodySmall?.copyWith(color: context.colors.error),
+            style: context.text.bodySmall?.copyWith(
+              color: context.colors.error,
+            ),
           ),
         ],
         if (_selectedSkillIds.isNotEmpty) ...[
@@ -983,13 +1000,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                 ? _workModeId
                 : null,
             items: _workModes.map((w) => w.id).toList(),
-            itemLabel: (id) =>
-                _workModes
-                    .firstWhere(
-                      (w) => w.id == id,
-                      orElse: () => const MasterOption(id: '', name: ''),
-                    )
-                    .name,
+            itemLabel: (id) => _workModes
+                .firstWhere(
+                  (w) => w.id == id,
+                  orElse: () => const MasterOption(id: '', name: ''),
+                )
+                .name,
             onChanged: (id) => setState(() {
               _workModeId = id;
               _workModeName = _workModes
@@ -1018,13 +1034,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                 ? _experienceLevelId
                 : null,
             items: _experienceLevels.map((e) => e.id).toList(),
-            itemLabel: (id) =>
-                _experienceLevels
-                    .firstWhere(
-                      (e) => e.id == id,
-                      orElse: () => const MasterOption(id: '', name: ''),
-                    )
-                    .name,
+            itemLabel: (id) => _experienceLevels
+                .firstWhere(
+                  (e) => e.id == id,
+                  orElse: () => const MasterOption(id: '', name: ''),
+                )
+                .name,
             onChanged: (id) => setState(() {
               _experienceLevelId = id;
               _experienceLevelName = _experienceLevels
@@ -1053,13 +1068,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                 ? _budgetRangeId
                 : null,
             items: _budgetRanges.map((b) => b.id).toList(),
-            itemLabel: (id) =>
-                _budgetRanges
-                    .firstWhere(
-                      (b) => b.id == id,
-                      orElse: () => const MasterOption(id: '', name: ''),
-                    )
-                    .name,
+            itemLabel: (id) => _budgetRanges
+                .firstWhere(
+                  (b) => b.id == id,
+                  orElse: () => const MasterOption(id: '', name: ''),
+                )
+                .name,
             onChanged: (id) => setState(() {
               _budgetRangeId = id;
               _budgetRangeName = _budgetRanges
@@ -1166,8 +1180,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         ],
         if (_attachments.isNotEmpty) ...[
           AppSizes.vGapMd,
-          for (final attachment in _attachments)
-            _attachmentTile(attachment),
+          for (final attachment in _attachments) _attachmentTile(attachment),
         ],
       ],
     );
@@ -1188,10 +1201,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           'Level',
           _experienceLevelName.isEmpty ? '—' : _experienceLevelName,
         ),
-        _row(
-          'Budget',
-          _budgetRangeName.isEmpty ? '—' : _budgetRangeName,
-        ),
+        _row('Budget', _budgetRangeName.isEmpty ? '—' : _budgetRangeName),
         _row(
           'Start Date',
           _startDate == null
