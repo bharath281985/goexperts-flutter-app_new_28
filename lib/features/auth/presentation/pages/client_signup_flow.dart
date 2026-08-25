@@ -590,6 +590,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               selectedItems: _selectedIndustries,
               availableOptions: _industries,
               minSelection: 1,
+              maxSelection: 1,
               onChanged: (val) {
                 setState(() => _selectedIndustries = val);
                 _persistCurrentProgress();
