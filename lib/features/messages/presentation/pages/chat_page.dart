@@ -43,6 +43,28 @@ class _ChatView extends StatefulWidget {
 class _ChatViewState extends State<_ChatView> {
   final _controller = TextEditingController();
   final _scroll = ScrollController();
+  Conversation? _conversation;
+
+  @override
+  void initState() {
+    super.initState();
+    _conversation = widget.conversation;
+    _resolvePeerDetails();
+  }
+
+  Future<void> _resolvePeerDetails() async {
+    if (_conversation != null &&
+        _conversation!.name.isNotEmpty &&
+        _conversation!.name.toLowerCase() != 'chat') {
+      return;
+    }
+    final convId = context.read<ChatCubit>().conversationId;
+    final cached = await sl<MessageRepository>().getCachedConversations();
+    final match = cached.where((c) => c.id == convId).firstOrNull;
+    if (match != null && mounted) {
+      setState(() => _conversation = match);
+    }
+  }
 
   @override
   void dispose() {
@@ -72,7 +94,7 @@ class _ChatViewState extends State<_ChatView> {
   }
 
   String _profileRoute(BuildContext context) {
-    final conversation = widget.conversation;
+    final conversation = _conversation ?? widget.conversation;
     final profileId = conversation?.participantId.isNotEmpty == true
         ? conversation!.participantId
         : context.read<ChatCubit>().conversationId;
@@ -173,7 +195,16 @@ class _ChatViewState extends State<_ChatView> {
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.conversation?.name ?? 'Chat';
+    final convo = _conversation ?? widget.conversation;
+    final rawName = convo?.name;
+    final name = (rawName != null && rawName.isNotEmpty && rawName.toLowerCase() != 'chat')
+        ? rawName
+        : (widget.conversation?.name.isNotEmpty == true && widget.conversation!.name.toLowerCase() != 'chat'
+            ? widget.conversation!.name
+            : 'Chat');
+    final avatarUrl = convo?.avatarUrl ?? widget.conversation?.avatarUrl;
+    final isOnline = convo?.isOnline ?? widget.conversation?.isOnline ?? true;
+
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
@@ -181,10 +212,10 @@ class _ChatViewState extends State<_ChatView> {
           children: [
             AppAvatar(
               name: name,
-              imageUrl: widget.conversation?.avatarUrl,
+              imageUrl: avatarUrl,
               size: 38,
               showOnline: true,
-              isOnline: widget.conversation?.isOnline ?? true,
+              isOnline: isOnline,
             ),
             AppSizes.hGapSm,
             Expanded(
@@ -199,9 +230,7 @@ class _ChatViewState extends State<_ChatView> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    (widget.conversation?.isOnline ?? true)
-                        ? 'Online'
-                        : 'Offline',
+                    isOnline ? 'Online' : 'Offline',
                     style: context.text.labelSmall?.copyWith(
                       color: AppColors.success,
                     ),

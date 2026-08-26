@@ -11,11 +11,17 @@ import '../../features/projects/presentation/pages/projects_list_view.dart';
 import '../../features/proposals/presentation/pages/proposals_list_view.dart';
 import '../../features/startup_ideas/presentation/pages/startups_list_view.dart';
 import '../widgets/app_scaffold.dart';
+import '../widgets/icon_widget.dart';
 
 /// Thin standalone pages that wrap the embeddable catalog views with an
 /// app bar, used when reached from the drawer / deep links (not as tabs).
-AppScaffold _wrap(String title, Widget body) => AppScaffold(
-  appBar: AppBar(title: Text(title)),
+AppScaffold _wrap(BuildContext context, String title, Widget body) => AppScaffold(
+  appBar: AppBar(
+    leading: IconTapWidget(
+      onTap: () => Navigator.of(context).maybePop(),
+    ),
+    title: Text(title),
+  ),
   body: body,
 );
 
@@ -23,76 +29,77 @@ class ProjectsStandalonePage extends StatelessWidget {
   const ProjectsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Projects', const ProjectsListView());
+      _wrap(context, 'Projects', const ProjectsListView());
 }
 
 class ProposalsStandalonePage extends StatelessWidget {
   const ProposalsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Proposals', const ProposalsListView());
+      _wrap(context, 'Proposals', const ProposalsListView());
 }
 
 class FreelancersStandalonePage extends StatelessWidget {
   const FreelancersStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Freelancers', const FreelancersListView());
+      _wrap(context, 'Freelancers', const FreelancersListView());
 }
 
 class StartupsStandalonePage extends StatelessWidget {
   const StartupsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Startups', const StartupsListView());
+      _wrap(context, 'Startups', const StartupsListView());
 }
 
 class InvestorsStandalonePage extends StatelessWidget {
   const InvestorsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Investors', const InvestorsListView());
+      _wrap(context, 'Investors', const InvestorsListView());
 }
 
 class DealsStandalonePage extends StatelessWidget {
   const DealsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Deal Rooms', const DealsListView());
+      _wrap(context, 'Deal Rooms', const DealsListView());
 }
 
 class PortfolioStandalonePage extends StatelessWidget {
   const PortfolioStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Portfolio', const PortfolioListView());
+      _wrap(context, 'Portfolio', const PortfolioListView());
 }
 
 class MeetingsStandalonePage extends StatelessWidget {
   const MeetingsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Meetings', const MeetingsListView());
+      _wrap(context, 'Meetings', const MeetingsListView());
 }
 
 class MessagesStandalonePage extends StatelessWidget {
   const MessagesStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('Messages', const ConversationsListView());
+      _wrap(context, 'Messages', const ConversationsListView());
 }
 
 class MyStartupStandalonePage extends StatelessWidget {
   const MyStartupStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap('My Startup', const MyStartupView());
+      _wrap(context, 'My Startup', const MyStartupView());
 }
 
 class FundingStandalonePage extends StatelessWidget {
   const FundingStandalonePage({super.key});
   @override
-  Widget build(BuildContext context) => _wrap('Funding', const MyStartupView());
+  Widget build(BuildContext context) =>
+      _wrap(context, 'Funding', const MyStartupView());
 }
 
 class ProfileStandalonePage extends StatelessWidget {

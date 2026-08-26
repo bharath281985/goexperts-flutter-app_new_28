@@ -16,6 +16,7 @@ import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_status_chip.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../messages/domain/repositories/message_repository.dart';
 import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 
@@ -143,7 +144,12 @@ class _FounderProposalDetailsPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Bid Details')),
+      appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
+        title: const Text('Bid Details'),
+      ),
       body: _buildBody(),
       bottomNavigationBar: _buildBottomActions(),
     );

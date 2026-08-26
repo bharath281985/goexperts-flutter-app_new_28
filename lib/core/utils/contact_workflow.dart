@@ -54,7 +54,10 @@ class ContactWorkflow {
 
   static void chat(BuildContext context, String peerId, [String? name]) {
     // Navigate to chat detail screen
-    context.push('${Routes.chat}/$peerId');
+    final nameParam = (name != null && name.isNotEmpty)
+        ? '?name=${Uri.encodeComponent(name)}'
+        : '';
+    context.push('${Routes.chat}/$peerId$nameParam');
   }
 
   static void bookConsultation(BuildContext context, String name) {

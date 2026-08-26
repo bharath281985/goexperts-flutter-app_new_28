@@ -17,23 +17,35 @@ import '../bloc/client_proposal_bloc.dart';
 
 /// Client-side action buttons for reviewing a freelancer proposal.
 class ClientProposalActionBar extends StatelessWidget {
-  const ClientProposalActionBar({super.key, required this.proposal});
+  const ClientProposalActionBar({
+    super.key,
+    required this.proposal,
+    this.padding,
+  });
 
   final Proposal proposal;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => ClientProposalBloc(sl<ClientProposalRepository>()),
-      child: _ClientProposalActionBarBody(proposal: proposal),
+      child: _ClientProposalActionBarBody(
+        proposal: proposal,
+        padding: padding,
+      ),
     );
   }
 }
 
 class _ClientProposalActionBarBody extends StatelessWidget {
-  const _ClientProposalActionBarBody({required this.proposal});
+  const _ClientProposalActionBarBody({
+    required this.proposal,
+    this.padding,
+  });
 
   final Proposal proposal;
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +61,7 @@ class _ClientProposalActionBarBody extends StatelessWidget {
           context.showSnack(state.successMessage!);
           if (state.successMessage == 'Proposal accepted' && context.mounted) {
             context.push(
-              '${Routes.contractForm}?proposalId=${proposal.id}&projectId=${proposal.projectId}&freelancerName=${Uri.encodeComponent(proposal.freelancerName ?? '')}',
+              '${Routes.contractForm}?proposalId=${proposal.id}&projectId=${proposal.projectId}&freelancerName=${Uri.encodeComponent(proposal.freelancerName)}',
             );
           }
         }
@@ -60,7 +72,7 @@ class _ClientProposalActionBarBody extends StatelessWidget {
 
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(AppSizes.lg),
+            padding: padding ?? EdgeInsets.zero,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -142,7 +154,6 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                       ),
                       AppSizes.hGapMd,
                       Expanded(
-                        flex: 2,
                         child: AppPrimaryButton(
                           label: 'Accept',
                           icon: Icons.check_circle_outline_rounded,
@@ -222,7 +233,9 @@ class _ClientProposalActionBarBody extends StatelessWidget {
         context.push(Routes.messages);
         return;
       }
-      context.push('${Routes.chat}/$convId');
+      final nameParam = Uri.encodeComponent(proposal.freelancerName);
+      final avatarParam = Uri.encodeComponent(proposal.freelancerAvatar ?? '');
+      context.push('${Routes.chat}/$convId?name=$nameParam&avatarUrl=$avatarParam');
     });
   }
 }

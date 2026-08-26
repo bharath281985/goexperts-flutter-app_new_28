@@ -17,6 +17,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_status_chip.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../client_dashboard/domain/repositories/client_proposal_repository.dart';
 import '../../../client_dashboard/presentation/widgets/client_proposal_action_bar.dart';
@@ -110,7 +111,18 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
         context.push(Routes.messages);
         return;
       }
-      context.push('${Routes.chat}/$convId');
+      final isClient =
+          context.read<AuthBloc>().state.user?.role == UserRole.client;
+      final targetName = isClient
+          ? (p.freelancerName.isNotEmpty ? p.freelancerName : 'Freelancer')
+          : (p.clientName?.isNotEmpty == true ? p.clientName! : 'Client');
+      final nameParam = Uri.encodeComponent(targetName);
+      final avatarParam = Uri.encodeComponent(
+        isClient ? (p.freelancerAvatar ?? '') : '',
+      );
+      context.push(
+        '${Routes.chat}/$convId?name=$nameParam&avatarUrl=$avatarParam',
+      );
     });
   }
 
@@ -121,6 +133,9 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconTapWidget(
+          onTap: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('Proposal Details'),
         actions: [
           if (!isClient) ...[
@@ -160,10 +175,8 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
       body: FutureBuilder(
         future: _future,
         builder: (context, snapshot) {
-          if (_future == null ||
-              snapshot.connectionState == ConnectionState.waiting ||
-              _busy) {
-            return const AppLoadingShimmer(itemCount: 4, height: 110);
+          if (_busy || snapshot.connectionState == ConnectionState.waiting) {
+            return const AppLoadingShimmer(itemCount: 4, height: 120);
           }
           final proposal = snapshot.data?.valueOrNull as Proposal?;
           if (proposal == null) return const AppErrorState();
@@ -176,7 +189,15 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           final proposal = snapshot.data?.valueOrNull as Proposal?;
           if (proposal == null) return const SizedBox.shrink();
           if (isClient) {
-            return ClientProposalActionBar(proposal: proposal);
+            return ClientProposalActionBar(
+              proposal: proposal,
+              padding: const EdgeInsets.fromLTRB(
+                AppSizes.lg,
+                AppSizes.md,
+                AppSizes.lg,
+                AppSizes.lg,
+              ),
+            );
           }
           return _freelancerActions(context, proposal);
         },

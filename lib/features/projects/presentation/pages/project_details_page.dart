@@ -171,7 +171,13 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         context.push(Routes.messages);
         return;
       }
-      context.push('${Routes.chat}/$convId');
+      final nameParam = Uri.encodeComponent(
+        project.clientName.isNotEmpty ? project.clientName : 'Client',
+      );
+      final avatarParam = Uri.encodeComponent(project.clientAvatar ?? '');
+      context.push(
+        '${Routes.chat}/$convId?name=$nameParam&avatarUrl=$avatarParam',
+      );
     });
   }
 
@@ -257,7 +263,6 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                                   ),
                                   AppSizes.hGapMd,
                                   Expanded(
-                                    flex: 2,
                                     child: AppPrimaryButton(
                                       label: 'Update Status',
                                       icon: Icons.flag_outlined,
@@ -278,7 +283,6 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                                   ),
                                   AppSizes.hGapMd,
                                   Expanded(
-                                    flex: 2,
                                     child: AppPrimaryButton(
                                       label: project.isApplied
                                           ? 'Applied'

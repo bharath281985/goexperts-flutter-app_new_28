@@ -244,10 +244,8 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
         : 'Expected budget (₹)';
     return Scaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
-        title: Text(_isEdit ? 'Edit Proposal' : 'Apply · ${widget.type}'),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: Text(_isEdit ? 'Edit Proposal' : 'Apply ${widget.type}'),
         actions: [
           if (!_isEdit)
             TextButton(
@@ -342,7 +340,7 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
               AppTextField(
                 controller: _budget,
                 label: amountLabel,
-                hint: '250000',
+                hint: 'Enter amount',
                 keyboardType: TextInputType.number,
                 prefixIcon: Icons.currency_rupee_rounded,
               ),

@@ -279,19 +279,16 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               .replaceAll(',', '')
               .replaceAll(' ', '')
               .toLowerCase();
-          final match = _budgetRanges.firstWhere(
-            (b) {
-              final cleanOptName = b.name
-                  .replaceAll('₹', '')
-                  .replaceAll(',', '')
-                  .replaceAll(' ', '')
-                  .toLowerCase();
-              return cleanOptName == cleanBudgetName ||
-                  b.id == rawBudgetId ||
-                  b.name.toLowerCase() == rawBudgetName.toLowerCase();
-            },
-            orElse: () => const MasterOption(id: '', name: ''),
-          );
+          final match = _budgetRanges.firstWhere((b) {
+            final cleanOptName = b.name
+                .replaceAll('₹', '')
+                .replaceAll(',', '')
+                .replaceAll(' ', '')
+                .toLowerCase();
+            return cleanOptName == cleanBudgetName ||
+                b.id == rawBudgetId ||
+                b.name.toLowerCase() == rawBudgetName.toLowerCase();
+          }, orElse: () => const MasterOption(id: '', name: ''));
           if (match.id.isNotEmpty) _budgetRangeId = match.id;
         }
         _budgetRangeName = _budgetRanges
@@ -649,7 +646,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     );
     if (!mounted) return;
     setState(() => _publishing = false);
-    res.fold((f) => context.showSnack(f.message), (_) {
+    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
       context.showSnack('Project published successfully!');
       Navigator.of(context).maybePop(true);
     });
