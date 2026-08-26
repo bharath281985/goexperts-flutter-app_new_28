@@ -15,6 +15,7 @@ class AppDropdown<T> extends StatelessWidget {
     this.onChanged,
     this.validator,
     this.prefixIcon,
+    this.prefixWidget,
     this.onTap,
   });
 
@@ -26,6 +27,7 @@ class AppDropdown<T> extends StatelessWidget {
   final ValueChanged<T?>? onChanged;
   final String? Function(T?)? validator;
   final IconData? prefixIcon;
+  final Widget? prefixWidget;
   final VoidCallback? onTap;
 
   @override
@@ -50,10 +52,18 @@ class AppDropdown<T> extends StatelessWidget {
           validator: validator,
           onTap: onTap,
           decoration: InputDecoration(
-            hintText: generatedHint == null ? null : context.tr(generatedHint),
+            hintText: hint ?? generatedHint,
             hintStyle: context.theme.inputDecorationTheme.hintStyle,
-            prefixIcon: prefixIcon != null
-                ? Icon(prefixIcon, size: AppSizes.iconMd)
+            prefixIcon: prefixWidget != null
+                ? Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 4),
+                    child: prefixWidget,
+                  )
+                : prefixIcon != null
+                    ? Icon(prefixIcon, size: AppSizes.iconMd)
+                    : null,
+            prefixIconConstraints: prefixWidget != null
+                ? const BoxConstraints(minWidth: 40, minHeight: 24)
                 : null,
           ),
           items: [

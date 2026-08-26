@@ -250,7 +250,7 @@ class _SearchableMultiPick extends StatelessWidget {
         TextField(
           onChanged: onSearchChanged,
           decoration: InputDecoration(
-            hintText: context.tr(hint),
+              hintText: hint ,
             prefixIcon: const Icon(Icons.search_rounded),
             isDense: true,
             border: OutlineInputBorder(

@@ -1010,36 +1010,28 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     AppTextField(
                       controller: _email,
                       label: 'Email',
-                      hint: 'Enter Email',
+                      hint: 'Enter Your Email',
                       readOnly: true,
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _fullName,
                       label: 'Full Name *',
-                      hint: 'Enter Full Name',
+                      hint: 'Enter Your Full Name',
                       validator: (v) =>
-                          Validators.minLength(v, 2, field: 'Full Name'),
+                          Validators.minLength(v, 2, field: 'Enter Your Full Name'),
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _title,
                       label: 'Professional Title *',
-                      hint: 'Enter Professional Title',
+                      hint: 'e.g., Full-Stack Developer | UI/UX Designer',
                     
                     ),
                     AppSizes.vGapLg,
 
                     // Location
                     const _SectionLabel('Location'),
-                    AppSizes.vGapSm,
-                    AppLocationField(
-                      controller: _city,
-                      country: _selectedCountry?.name,
-                      label: 'City / Location *',
-                      hint: 'Select City / Location',
-                    
-                    ),
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
                       label: 'Country *',
@@ -1059,6 +1051,15 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                         }
                       },
                     ),
+                    AppSizes.vGapSm,
+                    AppLocationField(
+                      controller: _city,
+                      country: _selectedCountry?.name,
+                      label: 'City / Location *',
+                      hint: 'Select City / Location',
+                    
+                    ),
+                   
                     AppSizes.vGapMd,
                     // AppDropdown<MasterOption>(
                     //   label: 'State *',

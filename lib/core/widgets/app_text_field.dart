@@ -86,7 +86,9 @@ class _AppTextFieldState extends State<AppTextField> {
           readOnly: widget.readOnly,
           onTap: widget.onTap,
           decoration: InputDecoration(
-            hintText: generatedHint == null ? null : context.tr(generatedHint),
+            hintText: widget.hint == null
+                ? context.tr(generatedHint ?? "")
+                : context.tr(widget.hint!),
             prefixIcon: widget.prefixIcon != null
                 ? Icon(widget.prefixIcon, size: AppSizes.iconMd)
                 : null,

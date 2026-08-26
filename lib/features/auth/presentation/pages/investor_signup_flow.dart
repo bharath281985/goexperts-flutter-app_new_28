@@ -44,6 +44,8 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _cityController = TextEditingController();
+  double? _detectedLatitude;
+  double? _detectedLongitude;
   bool _termsAccepted = false;
   bool _emailVerified = false;
   String? _registeredEmail;
@@ -149,6 +151,9 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       _selectedStage = null;
     }
     _preferredIndustries = _stringList(fields['preferredSectors']);
+    _detectedLatitude = double.tryParse(fields['latitude']?.toString() ?? '');
+    _detectedLongitude =
+        double.tryParse(fields['longitude']?.toString() ?? '');
   }
 
   void _populateFromAuthState() {
@@ -225,6 +230,8 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       'country': _selectedCountry,
       'state': _selectedState,
       'city': _cityController.text.trim(),
+      if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+      if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       'termsAccepted': _termsAccepted,
       'investorType': _selectedInvestorType,
       'firm': _firmNameController.text.trim(),
@@ -260,6 +267,8 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
         'country': _selectedCountry,
         // 'state': _selectedState,
         'city': _cityController.text.trim(),
+        if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+        if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       },
     );
     if (result.isFailure) {
@@ -268,8 +277,13 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       if (code == 'EMAIL_ALREADY_EXISTS' ||
           msg.contains('already registered') ||
           msg.contains('already exists')) {
-        _registeredEmail = email;
-        return true;
+        if (!mounted) return false;
+        showSignupTopMessage(
+          context,
+          'Email is already registered. Please login.',
+          isSuccess: false,
+        );
+        return false;
       }
       if (!mounted) return false;
       showSignupTopMessage(
@@ -537,7 +551,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
           children: [
             AppDropdown<String>(
               label: 'Investor Type *',
-              hint: 'Select Investor Type',
+              hint: 'Choose your investor type',
               value: _selectedInvestorType,
               items: _investorTypes,
               itemLabel: (value) => value,
@@ -550,12 +564,12 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
             AppTextField(
               controller: _firmNameController,
               label: 'Firm / Entity Name (Optional)',
-              hint: 'Enter Firm / Entity Name',
+              hint: 'Enter your firm or organization name',
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(
               label: 'Accredited Investor Status *',
-              hint: 'Select Accredited Investor Status',
+              hint: 'Choose your accreditation status',
               value: _selectedAccreditedStatus,
               items: _accreditedStatuses,
               itemLabel: (value) => value,
@@ -571,9 +585,11 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
           children: [
             SignupMultiSelectSheet(
               label: 'Focus Industry / Sector *',
+              hint: "Select the industries you’re interested in",
               selectedItems: _preferredIndustries,
               availableOptions: _industries,
               minSelection: 1,
+
               onChanged: (val) {
                 setState(() => _preferredIndustries = val);
                 _persistCurrentProgress();
@@ -584,19 +600,19 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
               controller: _minCheckSizeController,
               keyboardType: TextInputType.number,
               label: 'Min Check Size (₹)',
-              hint: 'Enter Min Check Size',
+              hint: 'Enter the minimum check amount you’re open to investing',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _maxCheckSizeController,
               keyboardType: TextInputType.number,
               label: 'Max Check Size (₹)',
-              hint: 'Enter Max Check Size',
+              hint: 'Enter the maximum check amount you’re open to investing',
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(
               label: 'Preferred Investment Stage *',
-              hint: 'Select Preferred Investment Stage',
+              hint: 'Select the stage where you prefer to invest',
               value: _selectedStage,
               items: _stages,
               itemLabel: (value) => value,

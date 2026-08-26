@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../master_data/domain/entities/master_option.dart';
@@ -45,6 +46,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _cityController = TextEditingController();
+  double? _detectedLatitude;
+  double? _detectedLongitude;
   bool _termsAccepted = false;
   bool _emailVerified = false;
   String? _registeredEmail;
@@ -73,6 +76,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   List<String> _countries = [];
   List<String> _states = [];
   List<String> _designations = [];
+  final _locationService = const LocationService();
 
   @override
   void initState() {
@@ -151,6 +155,9 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         name: budgetName?.isNotEmpty == true ? budgetName! : budgetId,
       );
     }
+    _detectedLatitude = double.tryParse(fields['latitude']?.toString() ?? '');
+    _detectedLongitude =
+        double.tryParse(fields['longitude']?.toString() ?? '');
   }
 
   void _populateFromAuthState() {
@@ -227,6 +234,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       'country': _selectedCountry,
       'state': _selectedState,
       'city': _cityController.text.trim(),
+      if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+      if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       'termsAccepted': _termsAccepted,
       'companyName': _businessNameController.text.trim(),
       'companySite': _companySiteController.text.trim(),
@@ -271,6 +280,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         'country': _selectedCountry,
         // 'state': _selectedState,
         'city': _cityController.text.trim(),
+        if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+        if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       },
     );
     if (result.isFailure) {
@@ -279,8 +290,13 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       if (code == 'EMAIL_ALREADY_EXISTS' ||
           msg.contains('already registered') ||
           msg.contains('already exists')) {
-        _registeredEmail = email;
-        return true;
+        if (!mounted) return false;
+        showSignupTopMessage(
+          context,
+          'Email is already registered. Please login.',
+          isSuccess: false,
+        );
+        return false;
       }
       if (!mounted) return false;
       showSignupTopMessage(
@@ -362,6 +378,81 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     });
   }
 
+  String? _matchCountry(String candidate) {
+    final normalized = candidate.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    for (final country in _countries) {
+      final current = country.trim().toLowerCase();
+      if (current == normalized ||
+          current.contains(normalized) ||
+          normalized.contains(current)) {
+        return country;
+      }
+    }
+    return candidate.trim();
+  }
+
+  Future<void> _autoDetectLocation() async {
+    try {
+      final detected = await _locationService.detectCurrentLocation();
+      if (!mounted) return;
+      setState(() {
+        if (detected.city.isNotEmpty) {
+          _cityController.text = detected.city;
+        } else if (detected.address.isNotEmpty) {
+          _cityController.text = detected.address;
+        }
+        _detectedLatitude = detected.latitude;
+        _detectedLongitude = detected.longitude;
+        final matchedCountry = detected.country.isNotEmpty
+            ? _matchCountry(detected.country)
+            : null;
+        if (matchedCountry != null && matchedCountry.isNotEmpty) {
+          _selectedCountry = matchedCountry;
+        }
+      });
+      _persistCurrentProgress();
+      if (_selectedCountry != null) {
+        await _loadStatesForCountry(_selectedCountry!);
+      }
+      if (mounted) {
+        showSignupTopMessage(
+          context,
+          'Location detected successfully',
+          isSuccess: true,
+        );
+      }
+    } on LocationServiceDisabledException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Please enable location services and try again',
+        isSuccess: false,
+      );
+    } on LocationPermissionDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is required to detect your city',
+        isSuccess: false,
+      );
+    } on LocationPermissionPermanentlyDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is permanently denied. Enable it from settings.',
+        isSuccess: false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Could not detect location right now. Please search manually.',
+        isSuccess: false,
+      );
+    }
+  }
+
   String? _accountValidationMessage() {
     final email = _emailController.text.trim();
     if (_fullNameController.text.trim().isEmpty) {
@@ -400,10 +491,6 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       return 'Company name must be at least 2 characters';
     }
     if (_selectedIndustries.isEmpty) return 'Please select an Industry';
-    if (_selectedCompanySize == null || _selectedCompanySize!.isEmpty) {
-      return 'Please select Company Size';
-    }
-
     final website = _companySiteController.text.trim();
     if (website.isNotEmpty) {
       final normalized = website.contains('://') ? website : 'https://$website';
@@ -451,6 +538,14 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       await _saveProgress(4);
       setState(() => _currentStep = 4);
     } else if (_currentStep == 4) {
+      if (_selectedTeamSize == null || _selectedTeamSize!.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please select Current Team Size',
+          isSuccess: false,
+        );
+        return;
+      }
       if (!await _submitDraft(step: 4, completed: true)) return;
       await SignupProgressStore.clear();
       setState(() => _currentStep = 5);
@@ -529,7 +624,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         onBack: _onBack,
         onContinue: _onContinue,
         isLoading: _isLoading,
-        continueLabel: _currentStep == 4 ? 'Skip or Continue' : 'Continue',
+        continueLabel:  'Continue',
         child: _buildStepContent(),
       ),
     );
@@ -561,6 +656,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           },
           onMobileCountryCodeChanged: (val) =>
               setState(() => _selectedMobileCountryCode = val),
+          onAutoDetectLocation: _autoDetectLocation,
           // onStateChanged: (val) {
           //   setState(() => _selectedState = val);
           //   _persistCurrentProgress();
@@ -572,7 +668,10 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail??context.read<AuthBloc>().state.user?.email??'',
+          initialVerifiedEmail:
+              widget.verifiedEmail ??
+              context.read<AuthBloc>().state.user?.email ??
+              '',
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
@@ -582,37 +681,27 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             AppTextField(
               controller: _businessNameController,
               label: 'Company Name *',
-              hint: 'Enter Company Name',
+              hint: 'Enter your company name',
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
               label: 'Industry / Sector *',
+              hint: "Choose the industry your business operates in",
               selectedItems: _selectedIndustries,
               availableOptions: _industries,
               minSelection: 1,
-              maxSelection: 1,
+
               onChanged: (val) {
                 setState(() => _selectedIndustries = val);
                 _persistCurrentProgress();
               },
             ),
-            const SizedBox(height: 16),
-            AppDropdown<String>(
-              label: 'Company Size *',
-              hint: 'Select Company Size',
-              value: _selectedCompanySize,
-              items: _companySizes,
-              itemLabel: (value) => value,
-              onChanged: (val) {
-                setState(() => _selectedCompanySize = val);
-                _persistCurrentProgress();
-              },
-            ),
+          
             const SizedBox(height: 16),
             AppTextField(
               controller: _companySiteController,
               label: 'Company Website Link',
-              hint: 'Enter Company Website Link',
+              hint: 'Enter your company website (optional)',
             ),
           ],
         );
@@ -621,7 +710,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           children: [
             AppDropdown<String>(
               label: 'Designation *',
-              hint: 'Select Your Designation',
+              hint: 'What is your role in the company?',
               value: _selectedJobRole,
               items: _designations,
               itemLabel: (value) => value,
@@ -637,11 +726,12 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
+              hint: "Select your primary goals on the platform",
               label: 'Primary Hiring Goal *',
               selectedItems: _selectedHiringGoals,
               availableOptions: _hiringGoals,
               minSelection: 1,
-              maxSelection: 1,
+
               onTap: () {
                 if (_hiringGoals.isEmpty) {
                   _loadMasterData();
@@ -659,7 +749,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             AppDropdown<String>(
-              label: 'Current Team Size',
+              label: 'Current Team Size *',
               hint: 'Select Current Team Size',
               value: _selectedTeamSize,
               items: _companySizes,
@@ -670,9 +760,10 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               },
             ),
             const SizedBox(height: 16),
+             
             AppDropdown<MasterOption>(
               label: 'Estimated Project / Hiring Budget Range',
-              hint: 'Select Budget Range',
+              hint: 'What is your budget for this project?',
               value: _selectedBudgetRange,
               items: _budgetRanges,
               itemLabel: (value) => value.name,

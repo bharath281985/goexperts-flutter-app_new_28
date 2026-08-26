@@ -7,6 +7,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -49,6 +50,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _cityController = TextEditingController();
+  double? _detectedLatitude;
+  double? _detectedLongitude;
   bool _termsAccepted = false;
   bool _emailVerified = false;
   String? _registeredEmail;
@@ -62,7 +65,9 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
 
   // Step 3 Skills
   List<String> _selectedIndustries = [];
+  final _otherIndustryController = TextEditingController();
   List<String> _selectedSkills = [];
+  final _otherSkillController = TextEditingController();
 
   // Step 4 Experience
   String? _experienceLevel;
@@ -79,12 +84,14 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
 
   String? get _effectiveEducationLevel {
     if (_educationLevel == 'Other' ||
-        (_educationLevel != null && !_educationLevels.contains(_educationLevel))) {
+        (_educationLevel != null &&
+            !_educationLevels.contains(_educationLevel))) {
       final text = _otherEducationController.text.trim();
       return text.isNotEmpty ? text : 'Other';
     }
     return _educationLevel;
   }
+
   List<String> _selectedWorkModes = [];
   final _portfolioController = TextEditingController();
   final _githubController = TextEditingController();
@@ -99,6 +106,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   List<String> _availableSkillNames = [];
   List<String> _expLevels = [];
   List<String> _workModes = [];
+  final _locationService = const LocationService();
 
   @override
   void initState() {
@@ -129,6 +137,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       _portfolioController,
       _githubController,
       _linkedinController,
+      _otherIndustryController,
+      _otherSkillController,
     ]) {
       controller.addListener(_persistCurrentProgress);
     }
@@ -181,6 +191,12 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     _selectedIndustries = _stringList(fields['industry']);
     _selectedSkills = _stringList(fields['skills']);
     _selectedWorkModes = _stringList(fields['workMode']);
+    _otherIndustryController.text =
+        fields['otherIndustry']?.toString() ?? '';
+    _otherSkillController.text = fields['otherSkill']?.toString() ?? '';
+    _detectedLatitude = double.tryParse(fields['latitude']?.toString() ?? '');
+    _detectedLongitude =
+        double.tryParse(fields['longitude']?.toString() ?? '');
   }
 
   void _populateFromAuthState() {
@@ -284,6 +300,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       'country': _selectedCountry,
       // 'state': _selectedState,
       'city': _cityController.text.trim(),
+      if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+      if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       'termsAccepted': _termsAccepted,
       'titleHeadline': _headlineController.text.trim(),
       'bio': _bioController.text.trim(),
@@ -294,6 +312,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       'linkedInUrl': _linkedinController.text.trim(),
       'githubUrl': _githubController.text.trim(),
       'industry': _selectedIndustries,
+      'otherIndustry': _otherIndustryController.text.trim(),
       'skills': _selectedSkills.map((name) {
         final option = _skillsMap[name];
         final skillId =
@@ -301,6 +320,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
             'static_${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}';
         return {'id': skillId, 'value': name, 'name': name};
       }).toList(),
+      'otherSkill': _otherSkillController.text.trim(),
       'workMode': _selectedWorkModes,
     };
   }
@@ -334,6 +354,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         'country': _selectedCountry,
         // 'state': _selectedState,
         'city': _cityController.text.trim(),
+        if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+        if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       },
     );
     if (result.isFailure) {
@@ -342,8 +364,13 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       if (code == 'EMAIL_ALREADY_EXISTS' ||
           msg.contains('already registered') ||
           msg.contains('already exists')) {
-        _registeredEmail = email;
-        return true;
+        if (!mounted) return false;
+        showSignupTopMessage(
+          context,
+          'Email is already registered. Please login.',
+          isSuccess: false,
+        );
+        return false;
       }
       if (!mounted) return false;
       showSignupTopMessage(
@@ -421,6 +448,81 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     });
   }
 
+  String? _matchCountry(String candidate) {
+    final normalized = candidate.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    for (final country in _countries) {
+      final current = country.trim().toLowerCase();
+      if (current == normalized ||
+          current.contains(normalized) ||
+          normalized.contains(current)) {
+        return country;
+      }
+    }
+    return candidate.trim();
+  }
+
+  Future<void> _autoDetectLocation() async {
+    try {
+      final detected = await _locationService.detectCurrentLocation();
+      if (!mounted) return;
+      setState(() {
+        if (detected.city.isNotEmpty) {
+          _cityController.text = detected.city;
+        } else if (detected.address.isNotEmpty) {
+          _cityController.text = detected.address;
+        }
+        _detectedLatitude = detected.latitude;
+        _detectedLongitude = detected.longitude;
+        final matchedCountry = detected.country.isNotEmpty
+            ? _matchCountry(detected.country)
+            : null;
+        if (matchedCountry != null && matchedCountry.isNotEmpty) {
+          _selectedCountry = matchedCountry;
+        }
+      });
+      _persistCurrentProgress();
+      if (_selectedCountry != null) {
+        await _loadStatesForCountry(_selectedCountry!);
+      }
+      if (mounted) {
+        showSignupTopMessage(
+          context,
+          'Location detected successfully',
+          isSuccess: true,
+        );
+      }
+    } on LocationServiceDisabledException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Please enable location services and try again',
+        isSuccess: false,
+      );
+    } on LocationPermissionDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is required to detect your city',
+        isSuccess: false,
+      );
+    } on LocationPermissionPermanentlyDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is permanently denied. Enable it from settings.',
+        isSuccess: false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Could not detect location right now. Please search manually.',
+        isSuccess: false,
+      );
+    }
+  }
+
   String? _accountValidationMessage() {
     final email = _emailController.text.trim();
     if (_fullNameController.text.trim().isEmpty) {
@@ -468,8 +570,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       return <SkillOption>[];
     }
 
-    final futures =
-        industryIds.map((id) => _fetchSkillsForIndustry(id, query));
+    final futures = industryIds.map((id) => _fetchSkillsForIndustry(id, query));
     final results = await Future.wait(futures);
     final allSkills = <SkillOption>[];
     final seenIds = <String>{};
@@ -601,6 +702,24 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         );
         return;
       }
+      if (_selectedIndustries.contains('Other') &&
+          _otherIndustryController.text.trim().isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please specify your industry',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (_selectedSkills.contains('Other') &&
+          _otherSkillController.text.trim().isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please specify your skill',
+          isSuccess: false,
+        );
+        return;
+      }
       if (!await _submitDraft(step: 3)) return;
       await _saveProgress(4);
       setState(() => _currentStep = 4);
@@ -622,7 +741,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       //   );
       //   return;
       // }
-      
+
       final portfolioUrl = _portfolioController.text.trim();
       if (portfolioUrl.isEmpty) {
         showSignupTopMessage(
@@ -633,7 +752,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         return;
       }
 
-      final urlRegExp = RegExp(r'^(https?:\/\/)?([\w\d\-]+\.)+\w{2,}(\/.*)?$', caseSensitive: false);
+      final urlRegExp = RegExp(
+        r'^(https?:\/\/)?([\w\d\-]+\.)+\w{2,}(\/.*)?$',
+        caseSensitive: false,
+      );
       if (!urlRegExp.hasMatch(portfolioUrl)) {
         showSignupTopMessage(
           context,
@@ -703,8 +825,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         break;
       case 4:
         title = 'Social Media Links';
-        subtitle =
-            'Provide links to your portfolio and professional profiles.';
+        subtitle = 'Provide links to your portfolio and professional profiles.';
         break;
     }
 
@@ -752,6 +873,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           },
           onMobileCountryCodeChanged: (val) =>
               setState(() => _selectedMobileCountryCode = val),
+          onAutoDetectLocation: _autoDetectLocation,
           // onStateChanged: (val) {
           //   setState(() => _selectedState = val);
           //   _persistCurrentProgress();
@@ -763,7 +885,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail ?? context.read<AuthBloc>().state.user?.email ?? '',
+          initialVerifiedEmail:
+              widget.verifiedEmail ??
+              context.read<AuthBloc>().state.user?.email ??
+              '',
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
@@ -773,19 +898,19 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
             AppTextField(
               controller: _headlineController,
               label: 'Professional Title / Headline *',
-              hint: 'Software Developer...',
+              hint: 'e.g., Full-Stack Developer | UI/UX Designer',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _bioController,
               maxLines: 3,
               label: 'Brief Bio / Summary',
-              hint: 'Enter Brief Bio / Summary',
+              hint: 'Turn your experience into your next opportunity...',
             ),
-           const SizedBox(height: 16),
+            const SizedBox(height: 16),
             AppDropdown<String>(
               label: 'Total Experience  *',
-              hint: 'Select Total Experience ',
+              hint: 'Highlight your professional journey...',
               value: _experienceLevel,
               items: _expLevels,
               itemLabel: (item) => item,
@@ -801,8 +926,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
               value: _educationLevels.contains(_educationLevel)
                   ? _educationLevel
                   : (_educationLevel != null && _educationLevel!.isNotEmpty
-                      ? 'Other'
-                      : null),
+                        ? 'Other'
+                        : null),
               items: _educationLevels,
               itemLabel: (item) => item,
               onChanged: (val) {
@@ -833,9 +958,11 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           children: [
             SignupMultiSelectSheet(
               label: 'Primary Industry / Domain*',
+              hint: "Choose the industry that matches your skills",
               selectedItems: _selectedIndustries,
-              availableOptions: _industries,
+              availableOptions: [..._industries, 'Other'],
               minSelection: 1,
+
               onChanged: (val) {
                 setState(() {
                   _selectedIndustries = val;
@@ -858,12 +985,20 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
                 }
               },
             ),
+            if (_selectedIndustries.contains('Other')) ...[
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _otherIndustryController,
+                label: 'Specify Industry *',
+                hint: 'Enter your industry',
+              ),
+            ],
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
-              label: 'Skills',
+              hint: "Select skills e.g., Flutter, UI/UX.....",
+              label: 'Skills *',
               selectedItems: _selectedSkills,
-              availableOptions:  _availableSkillNames,
-                 
+              availableOptions: [..._availableSkillNames, 'Other'],
               minSelection: 0,
               onSearchApi: _searchSkillsApi,
               onChanged: (items) {
@@ -871,13 +1006,19 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
                 _persistCurrentProgress();
               },
             ),
+            if (_selectedSkills.contains('Other')) ...[
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _otherSkillController,
+                label: 'Specify Skill *',
+                hint: 'Enter your skill',
+              ),
+            ],
           ],
         );
       case 4:
         return Column(
           children: [
-           
-         
             // SignupMultiSelectSheet(
             //   label: 'Preferred Work Mode',
             //   selectedItems: _selectedWorkModes,
@@ -904,20 +1045,19 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
             AppTextField(
               controller: _portfolioController,
               label: 'Portfolio Website Link *',
-              hint: 'Enter Portfolio Website Link',
-             
+              hint: 'Add projects that showcase your skills...',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _githubController,
               label: 'Github Profile Link',
-              hint: 'Enter Github Profile Link',
+              hint: 'Share your code and contributions...',
             ),
             const SizedBox(height: 16),
             AppTextField(
               controller: _linkedinController,
               label: 'LinkedIn Profile Link',
-              hint: 'Enter LinkedIn Profile Link',
+              hint: 'Share your professional journey...',
             ),
           ],
         );

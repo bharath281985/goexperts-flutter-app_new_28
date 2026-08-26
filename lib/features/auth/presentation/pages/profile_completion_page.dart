@@ -2113,7 +2113,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppSizes.vGapLg,
                       AppTextField(
                         controller: _targetRaise,
-                        label: 'Target Raise (\$)',
+                        label: 'Target Raise (₹)',
                         hint: 'Enter Target Raise',
                         keyboardType: TextInputType.number,
                       ),
@@ -2171,7 +2171,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       AppSizes.vGapLg,
                       AppTextField(
                         controller: _bio,
-                        label: 'About / Founder Bio',
+                        label: 'Professional Overview',
                         hint: 'Tell people about your background and vision',
                         maxLines: 4,
                       ),
@@ -2338,7 +2338,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                         AppSizes.vGapLg,
                         AppTextField(
                           controller: _hourlyRate,
-                          label: 'Hourly Rate (\$/hr) *',
+                          label: 'Hourly Rate (₹/hr) *',
                           hint: 'Enter Hourly Rate',
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,

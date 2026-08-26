@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
@@ -44,6 +45,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _cityController = TextEditingController();
+  double? _detectedLatitude;
+  double? _detectedLongitude;
   bool _termsAccepted = false;
   bool _emailVerified = false;
   String? _registeredEmail;
@@ -74,6 +77,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   List<String> _states = [];
   List<String> _startupGoalsMaster = [];
   List<String> _teamSizes = [];
+  final _locationService = const LocationService();
 
   @override
   void initState() {
@@ -147,6 +151,9 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     _targetFundraiseController.text = fields['targetRaise']?.toString() ?? '';
     _selectedTeamSize = fields['teamSize']?.toString();
     _selectedGoals = _stringList(fields['primaryGoal']);
+    _detectedLatitude = double.tryParse(fields['latitude']?.toString() ?? '');
+    _detectedLongitude =
+        double.tryParse(fields['longitude']?.toString() ?? '');
   }
 
   void _populateFromAuthState() {
@@ -223,6 +230,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       'country': _selectedCountry,
       // 'state': _selectedState,
       'city': _cityController.text.trim(),
+      if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+      if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       'termsAccepted': _termsAccepted,
       'startupName': _startupNameController.text.trim(),
       'pitch': _descriptionController.text.trim(),
@@ -260,6 +269,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         'isSocial': isSocial,
         'country': _selectedCountry,
         'city': _cityController.text.trim(),
+        if (_detectedLatitude != null) 'latitude': _detectedLatitude,
+        if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       },
     );
     if (result.isFailure) {
@@ -268,8 +279,13 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       if (code == 'EMAIL_ALREADY_EXISTS' ||
           msg.contains('already registered') ||
           msg.contains('already exists')) {
-        _registeredEmail = email;
-        return true;
+        if (!mounted) return false;
+        showSignupTopMessage(
+          context,
+          'Email is already registered. Please login.',
+          isSuccess: false,
+        );
+        return false;
       }
       if (!mounted) return false;
       showSignupTopMessage(
@@ -342,6 +358,81 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     });
   }
 
+  String? _matchCountry(String candidate) {
+    final normalized = candidate.trim().toLowerCase();
+    if (normalized.isEmpty) return null;
+    for (final country in _countries) {
+      final current = country.trim().toLowerCase();
+      if (current == normalized ||
+          current.contains(normalized) ||
+          normalized.contains(current)) {
+        return country;
+      }
+    }
+    return candidate.trim();
+  }
+
+  Future<void> _autoDetectLocation() async {
+    try {
+      final detected = await _locationService.detectCurrentLocation();
+      if (!mounted) return;
+      setState(() {
+        if (detected.city.isNotEmpty) {
+          _cityController.text = detected.city;
+        } else if (detected.address.isNotEmpty) {
+          _cityController.text = detected.address;
+        }
+        _detectedLatitude = detected.latitude;
+        _detectedLongitude = detected.longitude;
+        final matchedCountry = detected.country.isNotEmpty
+            ? _matchCountry(detected.country)
+            : null;
+        if (matchedCountry != null && matchedCountry.isNotEmpty) {
+          _selectedCountry = matchedCountry;
+        }
+      });
+      _persistCurrentProgress();
+      if (_selectedCountry != null) {
+        await _loadStatesForCountry(_selectedCountry!);
+      }
+      if (mounted) {
+        showSignupTopMessage(
+          context,
+          'Location detected successfully',
+          isSuccess: true,
+        );
+      }
+    } on LocationServiceDisabledException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Please enable location services and try again',
+        isSuccess: false,
+      );
+    } on LocationPermissionDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is required to detect your city',
+        isSuccess: false,
+      );
+    } on LocationPermissionPermanentlyDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is permanently denied. Enable it from settings.',
+        isSuccess: false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Could not detect location right now. Please search manually.',
+        isSuccess: false,
+      );
+    }
+  }
+
   String? _accountValidationMessage() {
     final email = _emailController.text.trim();
     if (_fullNameController.text.trim().isEmpty) {
@@ -409,7 +500,15 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         return;
       }
       final pitchDetail = _descriptionController.text.trim();
-      if (pitchDetail.isNotEmpty && pitchDetail.length < 20) {
+      if (pitchDetail.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please enter Short Pitch Detail',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (pitchDetail.length < 20) {
         showSignupTopMessage(
           context,
           'Short Pitch Detail must be at least 20 characters',
@@ -417,7 +516,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         );
         return;
       }
-      
+
       if (!await _submitDraft(step: 2)) return;
       await _saveProgress(3);
       setState(() => _currentStep = 3);
@@ -544,6 +643,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           },
           onMobileCountryCodeChanged: (val) =>
               setState(() => _selectedMobileCountryCode = val),
+          onAutoDetectLocation: _autoDetectLocation,
           // onStateChanged: (val) {
           //   setState(() => _selectedState = val);
           //   _persistCurrentProgress();
@@ -565,14 +665,16 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             AppTextField(
               controller: _startupNameController,
               label: 'Startup/Project Name *',
-              hint: 'Enter Startup Name',
+              hint: 'Enter the official startup name',
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
+              hint: "Choose the industry your startup is disrupting",
               label: 'Industry / Sector *',
               selectedItems: _selectedIndustries,
               availableOptions: _industries,
               minSelection: 1,
+
               onChanged: (val) {
                 setState(() => _selectedIndustries = val);
                 _persistCurrentProgress();
@@ -581,7 +683,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             const SizedBox(height: 16),
             AppDropdown<String>(
               label: 'Startup Stage *',
-              hint: 'Select Startup Stage',
+              hint: 'Where are you in your startup journey?',
               value: _selectedStage,
               items: _stages,
               itemLabel: (value) => value,
@@ -603,8 +705,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         return Column(
           children: [
             AppDropdown<String>(
-              label: 'Role in Startup *',
-              hint: 'Select Role in Startup',
+                label: 'Role in Startup *',
+                hint: 'What is your role in the startup?',
               value: _selectedDesignation,
               items: _designations,
               itemLabel: (value) => value,
@@ -617,8 +719,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             AppTextField(
               controller: _founderBioController,
               maxLines: 3,
-              label: 'Founder Bio',
-              hint: 'Enter Founder Bio',
+              label: 'Professional Overview',
+              hint: 'Tell us about your background and expertise',
             ),
           ],
         );
@@ -629,7 +731,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               controller: _capitalRaisedController,
               keyboardType: TextInputType.number,
               label: 'Capital Raised (₹) *',
-              hint: 'Enter Capital Raised',
+              hint: 'Enter the minimum capital raised',
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter Capital Raised';
@@ -645,7 +747,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               controller: _targetFundraiseController,
               keyboardType: TextInputType.number,
               label: 'Target Fundraise (₹) *',
-              hint: 'Enter Target Fundraise',
+              hint: 'Enter the maximum capital you plan to raise',
               validator: (value) {
                 if (value == null || value.isEmpty) {
                   return 'Please enter Target Fundraise';
@@ -659,7 +761,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             const SizedBox(height: 16),
             AppDropdown<String>(
               label: 'Team Size *',
-              hint: 'Select Team Size',
+              hint: 'How large is your team?',
               value: _selectedTeamSize,
               items: _teamSizes,
               itemLabel: (value) => value,
@@ -670,6 +772,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(
+              hint: "Select your primary goals on the platform",
               label: 'Primary Goal on Platform',
               selectedItems: _selectedGoals,
               availableOptions: _startupGoalsMaster,

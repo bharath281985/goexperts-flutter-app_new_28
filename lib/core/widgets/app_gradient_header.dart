@@ -29,7 +29,7 @@ class AppGradientHeader extends StatelessWidget {
       height: height,
       padding: padding.add(EdgeInsets.only(top: topInset)),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        gradient: AppColors.darkGradient,
         borderRadius:
             borderRadius ??
             const BorderRadius.vertical(

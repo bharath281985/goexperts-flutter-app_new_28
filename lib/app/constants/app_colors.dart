@@ -76,7 +76,7 @@ class AppColors {
   static const LinearGradient darkGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF1A1A1D), Color(0xFF111111)],
+    colors: [Color.fromARGB(255, 1, 1, 94), Color.fromARGB(255, 87, 1, 1)],
   );
 
   /// Deterministic accent color for avatars / charts from a seed string.

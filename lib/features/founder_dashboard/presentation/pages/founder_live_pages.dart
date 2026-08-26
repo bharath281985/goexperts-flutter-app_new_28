@@ -828,7 +828,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _targetRaise,
-                      label: 'Target Raise (\$)',
+                      label: 'Target Raise (₹)',
                       hint: 'Enter Target Raise',
                       keyboardType: TextInputType.number,
                     ),
@@ -876,12 +876,12 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                 ),
               ),
               AppSizes.vGapLg,
-              _buildSectionTitle('Founder Bio'),
+              _buildSectionTitle('Professional Overview'),
               AppCard(
                 child: AppTextField(
                   controller: _bio,
-                  label: 'Bio',
-                  hint: 'Enter Bio',
+                  label: 'Professional Overview',
+                  hint: 'Tell people about your background and vision',
                   maxLines: 4,
                 ),
               ),

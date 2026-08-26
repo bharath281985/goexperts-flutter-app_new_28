@@ -287,12 +287,6 @@ class AppDrawer extends StatelessWidget {
               Icons.insights_outlined,
               route: Routes.freelancerAnalytics,
             ),
-            DrawerEntry(
-              'Notifications',
-              Icons.notifications_none_rounded,
-              route: Routes.notifications,
-              badge: unreadNotifications > 0 ? unreadNotifications : null,
-            ),
           ]),
           const DrawerSection('Profile', [
             DrawerEntry(
@@ -341,7 +335,7 @@ class AppDrawer extends StatelessWidget {
               route: Routes.freelancerCertificates,
             ),
           ]),
-          const DrawerSection('Work', [
+          DrawerSection('Work', [
             DrawerEntry(
               'Projects',
               Icons.work_outline_rounded,
@@ -357,7 +351,7 @@ class AppDrawer extends StatelessWidget {
               Icons.art_track_outlined,
               route: Routes.freelancerContracts,
             ),
-           
+
             DrawerEntry(
               'Calendar',
               Icons.calendar_month_outlined,
@@ -373,69 +367,68 @@ class AppDrawer extends StatelessWidget {
               Icons.chat_bubble_outline_rounded,
               route: Routes.messages,
             ),
-           
+            DrawerEntry(
+              'Notifications',
+              Icons.notifications_none_rounded,
+              route: Routes.notifications,
+              badge: unreadNotifications > 0 ? unreadNotifications : null,
+            ),
+
             DrawerEntry(
               'Reviews',
               Icons.star_border_rounded,
               route: Routes.freelancerReviews,
             ),
-             DrawerEntry(
-              'Tasks',
-              Icons.task_alt_outlined,
-            
-            ),
-           
+            DrawerEntry('Tasks', Icons.task_alt_outlined),
           ]),
           const DrawerSection('Finance', [
-             DrawerEntry(
+            DrawerEntry(
               'Subscriptions',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-            DrawerEntry('Earnings', Icons.bar_chart_rounded),
-            DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-           
-            ),
-            DrawerEntry('Transactions', Icons.sync_alt_rounded),
-            DrawerEntry(
-              'Withdrawals',
-              Icons.payments_outlined,
-             
-            ),
-            DrawerEntry(
-              'Invoices',
-              Icons.receipt_long_outlined,
-           
-            ),
-           
+
+            // DrawerEntry('Earnings', Icons.bar_chart_rounded),
+            // DrawerEntry(
+            //   'Wallet',
+            //   Icons.account_balance_wallet_outlined,
+
+            // ),
+            // DrawerEntry('Transactions', Icons.sync_alt_rounded),
+            // DrawerEntry(
+            //   'Withdrawals',
+            //   Icons.payments_outlined,
+
+            // ),
+            // DrawerEntry(
+            //   'Invoices',
+            //   Icons.receipt_long_outlined,
+
+            // ),
           ]),
-          const DrawerSection('Growth', [
-            DrawerEntry(
-              'AI Assistant',
-              Icons.auto_awesome_outlined,
-              badgeText: 'New',
-              badgeColor: Color(0xFFFBC02D),
-            ),
-            DrawerEntry('AI Workspace', Icons.smart_toy_outlined),
-            DrawerEntry('Learning Center', Icons.menu_book_outlined),
-            DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
-          ]),
+          // const DrawerSection('Growth', [
+          //   DrawerEntry(
+          //     'AI Assistant',
+          //     Icons.auto_awesome_outlined,
+          //     badgeText: 'New',
+          //     badgeColor: Color(0xFFFBC02D),
+          //   ),
+          //   DrawerEntry('AI Workspace', Icons.smart_toy_outlined),
+          //   DrawerEntry('Learning Center', Icons.menu_book_outlined),
+          //   DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
+          // ]),
           const DrawerSection('System', [
-          
-            DrawerEntry('Connected Apps', Icons.power_outlined),
-            DrawerEntry('Downloads', Icons.download_outlined),
-            DrawerEntry('Activity Logs', Icons.show_chart_rounded),
-            DrawerEntry('Audit Logs', Icons.list_alt_rounded),
-            DrawerEntry('System Status', Icons.monitor_heart_outlined),
-           
+            // DrawerEntry('Connected Apps', Icons.power_outlined),
+            // DrawerEntry('Downloads', Icons.download_outlined),
+            // DrawerEntry('Activity Logs', Icons.show_chart_rounded),
+            // DrawerEntry('Audit Logs', Icons.list_alt_rounded),
+            // DrawerEntry('System Status', Icons.monitor_heart_outlined),
             DrawerEntry(
               'Support',
               Icons.support_agent_outlined,
               route: Routes.support,
             ),
-              // DrawerEntry(
+            // DrawerEntry(
             //   'Settings',
             //   Icons.settings_outlined,
             //   route: Routes.settings,
@@ -460,7 +453,6 @@ class AppDrawer extends StatelessWidget {
               Icons.bar_chart_rounded,
               route: Routes.clientAnalytics,
             ), // Placeholder
-           
           ]),
           const DrawerSection('Company', [
             DrawerEntry(
@@ -473,7 +465,7 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.clientVerification,
             ),
-            DrawerEntry('Departments', Icons.account_balance_outlined),
+            // DrawerEntry('Departments', Icons.account_balance_outlined),
             DrawerEntry(
               'Teams',
               Icons.groups_outlined,
@@ -486,13 +478,9 @@ class AppDrawer extends StatelessWidget {
               Icons.work_outline_rounded,
               route: Routes.clientProjects,
             ),
-            DrawerEntry('Pipeline', Icons.view_kanban_outlined),
-            DrawerEntry(
-              'Tasks',
-              Icons.task_alt_outlined,
-              
-            ),
-            DrawerEntry('Contracts', Icons.assignment_outlined),
+            // DrawerEntry('Pipeline', Icons.view_kanban_outlined),
+            DrawerEntry('Tasks', Icons.task_alt_outlined),
+            // DrawerEntry('Contracts', Icons.assignment_outlined),
           ]),
           const DrawerSection('Talent', [
             DrawerEntry(
@@ -512,7 +500,7 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           DrawerSection('Communication', [
-             DrawerEntry(
+            DrawerEntry(
               'Notifications',
               Icons.notifications_active_outlined,
               badge: unreadNotifications > 0 ? unreadNotifications : null,
@@ -530,24 +518,24 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Finance', [
-             DrawerEntry(
+            DrawerEntry(
               'Subscriptions',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-            DrawerEntry('Invoices', Icons.receipt_long_outlined),
-            DrawerEntry(
-              'Payments',
-              Icons.payment_outlined,
 
-            ),
-            DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-             
-            ),
-            DrawerEntry('Transactions', Icons.sync_alt_rounded),
-           
+            // DrawerEntry('Invoices', Icons.receipt_long_outlined),
+            // DrawerEntry(
+            //   'Payments',
+            //   Icons.payment_outlined,
+
+            // ),
+            // DrawerEntry(
+            //   'Wallet',
+            //   Icons.account_balance_wallet_outlined,
+
+            // ),
+            // DrawerEntry('Transactions', Icons.sync_alt_rounded),
           ]),
           const DrawerSection('Insights', [
             DrawerEntry(
@@ -564,43 +552,40 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Growth', [
-            DrawerEntry(
-              'AI Hiring Assistant',
-              Icons.smart_toy_outlined,
-              badgeText: 'New',
-              badgeColor: Color(0xFFFBC02D),
-            ),
+            // DrawerEntry(
+            //   'AI Hiring Assistant',
+            //   Icons.smart_toy_outlined,
+            //   badgeText: 'New',
+            //   badgeColor: Color(0xFFFBC02D),
+            // ),
             DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
-            DrawerEntry('Documents', Icons.description_outlined),
-            DrawerEntry('Downloads', Icons.download_outlined),
+            // DrawerEntry('Documents', Icons.description_outlined),
+            // DrawerEntry('Downloads', Icons.download_outlined),
           ]),
           const DrawerSection('System', [
-            
-            
-            DrawerEntry(
-              'AI Assistant',
-              Icons.auto_awesome_outlined,
-              badgeText: '⌘',
-              badgeColor: Color(0xFFE53935),
-            ),
-            
+            // DrawerEntry(
+            //   'AI Assistant',
+            //   Icons.auto_awesome_outlined,
+            //   badgeText: '⌘',
+            //   badgeColor: Color(0xFFE53935),
+            // ),
             DrawerEntry(
               'Support',
               Icons.support_agent_outlined,
               route: Routes.support,
             ),
-            DrawerEntry('Activity Log', Icons.show_chart_rounded),
-            DrawerEntry('Audit Log', Icons.list_alt_rounded),
+            // DrawerEntry('Activity Log', Icons.show_chart_rounded),
+            // DrawerEntry('Audit Log', Icons.list_alt_rounded),
             DrawerEntry(
               'Security',
               Icons.security_outlined,
               route: Routes.changePassword,
             ),
-            DrawerEntry('Roles & Permissions', Icons.manage_accounts_outlined),
+            // DrawerEntry('Roles & Permissions', Icons.manage_accounts_outlined),
             DrawerEntry('Team Access', Icons.people_outline_rounded),
-            DrawerEntry('Connected Apps', Icons.power_outlined),
-            DrawerEntry('API Keys', Icons.api_rounded),
-            DrawerEntry('Component Library', Icons.widgets_outlined),
+            // DrawerEntry('Connected Apps', Icons.power_outlined),
+            // DrawerEntry('API Keys', Icons.api_rounded),
+            // DrawerEntry('Component Library', Icons.widgets_outlined),
             // DrawerEntry(
             //   'Settings',
             //   Icons.settings_outlined,
@@ -621,7 +606,6 @@ class AppDrawer extends StatelessWidget {
               Icons.insights_outlined,
               route: Routes.investorAnalytics,
             ),
-           
           ]),
           const DrawerSection('Deal Flow', [
             DrawerEntry(
@@ -634,11 +618,7 @@ class AppDrawer extends StatelessWidget {
               Icons.handshake_outlined,
               route: Routes.investorDeals,
             ),
-            DrawerEntry(
-              'Due Diligence',
-              Icons.fact_check_outlined,
-              route: Routes.investorDueDiligence,
-            ),
+
             DrawerEntry(
               'Offers',
               Icons.local_offer_outlined,
@@ -656,11 +636,11 @@ class AppDrawer extends StatelessWidget {
               Icons.pie_chart_outline_rounded,
               route: Routes.investorPortfolio,
             ),
-            DrawerEntry(
-              'Transactions',
-              Icons.swap_horiz_rounded,
-              route: Routes.investorTransactions,
-            ),
+            // DrawerEntry(
+            //   'Transactions',
+            //   Icons.swap_horiz_rounded,
+            //   route: Routes.investorTransactions,
+            // ),
             DrawerEntry(
               'Reports',
               Icons.assessment_outlined,
@@ -668,7 +648,7 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           DrawerSection('Communication', [
-             DrawerEntry(
+            DrawerEntry(
               'Notifications',
               Icons.notifications_none_rounded,
               route: Routes.notifications,
@@ -691,25 +671,24 @@ class AppDrawer extends StatelessWidget {
               route: Routes.calendar,
             ),
           ]),
-          const DrawerSection('Documents', [
+
+          const DrawerSection('Finance', [
             DrawerEntry(
               'Documents',
               Icons.description_outlined,
               route: Routes.investorDocuments,
             ),
-          ]),
-          const DrawerSection('Finance', [
-            
+
             DrawerEntry(
               'Subscription',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-            DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-             
-            ),
+            // DrawerEntry(
+            //   'Wallet',
+            //   Icons.account_balance_wallet_outlined,
+
+            // ),
           ]),
           const DrawerSection('Account', [
             DrawerEntry(
@@ -722,7 +701,7 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.investorVerification,
             ),
-              // DrawerEntry(
+            // DrawerEntry(
             //   'Settings',
             //   Icons.settings_outlined,
             //   route: Routes.settings,
@@ -752,7 +731,6 @@ class AppDrawer extends StatelessWidget {
               Icons.bar_chart_rounded,
               route: Routes.founderAnalytics,
             ),
-          
           ]),
           const DrawerSection('Startup', [
             DrawerEntry(
@@ -775,11 +753,11 @@ class AppDrawer extends StatelessWidget {
               Icons.groups_outlined,
               route: Routes.founderTeam,
             ),
-            DrawerEntry(
-              'Hiring',
-              Icons.person_add_alt_1_outlined,
-            
-            ),
+            // DrawerEntry(
+            //   'Hiring',
+            //   Icons.person_add_alt_1_outlined,
+
+            // ),
           ]),
           const DrawerSection('Fundraising', [
             DrawerEntry(
@@ -793,11 +771,9 @@ class AppDrawer extends StatelessWidget {
               route: Routes.founderFunding,
             ),
           ]),
-          const DrawerSection('Assets & Documents', [
-           
-          ]),
+          const DrawerSection('Assets & Documents', []),
           DrawerSection('Communication', [
-              DrawerEntry(
+            DrawerEntry(
               'Notifications',
               Icons.notifications_active_outlined,
               route: Routes.notifications,
@@ -814,24 +790,23 @@ class AppDrawer extends StatelessWidget {
               Icons.event_outlined,
               route: Routes.meetings,
             ),
-             DrawerEntry(
-              'Media & Documents',
-              Icons.perm_media_outlined,
-             
-            ),
+            //  DrawerEntry(
+            //   'Media & Documents',
+            //   Icons.perm_media_outlined,
+
+            // ),
           ]),
           const DrawerSection('Finance', [
-           
             DrawerEntry(
               'Subscriptions',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-             DrawerEntry(
-              'Wallet',
-              Icons.account_balance_wallet_outlined,
-             
-            ),
+            //  DrawerEntry(
+            //   'Wallet',
+            //   Icons.account_balance_wallet_outlined,
+
+            // ),
           ]),
           const DrawerSection('Account', [
             DrawerEntry(
@@ -844,7 +819,7 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.founderVerification,
             ),
-              // DrawerEntry(
+            // DrawerEntry(
             //   'Settings',
             //   Icons.settings_outlined,
             //   route: Routes.settings,

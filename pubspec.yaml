@@ -64,8 +64,11 @@ dependencies:
   google_sign_in: ^6.3.0
   sign_in_with_apple: ^7.0.1
   country_code_picker: ^3.4.1
+  country_flags: ^3.0.0
   phone_numbers_parser: ^9.0.24
   pretty_dio_logger: ^1.4.0
+  geolocator: ^13.0.2
+  geocoding: ^3.0.0
 
 dev_dependencies:
   flutter_test:

@@ -2389,6 +2389,7 @@ class _FreelancerExperienceFormPageState
             else
               AppDropdown<SkillCategory>(
                 label: 'Industry *',
+                hint: "Choose the industry your business operates in",
                 value:
                     _selectedIndustryId == null || _selectedIndustryId!.isEmpty
                     ? null
@@ -2466,6 +2467,7 @@ class _FreelancerExperienceFormPageState
               )
             else
               SignupMultiSelectSheet(
+                hint:"Select the skills you want to offer",
                 label: 'Skills',
                 minSelection: 0,
                 selectedItems: _selectedSkillNames,

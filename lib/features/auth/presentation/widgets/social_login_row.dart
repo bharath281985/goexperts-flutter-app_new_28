@@ -1,18 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:go_router/go_router.dart';
-
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
-import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/utils/enums.dart';
 import '../../data/datasources/social_auth_service.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
-import 'choose_role_view.dart';
 
 class SocialLoginRow extends StatelessWidget {
   const SocialLoginRow({super.key});
@@ -60,46 +55,13 @@ class SocialLoginRow extends StatelessWidget {
           ),
         );
         return;
-      } else {
-        debugPrint(
-          'Bypass social login check failed: ${checkResult.failureOrNull?.message}',
-        );
       }
 
-      // Existing user check failed (likely Server requires a role for a NEW user)
-      final UserRole? selectedRole = await showModalBottomSheet<UserRole>(
-        context: context,
-        isScrollControlled: true,
-        useSafeArea: true,
-        backgroundColor: Colors.white,
-        builder: (ctx) {
-          return FractionallySizedBox(
-            heightFactor: 0.9,
-            child: ChooseRoleView(
-              onRoleSelected: (role) => Navigator.of(ctx).pop(role),
-              onBack: () => Navigator.of(ctx).pop(),
-            ),
-          );
-        },
+      context.showSnack(
+        checkResult.failureOrNull?.message ??
+            'Social sign up failed. Please try again or use email login.',
+        isError: true,
       );
-
-      if (selectedRole == null) return;
-      if (!context.mounted) return;
-
-      // Submit fully to AuthBloc
-      context.read<AuthBloc>().add(
-        AuthSocialLoginRequested(
-          provider: provider,
-          role: selectedRole,
-          idToken: creds.idToken,
-          accessToken: creds.accessToken,
-          email: creds.email,
-          fullName: creds.fullName,
-        ),
-      );
-      if (context.mounted) {
-        context.go('${Routes.signup}?role=${selectedRole.name}&step=2');
-      }
     } catch (e) {
       if (e is SocialAuthCancelledException) return;
       if (!context.mounted) return;

@@ -74,6 +74,7 @@ class _InvestorPreferencesPageState extends State<InvestorPreferencesPage> {
           AppMultiSelect(
             label: 'Interested industries',
             options: _industries,
+            
             selected: _selIndustries,
             onChanged: (s) => setState(() => _selIndustries = s),
           ),

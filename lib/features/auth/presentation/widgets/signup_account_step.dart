@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:goexperts_app/app/router/route_names.dart';
 
 import '../../../../app/constants/app_colors.dart';
+import '../../../../core/utils/country_flag_utils.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -43,6 +44,7 @@ class SignupAccountStep extends StatelessWidget {
     required this.selectedCountry,
     // required this.selectedState,
     required this.onCountryChanged,
+    this.onAutoDetectLocation,
     required this.onMobileCountryCodeChanged,
     // required this.onStateChanged,
     required this.termsAccepted,
@@ -62,6 +64,7 @@ class SignupAccountStep extends StatelessWidget {
   final List<String> countries;
 
   final String? selectedCountry;
+  final Future<void> Function()? onAutoDetectLocation;
   // final String? selectedState;
   final ValueChanged<String> onCountryChanged;
   final ValueChanged<String> onMobileCountryCodeChanged;
@@ -116,7 +119,7 @@ class SignupAccountStep extends StatelessWidget {
             controller: passwordController,
             obscure: true,
             label: 'Password *',
-            hint: 'Enter password',
+            hint: 'Create a secure password',
             prefixIcon: Icons.lock_outline,
           ),
           const SizedBox(height: 16),
@@ -131,11 +134,12 @@ class SignupAccountStep extends StatelessWidget {
         const SizedBox(height: 16),
         AppDropdown<String>(
           label: 'Country *',
-          hint: 'Select Country',
+          hint: 'Choose the country you’re based in',
           value: selectedCountry,
           items: countries,
           itemLabel: (value) => value,
-          prefixIcon: Icons.flag,
+          prefixWidget: countryFlagWidget(selectedCountry),
+          prefixIcon: selectedCountry == null ? Icons.flag : null,
           onChanged: (value) {
             if (value != null) onCountryChanged(value);
           },
@@ -156,8 +160,10 @@ class SignupAccountStep extends StatelessWidget {
         AppLocationField(
           controller: cityController,
           label: 'City *',
-          hint: 'Search and select city',
+          hint: 'Search and select your city',
           country: selectedCountry,
+          onAutoDetect: onAutoDetectLocation,
+          autoDetectTooltip: 'Detect my current city',
         ),
         const SizedBox(height: 16),
         Material(

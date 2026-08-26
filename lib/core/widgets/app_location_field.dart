@@ -17,6 +17,8 @@ class AppLocationField extends StatelessWidget {
     this.validator,
     this.onPlaceSelected,
     this.placesService,
+    this.onAutoDetect,
+    this.autoDetectTooltip = 'Use current location',
   });
 
   final TextEditingController controller;
@@ -26,6 +28,8 @@ class AppLocationField extends StatelessWidget {
   final String? Function(String?)? validator;
   final ValueChanged<SelectedPlace>? onPlaceSelected;
   final GooglePlacesService? placesService;
+  final Future<void> Function()? onAutoDetect;
+  final String autoDetectTooltip;
 
   Future<void> _openSearch(BuildContext context) async {
     final selected = await LocationSearchSheet.show(
@@ -60,15 +64,29 @@ class AppLocationField extends StatelessWidget {
           onTap: () => _openSearch(context),
           validator: validator,
           decoration: InputDecoration(
-            hintText: generatedHint,
+            hintText: hint ?? generatedHint,
             prefixIcon: const Icon(
               Icons.location_on_outlined,
               size: AppSizes.iconMd,
             ),
-            suffixIcon: IconButton(
-              tooltip: 'Search location',
-              onPressed: () => _openSearch(context),
-              icon: const Icon(Icons.search),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onAutoDetect != null)
+                  IconButton(
+                    tooltip: autoDetectTooltip,
+                    iconSize: 18,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 34, minHeight: 34),
+                    onPressed: () async => onAutoDetect?.call(),
+                    icon: const Icon(Icons.my_location_outlined),
+                  ),
+                IconButton(
+                  tooltip: 'Search location',
+                  onPressed: () => _openSearch(context),
+                  icon: const Icon(Icons.search),
+                ),
+              ],
             ),
           ),
         ),

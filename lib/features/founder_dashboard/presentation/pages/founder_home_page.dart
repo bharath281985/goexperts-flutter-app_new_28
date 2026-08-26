@@ -50,8 +50,7 @@ class FounderHomePage extends StatelessWidget {
                         onMenu: () => Scaffold.of(ctx).openDrawer(),
                       ),
                     ),
-                    _buildHeroBanner(context, state),
-                    if (state.shouldShowVerificationPrompt) ...[
+                     if (state.shouldShowVerificationPrompt) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSizes.screenPadding,
@@ -64,6 +63,8 @@ class FounderHomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                     ],
+                    _buildHeroBanner(context, state),
+                   
                     _buildActionButtons(context),
                     Padding(
                       padding: const EdgeInsets.symmetric(

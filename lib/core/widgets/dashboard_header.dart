@@ -52,7 +52,7 @@ class DashboardHeader extends StatelessWidget {
               if (onMenu != null) AppSizes.hGapMd,
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(
                       '${context.tr(_greeting)},',

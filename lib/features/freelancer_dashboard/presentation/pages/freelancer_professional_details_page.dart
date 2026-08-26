@@ -453,6 +453,7 @@ class _FreelancerProfessionalDetailsPageState
                           )
                         else
                           SignupMultiSelectSheet(
+                            hint:"Select the skills you want to offer",
                             label: 'Skills',
                             minSelection: 0,
                             selectedItems: _selectedSkillNames,

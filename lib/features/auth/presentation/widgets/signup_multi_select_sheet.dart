@@ -14,6 +14,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
   final Future<List<String>> Function(String query)? onSearchApi;
   final String? errorText;
   final VoidCallback? onTap;
+  final String? hint;
 
   const SignupMultiSelectSheet({
     super.key,
@@ -21,6 +22,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
     required this.selectedItems,
     required this.availableOptions,
     required this.onChanged,
+    required this.hint,
     this.minSelection = 1,
     this.maxSelection,
     this.onSearchApi,
@@ -95,7 +97,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
         AppTextField(
           key: ValueKey(selectedItems.join('|')),
           initialValue: selectedItems.join(', '),
-          hint: 'Tap to search & select $label...',
+          hint: hint,
           readOnly: true,
           onTap: () {
             onTap?.call();

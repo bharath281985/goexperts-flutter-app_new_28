@@ -51,8 +51,7 @@ class InvestorHomePage extends StatelessWidget {
                         onMenu: () => Scaffold.of(ctx).openDrawer(),
                       ),
                     ),
-                    _buildTopHeader(context, state),
-                    if (state.shouldShowVerificationPrompt || true) ...[
+                     if (state.shouldShowVerificationPrompt || true) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(
                           horizontal: AppSizes.screenPadding,
@@ -65,6 +64,8 @@ class InvestorHomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                     ],
+                    _buildTopHeader(context, state),
+                   
                     _buildActionButtons(context),
                     Padding(
                       padding: const EdgeInsets.symmetric(

@@ -42,6 +42,14 @@ class ClientHomePage extends StatelessWidget {
                   onMenu: () => Scaffold.of(ctx).openDrawer(),
                 ),
               ),
+               if (state.shouldShowVerificationPrompt) ...[
+                        VerificationPromptCard(
+                          missingCount: state.verificationMissingCount,
+                          accountVerified: state.accountVerified,
+                          route: Routes.clientVerification,
+                        ),
+                        const SizedBox(height: 16),
+                      ],
               // Hero Banner
               _buildHeroBanner(context, state),
 
@@ -58,14 +66,7 @@ class ClientHomePage extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (state.shouldShowVerificationPrompt) ...[
-                        VerificationPromptCard(
-                          missingCount: state.verificationMissingCount,
-                          accountVerified: state.accountVerified,
-                          route: Routes.clientVerification,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+                     
                       _buildQuickActions(context),
                       const SizedBox(height: 24),
                       _buildMetricsGrid(context, state),

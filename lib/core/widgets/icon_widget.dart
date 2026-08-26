@@ -30,7 +30,7 @@ class IconTapWidget extends StatelessWidget {
           decoration: isDecorate == true
               ? BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.black.withValues(alpha: 0.12),
+                  color: AppColors.white.withValues(alpha: 0.9),
                 )
               : null,
           child: Image.asset(

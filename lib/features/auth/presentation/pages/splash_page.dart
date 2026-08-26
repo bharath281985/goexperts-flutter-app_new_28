@@ -8,6 +8,7 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/network/app_runtime_config_service.dart';
 import '../../../../core/services/app_update_service.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/storage/local_storage.dart';
 import '../bloc/auth_bloc.dart';
 
@@ -134,6 +135,7 @@ class _SplashPageState extends State<SplashPage>
     try {
       await Future.wait([
         sl<AppRuntimeConfigService>().load(),
+        const LocationService().requestPermission().catchError((_) {}),
         sl<AppUpdateService>().check().then((update) async {
           if (!mounted) return;
           switch (update.action) {
