@@ -191,6 +191,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           if (isClient) {
             return ClientProposalActionBar(
               proposal: proposal,
+              onStatusChanged: _reload,
               padding: const EdgeInsets.fromLTRB(
                 AppSizes.lg,
                 AppSizes.md,

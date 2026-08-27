@@ -21,10 +21,12 @@ class ClientProposalActionBar extends StatelessWidget {
     super.key,
     required this.proposal,
     this.padding,
+    this.onStatusChanged,
   });
 
   final Proposal proposal;
   final EdgeInsetsGeometry? padding;
+  final VoidCallback? onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,7 @@ class ClientProposalActionBar extends StatelessWidget {
       child: _ClientProposalActionBarBody(
         proposal: proposal,
         padding: padding,
+        onStatusChanged: onStatusChanged,
       ),
     );
   }
@@ -42,10 +45,12 @@ class _ClientProposalActionBarBody extends StatelessWidget {
   const _ClientProposalActionBarBody({
     required this.proposal,
     this.padding,
+    this.onStatusChanged,
   });
 
   final Proposal proposal;
   final EdgeInsetsGeometry? padding;
+  final VoidCallback? onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +64,7 @@ class _ClientProposalActionBarBody extends StatelessWidget {
         }
         if (state.successMessage != null) {
           context.showSnack(state.successMessage!);
-          if (state.successMessage == 'Proposal accepted' && context.mounted) {
-            context.push(
-              '${Routes.contractForm}?proposalId=${proposal.id}&projectId=${proposal.projectId}&freelancerName=${Uri.encodeComponent(proposal.freelancerName)}',
-            );
-          }
+          onStatusChanged?.call();
         }
       },
       builder: (context, state) {
@@ -165,10 +166,14 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                             context,
                             title: 'Accept proposal?',
                             message:
-                                'You can create a contract after accepting.',
+                                'This will accept the proposal and create the contract.',
                             confirmLabel: 'Accept',
                             onConfirm: () => bloc.add(
-                              ClientProposalAcceptRequested(proposal.id),
+                              ClientProposalAcceptRequested(
+                                proposal.id,
+                                projectId: proposal.projectId,
+                                freelancerId: proposal.freelancerId,
+                              ),
                             ),
                           ),
                         ),
@@ -180,9 +185,17 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                   AppPrimaryButton(
                     label: 'View Contract',
                     icon: Icons.description_outlined,
-                    onPressed: () => context.push(
-                      '${Routes.contractDetails}/${proposal.id}',
-                    ),
+                    onPressed: () {
+                      final contractId = proposal.contractId;
+                      if (contractId != null && contractId.isNotEmpty) {
+                        context.push('${Routes.contractDetails}/$contractId');
+                      } else {
+                        context.showSnack(
+                          'Contract ID not found for this proposal',
+                          isError: true,
+                        );
+                      }
+                    },
                   ),
                 AppSizes.vGapSm,
                 AppSecondaryButton(

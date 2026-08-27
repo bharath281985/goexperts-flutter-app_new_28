@@ -148,6 +148,12 @@ class ProposalRepositoryImpl implements ProposalRepository {
           json['freelancerAvatar'] as String? ??
           json['freelancer_avatar'] as String? ??
           json['avatarUrl'] as String?,
+      contractId:
+          json['contractId']?.toString() ??
+          json['contract_id']?.toString() ??
+          (json['contract'] is Map
+              ? (json['contract'] as Map)['id']?.toString()
+              : null),
       bidAmount:
           (json['bidAmount'] as num?)?.toDouble() ??
           (json['bid_amount'] as num?)?.toDouble() ??

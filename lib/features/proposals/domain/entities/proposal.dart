@@ -17,6 +17,7 @@ class Proposal extends Equatable {
     this.clientName,
     this.freelancerId,
     this.freelancerAvatar,
+    this.contractId,
     this.deliveryDays = 14,
     this.freelancerRating = 4.8,
     this.attachments = const [],
@@ -30,6 +31,7 @@ class Proposal extends Equatable {
   final String? freelancerId;
   final String freelancerName;
   final String? freelancerAvatar;
+  final String? contractId;
   final double bidAmount;
   final bool isHourly;
   final String coverLetter;
@@ -39,7 +41,10 @@ class Proposal extends Equatable {
   final double freelancerRating;
   final List<String> attachments;
 
-  Proposal copyWith({EntityStatus? status}) => Proposal(
+  Proposal copyWith({
+    EntityStatus? status,
+    String? contractId,
+  }) => Proposal(
     id: id,
     projectId: projectId,
     projectTitle: projectTitle,
@@ -48,6 +53,7 @@ class Proposal extends Equatable {
     freelancerId: freelancerId,
     freelancerName: freelancerName,
     freelancerAvatar: freelancerAvatar,
+    contractId: contractId ?? this.contractId,
     bidAmount: bidAmount,
     isHourly: isHourly,
     coverLetter: coverLetter,
@@ -59,5 +65,12 @@ class Proposal extends Equatable {
   );
 
   @override
-  List<Object?> get props => [id, projectId, status, freelancerId, clientId];
+  List<Object?> get props => [
+    id,
+    projectId,
+    status,
+    freelancerId,
+    clientId,
+    contractId,
+  ];
 }

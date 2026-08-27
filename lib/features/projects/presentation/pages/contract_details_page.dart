@@ -5,19 +5,22 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../core/bloc/detail_cubit.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
+import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_status_chip.dart';
-import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/detail_actions.dart';
 import '../../../../core/widgets/detail_view.dart';
-import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../catalog/presentation/widgets/detail_widgets.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/project_repository.dart';
@@ -52,143 +55,420 @@ class ContractDetailsPage extends StatelessWidget {
           reportType: 'contract',
         ),
       ],
-      bottomBar: (context, c) => Padding(
-        padding: const EdgeInsets.all(AppSizes.lg),
-        child: role == UserRole.client
-            ? Row(
-                children: [
-                  Expanded(
-                    child: AppSecondaryButton(
-                      label: 'Cancel',
-                      onPressed: () => _confirmAndExecute(
-                        context,
-                        title: 'Cancel Contract?',
-                        message:
-                            'Are you sure you want to cancel this contract?',
-                        confirmLabel: 'Cancel Contract',
-                        isDestructive: true,
-                        endpoint: ApiEndpoints.clientContractCancel(c.id),
-                        successMsg: 'Contract cancelled',
-                      ),
+      bottomBar: (context, c) {
+        if (role == UserRole.client) {
+          if (c.status == EntityStatus.completed) {
+            return const SizedBox.shrink();
+          }
+          return Padding(
+            padding: const EdgeInsets.all(AppSizes.lg),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppSecondaryButton(
+                    label: 'Cancel',
+                    onPressed: () => _confirmAndExecute(
+                      context,
+                      title: 'Cancel Contract?',
+                      message:
+                          'Are you sure you want to cancel this contract?',
+                      confirmLabel: 'Cancel Contract',
+                      isDestructive: true,
+                      endpoint: ApiEndpoints.clientContractCancel(c.id),
+                      successMsg: 'Contract cancelled',
                     ),
                   ),
-                  AppSizes.hGapMd,
-                  Expanded(
-                    child: AppSecondaryButton(
-                      label: 'Activate',
-                      onPressed: () => _confirmAndExecute(
-                        context,
-                        title: 'Activate Contract?',
-                        message:
-                            'This will mark the contract active and notify the freelancer.',
-                        confirmLabel: 'Activate',
-                        endpoint: ApiEndpoints.clientContractActivate(c.id),
-                        successMsg: 'Contract activated',
-                      ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: AppSecondaryButton(
+                    label: 'Activate',
+                    onPressed: () => _confirmAndExecute(
+                      context,
+                      title: 'Activate Contract?',
+                      message:
+                          'This will mark the contract active and notify the freelancer.',
+                      confirmLabel: 'Activate',
+                      endpoint: ApiEndpoints.clientContractActivate(c.id),
+                      successMsg: 'Contract activated',
                     ),
                   ),
-                  AppSizes.hGapMd,
-                  Expanded(
-                    child: AppPrimaryButton(
-                      label: 'Complete',
-                      onPressed: () => _confirmAndExecute(
-                        context,
-                        title: 'Complete Contract?',
-                        message:
-                            'Mark this contract as completed and release remaining milestones?',
-                        confirmLabel: 'Complete',
-                        endpoint: ApiEndpoints.clientContractComplete(c.id),
-                        successMsg: 'Contract completed',
-                      ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: AppPrimaryButton(
+                    label: 'Complete',
+                    onPressed: () => _confirmAndExecute(
+                      context,
+                      title: 'Complete Contract?',
+                      message:
+                          'Mark this contract as completed and release remaining milestones?',
+                      confirmLabel: 'Complete',
+                      endpoint: ApiEndpoints.clientContractComplete(c.id),
+                      successMsg: 'Contract completed',
                     ),
                   ),
-                ],
-              )
-            : Row(
-                children: [
-                  Expanded(
-                    child: AppSecondaryButton(
-                      label: 'Message',
-                      icon: Icons.chat_bubble_outline_rounded,
-                      onPressed: () => context.push(Routes.messages),
-                    ),
-                  ),
-                  AppSizes.hGapMd,
-                  Expanded(
-                    flex: 2,
-                    child: AppPrimaryButton(
-                      label: 'View Milestones',
-                      icon: Icons.flag_outlined,
-                      onPressed: () =>
-                          context.showSnack('Showing contract milestones'),
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+          );
+        }
+        return Padding(
+          padding: const EdgeInsets.all(AppSizes.lg),
+          child: Row(
+            children: [
+              Expanded(
+                child: AppSecondaryButton(
+                  label: 'Message',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  onPressed: () => _openChat(context, c, role),
+                ),
               ),
-      ),
+              AppSizes.hGapMd,
+              Expanded(
+                flex: 2,
+                child: AppPrimaryButton(
+                  label: 'View Milestones',
+                  icon: Icons.flag_outlined,
+                  onPressed: () =>
+                      context.showSnack('Showing contract milestones'),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
       builder: (context, c) => ListView(
         padding: const EdgeInsets.all(AppSizes.screenPadding),
         children: [
+          // 1. Hero Summary Banner
           DetailHeroBanner(
             icon: Icons.assignment_turned_in_outlined,
-            title: c.projectTitle,
-            subtitle: 'with ${c.counterpartyName}',
+            title: c.contractNumber?.isNotEmpty == true
+                ? c.contractNumber!
+                : (c.projectTitle.isNotEmpty
+                    ? c.projectTitle
+                    : 'Contract #${c.id.substring(0, c.id.length > 8 ? 8 : c.id.length)}'),
+            subtitle: c.contractNumber?.isNotEmpty == true
+                ? c.projectTitle
+                : 'Contract Agreement',
             chips: [
               DetailStatChip(
                 icon: Icons.payments_outlined,
                 label: Formatters.compactCurrency(c.amount),
               ),
+              DetailStatChip(
+                icon: Icons.schedule_rounded,
+                label: Formatters.date(c.startDate),
+              ),
             ],
           ),
           AppSizes.vGapLg,
+
+          // 2. Status & Progress Card
           AppCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text('Progress', style: context.text.titleSmall),
-                    ),
+                    Text('Contract Status', style: context.text.titleSmall),
                     AppStatusChip.status(c.status, dense: true),
                   ],
                 ),
-                AppSizes.vGapSm,
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: c.progress,
-                    minHeight: 8,
-                    backgroundColor: context.theme.dividerColor,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.success),
+                if (c.progress > 0) ...[
+                  AppSizes.vGapSm,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: c.progress,
+                      minHeight: 6,
+                      backgroundColor: context.theme.dividerColor,
+                      valueColor: const AlwaysStoppedAnimation(
+                        AppColors.primary,
+                      ),
+                    ),
                   ),
-                ),
-                AppSizes.vGapSm,
-                Text(
-                  '${(c.progress * 100).toStringAsFixed(0)}% complete · Started ${Formatters.date(c.startDate)}',
-                  style: context.text.labelSmall,
-                ),
+                  AppSizes.vGapSm,
+                  Text(
+                    '${(c.progress * 100).toInt()}% completed',
+                    style: context.text.labelSmall,
+                  ),
+                ],
               ],
             ),
           ),
           AppSizes.vGapLg,
-          DetailSection(
-            title: 'Milestones',
-            child: DetailTimeline(
-              events: [
-                for (final m in c.milestones)
-                  TimelineEvent(
-                    m.title,
-                    subtitle:
-                        '${Formatters.compactCurrency(m.amount)} · ${m.status.label} · due ${Formatters.date(m.dueDate)}',
-                    done: m.status == EntityStatus.completed,
+
+          // 3. Project Details Card
+          const AppSectionHeader(title: 'Project Details'),
+          AppSizes.vGapSm,
+          AppCard(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(AppSizes.sm),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withAlpha(20),
+                    borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                  ),
+                  child: const Icon(
+                    Icons.work_outline_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        c.projectTitle.isNotEmpty
+                            ? c.projectTitle
+                            : 'Linked Project',
+                        style: context.text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (c.projectId != null && c.projectId!.isNotEmpty)
+                        Text(
+                          'ID: ${c.projectId}',
+                          style: context.text.labelSmall?.copyWith(
+                            color: AppColors.mutedText,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                if (c.projectId != null && c.projectId!.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                    onPressed: () =>
+                        context.push('${Routes.projectDetails}/${c.projectId}'),
                   ),
               ],
             ),
           ),
-          const SizedBox(height: 90),
+          AppSizes.vGapLg,
+
+          // 4. Freelancer Details Card
+          const AppSectionHeader(title: 'Freelancer Details'),
+          AppSizes.vGapSm,
+          AppCard(
+            child: Row(
+              children: [
+                AppAvatar(
+                  name: c.freelancerName,
+                  imageUrl: c.freelancerAvatar,
+                  size: 48,
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        c.freelancerName,
+                        style: context.text.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (c.freelancerTitle != null &&
+                          c.freelancerTitle!.isNotEmpty)
+                        Text(
+                          c.freelancerTitle!,
+                          style: context.text.bodySmall?.copyWith(
+                            color: AppColors.mutedText,
+                          ),
+                        ),
+                      if (c.freelancerRating != null) ...[
+                        AppSizes.vGapXs,
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 16,
+                              color: Colors.amber,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              c.freelancerRating!.toStringAsFixed(1),
+                              style: context.text.labelSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (role == UserRole.client &&
+                    c.freelancerId != null &&
+                    c.freelancerId!.isNotEmpty)
+                  IconButton(
+                    icon: const Icon(
+                      Icons.chat_bubble_outline_rounded,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                    onPressed: () => _openChat(context, c, role),
+                  ),
+              ],
+            ),
+          ),
+          AppSizes.vGapLg,
+
+          // 5. Client Details Card
+          if (c.clientName != null && c.clientName!.isNotEmpty) ...[
+            const AppSectionHeader(title: 'Client Details'),
+            AppSizes.vGapSm,
+            AppCard(
+              child: Row(
+                children: [
+                  AppAvatar(
+                    name: c.clientName!,
+                    imageUrl: c.clientAvatar,
+                    size: 48,
+                  ),
+                  AppSizes.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.clientName!,
+                          style: context.text.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'Project Client',
+                          style: context.text.labelSmall?.copyWith(
+                            color: AppColors.mutedText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            AppSizes.vGapLg,
+          ],
+
+          // 6. Proposal Details Card
+          const AppSectionHeader(title: 'Proposal Details'),
+          AppSizes.vGapSm,
+          AppCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _Row(
+                  'Bid Amount',
+                  Formatters.currency(c.proposalBidAmount ?? c.amount),
+                ),
+                const Divider(height: AppSizes.lg),
+                _Row(
+                  'Delivery Timeline',
+                  c.proposalDeliveryTime != null
+                      ? '${c.proposalDeliveryTime} days'
+                      : '—',
+                ),
+                const Divider(height: AppSizes.lg),
+                _Row(
+                  'Proposal Status',
+                  (c.proposalStatus?.isNotEmpty == true
+                          ? c.proposalStatus!
+                          : 'Accepted')
+                      .toUpperCase(),
+                ),
+                if (c.proposalCoverLetter != null &&
+                    c.proposalCoverLetter!.trim().isNotEmpty) ...[
+                  const Divider(height: AppSizes.lg),
+                  Text(
+                    'Cover Letter',
+                    style: context.text.labelMedium?.copyWith(
+                      color: AppColors.mutedText,
+                    ),
+                  ),
+                  AppSizes.vGapXs,
+                  Text(c.proposalCoverLetter!, style: context.text.bodyMedium),
+                ],
+              ],
+            ),
+          ),
+          AppSizes.vGapLg,
+
+          // 7. Milestones
+          if (c.milestones.isNotEmpty) ...[
+            const AppSectionHeader(title: 'Milestones'),
+            AppSizes.vGapSm,
+            for (final m in c.milestones)
+              AppCard(
+                margin: const EdgeInsets.only(bottom: AppSizes.sm),
+                child: Row(
+                  children: [
+                    Icon(
+                      m.status == EntityStatus.completed
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked_rounded,
+                      color: m.status == EntityStatus.completed
+                          ? AppColors.success
+                          : AppColors.mutedText,
+                      size: 20,
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(m.title, style: context.text.titleSmall),
+                          Text(
+                            'Due ${Formatters.date(m.dueDate)}',
+                            style: context.text.labelSmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      Formatters.currency(m.amount),
+                      style: context.text.titleSmall,
+                    ),
+                  ],
+                ),
+              ),
+            AppSizes.vGapLg,
+          ],
+          const SizedBox(height: 80),
         ],
       ),
+    );
+  }
+
+  Future<void> _openChat(
+    BuildContext context,
+    Contract c,
+    UserRole? role,
+  ) async {
+    final isClient = role == UserRole.client;
+    final targetId = isClient ? c.freelancerId : c.clientId;
+    final targetName = isClient
+        ? c.freelancerName
+        : (c.clientName ?? 'Client');
+    final targetAvatar = isClient ? c.freelancerAvatar : c.clientAvatar;
+    if (targetId == null || targetId.isEmpty) {
+      context.showSnack('User unavailable for chat', isError: true);
+      return;
+    }
+    final nameParam = Uri.encodeComponent(
+      targetName.isNotEmpty ? targetName : 'User',
+    );
+    final avatarParam = Uri.encodeComponent(targetAvatar ?? '');
+    context.push(
+      '${Routes.chat}/$targetId?name=$nameParam&avatarUrl=$avatarParam',
     );
   }
 
@@ -211,22 +491,32 @@ class ContractDetailsPage extends StatelessWidget {
     if (!ok || !context.mounted) return;
     final res = await sl<ApiClientHelper>().patchAction(endpoint);
     if (!context.mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (_) => context.showSnack(successMsg),
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
+      context.showSnack(successMsg);
+      context.read<DetailCubit<Contract>>().load();
+    });
   }
+}
 
-  Future<void> _contractAction(
-    BuildContext context,
-    String endpoint,
-    String msg,
-  ) async {
-    final res = await sl<ApiClientHelper>().patchAction(endpoint);
-    if (!context.mounted) return;
-    res.fold(
-      (f) => context.showSnack(f.message),
-      (_) => context.showSnack(msg),
+class _Row extends StatelessWidget {
+  const _Row(this.label, this.value);
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: context.text.bodyMedium?.copyWith(color: AppColors.mutedText),
+        ),
+        Text(
+          value,
+          style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        ),
+      ],
     );
   }
 }

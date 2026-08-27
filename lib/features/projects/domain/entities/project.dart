@@ -427,12 +427,42 @@ class Contract extends Equatable {
     required this.status,
     required this.startDate,
     required this.milestones,
+    this.contractNumber,
+    this.projectId,
+    this.clientId,
+    this.clientName,
+    this.clientAvatar,
+    this.freelancerId,
+    this.freelancerName = 'Freelancer',
+    this.freelancerAvatar,
+    this.freelancerTitle,
+    this.freelancerRating,
+    this.proposalId,
+    this.proposalBidAmount,
+    this.proposalDeliveryTime,
+    this.proposalCoverLetter,
+    this.proposalStatus,
     this.counterpartyAvatar,
     this.progress = 0,
   });
 
   final String id;
+  final String? contractNumber;
   final String projectTitle;
+  final String? projectId;
+  final String? clientId;
+  final String? clientName;
+  final String? clientAvatar;
+  final String? freelancerId;
+  final String freelancerName;
+  final String? freelancerAvatar;
+  final String? freelancerTitle;
+  final double? freelancerRating;
+  final String? proposalId;
+  final double? proposalBidAmount;
+  final int? proposalDeliveryTime;
+  final String? proposalCoverLetter;
+  final String? proposalStatus;
   final String counterpartyName;
   final String? counterpartyAvatar;
   final double amount;
@@ -442,5 +472,14 @@ class Contract extends Equatable {
   final double progress;
 
   @override
-  List<Object?> get props => [id, status, progress];
+  List<Object?> get props => [
+    id,
+    contractNumber,
+    projectId,
+    status,
+    progress,
+    freelancerId,
+    clientId,
+    proposalId,
+  ];
 }

@@ -1,6 +1,9 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
@@ -85,7 +88,47 @@ class ClientProposalBloc
     emit,
     event.proposalId,
     ClientProposalAction.accept,
-    () => _repository.accept(event.proposalId),
+    () async {
+      final res = await _repository.accept(event.proposalId);
+      return res.fold(
+        (f) => Err(f),
+        (acceptedProposal) async {
+          final projectId = event.projectId ?? acceptedProposal.projectId;
+          final freelancerId =
+              event.freelancerId ?? acceptedProposal.freelancerId;
+          String? createdContractId;
+          if (projectId != null &&
+              projectId.isNotEmpty &&
+              freelancerId != null &&
+              freelancerId.isNotEmpty) {
+            final contractRes = await sl<ApiClientHelper>()
+                .postEnvelope<String?>(
+                  ApiEndpoints.clientContracts,
+                  body: {
+                    'projectId': projectId,
+                    'freelancerId': freelancerId,
+                    'proposalId': event.proposalId,
+                  },
+                  parser: (envelope) {
+                    final data = envelope.data;
+                    if (data is Map) {
+                      return data['id']?.toString() ??
+                          data['contractId']?.toString();
+                    }
+                    return null;
+                  },
+                );
+            createdContractId = contractRes.valueOrNull;
+          }
+          return Success(
+            acceptedProposal.copyWith(
+              status: EntityStatus.accepted,
+              contractId: createdContractId ?? acceptedProposal.contractId,
+            ),
+          );
+        },
+      );
+    },
   );
 
   Future<void> _onMessage(

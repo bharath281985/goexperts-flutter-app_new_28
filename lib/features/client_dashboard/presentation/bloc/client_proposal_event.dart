@@ -53,11 +53,17 @@ class ClientProposalInterviewRequested extends ClientProposalEvent {
 }
 
 class ClientProposalAcceptRequested extends ClientProposalEvent {
-  const ClientProposalAcceptRequested(this.proposalId);
+  const ClientProposalAcceptRequested(
+    this.proposalId, {
+    this.projectId,
+    this.freelancerId,
+  });
   final String proposalId;
+  final String? projectId;
+  final String? freelancerId;
 
   @override
-  List<Object?> get props => [proposalId];
+  List<Object?> get props => [proposalId, projectId, freelancerId];
 }
 
 class ClientProposalMessageRequested extends ClientProposalEvent {

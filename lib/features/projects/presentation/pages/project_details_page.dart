@@ -563,7 +563,10 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                       ),
                     ],
                     AppSizes.vGapMd,
-                    ClientProposalActionBar(proposal: proposal),
+                    ClientProposalActionBar(
+                      proposal: proposal,
+                      onStatusChanged: _reload,
+                    ),
                   ],
                 ),
               ),

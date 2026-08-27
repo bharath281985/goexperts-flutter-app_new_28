@@ -25,6 +25,12 @@ class ClientProposalModel {
           json['freelancerName'] as String? ??
           'Freelancer',
       freelancerAvatar: freelancer?['avatarUrl'] as String?,
+      contractId:
+          json['contractId']?.toString() ??
+          json['contract_id']?.toString() ??
+          (json['contract'] is Map
+              ? (json['contract'] as Map)['id']?.toString()
+              : null),
       bidAmount: (json['bidAmount'] as num?)?.toDouble() ?? 0,
       isHourly: json['isHourly'] as bool? ?? false,
       coverLetter: json['coverLetter'] as String? ?? '',

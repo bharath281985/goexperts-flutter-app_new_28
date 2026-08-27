@@ -203,30 +203,85 @@ class ProjectRepositoryImpl implements ProjectRepository {
             .toList() ??
         const <Milestone>[];
 
+    final project = json['project'] as Map<String, dynamic>?;
+    final freelancer = json['freelancer'] as Map<String, dynamic>?;
+    final client = json['client'] as Map<String, dynamic>?;
+    final proposal = json['proposal'] as Map<String, dynamic>?;
+    final fProfile = freelancer?['freelancerProfile'] as Map<String, dynamic>?;
+
+    final freelancerName =
+        freelancer?['fullName'] as String? ??
+        json['freelancerName'] as String? ??
+        json['counterpartyName'] as String? ??
+        'Freelancer';
+    final freelancerAvatar =
+        freelancer?['avatarUrl'] as String? ??
+        json['freelancerAvatar'] as String? ??
+        json['counterpartyAvatar'] as String? ??
+        json['avatarUrl'] as String?;
+
+    final clientName =
+        client?['fullName'] as String? ??
+        json['clientName'] as String? ??
+        json['client_name'] as String?;
+    final clientAvatar =
+        client?['avatarUrl'] as String? ??
+        json['clientAvatar'] as String? ??
+        json['client_avatar'] as String?;
+
+    final projectTitle =
+        project?['title'] as String? ??
+        json['projectTitle'] as String? ??
+        json['project_title'] as String? ??
+        'Project Contract';
+
+    final amount =
+        (proposal?['bidAmount'] as num?)?.toDouble() ??
+        (json['amount'] as num?)?.toDouble() ??
+        (json['bidAmount'] as num?)?.toDouble() ??
+        0.0;
+
+    final proposalBid =
+        (proposal?['bidAmount'] as num?)?.toDouble() ??
+        (json['bidAmount'] as num?)?.toDouble() ??
+        amount;
+    final proposalDelivery =
+        (proposal?['deliveryTime'] as num?)?.toInt() ??
+        (proposal?['deliveryDays'] as num?)?.toInt() ??
+        (json['deliveryTime'] as num?)?.toInt();
+    final proposalCover =
+        proposal?['coverLetter'] as String? ??
+        json['coverLetter'] as String? ??
+        json['cover_letter'] as String?;
+    final proposalStatus =
+        proposal?['status'] as String? ?? json['proposalStatus'] as String?;
+
     return Contract(
       id: json['id']?.toString() ?? '',
-      projectTitle:
-          json['projectTitle'] as String? ??
-          json['project_title'] as String? ??
-          json['projectId']?.toString() ??
-          json['project_id']?.toString() ??
-          '',
-      counterpartyName:
-          json['counterpartyName'] as String? ??
-          json['counterparty_name'] as String? ??
-          json['clientName'] as String? ??
-          json['clientId']?.toString() ??
-          json['client_id']?.toString() ??
-          'Counterparty',
-      counterpartyAvatar:
-          json['counterpartyAvatar'] as String? ??
-          json['counterparty_avatar'] as String? ??
-          json['avatarUrl'] as String?,
-      amount:
-          (json['amount'] as num?)?.toDouble() ??
-          (json['bidAmount'] as num?)?.toDouble() ??
-          0,
-      status: EntityStatus.fromString(json['status'] as String? ?? 'draft'),
+      contractNumber:
+          json['contractNumber'] as String? ??
+          json['contract_number'] as String?,
+      projectId: json['projectId']?.toString() ?? project?['id']?.toString(),
+      projectTitle: projectTitle,
+      clientId: json['clientId']?.toString() ?? client?['id']?.toString(),
+      clientName: clientName,
+      clientAvatar: clientAvatar,
+      freelancerId:
+          json['freelancerId']?.toString() ?? freelancer?['id']?.toString(),
+      freelancerName: freelancerName,
+      freelancerAvatar: freelancerAvatar,
+      freelancerTitle: fProfile?['titleHeadline'] as String?,
+      freelancerRating: (fProfile?['rating'] as num?)?.toDouble(),
+      proposalId:
+          json['proposalId']?.toString() ?? proposal?['id']?.toString(),
+      proposalBidAmount: proposalBid,
+      proposalDeliveryTime: proposalDelivery,
+      proposalCoverLetter: proposalCover,
+      proposalStatus: proposalStatus,
+      counterpartyName: freelancerName,
+      counterpartyAvatar: freelancerAvatar,
+      amount: amount,
+      status: EntityStatus.fromString(json['status'] as String? ?? 'pending'),
       startDate:
           DateTime.tryParse(
             json['startDate'] as String? ??
