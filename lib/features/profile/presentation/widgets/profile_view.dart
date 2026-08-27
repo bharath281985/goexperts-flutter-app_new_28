@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
@@ -26,6 +27,8 @@ class ProfileViewData {
     this.followers = 0,
     this.stats = const {},
     this.skills = const [],
+    this.industries = const [],
+    this.workModes = const [],
     this.preferredStages = const [],
     this.primaryActionLabel = 'Contact',
     this.primaryActionIcon = Icons.mail_outline_rounded,
@@ -35,9 +38,15 @@ class ProfileViewData {
     this.phone = '+91 98765 43210',
     this.email = 'info@goexperts.example',
     this.experience = '',
+    this.experienceLevel = '',
     this.education = '',
     this.linkedin = '',
     this.website = '',
+    this.portfolioUrl = '',
+    this.linkedInUrl = '',
+    this.githubUrl = '',
+    this.websiteUrl = '',
+    this.hourlyRate,
   });
 
   final String name;
@@ -51,6 +60,8 @@ class ProfileViewData {
   final int followers;
   final Map<String, String> stats;
   final List<String> skills;
+  final List<String> industries;
+  final List<String> workModes;
   // Nullable keeps existing view-model instances safe across hot reloads when
   // this field is introduced; rendering always normalizes null to an empty list.
   final List<String>? preferredStages;
@@ -62,9 +73,15 @@ class ProfileViewData {
   final String phone;
   final String email;
   final String experience;
+  final String experienceLevel;
   final String education;
   final String linkedin;
   final String website;
+  final String portfolioUrl;
+  final String linkedInUrl;
+  final String githubUrl;
+  final String websiteUrl;
+  final double? hourlyRate;
 }
 
 class ProfileView extends StatelessWidget {
@@ -163,7 +180,14 @@ class ProfileView extends StatelessWidget {
                       color: AppColors.mutedText,
                     ),
                     const SizedBox(width: 4),
-                    Text(data.location, style: context.text.bodySmall),
+                    Expanded(
+                      child: Text(
+                        data.location,
+                        style: context.text.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     if (data.rating != null) ...[
                       AppSizes.hGapMd,
                       const Icon(
@@ -205,7 +229,34 @@ class ProfileView extends StatelessWidget {
                     ),
                   ],
                 ],
+                if (data.industries.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  const AppSectionHeader(title: 'Industry & Domain'),
+                  AppSizes.vGapSm,
+                  Wrap(
+                    spacing: AppSizes.sm,
+                    runSpacing: AppSizes.sm,
+                    children: [
+                      for (final ind in data.industries)
+                        _chip(context, ind),
+                    ],
+                  ),
+                ],
+                if (data.workModes.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  const AppSectionHeader(title: 'Work Mode'),
+                  AppSizes.vGapSm,
+                  Wrap(
+                    spacing: AppSizes.sm,
+                    runSpacing: AppSizes.sm,
+                    children: [
+                      for (final mode in data.workModes)
+                        _chip(context, mode),
+                    ],
+                  ),
+                ],
                 if (data.experience.isNotEmpty ||
+                    data.experienceLevel.isNotEmpty ||
                     data.education.isNotEmpty) ...[
                   AppSizes.vGapLg,
                   const AppSectionHeader(title: 'Background & Expertise'),
@@ -215,7 +266,8 @@ class ProfileView extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (data.experience.isNotEmpty) ...[
+                        if (data.experienceLevel.isNotEmpty ||
+                            data.experience.isNotEmpty) ...[
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -255,7 +307,7 @@ class ProfileView extends StatelessWidget {
                                           ),
                                         ),
                                         child: Text(
-                                          'Experience',
+                                          'Experience Level',
                                           style: context.text.labelSmall
                                               ?.copyWith(
                                                 color: AppColors.primary,
@@ -267,7 +319,9 @@ class ProfileView extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      data.experience,
+                                      data.experienceLevel.isNotEmpty
+                                          ? data.experienceLevel
+                                          : data.experience,
                                       style: context.text.titleSmall?.copyWith(
                                         fontWeight: FontWeight.w600,
                                         height: 1.4,
@@ -279,7 +333,8 @@ class ProfileView extends StatelessWidget {
                             ],
                           ),
                         ],
-                        if (data.experience.isNotEmpty &&
+                        if ((data.experienceLevel.isNotEmpty ||
+                                data.experience.isNotEmpty) &&
                             data.education.isNotEmpty) ...[
                           Padding(
                             padding: const EdgeInsets.only(
@@ -362,37 +417,97 @@ class ProfileView extends StatelessWidget {
                     ),
                   ),
                 ],
-                if (data.linkedin.isNotEmpty || data.website.isNotEmpty) ...[
-                  AppSizes.vGapXl,
-                  const AppSectionHeader(title: 'Connect & Explore'),
-                  AppSizes.vGapMd,
-                  Row(
+                () {
+                  final links = <Widget>[];
+                  if (data.portfolioUrl.trim().isNotEmpty) {
+                    links.add(
+                      _linkCard(
+                        context,
+                        'Portfolio',
+                        'View Portfolio',
+                        Icons.folder_special_outlined,
+                        data.portfolioUrl.trim(),
+                      ),
+                    );
+                  }
+                  final linkedIn = data.linkedInUrl.trim().isNotEmpty
+                      ? data.linkedInUrl.trim()
+                      : data.linkedin.trim();
+                  if (linkedIn.isNotEmpty) {
+                    links.add(
+                      _linkCard(
+                        context,
+                        'LinkedIn',
+                        'Professional Profile',
+                        Icons.link_rounded,
+                        linkedIn,
+                      ),
+                    );
+                  }
+                  if (data.githubUrl.trim().isNotEmpty) {
+                    links.add(
+                      _linkCard(
+                        context,
+                        'GitHub',
+                        'Code Repositories',
+                        Icons.code_rounded,
+                        data.githubUrl.trim(),
+                      ),
+                    );
+                  }
+                  final website = data.websiteUrl.trim().isNotEmpty
+                      ? data.websiteUrl.trim()
+                      : data.website.trim();
+                  if (website.isNotEmpty) {
+                    links.add(
+                      _linkCard(
+                        context,
+                        'Website',
+                        'Personal Website',
+                        Icons.language_rounded,
+                        website,
+                      ),
+                    );
+                  }
+
+                  if (links.isEmpty) return const SizedBox.shrink();
+
+                  final rows = <Widget>[];
+                  for (int i = 0; i < links.length; i += 2) {
+                    if (i + 1 < links.length) {
+                      rows.add(
+                        Row(
+                          children: [
+                            Expanded(child: links[i]),
+                            AppSizes.hGapMd,
+                            Expanded(child: links[i + 1]),
+                          ],
+                        ),
+                      );
+                    } else {
+                      rows.add(
+                        Row(
+                          children: [
+                            Expanded(child: links[i]),
+                          ],
+                        ),
+                      );
+                    }
+                    if (i + 2 < links.length) {
+                      rows.add(AppSizes.vGapMd);
+                    }
+                  }
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (data.linkedin.isNotEmpty)
-                        Expanded(
-                          child: _linkCard(
-                            context,
-                            'LinkedIn',
-                            'Professional Network',
-                            Icons.link_rounded,
-                            data.linkedin,
-                          ),
-                        ),
-                      if (data.linkedin.isNotEmpty && data.website.isNotEmpty)
-                        AppSizes.hGapMd,
-                      if (data.website.isNotEmpty)
-                        Expanded(
-                          child: _linkCard(
-                            context,
-                            'Website',
-                            'Visit Platform',
-                            Icons.language_rounded,
-                            data.website,
-                          ),
-                        ),
+                      AppSizes.vGapXl,
+                      const AppSectionHeader(title: 'Portfolio & Links'),
+                      AppSizes.vGapMd,
+                      ...rows,
                     ],
-                  ),
-                ],
+                  );
+                }(),
                 if (reviews.isNotEmpty) ...[
                   AppSizes.vGapLg,
                   const AppSectionHeader(title: 'Reviews'),
@@ -1523,25 +1638,34 @@ class ProfileView extends StatelessWidget {
         for (int i = 0; i < data.stats.length; i++) ...[
           if (i > 0) Container(width: 1, height: 40, color: AppColors.border),
           Expanded(
-            child: Column(
-              children: [
-                Text(
-                  data.stats.values.elementAt(i),
-                  style: context.text.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Column(
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      data.stats.values.elementAt(i),
+                      style: context.text.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                      maxLines: 1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  data.stats.keys.elementAt(i),
-                  style: context.text.labelSmall?.copyWith(
-                    color: AppColors.mutedText,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 4),
+                  Text(
+                    data.stats.keys.elementAt(i),
+                    style: context.text.labelSmall?.copyWith(
+                      color: AppColors.mutedText,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
@@ -1726,8 +1850,18 @@ class ProfileView extends StatelessWidget {
     IconData icon,
     String url,
   ) => InkWell(
-    onTap: () {
-      context.showSnack('Opening $title...');
+    onTap: () async {
+      if (url.trim().isEmpty) return;
+      var cleanUrl = url.trim();
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        cleanUrl = 'https://$cleanUrl';
+      }
+      final uri = Uri.tryParse(cleanUrl);
+      if (uri != null && await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else if (context.mounted) {
+        context.showSnack('Opening $title ($cleanUrl)...');
+      }
     },
     borderRadius: BorderRadius.circular(AppSizes.radiusLg),
     child: Container(
@@ -1782,6 +1916,8 @@ class ProfileView extends StatelessWidget {
             style: context.text.labelSmall?.copyWith(
               color: AppColors.mutedText,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

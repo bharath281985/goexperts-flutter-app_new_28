@@ -87,27 +87,112 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
   }
 
+List<String> _extractList(dynamic val) {
+  if (val == null) return [];
+  if (val is List) {
+    return val
+        .map((item) {
+          if (item is Map) {
+            return (item['name'] ??
+                    item['label'] ??
+                    item['title'] ??
+                    item['skillName'] ??
+                    item['industryName'] ??
+                    item['workModeName'] ??
+                    item['value'] ??
+                    item['id'])
+                ?.toString()
+                .trim() ??
+                '';
+          }
+          return item.toString().trim();
+        })
+        .where((s) => s.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s))
+        .toList();
+  }
+  if (val is String && val.trim().isNotEmpty) {
+    return val
+        .split(',')
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s))
+        .toList();
+  }
+  return [];
+}
+
+String _formatLabel(dynamic val) {
+  if (val == null) return '';
+  if (val is Map) {
+    return (val['name'] ?? val['label'] ?? val['title'] ?? val['value'] ?? val['id'])
+            ?.toString()
+            .trim() ??
+        '';
+  }
+  final s = val.toString().trim();
+  if (s.isEmpty) return '';
+
+  String cleaned = s;
+  if (cleaned.startsWith('mo_experience_level_')) {
+    cleaned = cleaned.replaceFirst('mo_experience_level_', '');
+  } else if (cleaned.startsWith('mo_work_mode_')) {
+    cleaned = cleaned.replaceFirst('mo_work_mode_', '');
+  } else if (cleaned.startsWith('mo_industry_')) {
+    cleaned = cleaned.replaceFirst('mo_industry_', '');
+  }
+
+  final isUuid = RegExp(
+    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+  ).hasMatch(cleaned);
+  if (isUuid) {
+    return '';
+  }
+
+  cleaned = cleaned.replaceAll('_', ' ').replaceAll('-', ' ');
+  return cleaned
+      .split(' ')
+      .where((w) => w.isNotEmpty)
+      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+      .join(' ');
+}
+
   /// Builds a ProfileViewData from the raw API data map.
   ProfileViewData? _parse(Map<String, dynamic> raw) {
+    final reg = raw['registrationData'] as Map<String, dynamic>? ?? {};
     final id = raw['id']?.toString() ?? widget.id;
     final fullName =
-        raw['fullName']?.toString() ?? raw['full_name']?.toString() ?? 'User';
+        raw['fullName']?.toString() ??
+        reg['fullName']?.toString() ??
+        raw['full_name']?.toString() ??
+        'User';
     final rawAvatarUrl =
-        raw['avatarUrl']?.toString() ?? raw['avatar_url']?.toString();
+        raw['avatarUrl']?.toString() ??
+        reg['avatarUrl']?.toString() ??
+        raw['avatar_url']?.toString();
     final avatarUrl = rawAvatarUrl == null || rawAvatarUrl.isEmpty
         ? null
         : normalizeImageUrl(rawAvatarUrl);
-    final city = raw['city']?.toString() ?? '';
-    final country = raw['country']?.toString() ?? '';
-    final location = [city, country].where((e) => e.isNotEmpty).join(', ');
-    final bio = raw['bio']?.toString() ?? '';
+    final locationParts = [
+      raw['city']?.toString() ?? reg['city']?.toString() ?? '',
+      raw['state']?.toString() ?? reg['state']?.toString() ?? '',
+      raw['country']?.toString() ?? reg['country']?.toString() ?? '',
+    ]
+        .where((e) => e.trim().isNotEmpty)
+        .where((e) => !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(e.trim()))
+        .toSet()
+        .toList();
+    final location = locationParts.join(', ');
+    final bio = raw['bio']?.toString() ??
+        reg['bio']?.toString() ??
+        raw['about']?.toString() ??
+        '';
     final isVerified =
         raw['isVerified'] as bool? ??
+        reg['isVerified'] as bool? ??
         raw['is_verified'] as bool? ??
         raw['verified'] as bool? ??
         false;
-    final email = raw['email']?.toString() ?? '';
-    final phone = raw['phone']?.toString() ?? '';
+    final email = raw['email']?.toString() ?? reg['email']?.toString() ?? '';
+    final phone = raw['phone']?.toString() ?? reg['phone']?.toString() ?? '';
 
     bool toBool(dynamic val) {
       if (val == null) return false;
@@ -134,41 +219,104 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     switch (widget.type) {
       case PublicProfileType.freelancer:
         {
-          final fp = raw['freelancerProfile'] as Map? ?? raw;
-          final skillsRaw = fp['skills']?.toString() ?? '';
-          final skills = skillsRaw.isNotEmpty
-              ? skillsRaw
-                    .split(',')
-                    .map((s) => s.trim())
-                    .where((s) => s.isNotEmpty)
-                    .toList()
-              : <String>[];
-          final hourlyRate = (fp['hourlyRate'] as num?)?.toDouble() ?? 0.0;
-          final experience = fp['experience']?.toString() ?? '';
+          final fp = raw['freelancerProfile'] as Map? ??
+              raw['profile'] as Map? ??
+              (reg.isNotEmpty ? reg : raw);
+          final skills = _extractList(
+            fp['skills'] ?? reg['skills'] ?? raw['skills'],
+          );
+          final industries = _extractList(
+            fp['industry'] ??
+                fp['industries'] ??
+                reg['industry'] ??
+                reg['industries'] ??
+                raw['industry'] ??
+                raw['industries'],
+          );
+          final workModes = _extractList(
+            fp['workMode'] ??
+                fp['workModes'] ??
+                reg['workMode'] ??
+                reg['workModes'] ??
+                raw['workMode'] ??
+                raw['workModes'],
+          );
+          final hourlyRate = (fp['hourlyRate'] as num?)?.toDouble() ??
+              (reg['hourlyRate'] as num?)?.toDouble() ??
+              (raw['hourlyRate'] as num?)?.toDouble() ??
+              0.0;
+          final rawExp = fp['experienceLevel'] ??
+              fp['experience'] ??
+              reg['experienceLevel'] ??
+              reg['experience'] ??
+              raw['experienceLevel'] ??
+              raw['experience'];
+          final expLevel = _formatLabel(rawExp);
+          final titleHeadline = fp['titleHeadline']?.toString() ??
+              reg['titleHeadline']?.toString() ??
+              raw['titleHeadline']?.toString() ??
+              raw['headline']?.toString() ??
+              '';
+
+          final portfolioUrl = fp['portfolioUrl']?.toString() ??
+              reg['portfolioUrl']?.toString() ??
+              raw['portfolioUrl']?.toString() ??
+              '';
+          final linkedInUrl = fp['linkedInUrl']?.toString() ??
+              fp['linkedinUrl']?.toString() ??
+              fp['linkedin']?.toString() ??
+              reg['linkedInUrl']?.toString() ??
+              raw['linkedInUrl']?.toString() ??
+              '';
+          final githubUrl = fp['githubUrl']?.toString() ??
+              reg['githubUrl']?.toString() ??
+              raw['githubUrl']?.toString() ??
+              '';
+          final websiteUrl = fp['websiteUrl']?.toString() ??
+              fp['website']?.toString() ??
+              reg['websiteUrl']?.toString() ??
+              raw['websiteUrl']?.toString() ??
+              '';
+
+          final headline = titleHeadline.isNotEmpty
+              ? titleHeadline
+              : [
+                  if (expLevel.isNotEmpty) expLevel,
+                  if (hourlyRate > 0)
+                    '${Formatters.compactCurrency(hourlyRate)}/hr',
+                ].join(' · ');
+
+          final stats = <String, String>{};
+          if (expLevel.isNotEmpty) {
+            stats['Experience'] = expLevel;
+          }
+          stats['Rate'] = hourlyRate > 0
+              ? '${Formatters.compactCurrency(hourlyRate)}/hr'
+              : '—';
+          stats['Skills'] = '${skills.length}';
+
           return ProfileViewData(
             name: fullName,
-            headline: [
-              experience,
-              if (hourlyRate > 0)
-                '${Formatters.compactCurrency(hourlyRate)}/hr',
-            ].join(' · '),
+            headline: headline,
             location: location,
             avatarUrl: avatarUrl,
             isVerified: isVerified,
             about: bio,
             skills: skills,
+            industries: industries,
+            workModes: workModes,
+            experienceLevel: expLevel,
+            portfolioUrl: portfolioUrl,
+            linkedInUrl: linkedInUrl,
+            githubUrl: githubUrl,
+            websiteUrl: websiteUrl,
+            hourlyRate: hourlyRate > 0 ? hourlyRate : null,
             isFollowing: apiIsFollowing,
             isSaved: apiIsSaved,
             type: PublicProfileType.freelancer,
             primaryActionLabel: 'Hire Now',
             primaryActionIcon: Icons.handshake_outlined,
-            stats: {
-              'Experience': experience.isEmpty ? '—' : experience,
-              'Rate': hourlyRate > 0
-                  ? '${Formatters.compactCurrency(hourlyRate)}/hr'
-                  : '—',
-              'Skills': '${skills.length}',
-            },
+            stats: stats,
             phone: phone,
             email: email,
           );
@@ -598,7 +746,15 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             return Scaffold(
               appBar: AppBar(
                 title: Text(
-                  profile?.name ?? 'Profile',
+                  widget.type == PublicProfileType.freelancer
+                      ? 'Freelancer details'
+                      : widget.type == PublicProfileType.investor
+                          ? 'Investor details'
+                          : widget.type == PublicProfileType.company
+                              ? 'Company details'
+                              : widget.type == PublicProfileType.founder
+                                  ? 'Founder details'
+                                  : (profile?.name ?? 'Profile'),
                   overflow: TextOverflow.ellipsis,
                 ),
                 actions: [
