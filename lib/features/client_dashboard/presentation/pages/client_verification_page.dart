@@ -717,7 +717,7 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
   Widget _buildCardRowGrid(List<Widget> cardWidgets) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 300 ? 2 : 1;
+        final columns = constraints.maxWidth >= 600 ? 2 : 1;
         if (columns == 1) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -16,15 +16,47 @@ import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 
-class InvestorHomePage extends StatelessWidget {
+class InvestorHomePage extends StatefulWidget {
   const InvestorHomePage({super.key});
 
   @override
+  State<InvestorHomePage> createState() => _InvestorHomePageState();
+}
+
+class _InvestorHomePageState extends State<InvestorHomePage> {
+  bool _popupShown = false;
+
+  void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
+    if (_popupShown) return;
+    if (!state.shouldShowFreePlanPrompt) return;
+    _popupShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FreePlanPromptDialog.show(
+        context,
+        profileCompletion: state.dashboardProfileCompletion,
+        verificationMissingCount: state.verificationMissingCount,
+        onComplete: ({required bool navigateToProfile}) {
+          if (navigateToProfile) {
+            context.push(Routes.investorProfile);
+          } else {
+            context.push(Routes.investorVerification);
+          }
+        },
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
+    return BlocConsumer<DashboardCubit, DashboardState>(
+      listenWhen: (prev, curr) =>
+          curr.status == ViewStatus.success && prev.status != ViewStatus.success,
+      listener: (context, state) => _maybeShowFreePlanPopup(context, state),
       builder: (context, state) {
         final loading =
             state.status == ViewStatus.loading ||
@@ -32,6 +64,7 @@ class InvestorHomePage extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
+            _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
             await context.read<DashboardCubit>().refresh();
           },
@@ -51,19 +84,19 @@ class InvestorHomePage extends StatelessWidget {
                         onMenu: () => Scaffold.of(ctx).openDrawer(),
                       ),
                     ),
-                     if (state.shouldShowVerificationPrompt || true) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.screenPadding,
-                        ),
-                        child: VerificationPromptCard(
-                          missingCount: state.verificationMissingCount,
-                          accountVerified: state.accountVerified,
-                          route: Routes.investorVerification,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                    //  if (state.shouldShowVerificationPrompt) ...[
+                    //   Padding(
+                    //     padding: const EdgeInsets.symmetric(
+                    //       horizontal: AppSizes.screenPadding,
+                    //     ),
+                    //     child: VerificationPromptCard(
+                    //       missingCount: state.verificationMissingCount,
+                    //       accountVerified: state.accountVerified,
+                    //       route: Routes.investorVerification,
+                    //     ),
+                    //   ),
+                    //   const SizedBox(height: 16),
+                    // ],
                     _buildTopHeader(context, state),
                    
                     _buildActionButtons(context),

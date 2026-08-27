@@ -14,20 +14,53 @@ import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/app_segmented_tabs.dart';
+import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 
-class ClientHomePage extends StatelessWidget {
+class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
 
   @override
+  State<ClientHomePage> createState() => _ClientHomePageState();
+}
+
+class _ClientHomePageState extends State<ClientHomePage> {
+  bool _popupShown = false;
+
+  void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
+    if (_popupShown) return;
+    if (!state.shouldShowFreePlanPrompt) return;
+    _popupShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FreePlanPromptDialog.show(
+        context,
+        profileCompletion: state.dashboardProfileCompletion,
+        verificationMissingCount: state.verificationMissingCount,
+        onComplete: ({required bool navigateToProfile}) {
+          if (navigateToProfile) {
+            context.push(Routes.clientProfile);
+          } else {
+            context.push(Routes.clientVerification);
+          }
+        },
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
+    return BlocConsumer<DashboardCubit, DashboardState>(
+      listenWhen: (prev, curr) =>
+          curr.status == ViewStatus.success && prev.status != ViewStatus.success,
+      listener: (context, state) => _maybeShowFreePlanPopup(context, state),
       builder: (context, state) {
         final loading =
             state.status == ViewStatus.loading ||
             state.status == ViewStatus.initial;
         return RefreshIndicator(
           onRefresh: () async {
+            _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
             await context.read<DashboardCubit>().refresh();
           },
@@ -42,14 +75,14 @@ class ClientHomePage extends StatelessWidget {
                   onMenu: () => Scaffold.of(ctx).openDrawer(),
                 ),
               ),
-               if (state.shouldShowVerificationPrompt) ...[
-                        VerificationPromptCard(
-                          missingCount: state.verificationMissingCount,
-                          accountVerified: state.accountVerified,
-                          route: Routes.clientVerification,
-                        ),
-                        const SizedBox(height: 16),
-                      ],
+              //  if (state.shouldShowVerificationPrompt) ...[
+              //           VerificationPromptCard(
+              //             missingCount: state.verificationMissingCount,
+              //             accountVerified: state.accountVerified,
+              //             route: Routes.clientVerification,
+              //           ),
+              //           const SizedBox(height: 16),
+              //         ],
               // Hero Banner
               _buildHeroBanner(context, state),
 

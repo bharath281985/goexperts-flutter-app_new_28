@@ -16,6 +16,10 @@ import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/profile_save_success_dialog.dart';
+import '../../../../core/utils/string_extensions.dart';
+import '../../../../core/widgets/profile_completion_card.dart';
+import '../../../../core/widgets/profile_completion_warning_dialog.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -126,14 +130,14 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
-      if (fn != null && fn.isNotEmpty) _name.text = fn;
+      if (fn != null && fn.isNotEmpty) _name.text = fn.toTitleCase();
 
       final bioVal = userMap['bio']?.toString();
-      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal;
+      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal.toTitleCase();
 
       final locVal =
           userMap['city']?.toString() ?? userMap['location']?.toString();
-      if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
+      if (locVal != null && locVal.isNotEmpty) _city.text = locVal.toTitleCase();
 
       final avVal = userMap['avatarUrl']?.toString() ??
           userMap['avatar']?.toString() ??
@@ -151,22 +155,12 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         }
       }
 
-      // if (userMap['state'] is Map) {
-      //   final sMap = Map<String, dynamic>.from(userMap['state'] as Map);
-      //   final sid =
-      //       (sMap['id'] ?? sMap['code'] ?? sMap['_id'])?.toString() ?? '';
-      //   final sname = (sMap['name'] ?? sMap['label'])?.toString() ?? sid;
-      //   if (sid.isNotEmpty && sname.isNotEmpty) {
-      //     _selectedState = MasterOption(id: sid, name: sname);
-      //   }
-      // }
-
       if (userMap['profile'] is Map) {
         final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
 
         final compVal = pMap['company']?.toString();
         if (compVal != null && compVal.isNotEmpty) {
-          _companyNameController.text = compVal;
+          _companyNameController.text = compVal.toTitleCase();
         }
 
         final jtVal =
@@ -176,7 +170,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                     pMap['title'])
                 ?.toString();
         if (jtVal != null && jtVal.isNotEmpty) {
-          _jobTitleController.text = jtVal;
+          _jobTitleController.text = jtVal.toTitleCase();
         }
 
         final webVal = (pMap['websiteUrl'] ?? pMap['website'])?.toString();
@@ -596,7 +590,6 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       'city': _city.text.trim(),
       'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
-      // if (_selectedState != null) 'stateId': _selectedState!.id,
       'company': _companyNameController.text.trim(),
       'jobTitle': _jobTitleController.text.trim(),
       if (_selectedCategoryIds.isNotEmpty) 'industryId': _selectedCategoryIds.join(','),
@@ -616,8 +609,28 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
       ApiEndpoints.updateMe,
       body: payload,
-      parser: (env) =>
-          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+      parser: (env) {
+        int? newCompletion;
+        final rawData = env.data;
+        if (rawData is Map) {
+          final p = rawData['profileCompletion'] ??
+              rawData['profile_completion'] ??
+              rawData['completionPercentage'] ??
+              rawData['completion_percentage'];
+          if (p is num) newCompletion = p.toInt();
+          else if (p is String) newCompletion = int.tryParse(p);
+
+          if (newCompletion == null && rawData['user'] is Map) {
+            final u = rawData['user'];
+            final p2 = u['profileCompletion'] ?? u['profile_completion'] ?? u['completionPercentage'] ?? u['completion_percentage'];
+            if (p2 is num) newCompletion = p2.toInt();
+            else if (p2 is String) newCompletion = int.tryParse(p2);
+          }
+        }
+        final map = env.data is Map ? Map<String, dynamic>.from(env.data as Map) : <String, dynamic>{};
+        map['profileCompletion'] = newCompletion;
+        return map;
+      },
     );
 
     if (!mounted) return;
@@ -628,8 +641,9 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           res.valueOrNull?['message']?.toString() ??
           'Company profile updated successfully';
       context.showSnack(msg);
-      // Patch the cached user locally — no extra /me round-trip needed.
       final current = context.read<AuthBloc>().state.user;
+      final newCompletion = res.valueOrNull?['profileCompletion'] as int?;
+      
       if (current != null) {
         final city = _city.text.trim();
         final country = _selectedCountry?.name ?? '';
@@ -651,12 +665,23 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
               avatarUrl: (uploadedAvatarUrl?.isNotEmpty == true)
                   ? uploadedAvatarUrl
                   : null,
+              profileCompletion: newCompletion ?? current.profileCompletion,
             ),
           ),
         );
       }
-      // Stay on page and refresh data
       await _load();
+      
+      if (!mounted) return;
+      
+      if (newCompletion == 100) {
+        ProfileSaveSuccessDialog.show(context);
+      } else if (newCompletion == null) {
+        final updatedUser = context.read<AuthBloc>().state.user;
+        if (updatedUser?.profileCompletion == 100) {
+          ProfileSaveSuccessDialog.show(context);
+        }
+      }
     } else {
       context.showSnack(
         res.failureOrNull?.message ?? 'Failed to update company profile',
@@ -671,29 +696,40 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      appBar: AppBar(
-        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-        title: const Text('Company Profile'),
-      ),
-      body: _loading
+    final isComplete = context.watch<AuthBloc>().state.user?.profileCompletion == 100;
+
+    return PopScope(
+      canPop: isComplete,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await ProfileCompletionWarningDialog.show(context);
+        if (shouldLeave && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: AppScaffold(
+        appBar: AppBar(
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Company Profile'),
+        ),
+        body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
               children: [
-                AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _companyData?.isVerified == true
-                            ? 'Verified business'
-                            : 'Verification pending',
-                      ),
-                      const SizedBox(height: 6),
-                      Text('Profile completion: ${_completionPercent()}%'),
-                    ],
+                if (_companyData?.isVerified == true)
+                  AppCard(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified, color: Colors.green, size: 20),
+                        const SizedBox(width: 8),
+                        const Text('Verified business'),
+                      ],
+                    ),
                   ),
+                if (_companyData?.isVerified == true) AppSizes.vGapMd,
+                ProfileCompletionCard(
+                  percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
                 ),
                 AppSizes.vGapMd,
                 ProfileAvatarEditor(
@@ -753,16 +789,6 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                     }
                   },
                 ),
-                // AppSizes.vGapMd,
-                // AppDropdown<MasterOption>(
-                //   label: 'State *',
-                //   hint: 'Select State',
-                //   prefixIcon: Icons.map_outlined,
-                //   value: _selectedState,
-                //   items: _states,
-                //   itemLabel: (item) => item.name,
-                //   onChanged: (opt) => setState(() => _selectedState = opt),
-                // ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _categoryDisplayController,
@@ -825,22 +851,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 SizedBox(height: MediaQuery.viewInsetsOf(context).bottom),
               ],
             ),
+      ),
     );
-  }
-
-  int _completionPercent() {
-    final vals = [
-      _name.text.trim(),
-      _companyNameController.text.trim(),
-      _bio.text.trim(),
-      _city.text.trim(),
-      _selectedCountry?.name ?? '',
-      _selectedState?.name ?? '',
-      if ((_companyData?.logoUrl ?? '').isNotEmpty || _localLogoPath != null)
-        'logo',
-    ];
-    final filled = vals.where((e) => e.isNotEmpty).length;
-    return ((filled / 7) * 100).round();
   }
 }
 

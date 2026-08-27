@@ -8,6 +8,7 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../data/datasources/social_auth_service.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
+import 'social_role_picker_dialog.dart';
 
 class SocialLoginRow extends StatelessWidget {
   const SocialLoginRow({super.key});
@@ -57,8 +58,48 @@ class SocialLoginRow extends StatelessWidget {
         return;
       }
 
+      // If the initial check without a role failed, it means this is likely a new user and the backend requires a role.
+      // Ask the user for their role.
+      final selectedRole = await showSocialRolePicker(context);
+      if (selectedRole == null) return; // User cancelled the role picker
+
+      if (!context.mounted) return;
+
+      // Show loading UI again for the second attempt
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final retryResult = await repo.socialLogin(
+        provider,
+        role: selectedRole,
+        idToken: creds.idToken,
+        accessToken: creds.accessToken,
+        email: creds.email,
+        fullName: creds.fullName,
+      );
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // dismiss loading
+
+      if (retryResult.isSuccess) {
+        context.read<AuthBloc>().add(
+          AuthSocialLoginRequested(
+            provider: provider,
+            role: selectedRole,
+            idToken: creds.idToken,
+            accessToken: creds.accessToken,
+            email: creds.email,
+            fullName: creds.fullName,
+          ),
+        );
+        return;
+      }
+
       context.showSnack(
-        checkResult.failureOrNull?.message ??
+        retryResult.failureOrNull?.message ??
             'Social sign up failed. Please try again or use email login.',
         isError: true,
       );

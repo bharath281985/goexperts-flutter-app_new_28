@@ -187,9 +187,9 @@ GoRouter createRouter(AuthBloc authBloc) {
       }
 
       // If user's profile is incomplete (new user / social signup), redirect to step 2 of signup flow
-      final isProfileComplete = auth.user?.isProfileComplete ?? false;
-      final profileCompletion = auth.user?.profileCompletion ?? 0;
-      if (!isProfileComplete && profileCompletion < 70) {
+      final isOnboardingComplete = auth.user?.onboardingStatus?.toUpperCase() == 'COMPLETED';
+      
+      if (!isOnboardingComplete) {
         if (loc == Routes.signup) return null;
         final stepParam = (auth.user?.isSocialLogin ?? false) ? '&step=2' : '';
         return '${Routes.signup}?role=${auth.user?.role?.name ?? ''}$stepParam';

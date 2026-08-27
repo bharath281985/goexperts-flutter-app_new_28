@@ -11,9 +11,13 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
-import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/app_scaffold.dart';
+import '../../../../core/widgets/profile_completion_warning_dialog.dart';
+import '../../../../core/widgets/profile_save_success_dialog.dart';
 import '../../../../core/widgets/icon_widget.dart';
+import '../../../../core/utils/string_extensions.dart';
+import '../../../../core/widgets/profile_completion_card.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../master_data/domain/entities/master_option.dart';
@@ -300,14 +304,14 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
         final fn =
             userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
-        if (fn != null && fn.isNotEmpty) _fullName.text = fn;
+        if (fn != null && fn.isNotEmpty) _fullName.text = fn.toTitleCase();
 
         final bioVal = userMap['bio']?.toString();
-        if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal;
+        if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal.toTitleCase();
 
         final locVal =
             userMap['city']?.toString() ?? userMap['location']?.toString();
-        if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
+        if (locVal != null && locVal.isNotEmpty) _city.text = locVal.toTitleCase();
 
         _currentAvatarUrl =
             userMap['avatarUrl']?.toString() ??
@@ -339,7 +343,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
               (pMap['titleHeadline'] ?? pMap['headline'] ?? pMap['title'])
                   ?.toString();
           if (headlineVal != null && headlineVal.isNotEmpty) {
-            _title.text = headlineVal;
+            _title.text = headlineVal.toTitleCase();
           }
 
           final rateVal = pMap['hourlyRate'] ?? pMap['hourly_rate'];
@@ -553,8 +557,28 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
       ApiEndpoints.updateMe,
       body: payload,
-      parser: (envelope) => {
-        'message': envelope.message ?? 'Profile updated successfully',
+      parser: (envelope) {
+        int? newCompletion;
+        final rawData = envelope.data;
+        if (rawData is Map) {
+          final p = rawData['profileCompletion'] ??
+              rawData['profile_completion'] ??
+              rawData['completionPercentage'] ??
+              rawData['completion_percentage'];
+          if (p is num) newCompletion = p.toInt();
+          else if (p is String) newCompletion = int.tryParse(p);
+
+          if (newCompletion == null && rawData['user'] is Map) {
+            final u = rawData['user'];
+            final p2 = u['profileCompletion'] ?? u['profile_completion'] ?? u['completionPercentage'] ?? u['completion_percentage'];
+            if (p2 is num) newCompletion = p2.toInt();
+            else if (p2 is String) newCompletion = int.tryParse(p2);
+          }
+        }
+        return {
+          'message': envelope.message ?? 'Profile updated successfully',
+          'profileCompletion': newCompletion,
+        };
       },
     );
 
@@ -566,6 +590,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       context.showSnack(msg);
       // Patch the cached user locally — no extra /me round-trip needed.
       final current = context.read<AuthBloc>().state.user;
+      final newCompletion = data['profileCompletion'] as int?;
+      
       if (current != null) {
         final city = _city.text.trim();
         final country = _selectedCountry?.name ?? '';
@@ -589,12 +615,25 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                   : null,
               avatarUrl:
                   _currentAvatarUrl?.isNotEmpty == true ? _currentAvatarUrl : null,
+              profileCompletion: newCompletion ?? current.profileCompletion,
             ),
           ),
         );
       }
       // Stay on page and refresh data
       await _load();
+      
+      if (!mounted) return;
+      
+      if (newCompletion == 100) {
+        ProfileSaveSuccessDialog.show(context);
+      } else if (newCompletion == null) {
+        // Fallback if API didn't return completion percentage
+        final updatedUser = context.read<AuthBloc>().state.user;
+        if (updatedUser?.profileCompletion == 100) {
+          ProfileSaveSuccessDialog.show(context);
+        }
+      }
     });
   }
 
@@ -913,32 +952,26 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     );
   }
 
-  // ─── Completion Percentage ─────────────────────────────────────────────────
-
-  int _completionPercent() {
-    final checks = [
-      _bio.text.trim().isNotEmpty,
-      _hourlyRate.text.trim().isNotEmpty,
-      _selectedCategoryIds.isNotEmpty,
-      _selectedCountry != null,
-     
-      _selectedExperience != null,
-      _selectedAvailability != null,
-      _fullName.text.trim().isNotEmpty,
-      _title.text.trim().isNotEmpty,
-      _city.text.trim().isNotEmpty,
-      (_localAvatarPath ?? _currentAvatarUrl ?? '').isNotEmpty,
-    ];
-    final filled = checks.where((c) => c).length;
-    return ((filled / checks.length) * 100).round();
-  }
-
   // ─── UI Build ──────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      appBar: AppBar(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final percent = context.read<AuthBloc>().state.user?.profileCompletion ?? 0;
+        if (percent < 100) {
+          final shouldLeave = await ProfileCompletionWarningDialog.show(context);
+          if (shouldLeave == true && context.mounted) {
+            Navigator.of(context).pop();
+          }
+        } else {
+          Navigator.of(context).pop();
+        }
+      },
+      child: AppScaffold(
+        appBar: AppBar(
         leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Edit Profile'),
         actions: [
@@ -971,7 +1004,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     // Completion Card
-                    _CompletionCard(percent: _completionPercent()),
+                    ProfileCompletionCard(
+                      percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
+                    ),
                     AppSizes.vGapLg,
 
                     // Profile Photo
@@ -1194,6 +1229,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                 ),
               ),
             ),
+    ),
     );
   }
 }
@@ -1215,68 +1251,3 @@ class _SectionLabel extends StatelessWidget {
   );
 }
 
-class _CompletionCard extends StatelessWidget {
-  const _CompletionCard({required this.percent});
-  final int percent;
-
-  Color get _color {
-    if (percent >= 80) return AppColors.success;
-    if (percent >= 50) return AppColors.warning;
-    return AppColors.danger;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return AppCard(
-      color: _color.withValues(alpha: 0.06),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                percent >= 80
-                    ? Icons.verified_rounded
-                    : Icons.info_outline_rounded,
-                color: _color,
-                size: 18,
-              ),
-              AppSizes.hGapSm,
-              Expanded(
-                child: Text(
-                  percent >= 80
-                      ? 'Great! Your profile looks strong.'
-                      : percent >= 50
-                      ? 'Profile is taking shape — keep going!'
-                      : 'Complete your profile to get hired faster.',
-                  style: context.text.bodySmall?.copyWith(
-                    color: _color,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Text(
-                '$percent%',
-                style: context.text.titleSmall?.copyWith(
-                  color: _color,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          AppSizes.vGapSm,
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              minHeight: 6,
-              backgroundColor: colors.surfaceContainerHighest,
-              valueColor: AlwaysStoppedAnimation(_color),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}

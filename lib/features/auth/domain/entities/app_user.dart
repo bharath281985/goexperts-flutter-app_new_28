@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/utils/string_extensions.dart';
 
 /// Authenticated user across all roles.
 class AppUser extends Equatable {
@@ -13,6 +14,7 @@ class AppUser extends Equatable {
     this.avatarUrl,
     this.isVerified = false,
     this.isProfileComplete = false,
+    this.onboardingStatus,
     this.isSocialLogin = false,
     this.subscriptionPlan,
     this.subscriptionStatus,
@@ -35,6 +37,7 @@ class AppUser extends Equatable {
   final String? avatarUrl;
   final bool isVerified;
   final bool isProfileComplete;
+  final String? onboardingStatus;
   final bool isSocialLogin;
   final String? subscriptionPlan;
 
@@ -43,8 +46,6 @@ class AppUser extends Equatable {
   final String? headline;
   final String? location;
   final int profileCompletion;
-
-  /// Explicit redirect path from server (e.g. "/founder/dashboard").
 
 
   /// `hasSubscription` / `isSubscribed` flag as returned directly by the API.
@@ -60,6 +61,7 @@ class AppUser extends Equatable {
     String? avatarUrl,
     bool? isVerified,
     bool? isProfileComplete,
+    String? onboardingStatus,
     bool? isSocialLogin,
     String? subscriptionPlan,
     String? subscriptionStatus,
@@ -84,6 +86,7 @@ class AppUser extends Equatable {
       avatarUrl: avatarUrl ?? this.avatarUrl,
       isVerified: isVerified ?? this.isVerified,
       isProfileComplete: isProfileComplete ?? this.isProfileComplete,
+      onboardingStatus: onboardingStatus ?? this.onboardingStatus,
       isSocialLogin: isSocialLogin ?? this.isSocialLogin,
       subscriptionPlan: subscriptionPlan ?? this.subscriptionPlan,
       subscriptionStatus: subscriptionStatus ?? this.subscriptionStatus,
@@ -135,6 +138,8 @@ class AppUser extends Equatable {
     final profileCompletion =
         json['profileCompletion'] as int? ??
         json['profile_completion'] as int? ??
+        json['completionPercentage'] as int? ??
+        json['completion_percentage'] as int? ??
         0;
     final roleRaw = str('role', 'role');
 
@@ -187,7 +192,7 @@ class AppUser extends Equatable {
 
     return AppUser(
       id: str('id', 'id') ?? '',
-      fullName: str('fullName', 'full_name') ??
+      fullName: (str('fullName', 'full_name') ??
           str('name', 'name') ??
           (json['profile'] is Map
               ? (json['profile']['fullName'] ??
@@ -195,7 +200,7 @@ class AppUser extends Equatable {
                       json['profile']['companyName'])
                   ?.toString()
               : null) ??
-          '',
+          '').toTitleCase(),
       email: str('email', 'email') ?? '',
       phone: str('phone', 'phone'),
       countryCode: str('countryCode', 'country_code'),
@@ -205,6 +210,7 @@ class AppUser extends Equatable {
       isProfileComplete:
           flag('isProfileComplete', 'is_profile_complete') ||
           profileCompletion >= 80,
+      onboardingStatus: str('onboardingStatus', 'onboarding_status'),
       isSocialLogin: flag('isSocialLogin', 'is_social_login'),
       profileCompletion: profileCompletion,
       // Prefer human-readable plan name; never store raw plan UUIDs.
@@ -215,8 +221,8 @@ class AppUser extends Equatable {
           ) ??
           _readablePlan(str('subscriptionPlanId', 'subscription_plan_id')),
       subscriptionStatus: str('subscriptionStatus', 'subscription_status'),
-      headline: str('headline', 'headline') ?? str('bio', 'bio'),
-      location: str('location', 'location') ?? joinedLocation,
+      headline: (str('headline', 'headline') ?? str('bio', 'bio') ?? '').toTitleCase(),
+      location: (str('location', 'location') ?? joinedLocation ?? '').toTitleCase(),
     
       serverHasSubscription: serverHasSubscription,
       categoryId: str('categoryId', 'category_id'),
@@ -235,6 +241,7 @@ class AppUser extends Equatable {
     'avatar_url': avatarUrl,
     'is_verified': isVerified,
     'is_profile_complete': isProfileComplete,
+    'onboarding_status': onboardingStatus,
     'is_social_login': isSocialLogin,
     'subscription_plan': subscriptionPlan,
     'subscription_status': subscriptionStatus,
@@ -258,6 +265,7 @@ class AppUser extends Equatable {
     role,
     isVerified,
     isProfileComplete,
+    onboardingStatus,
     isSocialLogin,
     subscriptionPlan,
     subscriptionStatus,

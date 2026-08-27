@@ -154,7 +154,6 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         data['message']?.toString() ?? 'Verification OTP sent to your email.',
         isSuccess: true,
       );
-      _verifiedEmail = email;
       if (widget.emailController.text.trim() == email) {
         setState(() {
           _otpSent = true;

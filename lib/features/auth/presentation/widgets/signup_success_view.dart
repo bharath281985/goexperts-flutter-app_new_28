@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
+import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
 import '../utils/signup_progress_store.dart';
 import '../../../subscriptions/presentation/pages/subscription_selection_page.dart';
@@ -120,6 +122,14 @@ class SignupSuccessView extends StatelessWidget {
 
                     return ElevatedButton(
                       onPressed: () async {
+                        try {
+                          await sl<AuthRepository>().saveOnboardingDraft({
+                            'onboardingComplete': true,
+                          });
+                        } catch (_) {
+                          // Ignore error, proceed to clear and navigate
+                        }
+
                         await SignupProgressStore.clear();
                         if (context.mounted) {
                           context.read<AuthBloc>().add(const AuthCheckRequested());
@@ -149,39 +159,39 @@ class SignupSuccessView extends StatelessWidget {
                   },
                 ),
               ),
-              const SizedBox(height: 16),
-              // Premium Plans Button
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () async {
-                    // Navigate to dynamic subscription plans page
+              // const SizedBox(height: 16),
+              // // Premium Plans Button
+              // SizedBox(
+              //   width: double.infinity,
+              //   child: OutlinedButton(
+              //     onPressed: () async {
+              //       // Navigate to dynamic subscription plans page
                    
-                    if (context.mounted) {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const SubscriptionSelectionPage(isOnboarding: true),
-                        ),
-                      );
-                    }
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Text(
-                    'View Premium Plans',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ),
+              //       if (context.mounted) {
+              //         Navigator.of(context).push(
+              //           MaterialPageRoute(
+              //             builder: (_) => const SubscriptionSelectionPage(isOnboarding: true),
+              //           ),
+              //         );
+              //       }
+              //     },
+              //     style: OutlinedButton.styleFrom(
+              //       padding: const EdgeInsets.symmetric(vertical: 16),
+              //       side: const BorderSide(color: AppColors.primary, width: 1.5),
+              //       shape: RoundedRectangleBorder(
+              //         borderRadius: BorderRadius.circular(12),
+              //       ),
+              //     ),
+              //     child: const Text(
+              //       'View Premium Plans',
+              //       style: TextStyle(
+              //         fontSize: 16,
+              //         fontWeight: FontWeight.bold,
+              //         color: AppColors.primary,
+              //       ),
+              //     ),
+              //   ),
+              // ),
             ],
           ),
         ),

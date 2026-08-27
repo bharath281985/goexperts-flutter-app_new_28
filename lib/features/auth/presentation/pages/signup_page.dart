@@ -79,8 +79,10 @@ class _SignupPageState extends State<SignupPage> {
       );
     }
 
-    final verifiedEmailFromAuth = authState.pendingSignup?.email.trim() ??
-        authState.user?.email.trim();
+    final verifiedEmailFromAuth = authState.user?.isVerified == true 
+        ? authState.user?.email.trim() 
+        : null;
+        
     final effectiveVerifiedEmail =
         (verifiedEmailFromAuth != null && verifiedEmailFromAuth.isNotEmpty)
             ? verifiedEmailFromAuth

@@ -655,7 +655,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail,
+          initialVerifiedEmail: widget.verifiedEmail ??
+              (context.read<AuthBloc>().state.user?.isVerified == true
+                  ? context.read<AuthBloc>().state.user?.email
+                  : ''),
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );

@@ -13,6 +13,7 @@ import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/validators/validators.dart';
+import '../../../../core/utils/string_extensions.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
@@ -167,14 +168,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
-      if (fn != null && fn.isNotEmpty) _fullName.text = fn;
+      if (fn != null && fn.isNotEmpty) _fullName.text = fn.toTitleCase();
 
       final bioVal = userMap['bio']?.toString();
-      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal;
+      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal.toTitleCase();
 
       final locVal =
           userMap['city']?.toString() ?? userMap['location']?.toString();
-      if (locVal != null && locVal.isNotEmpty) _location.text = locVal;
+      if (locVal != null && locVal.isNotEmpty) _location.text = locVal.toTitleCase();
 
       // Extract country & state
       if (userMap['country'] is Map) {
@@ -202,14 +203,15 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       if (userMap['profile'] is Map) {
         final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
 
-        final compVal = (pMap['company'] ?? pMap['firm'] ?? pMap['startupName'])?.toString();
+        final compVal = (pMap['company'] ?? pMap['firm'] ?? pMap['startupName'])
+            ?.toString();
         if (compVal != null && compVal.isNotEmpty) {
-          _company.text = compVal;
+          _company.text = compVal.toTitleCase();
         }
 
         final pitchVal = pMap['pitch']?.toString();
         if (pitchVal != null && pitchVal.isNotEmpty) {
-          _pitch.text = pitchVal;
+          _pitch.text = pitchVal.toTitleCase();
         }
 
         final headlineVal =
@@ -219,7 +221,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                     pMap['title'])
                 ?.toString();
         if (headlineVal != null && headlineVal.isNotEmpty) {
-          _headline.text = headlineVal;
+          _headline.text = headlineVal.toTitleCase();
         }
 
         final rateVal = pMap['hourlyRate'] ?? pMap['hourly_rate'];
@@ -258,10 +260,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           if (sId.isNotEmpty && sName.isNotEmpty) {
             _selectedFounderStage = MasterOption(id: sId, name: sName);
           }
-        } else if (pMap['stageId'] is String && pMap['stageId'].toString().isNotEmpty) {
+        } else if (pMap['stageId'] is String &&
+            pMap['stageId'].toString().isNotEmpty) {
           final sId = pMap['stageId'].toString();
           _selectedFounderStage = MasterOption(id: sId, name: sId);
-        } else if (pMap['stage'] is String && pMap['stage'].toString().isNotEmpty) {
+        } else if (pMap['stage'] is String &&
+            pMap['stage'].toString().isNotEmpty) {
           final sId = pMap['stage'].toString();
           _selectedFounderStage = MasterOption(id: sId, name: sId);
         }
@@ -280,10 +284,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           if (rId.isNotEmpty && rName.isNotEmpty) {
             _selectedFounderRole = MasterOption(id: rId, name: rName);
           }
-        } else if (pMap['founderRoleId'] is String && pMap['founderRoleId'].toString().isNotEmpty) {
+        } else if (pMap['founderRoleId'] is String &&
+            pMap['founderRoleId'].toString().isNotEmpty) {
           final rId = pMap['founderRoleId'].toString();
           _selectedFounderRole = MasterOption(id: rId, name: rId);
-        } else if (pMap['founderRole'] is String && pMap['founderRole'].toString().isNotEmpty) {
+        } else if (pMap['founderRole'] is String &&
+            pMap['founderRole'].toString().isNotEmpty) {
           final rId = pMap['founderRole'].toString();
           _selectedFounderRole = MasterOption(id: rId, name: rId);
         }
@@ -302,10 +308,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           if (tId.isNotEmpty && tName.isNotEmpty) {
             _selectedTeamSize = MasterOption(id: tId, name: tName);
           }
-        } else if (pMap['teamSizeId'] is String && pMap['teamSizeId'].toString().isNotEmpty) {
+        } else if (pMap['teamSizeId'] is String &&
+            pMap['teamSizeId'].toString().isNotEmpty) {
           final tId = pMap['teamSizeId'].toString();
           _selectedTeamSize = MasterOption(id: tId, name: tId);
-        } else if (pMap['teamSize'] is String && pMap['teamSize'].toString().isNotEmpty) {
+        } else if (pMap['teamSize'] is String &&
+            pMap['teamSize'].toString().isNotEmpty) {
           final tId = pMap['teamSize'].toString();
           _selectedTeamSize = MasterOption(id: tId, name: tId);
         }
@@ -415,10 +423,14 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             final first = indList.first;
             if (first is Map) {
               final indId = (first['id'] ?? first['_id'])?.toString() ?? '';
-              final indName = (first['name'] ?? first['label'])?.toString() ?? indId;
+              final indName =
+                  (first['name'] ?? first['label'])?.toString() ?? indId;
               if (indId.isNotEmpty) {
                 _selectedCategoryId = indId;
-                _selectedFounderIndustry = MasterOption(id: indId, name: indName);
+                _selectedFounderIndustry = MasterOption(
+                  id: indId,
+                  name: indName,
+                );
                 _categoryDisplayController.text = indName;
                 _founderIndustryDisplayController.text = indName;
               }
@@ -431,7 +443,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         } else if (pMap['industry'] is Map) {
           final indMap = Map<String, dynamic>.from(pMap['industry'] as Map);
           final indId = (indMap['id'] ?? indMap['_id'])?.toString() ?? '';
-          final indName = (indMap['name'] ?? indMap['label'])?.toString() ?? indId;
+          final indName =
+              (indMap['name'] ?? indMap['label'])?.toString() ?? indId;
           if (indId.isNotEmpty) {
             _selectedCategoryId = indId;
             _selectedFounderIndustry = MasterOption(id: indId, name: indName);
@@ -620,7 +633,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           _focusAreaOptions,
         );
         if (_selectedFounderIndustry != null) {
-          _founderIndustryDisplayController.text = _selectedFounderIndustry!.name;
+          _founderIndustryDisplayController.text =
+              _selectedFounderIndustry!.name;
         }
       }
     });
@@ -918,18 +932,19 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<SkillCategory>.from(_categories)
-                : _categories
-                      .where((c) => c.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = a.id == _selectedCategoryId;
-                final bSel = b.id == _selectedCategoryId;
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
+            final filtered =
+                (search.isEmpty
+                      ? List<SkillCategory>.from(_categories)
+                      : _categories
+                            .where((c) => c.name.toLowerCase().contains(search))
+                            .toList())
+                  ..sort((a, b) {
+                    final aSel = a.id == _selectedCategoryId;
+                    final bSel = b.id == _selectedCategoryId;
+                    if (aSel && !bSel) return -1;
+                    if (!aSel && bSel) return 1;
+                    return 0;
+                  });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1323,18 +1338,19 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _skillSearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<SkillOption>.from(_visibleSkills)
-                : _visibleSkills
-                      .where((s) => s.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = _selectedSkillIds.contains(a.id);
-                final bSel = _selectedSkillIds.contains(b.id);
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
+            final filtered =
+                (search.isEmpty
+                      ? List<SkillOption>.from(_visibleSkills)
+                      : _visibleSkills
+                            .where((s) => s.name.toLowerCase().contains(search))
+                            .toList())
+                  ..sort((a, b) {
+                    final aSel = _selectedSkillIds.contains(a.id);
+                    final bSel = _selectedSkillIds.contains(b.id);
+                    if (aSel && !bSel) return -1;
+                    if (!aSel && bSel) return 1;
+                    return 0;
+                  });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -1788,10 +1804,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               final targetRoute = role == UserRole.client
                   ? Routes.clientDashboard
                   : role == UserRole.investor
-                      ? Routes.investorDashboard
-                      : role == UserRole.founder
-                          ? Routes.founderDashboard
-                          : Routes.freelancerDashboard;
+                  ? Routes.investorDashboard
+                  : role == UserRole.founder
+                  ? Routes.founderDashboard
+                  : Routes.freelancerDashboard;
               context.go(targetRoute);
             }
           },

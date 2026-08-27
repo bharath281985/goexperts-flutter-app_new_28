@@ -13,6 +13,10 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/app_dropdown.dart';
+import '../../../../core/widgets/profile_save_success_dialog.dart';
+import '../../../../core/utils/string_extensions.dart';
+import '../../../../core/widgets/profile_completion_card.dart';
+import '../../../../core/widgets/profile_completion_warning_dialog.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../../app/constants/app_colors.dart';
@@ -163,10 +167,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     if (meRes.isSuccess) {
       final userMap = meRes.valueOrNull ?? {};
       _email.text = userMap['email']?.toString() ?? '';
-      _fullName.text = userMap['fullName']?.toString() ?? '';
+      _fullName.text = (userMap['fullName']?.toString() ?? '').toTitleCase();
       _city.text =
-          userMap['city']?.toString() ?? userMap['location']?.toString() ?? '';
-      _bio.text = userMap['bio']?.toString() ?? '';
+          (userMap['city']?.toString() ?? userMap['location']?.toString() ?? '').toTitleCase();
+      _bio.text = (userMap['bio']?.toString() ?? '').toTitleCase();
       _avatarUrl = userMap['avatarUrl']?.toString();
 
       if (userMap['country'] is Map) {
@@ -194,14 +198,14 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           if (userMap['profile'] is Map)
             ...Map<String, dynamic>.from(userMap['profile'] as Map),
         };
-        _bio.text = pMap['bio']?.toString() ?? _bio.text;
+        _bio.text = (pMap['bio']?.toString() ?? _bio.text).toTitleCase();
         _startupName.text =
-            pMap['startupName']?.toString() ??
+            (pMap['startupName']?.toString() ??
             pMap['companyName']?.toString() ??
             pMap['startup']?.toString() ??
-            '';
+            '').toTitleCase();
         _pitch.text =
-            pMap['pitch']?.toString() ?? pMap['oneLinePitch']?.toString() ?? '';
+            (pMap['pitch']?.toString() ?? pMap['oneLinePitch']?.toString() ?? '').toTitleCase();
         _targetRaise.text = pMap['targetRaise']?.toString() ?? '';
 
         if (_selectedCountry == null && pMap['country'] is Map) {
@@ -653,8 +657,28 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
       ApiEndpoints.updateMe,
       body: payload,
-      parser: (env) =>
-          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+      parser: (env) {
+        int? newCompletion;
+        final rawData = env.data;
+        if (rawData is Map) {
+          final p = rawData['profileCompletion'] ??
+              rawData['profile_completion'] ??
+              rawData['completionPercentage'] ??
+              rawData['completion_percentage'];
+          if (p is num) newCompletion = p.toInt();
+          else if (p is String) newCompletion = int.tryParse(p);
+
+          if (newCompletion == null && rawData['user'] is Map) {
+            final u = rawData['user'];
+            final p2 = u['profileCompletion'] ?? u['profile_completion'] ?? u['completionPercentage'] ?? u['completion_percentage'];
+            if (p2 is num) newCompletion = p2.toInt();
+            else if (p2 is String) newCompletion = int.tryParse(p2);
+          }
+        }
+        final map = env.data is Map ? Map<String, dynamic>.from(env.data as Map) : <String, dynamic>{};
+        map['profileCompletion'] = newCompletion;
+        return map;
+      },
     );
 
     if (!mounted) return;
@@ -667,6 +691,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       context.showSnack(msg);
       // Patch the cached user locally — no extra /me round-trip needed.
       final current = context.read<AuthBloc>().state.user;
+      final newCompletion = res.valueOrNull?['profileCompletion'] as int?;
+      
       if (current != null) {
         final city = _city.text.trim();
         final country = _selectedCountry?.name ?? '';
@@ -689,12 +715,24 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
               avatarUrl: (_avatarUrl?.isNotEmpty == true) ? _avatarUrl : null,
               industryId: industryId,
               categoryId: industryId,
+              profileCompletion: newCompletion ?? current.profileCompletion,
             ),
           ),
         );
       }
       // Stay on page and refresh data
       await _load();
+      
+      if (!mounted) return;
+      
+      if (newCompletion == 100) {
+        ProfileSaveSuccessDialog.show(context);
+      } else if (newCompletion == null) {
+        final updatedUser = context.read<AuthBloc>().state.user;
+        if (updatedUser?.profileCompletion == 100) {
+          ProfileSaveSuccessDialog.show(context);
+        }
+      }
     } else {
       context.showSnack(
         res.failureOrNull?.message ?? 'Failed to update profile',
@@ -738,16 +776,32 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   }
 
   @override
-  Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(
-      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-      title: const Text('Founder Profile'),
-    ),
-    body: _loading
+  Widget build(BuildContext context) {
+    final isComplete = context.watch<AuthBloc>().state.user?.profileCompletion == 100;
+
+    return PopScope(
+      canPop: isComplete,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await ProfileCompletionWarningDialog.show(context);
+        if (shouldLeave && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: AppScaffold(
+        appBar: AppBar(
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Founder Profile'),
+        ),
+        body: _loading
         ? const Center(child: CircularProgressIndicator())
         : ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
             children: [
+              ProfileCompletionCard(
+                percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
+              ),
+              AppSizes.vGapXl,
               Center(
                 child: ProfileAvatarEditor(
                   localPath: _localAvatarPath,
@@ -895,7 +949,9 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
               AppSizes.vGapXl,
             ],
           ),
-  );
+      ),
+    );
+  }
 
   Widget _buildSectionTitle(String title) {
     return Padding(

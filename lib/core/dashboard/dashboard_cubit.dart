@@ -193,6 +193,37 @@ class DashboardState extends Equatable {
   bool get shouldShowVerificationPrompt =>
       verificationMissingCount > 0 || accountVerified == false;
 
+  /// True when the user has no active subscription (subscription == null).
+  bool get isFreePlan {
+    final sub = dashboardData['subscription'];
+    return sub == null;
+  }
+
+  /// Whether to show the free-plan onboarding popup on the dashboard.
+  ///
+  /// Sequential logic:
+  ///   Step 1 — subscription == null? If not null → no popup
+  ///   Step 2 — profileCompletion < 100 → show popup (navigate to profile)
+  ///   Step 3 — profileCompletion == 100 + verificationMissingCount > 0
+  ///                                    → show popup (navigate to verification)
+  ///            verificationMissingCount == 0 → no popup (all done)
+  bool get shouldShowFreePlanPrompt {
+    // Step 1: only show when subscription is null (free plan)
+    if (dashboardData['subscription'] != null) return false;
+    // Step 2: profile not complete → show popup
+    if (dashboardProfileCompletion < 100) return true;
+    // Step 3: profile complete → check verification documents
+    return verificationMissingCount > 0;
+  }
+
+  /// Generic profile completion % that works across all roles.
+  /// Reads 'profileCompletion' directly from dashboardData.
+  int get dashboardProfileCompletion {
+    final val = dashboardData['profileCompletion'];
+    if (val is num) return val.toInt();
+    return int.tryParse(val?.toString() ?? '') ?? 0;
+  }
+
   // --- Founder Dashboard Getters ---
   String get founderProfileStrength =>
       (dashboardData['profileCompletion'] ?? 0).toString();

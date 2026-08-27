@@ -4,8 +4,33 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/storage/secure_storage.dart';
 import '../../../../core/utils/device_info_helper.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/utils/string_extensions.dart';
 import '../../domain/entities/app_user.dart';
 import '../../domain/entities/profile_completion_result.dart';
+
+Map<String, dynamic> _applyTitleCase(Map<String, dynamic> data) {
+  final Map<String, dynamic> titleCasedData = Map.from(data);
+  final keysToTitleCase = [
+    'fullName',
+    'city',
+    'country',
+    'state',
+    'bio',
+    'titleHeadline',
+    'companyName',
+    'firm',
+    'startupName',
+    'founderBio',
+    'pitch',
+  ];
+
+  for (final key in keysToTitleCase) {
+    if (titleCasedData[key] is String) {
+      titleCasedData[key] = (titleCasedData[key] as String).toTitleCase();
+    }
+  }
+  return titleCasedData;
+}
 
 class AuthRemoteDatasource {
   AuthRemoteDatasource(this._api, this._secureStorage, this._deviceInfo);
@@ -47,23 +72,24 @@ class AuthRemoteDatasource {
   }) async {
     final device = await _deviceInfo.authPayload();
     final trimmedPhone = phone?.trim() ?? '';
+    final body = _applyTitleCase({
+      'fullName': fullName,
+      'email': email,
+      'password': password,
+      'role': role.apiValue,
+      'isSocialLogin': isSocialLogin,
+      'isSocial': isSocialLogin,
+      if (trimmedPhone.isNotEmpty) ...{
+        'phone': trimmedPhone,
+        if (countryCode != null && countryCode.trim().isNotEmpty)
+          'countryCode': countryCode.trim(),
+      },
+      ...signupData,
+      ...device,
+    });
     final result = await _api.postPayload<Map<String, dynamic>>(
       ApiEndpoints.register,
-      body: {
-        'fullName': fullName,
-        'email': email,
-        'password': password,
-        'role': role.apiValue,
-        'isSocialLogin': isSocialLogin,
-        'isSocial': isSocialLogin,
-        if (trimmedPhone.isNotEmpty) ...{
-          'phone': trimmedPhone,
-          if (countryCode != null && countryCode.trim().isNotEmpty)
-            'countryCode': countryCode.trim(),
-        },
-        ...signupData,
-        ...device,
-      },
+      body: body,
       parser: (data) => Map<String, dynamic>.from(data as Map),
     );
     if (result.isFailure) throw Exception(result.failureOrNull!.message);
@@ -96,7 +122,7 @@ class AuthRemoteDatasource {
   ) async {
     final result = await _api.putEnvelope<ProfileCompletionResult>(
       ApiEndpoints.updateMe,
-      body: data,
+      body: _applyTitleCase(data),
       parser: (envelope) {
         final raw = envelope.data;
         final message = envelope.message ?? 'Profile updated successfully';
@@ -120,7 +146,7 @@ class AuthRemoteDatasource {
   Future<void> saveOnboardingDraft(Map<String, dynamic> data) async {
     final result = await _api.putEnvelope<bool>(
       '${AppConfig.authBaseUrl}${ApiEndpoints.onboardingDraft}',
-      body: data,
+      body: _applyTitleCase(data),
       parser: (_) => true,
     );
     result.fold((f) => throw Exception(f.message), (_) => null);

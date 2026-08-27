@@ -15,6 +15,10 @@ import '../../../../core/widgets/app_location_field.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/profile_save_success_dialog.dart';
+import '../../../../core/widgets/profile_completion_warning_dialog.dart';
+import '../../../../core/utils/string_extensions.dart';
+import '../../../../core/widgets/profile_completion_card.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
@@ -137,14 +141,14 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
-      if (fn != null && fn.isNotEmpty) _fullName.text = fn;
+      if (fn != null && fn.isNotEmpty) _fullName.text = fn.toTitleCase();
 
       final bioVal = userMap['bio']?.toString();
-      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal;
+      if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal.toTitleCase();
 
       final locVal =
           userMap['city']?.toString() ?? userMap['location']?.toString();
-      if (locVal != null && locVal.isNotEmpty) _city.text = locVal;
+      if (locVal != null && locVal.isNotEmpty) _city.text = locVal.toTitleCase();
 
       if (userMap['country'] is Map) {
         final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
@@ -172,7 +176,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
         final firmVal = (pMap['firm'] ?? pMap['company'])?.toString();
         if (firmVal != null && firmVal.isNotEmpty) {
-          _firm.text = firmVal;
+          _firm.text = firmVal.toTitleCase();
         }
 
         final tMin = pMap['ticketMin'] ?? pMap['minTicket'];
@@ -538,8 +542,28 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
       ApiEndpoints.updateMe,
       body: payload,
-      parser: (env) =>
-          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+      parser: (env) {
+        int? newCompletion;
+        final rawData = env.data;
+        if (rawData is Map) {
+          final p = rawData['profileCompletion'] ??
+              rawData['profile_completion'] ??
+              rawData['completionPercentage'] ??
+              rawData['completion_percentage'];
+          if (p is num) newCompletion = p.toInt();
+          else if (p is String) newCompletion = int.tryParse(p);
+
+          if (newCompletion == null && rawData['user'] is Map) {
+            final u = rawData['user'];
+            final p2 = u['profileCompletion'] ?? u['profile_completion'] ?? u['completionPercentage'] ?? u['completion_percentage'];
+            if (p2 is num) newCompletion = p2.toInt();
+            else if (p2 is String) newCompletion = int.tryParse(p2);
+          }
+        }
+        final map = env.data is Map ? Map<String, dynamic>.from(env.data as Map) : <String, dynamic>{};
+        map['profileCompletion'] = newCompletion;
+        return map;
+      },
     );
 
     if (!mounted) return;
@@ -552,6 +576,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       context.showSnack(msg);
       // Patch the cached user locally — no extra /me round-trip needed.
       final current = context.read<AuthBloc>().state.user;
+      final newCompletion = res.valueOrNull?['profileCompletion'] as int?;
+      
       if (current != null) {
         final city = _city.text.trim();
         final country = _selectedCountry?.name ?? '';
@@ -567,12 +593,24 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   ? locationParts.join(', ')
                   : null,
               avatarUrl: (_avatarUrl?.isNotEmpty == true) ? _avatarUrl : null,
+              profileCompletion: newCompletion ?? current.profileCompletion,
             ),
           ),
         );
       }
       // Stay on page and refresh data
       await _load();
+      
+      if (!mounted) return;
+      
+      if (newCompletion == 100) {
+        ProfileSaveSuccessDialog.show(context);
+      } else if (newCompletion == null) {
+        final updatedUser = context.read<AuthBloc>().state.user;
+        if (updatedUser?.profileCompletion == 100) {
+          ProfileSaveSuccessDialog.show(context);
+        }
+      }
     } else {
       context.showSnack(
         res.failureOrNull?.message ?? 'Failed to update profile',
@@ -617,28 +655,40 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
-      appBar: AppBar(
-        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-        title: const Text('Investor Profile'),
-      ),
-      body: _loading
+    final isComplete = context.watch<AuthBloc>().state.user?.profileCompletion == 100;
+
+    return PopScope(
+      canPop: isComplete,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldLeave = await ProfileCompletionWarningDialog.show(context);
+        if (shouldLeave && context.mounted) {
+          Navigator.of(context).pop();
+        }
+      },
+      child: AppScaffold(
+        appBar: AppBar(
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Investor Profile'),
+        ),
+        body: _loading
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
               children: [
-                AppCard(
-                  child: Row(
-                    children: [
-                      Text(
-                        _verified
-                            ? 'Verified investor'
-                            : 'Verification pending',
-                      ),
-                      const Spacer(),
-                      Text('Completion ${_completion()}%'),
-                    ],
+                if (_verified)
+                  AppCard(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.verified, color: Colors.green, size: 20),
+                        const SizedBox(width: 8),
+                        const Text('Verified investor'),
+                      ],
+                    ),
                   ),
+                if (_verified) AppSizes.vGapMd,
+                ProfileCompletionCard(
+                  percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
                 ),
                 AppSizes.vGapXl,
                 ProfileAvatarEditor(
@@ -755,23 +805,10 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppSizes.vGapXl,
               ],
             ),
+      ),
     );
   }
 
-  int _completion() {
-    final values = [
-      _fullName.text,
-      _firm.text,
-      _city.text,
-      _bio.text,
-      _ticketMin.text,
-      _ticketMax.text,
-      _selectedCountry?.name ?? '',
-      _selectedState?.name ?? '',
-    ];
-    final filled = values.where((e) => e.trim().isNotEmpty).length;
-    return ((filled / values.length) * 100).round();
-  }
 }
 
 class InvestorDocumentsLivePage extends StatefulWidget {

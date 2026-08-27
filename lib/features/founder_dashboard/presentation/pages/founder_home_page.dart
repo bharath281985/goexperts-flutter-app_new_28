@@ -6,6 +6,7 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../../core/widgets/app_segmented_tabs.dart';
+import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
@@ -18,12 +19,43 @@ import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../meetings/domain/entities/meeting.dart';
 
-class FounderHomePage extends StatelessWidget {
+class FounderHomePage extends StatefulWidget {
   const FounderHomePage({super.key});
 
   @override
+  State<FounderHomePage> createState() => _FounderHomePageState();
+}
+
+class _FounderHomePageState extends State<FounderHomePage> {
+  bool _popupShown = false;
+
+  void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
+    if (_popupShown) return;
+    if (!state.shouldShowFreePlanPrompt) return;
+    _popupShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FreePlanPromptDialog.show(
+        context,
+        profileCompletion: state.dashboardProfileCompletion,
+        verificationMissingCount: state.verificationMissingCount,
+        onComplete: ({required bool navigateToProfile}) {
+          if (navigateToProfile) {
+            context.push(Routes.founderProfile);
+          } else {
+            context.push(Routes.founderVerification);
+          }
+        },
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
+    return BlocConsumer<DashboardCubit, DashboardState>(
+      listenWhen: (prev, curr) =>
+          curr.status == ViewStatus.success && prev.status != ViewStatus.success,
+      listener: (context, state) => _maybeShowFreePlanPopup(context, state),
       builder: (context, state) {
         final loading =
             state.status == ViewStatus.loading ||
@@ -31,6 +63,7 @@ class FounderHomePage extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
+            _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
             await context.read<DashboardCubit>().refresh();
           },
@@ -50,19 +83,19 @@ class FounderHomePage extends StatelessWidget {
                         onMenu: () => Scaffold.of(ctx).openDrawer(),
                       ),
                     ),
-                     if (state.shouldShowVerificationPrompt) ...[
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSizes.screenPadding,
-                        ),
-                        child: VerificationPromptCard(
-                          missingCount: state.verificationMissingCount,
-                          accountVerified: state.accountVerified,
-                          route: Routes.founderVerification,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                    ],
+                    //  if (state.shouldShowVerificationPrompt) ...[
+                    //   Padding(
+                    //     padding: const EdgeInsets.symmetric(
+                    //       horizontal: AppSizes.screenPadding,
+                    //     ),
+                    //     child: VerificationPromptCard(
+                    //       missingCount: state.verificationMissingCount,
+                    //       accountVerified: state.accountVerified,
+                    //       route: Routes.founderVerification,
+                    //     ),
+                    //   ),
+                    //   const SizedBox(height: 16),
+                    // ],
                     _buildHeroBanner(context, state),
                    
                     _buildActionButtons(context),

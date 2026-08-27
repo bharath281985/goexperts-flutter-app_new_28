@@ -17,16 +17,48 @@ import '../../../../core/widgets/app_segmented_tabs.dart';
 import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
+import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../meetings/presentation/widgets/meeting_card.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 
-class FreelancerHomePage extends StatelessWidget {
+class FreelancerHomePage extends StatefulWidget {
   const FreelancerHomePage({super.key});
 
   @override
+  State<FreelancerHomePage> createState() => _FreelancerHomePageState();
+}
+
+class _FreelancerHomePageState extends State<FreelancerHomePage> {
+  bool _popupShown = false;
+
+  void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
+    if (_popupShown) return;
+    if (!state.shouldShowFreePlanPrompt) return;
+    _popupShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      FreePlanPromptDialog.show(
+        context,
+        profileCompletion: state.dashboardProfileCompletion,
+        verificationMissingCount: state.verificationMissingCount,
+        onComplete: ({required bool navigateToProfile}) {
+          if (navigateToProfile) {
+            context.push(Routes.freelancerEditProfile);
+          } else {
+            context.push(Routes.freelancerVerification);
+          }
+        },
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocBuilder<DashboardCubit, DashboardState>(
+    return BlocConsumer<DashboardCubit, DashboardState>(
+      listenWhen: (prev, curr) =>
+          curr.status == ViewStatus.success && prev.status != ViewStatus.success,
+      listener: (context, state) => _maybeShowFreePlanPopup(context, state),
       builder: (context, state) {
         final loading =
             state.status == ViewStatus.loading ||
@@ -34,6 +66,7 @@ class FreelancerHomePage extends StatelessWidget {
 
         return RefreshIndicator(
           onRefresh: () async {
+            _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
             await context.read<DashboardCubit>().refresh();
           },
@@ -53,14 +86,14 @@ class FreelancerHomePage extends StatelessWidget {
                         unread: state.unreadNotificationsCount,
                       ),
                     ),
-                     if (state.shouldShowVerificationPrompt) ...[
-                            VerificationPromptCard(
-                                missingCount: state.verificationMissingCount,
-                                accountVerified: state.accountVerified,
-                                route: Routes.freelancerVerification,
-                              ),
-                              const SizedBox(height: 16),
-                          ],
+                    //  if (state.shouldShowVerificationPrompt) ...[
+                    //         VerificationPromptCard(
+                    //             missingCount: state.verificationMissingCount,
+                    //             accountVerified: state.accountVerified,
+                    //             route: Routes.freelancerVerification,
+                    //           ),
+                    //           const SizedBox(height: 16),
+                    //       ],
                     _buildHeroBanner(context, state),
                     Padding(
                       padding: const EdgeInsets.symmetric(

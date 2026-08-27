@@ -692,7 +692,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
         LayoutBuilder(
           builder: (context, constraints) {
             const gap = AppSizes.sm;
-            final columns = constraints.maxWidth >= 300 ? 2 : 1;
+            final columns = constraints.maxWidth >= 600 ? 2 : 1;
             final cardWidth =
                 (constraints.maxWidth - gap * (columns - 1)) / columns;
             return Wrap(
@@ -836,7 +836,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                         LayoutBuilder(
                           builder: (context, gridConstraints) {
                             const gap = AppSizes.sm;
-                            final columns = gridConstraints.maxWidth >= 300
+                            final columns = gridConstraints.maxWidth >= 600
                                 ? 2
                                 : 1;
                             final cardWidth =
