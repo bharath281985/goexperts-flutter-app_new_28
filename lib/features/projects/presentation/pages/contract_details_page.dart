@@ -22,6 +22,7 @@ import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../catalog/presentation/widgets/detail_widgets.dart';
+import '../../../messages/domain/repositories/message_repository.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/project_repository.dart';
 
@@ -36,18 +37,6 @@ class ContractDetailsPage extends StatelessWidget {
       title: 'Contract',
       fetcher: () => sl<ProjectRepository>().getContract(id),
       actions: [
-        if (role == UserRole.client)
-          IconButton(
-            icon: const Icon(Icons.edit_outlined),
-            onPressed: () async {
-              final contract = await sl<ProjectRepository>().getContract(id);
-              if (!context.mounted) return;
-              contract.fold(
-                (f) => context.showSnack(f.message, isError: true),
-                (c) => context.push(Routes.contractForm, extra: c),
-              );
-            },
-          ),
         ...detailActions(
           context,
           shareTitle: 'this contract',
@@ -70,8 +59,7 @@ class ContractDetailsPage extends StatelessWidget {
                     onPressed: () => _confirmAndExecute(
                       context,
                       title: 'Cancel Contract?',
-                      message:
-                          'Are you sure you want to cancel this contract?',
+                      message: 'Are you sure you want to cancel this contract?',
                       confirmLabel: 'Cancel Contract',
                       isDestructive: true,
                       endpoint: ApiEndpoints.clientContractCancel(c.id),
@@ -145,13 +133,13 @@ class ContractDetailsPage extends StatelessWidget {
           DetailHeroBanner(
             icon: Icons.assignment_turned_in_outlined,
             title: c.contractNumber?.isNotEmpty == true
-                ? c.contractNumber!
-                : (c.projectTitle.isNotEmpty
-                    ? c.projectTitle
-                    : 'Contract #${c.id.substring(0, c.id.length > 8 ? 8 : c.id.length)}'),
-            subtitle: c.contractNumber?.isNotEmpty == true
                 ? c.projectTitle
                 : 'Contract Agreement',
+            subtitle: c.contractNumber?.isNotEmpty == true
+                ? c.contractNumber!
+                : (c.projectTitle.isNotEmpty
+                      ? c.projectTitle
+                      : 'Contract #${c.id.substring(0, c.id.length > 8 ? 8 : c.id.length)}'),
             chips: [
               DetailStatChip(
                 icon: Icons.payments_outlined,
@@ -202,56 +190,56 @@ class ContractDetailsPage extends StatelessWidget {
           AppSizes.vGapLg,
 
           // 3. Project Details Card
-          const AppSectionHeader(title: 'Project Details'),
-          AppSizes.vGapSm,
-          AppCard(
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(AppSizes.sm),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(20),
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                  ),
-                  child: const Icon(
-                    Icons.work_outline_rounded,
-                    color: AppColors.primary,
-                    size: 22,
-                  ),
-                ),
-                AppSizes.hGapMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        c.projectTitle.isNotEmpty
-                            ? c.projectTitle
-                            : 'Linked Project',
-                        style: context.text.titleSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (c.projectId != null && c.projectId!.isNotEmpty)
-                        Text(
-                          'ID: ${c.projectId}',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.mutedText,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (c.projectId != null && c.projectId!.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
-                    onPressed: () =>
-                        context.push('${Routes.projectDetails}/${c.projectId}'),
-                  ),
-              ],
-            ),
-          ),
-          AppSizes.vGapLg,
+          // const AppSectionHeader(title: 'Project Details'),
+          // AppSizes.vGapSm,
+          // AppCard(
+          //   child: Row(
+          //     children: [
+          //       Container(
+          //         padding: const EdgeInsets.all(AppSizes.sm),
+          //         decoration: BoxDecoration(
+          //           color: AppColors.primary.withAlpha(20),
+          //           borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+          //         ),
+          //         child: const Icon(
+          //           Icons.work_outline_rounded,
+          //           color: AppColors.primary,
+          //           size: 22,
+          //         ),
+          //       ),
+          //       AppSizes.hGapMd,
+          //       Expanded(
+          //         child: Column(
+          //           crossAxisAlignment: CrossAxisAlignment.start,
+          //           children: [
+          //             Text(
+          //               c.projectTitle.isNotEmpty
+          //                   ? c.projectTitle
+          //                   : 'Linked Project',
+          //               style: context.text.titleSmall?.copyWith(
+          //                 fontWeight: FontWeight.w600,
+          //               ),
+          //             ),
+          //             if (c.projectId != null && c.projectId!.isNotEmpty)
+          //               Text(
+          //                 'ID: ${c.projectId}',
+          //                 style: context.text.labelSmall?.copyWith(
+          //                   color: AppColors.mutedText,
+          //                 ),
+          //               ),
+          //           ],
+          //         ),
+          //       ),
+          //       if (c.projectId != null && c.projectId!.isNotEmpty)
+          //         IconButton(
+          //           icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+          //           onPressed: () =>
+          //               context.push('${Routes.projectDetails}/${c.projectId}'),
+          //         ),
+          //     ],
+          //   ),
+          // ),
+          // AppSizes.vGapLg,
 
           // 4. Freelancer Details Card
           const AppSectionHeader(title: 'Freelancer Details'),
@@ -455,20 +443,33 @@ class ContractDetailsPage extends StatelessWidget {
   ) async {
     final isClient = role == UserRole.client;
     final targetId = isClient ? c.freelancerId : c.clientId;
-    final targetName = isClient
-        ? c.freelancerName
-        : (c.clientName ?? 'Client');
+    final targetName = isClient ? c.freelancerName : (c.clientName ?? 'Client');
     final targetAvatar = isClient ? c.freelancerAvatar : c.clientAvatar;
     if (targetId == null || targetId.isEmpty) {
-      context.showSnack('User unavailable for chat', isError: true);
+      context.showSnack('User unavailable for messaging', isError: true);
       return;
     }
-    final nameParam = Uri.encodeComponent(
-      targetName.isNotEmpty ? targetName : 'User',
+    final res = await sl<MessageRepository>().startChat(
+      recipientId: targetId,
+      projectId: c.projectId,
     );
-    final avatarParam = Uri.encodeComponent(targetAvatar ?? '');
-    context.push(
-      '${Routes.chat}/$targetId?name=$nameParam&avatarUrl=$avatarParam',
+    if (!context.mounted) return;
+    res.fold(
+      (f) => context.showSnack(f.message, isError: true),
+      (msg) {
+        final convId = msg.conversationId;
+        if (convId.isEmpty) {
+          context.push(Routes.messages);
+          return;
+        }
+        final nameParam = Uri.encodeComponent(
+          targetName.isNotEmpty ? targetName : 'User',
+        );
+        final avatarParam = Uri.encodeComponent(targetAvatar ?? '');
+        context.push(
+          '${Routes.chat}/$convId?name=$nameParam&avatarUrl=$avatarParam',
+        );
+      },
     );
   }
 
