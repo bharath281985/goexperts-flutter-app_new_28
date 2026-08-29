@@ -18,6 +18,8 @@ import '../../../../core/utils/paginated.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
+import '../../../../core/widgets/icon_widget.dart';
+import '../../../../core/widgets/invite_freelancer_dialog.dart';
 import '../../domain/entities/review.dart';
 import '../../domain/repositories/review_repository.dart';
 import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
@@ -745,6 +747,9 @@ String _formatLabel(dynamic val) {
 
             return Scaffold(
               appBar: AppBar(
+                leading: IconTapWidget(
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
                 title: Text(
                   widget.type == PublicProfileType.freelancer
                       ? 'Freelancer details'
@@ -776,7 +781,14 @@ String _formatLabel(dynamic val) {
                   reviews: reviews,
                   onShare: () => _showShareSheet(context, profile),
                   onPrimaryAction: () {
-                    if (profile.primaryActionLabel == 'Connect') {
+                    if (widget.type == PublicProfileType.freelancer) {
+                      InviteFreelancerDialog.show(
+                        context,
+                        freelancerId: widget.id,
+                        freelancerName: profile.name,
+                        freelancerAvatar: profile.avatarUrl,
+                      );
+                    } else if (profile.primaryActionLabel == 'Connect') {
                       ScheduleMeetingSheet.show(
                         context,
                         targetId: widget.id,

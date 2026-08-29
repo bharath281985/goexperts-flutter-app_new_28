@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -16,6 +19,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_stepper.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../master_data/domain/entities/master_option.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
@@ -1159,19 +1163,51 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         if (_existingAttachmentUrls.isNotEmpty) ...[
           AppSizes.vGapMd,
           for (final url in _existingAttachmentUrls)
-            ListTile(
-              dense: true,
-              contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.attach_file_rounded),
-              title: Text(
-                url.split('/').last,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+            Container(
+              margin: const EdgeInsets.only(bottom: AppSizes.sm),
+              decoration: BoxDecoration(
+                border: Border.all(color: context.colors.outline, width: 1),
+                borderRadius: BorderRadius.circular(AppSizes.sm),
               ),
-              trailing: IconButton(
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () =>
-                    setState(() => _existingAttachmentUrls.remove(url)),
+              child: ListTile(
+                dense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
+                leading: Icon(_attachmentIcon(url), color: AppColors.primary),
+                title: Text(
+                  _attachmentName(url),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                subtitle: Text(
+                  _attachmentType(url),
+                  style: context.text.labelSmall?.copyWith(
+                    color: AppColors.mutedText,
+                  ),
+                ),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _viewExistingAttachment(url),
+                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                      label: const Text('View'),
+                    ),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      icon: Icon(
+                        Icons.close_rounded,
+                        color: context.colors.error,
+                        size: 20,
+                      ),
+                      tooltip: 'Remove',
+                      onPressed: () =>
+                          setState(() => _existingAttachmentUrls.remove(url)),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
@@ -1226,42 +1262,282 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   Widget _attachmentTile(_ProjectAttachment attachment) {
     return Container(
-      padding: const EdgeInsets.only(bottom: AppSizes.sm),
+      margin: const EdgeInsets.only(bottom: AppSizes.sm),
       decoration: BoxDecoration(
         border: Border.all(color: context.colors.outline, width: 1),
         borderRadius: BorderRadius.circular(AppSizes.sm),
       ),
       child: ListTile(
-        contentPadding: EdgeInsets.zero,
-        leading: const Icon(Icons.description_outlined),
+        dense: true,
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
+        leading: Icon(_attachmentIcon(attachment.name), color: AppColors.primary),
         title: Text(
           attachment.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
+          style: context.text.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
         ),
-        subtitle: Text(_formatFileSize(attachment.size)),
-        trailing: Container(
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: context.colors.error.withAlpha(50),
-            shape: BoxShape.circle,
+        subtitle: Text(
+          '${_attachmentType(attachment.name)} · ${_formatFileSize(attachment.size)}',
+          style: context.text.labelSmall?.copyWith(
+            color: AppColors.mutedText,
           ),
-          child: IconButton(
-            color: context.colors.outline,
-            tooltip: 'Remove attachment',
-            iconSize: 18,
-            icon: Icon(Icons.close_rounded, color: context.colors.error),
-            onPressed: () => setState(() {
-              _attachments.remove(attachment);
-            }),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints.tightFor(width: 26, height: 26),
-          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextButton.icon(
+              onPressed: () => _viewLocalAttachment(attachment),
+              icon: const Icon(Icons.visibility_outlined, size: 16),
+              label: const Text('View'),
+            ),
+            const SizedBox(width: 4),
+            IconButton(
+              icon: Icon(
+                Icons.close_rounded,
+                color: context.colors.error,
+                size: 20,
+              ),
+              tooltip: 'Remove',
+              onPressed: () => setState(() {
+                _attachments.remove(attachment);
+              }),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Future<void> _viewExistingAttachment(String rawUrl) async {
+    final url = _resolveAttachmentUrl(rawUrl);
+    if (url.isEmpty) {
+      context.showSnack('Attachment URL is empty', isError: true);
+      return;
+    }
+    final name = _attachmentName(rawUrl);
+    final type = _attachmentType(rawUrl);
+
+    if (type == 'Image') {
+      showDialog(
+        context: context,
+        barrierColor: Colors.black87,
+        builder: (dialogCtx) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(AppSizes.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                    onPressed: () => Navigator.of(dialogCtx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: CustomCachedImage(
+                      imageUrl: url,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.tryParse(url);
+    if (uri == null) {
+      context.showSnack('Invalid attachment URL', isError: true);
+      return;
+    }
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.inAppBrowserView,
+      );
+      if (!launched && mounted) {
+        final fallback = await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
+        if (!fallback && mounted) {
+          context.showSnack('Could not open attachment', isError: true);
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      try {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (_) {
+        if (mounted) {
+          context.showSnack('Could not open attachment: $e', isError: true);
+        }
+      }
+    }
+  }
+
+  Future<void> _viewLocalAttachment(_ProjectAttachment attachment) async {
+    final type = _attachmentType(attachment.name);
+    final file = File(attachment.path);
+    final exists = await file.exists();
+    if (!exists) {
+      if (mounted) context.showSnack('File not found on device', isError: true);
+      return;
+    }
+
+    if (type == 'Image') {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierColor: Colors.black87,
+        builder: (dialogCtx) => Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(AppSizes.md),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      attachment.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      color: Colors.white,
+                      size: 26,
+                    ),
+                    onPressed: () => Navigator.of(dialogCtx).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.file(file, fit: BoxFit.contain),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+      return;
+    }
+
+    final uri = Uri.file(attachment.path);
+    try {
+      final launched = await launchUrl(uri);
+      if (!launched && mounted) {
+        context.showSnack(
+          'Could not open local file: ${attachment.name}',
+          isError: true,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showSnack('Could not open file: $e', isError: true);
+      }
+    }
+  }
+
+  String _resolveAttachmentUrl(String rawUrl) {
+    String url = rawUrl.trim();
+    if (url.isEmpty) return '';
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+    return '$base${url.startsWith('/') ? '' : '/'}$url';
+  }
+
+  String _attachmentName(String url) {
+    final clean = url.split('?').first.split('#').first;
+    final name = clean.split('/').last;
+    return name.isNotEmpty ? name : 'Attachment';
+  }
+
+  String _attachmentType(String nameOrUrl) {
+    final ext = nameOrUrl
+        .split('?')
+        .first
+        .split('#')
+        .first
+        .split('.')
+        .last
+        .toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].contains(ext)) {
+      return 'Image';
+    }
+    if (ext == 'pdf') return 'PDF';
+    if (['doc', 'docx'].contains(ext)) return 'Word';
+    if (['xls', 'xlsx', 'csv'].contains(ext)) return 'Excel';
+    if (['ppt', 'pptx'].contains(ext)) return 'PowerPoint';
+    return 'Document';
+  }
+
+  IconData _attachmentIcon(String nameOrUrl) {
+    final type = _attachmentType(nameOrUrl);
+    switch (type) {
+      case 'Image':
+        return Icons.image_outlined;
+      case 'PDF':
+        return Icons.picture_as_pdf_outlined;
+      case 'Word':
+        return Icons.description_outlined;
+      case 'Excel':
+        return Icons.table_chart_outlined;
+      case 'PowerPoint':
+        return Icons.slideshow_outlined;
+      default:
+        return Icons.attach_file_rounded;
+    }
   }
 
   String _formatFileSize(int bytes) {

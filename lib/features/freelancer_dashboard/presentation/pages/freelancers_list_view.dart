@@ -5,6 +5,7 @@ import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../../core/widgets/invite_freelancer_dialog.dart';
 import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/entities/freelancer.dart';
@@ -75,7 +76,12 @@ class _FreelancersListViewState extends State<FreelancersListView> {
         onTap: () => context.push('${Routes.publicFreelancer}/${f.id}'),
         onSave: () =>
             context.showSnack(f.isSaved ? 'Removed from saved' : 'Saved'),
-        onInvite: () => context.showSnack('Invitation sent to ${f.name}'),
+        onInvite: () => InviteFreelancerDialog.show(
+          context,
+          freelancerId: f.id,
+          freelancerName: f.name,
+          freelancerAvatar: f.avatarUrl,
+        ),
       ),
     );
   }

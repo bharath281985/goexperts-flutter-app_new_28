@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -19,6 +21,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/app_status_chip.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/share_sheet.dart';
 import '../../../client_dashboard/domain/repositories/client_proposal_repository.dart';
@@ -37,6 +40,140 @@ String _experienceLevelLabel(String? raw) {
     return 'Expert';
   }
   return 'Intermediate';
+}
+
+String _resolveAttachmentUrl(String rawUrl) {
+  String url = rawUrl.trim();
+  if (url.isEmpty) return '';
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  final base = AppConfig.baseUrl.replaceAll(RegExp(r'/api/v1/?$'), '');
+  return '$base${url.startsWith('/') ? '' : '/'}$url';
+}
+
+String _attachmentName(String url) {
+  final clean = url.split('?').first.split('#').first;
+  final name = clean.split('/').last;
+  return name.isNotEmpty ? name : 'Attachment';
+}
+
+String _attachmentType(String url) {
+  final ext = url.split('?').first.split('#').first.split('.').last.toLowerCase();
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'].contains(ext)) return 'Image';
+  if (ext == 'pdf') return 'PDF';
+  if (['doc', 'docx'].contains(ext)) return 'Word';
+  if (['xls', 'xlsx', 'csv'].contains(ext)) return 'Excel';
+  if (['ppt', 'pptx'].contains(ext)) return 'PowerPoint';
+  return 'Document';
+}
+
+IconData _attachmentIcon(String url) {
+  final type = _attachmentType(url);
+  switch (type) {
+    case 'Image':
+      return Icons.image_outlined;
+    case 'PDF':
+      return Icons.picture_as_pdf_outlined;
+    case 'Word':
+      return Icons.description_outlined;
+    case 'Excel':
+      return Icons.table_chart_outlined;
+    case 'PowerPoint':
+      return Icons.slideshow_outlined;
+    default:
+      return Icons.attach_file_rounded;
+  }
+}
+
+Future<void> _openAttachment(BuildContext context, String rawUrl) async {
+  final url = _resolveAttachmentUrl(rawUrl);
+  if (url.isEmpty) {
+    context.showSnack('Attachment URL is empty', isError: true);
+    return;
+  }
+  final name = _attachmentName(rawUrl);
+  final type = _attachmentType(rawUrl);
+
+  if (type == 'Image') {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(AppSizes.md),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded, color: Colors.white, size: 26),
+                  onPressed: () => Navigator.of(dialogCtx).pop(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                child: InteractiveViewer(
+                  minScale: 0.5,
+                  maxScale: 4.0,
+                  child: CustomCachedImage(
+                    imageUrl: url,
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    return;
+  }
+
+  final uri = Uri.tryParse(url);
+  if (uri == null) {
+    context.showSnack('Invalid attachment URL', isError: true);
+    return;
+  }
+
+  try {
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.inAppBrowserView,
+    );
+    if (!launched && context.mounted) {
+      final fallback = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!fallback && context.mounted) {
+        context.showSnack('Could not open attachment', isError: true);
+      }
+    }
+  } catch (e) {
+    if (!context.mounted) return;
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (_) {
+      if (context.mounted) {
+        context.showSnack('Could not open attachment: $e', isError: true);
+      }
+    }
+  }
 }
 
 class ProjectDetailsPage extends StatefulWidget {
@@ -474,22 +611,52 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
           for (final url in p.attachments)
             AppCard(
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.attach_file_rounded,
-                    color: AppColors.primary,
-                  ),
-                  AppSizes.hGapMd,
-                  Expanded(
-                    child: Text(
-                      url.split('/').last,
-                      style: context.text.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                onTap: () => _openAttachment(context, url),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppSizes.sm),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                      ),
+                      child: Icon(
+                        _attachmentIcon(url),
+                        color: AppColors.primary,
+                        size: 22,
+                      ),
                     ),
-                  ),
-                ],
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _attachmentName(url),
+                            style: context.text.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            _attachmentType(url),
+                            style: context.text.labelSmall?.copyWith(
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () => _openAttachment(context, url),
+                      icon: const Icon(Icons.visibility_outlined, size: 16),
+                      label: const Text('View'),
+                    ),
+                  ],
+                ),
               ),
             ),
         AppSizes.vGapLg,
