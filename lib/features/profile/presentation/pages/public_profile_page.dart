@@ -22,6 +22,7 @@ import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/invite_freelancer_dialog.dart';
 import '../../domain/entities/review.dart';
 import '../../domain/repositories/review_repository.dart';
+import '../../../freelancer_dashboard/domain/repositories/freelancer_repository.dart';
 import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 import '../widgets/profile_view.dart';
 
@@ -876,6 +877,32 @@ String _formatLabel(dynamic val) {
                           });
                         },
                       );
+                    } else if (widget.type == PublicProfileType.freelancer) {
+                      final isSaved = BookmarkManager.instance.isBookmarked(
+                        _bookmarkCategory,
+                        widget.id,
+                      );
+                      final res = await sl<FreelancerRepository>().toggleSave(widget.id);
+                      if (!context.mounted) return;
+                      res.fold(
+                        (f) => context.showSnack(
+                          f.message.isNotEmpty ? f.message : 'Failed to update saved status',
+                          isError: true,
+                        ),
+                        (_) {
+                          BookmarkManager.instance.syncItem(
+                            _bookmarkCategory,
+                            widget.id,
+                            !isSaved,
+                          );
+                          context.showSnack(
+                            isSaved
+                                ? 'Freelancer removed from saved'
+                                : 'Freelancer saved',
+                          );
+                          setState(() => _future = _loadAll());
+                        },
+                      );
                     } else {
                       final api = sl<ApiClientHelper>();
                       final isSaved = BookmarkManager.instance.isBookmarked(
@@ -891,20 +918,23 @@ String _formatLabel(dynamic val) {
                               '${ApiEndpoints.favorites}/${widget.id}',
                             );
 
+                      if (!context.mounted) return;
                       res.fold(
-                        (f) => context.showSnack(f.message, isError: true),
-                        (success) {
+                        (f) => context.showSnack(
+                          f.message.isNotEmpty ? f.message : 'Failed to update saved status',
+                          isError: true,
+                        ),
+                        (_) {
                           BookmarkManager.instance.toggle(
                             _bookmarkCategory,
                             widget.id,
                           );
-                          setState(() {
-                            _future = _loadAll();
-                          });
+                          setState(() => _future = _loadAll());
                         },
                       );
                     }
                   },
+
                 );
               }(),
             );

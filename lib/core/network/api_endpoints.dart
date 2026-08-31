@@ -137,6 +137,9 @@ class ApiEndpoints {
   static const freelancerProjectsApplied = '/freelancer/projects/applied';
   static const freelancerProjectsInvited = '/freelancer/projects/invited';
   static const freelancerProjectsSaved = '/freelancer/projects/saved';
+  // Save / unsave project (freelancer side)
+  static String freelancerProjectSave(String id) =>
+      '/freelancer/projects/$id/save';
   static const freelancerProjectsRecommended =
       '/freelancer/projects/recommended';
   static const freelancerProjectsNearby = '/freelancer/projects/nearby';
@@ -273,6 +276,10 @@ class ApiEndpoints {
   static String clientProposalMessage(String id) =>
       '/client/proposals/$id/message';
   static const clientFreelancers = '/client/freelancers';
+  // Save / unsave freelancer (client side)
+  static String clientFreelancerSave(String id) =>
+      '/client/freelancers/$id/save';
+  static const clientFreelancersSaved = '/client/freelancers/saved';
   static const clientContracts = '/client/contracts';
   static String clientContract(String id) => '/client/contracts/$id';
   static String clientContractActivate(String id) =>

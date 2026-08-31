@@ -3,6 +3,7 @@ import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
 import '../../../../core/auth/token_role_helper.dart';
+import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../core/utils/enums.dart';
@@ -106,11 +107,37 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.postAction(
-      '${ApiEndpoints.favorites}/toggle',
-      body: {'entityType': 'project', 'entityId': id},
-    );
+    // Freelancer side: POST to save, DELETE to unsave
+    final isSaved = BookmarkManager.instance.isBookmarked(
+          BookmarkManager.categoryProjects,
+          id,
+        ) ||
+        await _isProjectSaved(id);
+    if (isSaved) {
+      return _api.deleteAction(ApiEndpoints.freelancerProjectSave(id));
+    } else {
+      return _api.postAction(ApiEndpoints.freelancerProjectSave(id));
+    }
   }
+
+  Future<bool> _isProjectSaved(String id) async {
+    try {
+      final res = await _api!.get<List<dynamic>>(
+        ApiEndpoints.freelancerProjectsSaved,
+        parser: (data) => data is List ? data : [],
+      );
+      final list = res.valueOrNull ?? [];
+      return list.any((e) {
+        final m = e is Map ? e : {};
+        return m['id']?.toString() == id ||
+            m['projectId']?.toString() == id ||
+            m['_id']?.toString() == id;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
 
   @override
   Future<Result<bool>> apply(String id) async {

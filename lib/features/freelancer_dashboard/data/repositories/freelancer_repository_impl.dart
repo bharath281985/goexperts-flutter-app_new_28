@@ -3,6 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
@@ -52,8 +53,38 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.postAction('${ApiEndpoints.clientFreelancers}/$id/save');
+    // If currently saved → DELETE to unsave; otherwise POST to save
+    final isSaved = BookmarkManager.instance.isBookmarked(
+          BookmarkManager.categoryFreelancers,
+          id,
+        ) ||
+        await _isSaved(id);
+    if (isSaved) {
+      return _api.deleteAction(ApiEndpoints.clientFreelancerSave(id));
+    } else {
+      return _api.postAction(ApiEndpoints.clientFreelancerSave(id));
+    }
   }
+
+  /// Check current saved state from the API.
+  Future<bool> _isSaved(String id) async {
+    try {
+      final res = await _api!.get<List<dynamic>>(
+        ApiEndpoints.clientFreelancersSaved,
+        parser: (data) => data is List ? data : [],
+      );
+      final list = res.valueOrNull ?? [];
+      return list.any((e) {
+        final m = e is Map ? e : {};
+        return m['id']?.toString() == id ||
+            m['freelancerId']?.toString() == id ||
+            m['_id']?.toString() == id;
+      });
+    } catch (_) {
+      return false;
+    }
+  }
+
 
   @override
   Future<Result<bool>> toggleFollow(String id) async {

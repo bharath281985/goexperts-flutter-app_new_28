@@ -6,6 +6,7 @@ import '../../../../app/router/route_names.dart';
 import '../../../../core/auth/token_role_helper.dart';
 import '../../../../core/bloc/list_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
@@ -72,6 +73,42 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     await context.push<bool>('${Routes.projectDetails}/$projectId');
     if (!context.mounted) return;
     context.read<ListBloc<Project>>().add(const ListRefreshed());
+  }
+
+  Future<void> _toggleSaveProject(
+    BuildContext context,
+    Project project,
+  ) async {
+    final res = await sl<ProjectRepository>().toggleSave(project.id);
+    if (!context.mounted) return;
+    res.fold(
+      (failure) => context.showSnack(
+        failure.message.isNotEmpty
+            ? failure.message
+            : 'Failed to update saved status',
+        isError: true,
+      ),
+      (_) {
+        final newSaved = !project.isSaved;
+        BookmarkManager.instance.syncItem(
+          BookmarkManager.categoryProjects,
+          project.id,
+          newSaved,
+        );
+        try {
+          context.read<ListBloc<Project>>().add(
+            ListItemUpdated(
+              project.copyWith(isSaved: newSaved),
+              (existing, updated) =>
+                  (existing as Project).id == (updated as Project).id,
+            ),
+          );
+        } catch (_) {}
+        context.showSnack(
+          newSaved ? 'Project saved' : 'Project removed from saved',
+        );
+      },
+    );
   }
 
   List<FilterSection> _filterSections() {
@@ -163,9 +200,7 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       itemBuilder: (context, project, _) => AppProjectCard(
         project: project,
         onTap: () => _openProjectDetails(context, project.id),
-        onSave: () => context.showSnack(
-          project.isSaved ? 'Removed from saved' : 'Saved project',
-        ),
+        onSave: () => _toggleSaveProject(context, project),
         onApply: () => _openProjectDetails(context, project.id),
         onEdit: project.isOwner
             ? () => _openEditProject(context, project.id)

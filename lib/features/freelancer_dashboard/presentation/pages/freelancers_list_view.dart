@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../core/bloc/list_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
 import '../../../../core/widgets/invite_freelancer_dialog.dart';
@@ -42,6 +45,40 @@ class _FreelancersListViewState extends State<FreelancersListView> {
     });
   }
 
+  Future<void> _toggleSave(BuildContext context, Freelancer f) async {
+    final repo = sl<FreelancerRepository>();
+    final res = await repo.toggleSave(f.id);
+    if (!context.mounted) return;
+    res.fold(
+      (failure) => context.showSnack(
+        failure.message.isNotEmpty
+            ? failure.message
+            : 'Failed to update saved status',
+        isError: true,
+      ),
+      (_) {
+        final newSaved = !f.isSaved;
+        BookmarkManager.instance.syncItem(
+          BookmarkManager.categoryFreelancers,
+          f.id,
+          newSaved,
+        );
+        try {
+          context.read<ListBloc<Freelancer>>().add(
+            ListItemUpdated(
+              f.copyWith(isSaved: newSaved),
+              (existing, updated) =>
+                  (existing as Freelancer).id == (updated as Freelancer).id,
+            ),
+          );
+        } catch (_) {}
+        context.showSnack(
+          newSaved ? 'Freelancer saved' : 'Freelancer removed from saved',
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -74,8 +111,7 @@ class _FreelancersListViewState extends State<FreelancersListView> {
       itemBuilder: (context, f, _) => AppFreelancerCard(
         freelancer: f,
         onTap: () => context.push('${Routes.publicFreelancer}/${f.id}'),
-        onSave: () =>
-            context.showSnack(f.isSaved ? 'Removed from saved' : 'Saved'),
+        onSave: () => _toggleSave(context, f),
         onInvite: () => InviteFreelancerDialog.show(
           context,
           freelancerId: f.id,
@@ -86,3 +122,4 @@ class _FreelancersListViewState extends State<FreelancersListView> {
     );
   }
 }
+

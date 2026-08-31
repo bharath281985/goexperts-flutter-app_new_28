@@ -238,6 +238,30 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     });
   }
 
+  Future<void> _toggleSave(bool currentlySaved) async {
+    final res = await sl<ProjectRepository>().toggleSave(widget.id);
+    if (!mounted) return;
+    res.fold(
+      (failure) => context.showSnack(
+        failure.message.isNotEmpty
+            ? failure.message
+            : 'Failed to update saved status',
+        isError: true,
+      ),
+      (_) {
+        // Sync local state
+        BookmarkManager.instance.syncItem(
+          BookmarkManager.categoryProjects,
+          widget.id,
+          !currentlySaved,
+        );
+        context.showSnack(
+          currentlySaved ? 'Project removed from saved' : 'Project saved',
+        );
+      },
+    );
+  }
+
   Future<void> _updateStatus(Project project) async {
     const options = [
       _ProjectStatusOption(value: 'draft', label: 'Draft'),
@@ -363,10 +387,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                             : Icons.bookmark_outline_rounded,
                         color: isSaved ? AppColors.primary : null,
                       ),
-                      onPressed: () => BookmarkManager.instance.toggle(
-                        BookmarkManager.categoryProjects,
-                        widget.id,
-                      ),
+                      onPressed: () => _toggleSave(isSaved),
                     ),
                 ],
               ),
