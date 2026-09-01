@@ -4599,35 +4599,209 @@ class _PortfolioSkillPicker extends StatelessWidget {
   final Set<String> selectedIds;
   final ValueChanged<_PortfolioOption>? onToggle;
 
+  void _showBottomSheet(BuildContext context) {
+    if (onToggle == null) return;
+    if (options.isEmpty) {
+      context.showSnack('Please select a category first to load skills');
+      return;
+    }
+    final searchController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final query = searchController.text.trim().toLowerCase();
+            final filtered = query.isEmpty
+                ? options
+                : options
+                    .where((opt) => opt.label.toLowerCase().contains(query))
+                    .toList();
+
+            return DraggableScrollableSheet(
+              expand: false,
+              initialChildSize: 0.75,
+              maxChildSize: 0.95,
+              minChildSize: 0.5,
+              builder: (context, scrollController) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSizes.screenPadding,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Select Skills (${selectedIds.length})',
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text(
+                              'Done',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: searchController,
+                        hint: 'Search skills…',
+                        prefixIcon: Icons.search_rounded,
+                        onChanged: (_) => setSheetState(() {}),
+                      ),
+                      AppSizes.vGapMd,
+                      Expanded(
+                        child: filtered.isEmpty
+                            ? Center(
+                                child: Text(
+                                  'No skills found',
+                                  style: context.text.bodyMedium?.copyWith(
+                                    color: AppColors.mutedText,
+                                  ),
+                                ),
+                              )
+                            : ListView.separated(
+                                controller: scrollController,
+                                itemCount: filtered.length,
+                                separatorBuilder: (_, __) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, index) {
+                                  final option = filtered[index];
+                                  final isSelected = selectedIds.contains(
+                                    option.id,
+                                  );
+                                  return CheckboxListTile(
+                                    title: Text(
+                                      option.label,
+                                      style: context.text.bodyMedium?.copyWith(
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                      ),
+                                    ),
+                                    value: isSelected,
+                                    activeColor: AppColors.primary,
+                                    contentPadding: EdgeInsets.zero,
+                                    controlAffinity:
+                                        ListTileControlAffinity.trailing,
+                                    onChanged: (_) {
+                                      onToggle!(option);
+                                      setSheetState(() {});
+                                    },
+                                  );
+                                },
+                              ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppPrimaryButton(
+                        label: 'Done (${selectedIds.length} selected)',
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      AppSizes.vGapLg,
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) return const LinearProgressIndicator(minHeight: 2);
+    final selectedOptions = options
+        .where((opt) => selectedIds.contains(opt.id))
+        .toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Skills', style: context.text.titleSmall),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Skills', style: context.text.titleSmall),
+            Text(
+              '${selectedIds.length} Selected',
+              style: context.text.labelMedium?.copyWith(
+                color: selectedIds.isEmpty
+                    ? AppColors.mutedText
+                    : AppColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
         AppSizes.vGapSm,
-        if (options.isEmpty)
-          Text(
-            'Select a category to load skills.',
-            style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
-          )
-        else
+        InkWell(
+          onTap: onToggle == null ? null : () => _showBottomSheet(context),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.md,
+              vertical: AppSizes.sm + 4,
+            ),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: Theme.of(context).dividerColor,
+              ),
+              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    options.isEmpty
+                        ? 'Select a category to load skills'
+                        : selectedIds.isEmpty
+                        ? 'Select skills'
+                        : '${selectedIds.length} skill${selectedIds.length == 1 ? '' : 's'} selected',
+                    style: context.text.bodyMedium?.copyWith(
+                      color: selectedIds.isEmpty
+                          ? AppColors.mutedText
+                          : context.text.bodyMedium?.color,
+                    ),
+                  ),
+                ),
+                const Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  color: AppColors.mutedText,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (selectedOptions.isNotEmpty) ...[
+          AppSizes.vGapSm,
           Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.sm,
+            spacing: AppSizes.xs,
+            runSpacing: AppSizes.xs,
             children: [
-              for (final option in options)
-                FilterChip(
+              for (final option in selectedOptions)
+                Chip(
                   label: Text(option.label),
-                  selected: selectedIds.contains(option.id),
-                  showCheckmark: false,
-                  onSelected: onToggle == null
-                      ? null
-                      : (_) => onToggle!(option),
+                  deleteIcon: const Icon(Icons.close_rounded, size: 16),
+                  onDeleted: onToggle == null ? null : () => onToggle!(option),
+                  visualDensity: VisualDensity.compact,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
             ],
           ),
+        ],
       ],
     );
   }
