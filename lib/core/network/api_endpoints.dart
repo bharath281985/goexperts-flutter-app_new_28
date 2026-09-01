@@ -411,6 +411,66 @@ class ApiEndpoints {
   static String founderProposalReject(String id) =>
       '/founder/proposals/$id/reject';
 
+  // ── Universal Dynamic Role Endpoints ─────────────────────────────────────
+  static String rolePath(dynamic role) {
+    if (role == null) return 'client';
+    final name = role.toString().split('.').last.toLowerCase();
+    switch (name) {
+      case 'freelancer':
+        return 'freelancer';
+      case 'client':
+      case 'company':
+        return 'client';
+      case 'investor':
+        return 'investor';
+      case 'founder':
+        return 'founder';
+      default:
+        return name;
+    }
+  }
+
+  static String roleProjects(dynamic role) => '/${rolePath(role)}/projects';
+  static String roleProject(dynamic role, String id) =>
+      '/${rolePath(role)}/projects/$id';
+  static String roleProjectStatus(dynamic role, String id) =>
+      '/${rolePath(role)}/projects/$id/status';
+  static String roleProjectShare(dynamic role, String id) =>
+      '/${rolePath(role)}/projects/$id/share';
+  static String roleProjectProposals(dynamic role, String projectId) =>
+      '/${rolePath(role)}/projects/$projectId/proposals';
+
+  static String roleTasks(dynamic role) => '/${rolePath(role)}/tasks';
+  static String roleTask(dynamic role, String id) =>
+      '/${rolePath(role)}/tasks/$id';
+  static String roleTaskStatus(dynamic role, String id) =>
+      '/${rolePath(role)}/tasks/$id/status';
+
+  static String roleStartups(dynamic role) => '/${rolePath(role)}/startups';
+  static String roleStartup(dynamic role, String id) =>
+      '/${rolePath(role)}/startups/$id';
+
+  static String roleDeals(dynamic role) => '/${rolePath(role)}/deals';
+  static String roleOffers(dynamic role) => '/${rolePath(role)}/offers';
+  static String roleOffer(dynamic role, String id) =>
+      '/${rolePath(role)}/offers/$id';
+
+  static String roleProposals(dynamic role) => '/${rolePath(role)}/proposals';
+  static String roleProposal(dynamic role, String id) =>
+      '/${rolePath(role)}/proposals/$id';
+
+  static String roleContracts(dynamic role) => '/${rolePath(role)}/contracts';
+  static String roleContract(dynamic role, String id) =>
+      '/${rolePath(role)}/contracts/$id';
+
+  static String roleFreelancers(dynamic role) =>
+      '/${rolePath(role)}/freelancers';
+  static String roleTeams(dynamic role) => '/${rolePath(role)}/teams';
+  static String roleReports(dynamic role) => '/${rolePath(role)}/reports';
+  static String roleAnalytics(dynamic role) => '/${rolePath(role)}/analytics';
+  static String roleDashboard(dynamic role) => '/${rolePath(role)}/dashboard';
+  static String roleWallet(dynamic role) => '/${rolePath(role)}/wallet';
+
   // ── Legacy aliases (kept for gradual migration) ─────────────────────────────
   static const signup = register;
   static const proposals = '/proposals';

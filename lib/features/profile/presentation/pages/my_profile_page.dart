@@ -426,6 +426,14 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       () => context.push(Routes.subscriptionsManage),
                     ),
                   ),
+                  _tile(
+                    context,
+                    Icons.card_giftcard_outlined,
+                    'Referral Program',
+                    () => _navigateAndRefresh(
+                      () => context.push(Routes.referrals),
+                    ),
+                  ),
 
                   _tile(
                     context,

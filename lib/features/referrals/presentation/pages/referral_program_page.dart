@@ -19,7 +19,7 @@ class ReferralProgramPage extends StatefulWidget {
 
 class _ReferralProgramPageState extends State<ReferralProgramPage> {
   late final ReferralRepository _repository =
-      widget.repository ?? ReferralRepositoryImpl(sl<ApiClientHelper>());
+      widget.repository ?? sl<ReferralRepository>();
   ReferralDetails? _details;
   String? _error;
   bool _loading = true;

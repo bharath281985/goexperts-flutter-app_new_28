@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
@@ -63,7 +64,8 @@ class SocialAuthService {
   }
 
   Future<SocialAuthResult> signInWithApple() async {
-    final bool isApplePlatform = Platform.isIOS || Platform.isMacOS;
+    final bool isApplePlatform =
+        !kIsWeb && (Platform.isIOS || Platform.isMacOS);
 
     final credential = await SignInWithApple.getAppleIDCredential(
       scopes: [

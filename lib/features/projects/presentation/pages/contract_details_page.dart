@@ -62,7 +62,7 @@ class ContractDetailsPage extends StatelessWidget {
                       message: 'Are you sure you want to cancel this contract?',
                       confirmLabel: 'Cancel Contract',
                       isDestructive: true,
-                      endpoint: ApiEndpoints.clientContractCancel(c.id),
+                      endpoint: '/${ApiEndpoints.rolePath(role)}/contracts/${c.id}/cancel',
                       successMsg: 'Contract cancelled',
                     ),
                   ),
@@ -77,7 +77,7 @@ class ContractDetailsPage extends StatelessWidget {
                       message:
                           'This will mark the contract active and notify the freelancer.',
                       confirmLabel: 'Activate',
-                      endpoint: ApiEndpoints.clientContractActivate(c.id),
+                      endpoint: '/${ApiEndpoints.rolePath(role)}/contracts/${c.id}/activate',
                       successMsg: 'Contract activated',
                     ),
                   ),
@@ -92,7 +92,7 @@ class ContractDetailsPage extends StatelessWidget {
                       message:
                           'Mark this contract as completed and release remaining milestones?',
                       confirmLabel: 'Complete',
-                      endpoint: ApiEndpoints.clientContractComplete(c.id),
+                      endpoint: '/${ApiEndpoints.rolePath(role)}/contracts/${c.id}/complete',
                       successMsg: 'Contract completed',
                     ),
                   ),

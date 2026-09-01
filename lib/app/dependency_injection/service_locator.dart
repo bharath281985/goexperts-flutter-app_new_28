@@ -64,6 +64,7 @@ import '../../features/settings/data/repositories/settings_repository_impl.dart'
 import '../../features/settings/domain/repositories/settings_repository.dart';
 import '../../features/documents/data/repositories/document_repository_impl.dart';
 import '../../features/documents/domain/repositories/document_repository.dart';
+import '../../features/referrals/data/referral_repository.dart';
 import '../../features/master_data/data/repositories/master_data_repository_impl.dart';
 import '../../features/master_data/domain/repositories/master_data_repository.dart';
 
@@ -149,7 +150,9 @@ class ServiceLocator {
     _register<ProjectRepository>(
       ProjectRepositoryImpl(apiClient, tokenRoleHelper),
     );
-    _register<ProposalRepository>(ProposalRepositoryImpl(apiClient));
+    _register<ProposalRepository>(
+      ProposalRepositoryImpl(apiClient, tokenRoleHelper),
+    );
     _register<FreelancerRepository>(
       FreelancerRepositoryImpl(apiClient, tokenRoleHelper),
     );
@@ -203,6 +206,9 @@ class ServiceLocator {
     );
     _register<SettingsRepository>(
       SettingsRepositoryImpl(apiClient, tokenRoleHelper),
+    );
+    _register<ReferralRepository>(
+      ReferralRepositoryImpl(apiClient),
     );
   }
 }

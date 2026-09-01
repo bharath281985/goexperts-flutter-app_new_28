@@ -1326,7 +1326,8 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
           builder: (context, setSheetState) {
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
+                bottom: MediaQuery.viewInsetsOf(context).bottom +
+                    MediaQuery.paddingOf(context).bottom,
                 left: AppSizes.md,
                 right: AppSizes.md,
                 top: AppSizes.md,
@@ -1537,7 +1538,8 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
 
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
+                bottom: MediaQuery.viewInsetsOf(context).bottom +
+                    MediaQuery.paddingOf(context).bottom,
                 left: AppSizes.md,
                 right: AppSizes.md,
                 top: AppSizes.md,

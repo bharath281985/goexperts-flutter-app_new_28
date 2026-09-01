@@ -1082,11 +1082,11 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
   void dispose() {
     _summary.dispose();
     super.dispose();
-  }
-
-  Future<void> _load() async {
+  }  Future<void> _load() async {
+    final role = context.read<AuthBloc>().state.user?.role;
+    final path = '/${ApiEndpoints.rolePath(role)}/pitch-deck';
     final res = await sl<ApiClientHelper>().get<Map<String, dynamic>>(
-      ApiEndpoints.founderPitchDeck,
+      path,
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (!mounted) return;
@@ -1096,15 +1096,17 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
+    final role = context.read<AuthBloc>().state.user?.role;
+    final path = '/${ApiEndpoints.rolePath(role)}/pitch-deck';
     final api = sl<ApiClientHelper>();
     var res = await api.put<Map<String, dynamic>>(
-      ApiEndpoints.founderPitchDeck,
+      path,
       body: {'summary': _summary.text.trim()},
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (res.isFailure) {
       res = await api.post<Map<String, dynamic>>(
-        ApiEndpoints.founderPitchDeck,
+        path,
         body: {'summary': _summary.text.trim()},
         parser: (raw) => Map<String, dynamic>.from(raw as Map),
         allowNullData: false,
@@ -1130,7 +1132,7 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
                 controller: _summary,
                 label: 'Deck Summary',
                 hint: 'Enter deck summary',
-                maxLines: 8,
+                maxLines: 10,
               ),
               AppSizes.vGapMd,
               AppPrimaryButton(
@@ -1169,8 +1171,10 @@ class _FounderBusinessPlanLivePageState
   }
 
   Future<void> _load() async {
+    final role = context.read<AuthBloc>().state.user?.role;
+    final path = '/${ApiEndpoints.rolePath(role)}/business-plan';
     final res = await sl<ApiClientHelper>().get<Map<String, dynamic>>(
-      ApiEndpoints.founderBusinessPlan,
+      path,
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (!mounted) return;
@@ -1180,15 +1184,17 @@ class _FounderBusinessPlanLivePageState
 
   Future<void> _save() async {
     setState(() => _saving = true);
+    final role = context.read<AuthBloc>().state.user?.role;
+    final path = '/${ApiEndpoints.rolePath(role)}/business-plan';
     final api = sl<ApiClientHelper>();
     var res = await api.put<Map<String, dynamic>>(
-      ApiEndpoints.founderBusinessPlan,
+      path,
       body: {'summary': _summary.text.trim()},
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (res.isFailure) {
       res = await api.post<Map<String, dynamic>>(
-        ApiEndpoints.founderBusinessPlan,
+        path,
         body: {'summary': _summary.text.trim()},
         parser: (raw) => Map<String, dynamic>.from(raw as Map),
         allowNullData: false,
@@ -1245,9 +1251,10 @@ class _FounderTeamLivePageState extends State<FounderTeamLivePage> {
   }
 
   Future<void> _load() async {
+    final role = context.read<AuthBloc>().state.user?.role;
     final res = await sl<ApiClientHelper>()
         .getEnvelope<List<Map<String, dynamic>>>(
-          ApiEndpoints.founderTeam,
+          ApiEndpoints.roleTeams(role),
           parser: (e) {
             final list = e.data as List?;
             if (list == null) return const [];
@@ -1265,6 +1272,7 @@ class _FounderTeamLivePageState extends State<FounderTeamLivePage> {
   Future<void> _add() async {
     final name = TextEditingController();
     final role = TextEditingController();
+    final userRole = context.read<AuthBloc>().state.user?.role;
     await showDialog(
       context: context,
       builder: (dCtx) => AlertDialog(
@@ -1284,7 +1292,7 @@ class _FounderTeamLivePageState extends State<FounderTeamLivePage> {
           TextButton(
             onPressed: () async {
               final res = await sl<ApiClientHelper>().postAction(
-                ApiEndpoints.founderTeam,
+                ApiEndpoints.roleTeams(userRole),
                 body: {'name': name.text.trim(), 'role': role.text.trim()},
               );
               if (!mounted) return;
@@ -1441,13 +1449,14 @@ class _FounderAnalyticsLivePageState extends State<FounderAnalyticsLivePage> {
   }
 
   Future<void> _load() async {
+    final role = context.read<AuthBloc>().state.user?.role;
     final api = sl<ApiClientHelper>();
     final a = await api.get<Map<String, dynamic>>(
-      ApiEndpoints.founderAnalytics,
+      ApiEndpoints.roleAnalytics(role),
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     final r = await api.getEnvelope<List<Map<String, dynamic>>>(
-      ApiEndpoints.founderReports,
+      ApiEndpoints.roleReports(role),
       parser: (e) {
         final list = e.data as List?;
         if (list == null) return const [];

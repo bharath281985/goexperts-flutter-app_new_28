@@ -62,8 +62,11 @@ import '../../features/messages/presentation/pages/chat_page.dart';
 import '../../features/notifications/presentation/pages/notifications_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/profile/presentation/pages/public_profile_page.dart';
+import '../../features/profile/presentation/pages/my_profile_page.dart';
+import '../../features/profile/presentation/pages/my_reviews_page.dart';
 import '../../features/projects/presentation/pages/project_details_page.dart';
 import '../../features/proposals/presentation/pages/proposal_details_page.dart';
+import '../../features/referrals/presentation/pages/referral_program_page.dart';
 import '../../features/role_selection/presentation/pages/role_selection_page.dart';
 import '../../features/settings/presentation/pages/bookmarks_page.dart';
 import '../../features/settings/presentation/pages/change_password_page.dart';
@@ -71,6 +74,7 @@ import '../../features/settings/presentation/pages/delete_account_page.dart';
 import '../../features/settings/presentation/pages/global_search_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/settings/presentation/pages/public_content_page.dart';
+import '../../features/settings/presentation/pages/legal_document_page.dart';
 import '../../features/settings/presentation/pages/security_center_page.dart';
 import '../../features/startup_ideas/presentation/pages/startup_details_page.dart';
 import '../../features/subscriptions/presentation/pages/current_subscription_page.dart';
@@ -420,6 +424,31 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       // Common
       GoRoute(
+        path: Routes.profile,
+        builder: (_, __) => const MyProfilePage(),
+      ),
+      GoRoute(
+        path: Routes.myReviews,
+        builder: (_, __) => const MyReviewsPage(),
+      ),
+      GoRoute(
+        path: Routes.verification,
+        builder: (context, _) {
+          final role =
+              context.read<AuthBloc>().state.user?.role ?? UserRole.freelancer;
+          return switch (role) {
+            UserRole.freelancer => const FreelancerVerificationPage(),
+            UserRole.client => const ClientVerificationPage(),
+            UserRole.investor => const InvestorVerificationPage(),
+            UserRole.founder => const FounderVerificationPage(),
+          };
+        },
+      ),
+      GoRoute(
+        path: Routes.legalDocument,
+        builder: (_, __) => LegalDocumentPage.privacy(),
+      ),
+      GoRoute(
         path: Routes.messages,
         builder: (_, __) => const MessagesStandalonePage(),
       ),
@@ -489,6 +518,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.subscriptionsManage,
         builder: (_, __) => const CurrentSubscriptionPage(),
+      ),
+      GoRoute(
+        path: Routes.referrals,
+        builder: (_, __) => const ReferralProgramPage(),
       ),
 
       // Detail / deep-link routes
@@ -657,6 +690,65 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: Routes.freelancerAnalytics,
         builder: (_, __) => const RoleAnalyticsPage(role: UserRole.freelancer),
       ),
+      GoRoute(
+        path: Routes.freelancerFreelancers,
+        builder: (_, __) => const FreelancersStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerApplications,
+        builder: (_, __) => const ClientApplicationsPage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerTeams,
+        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.client),
+      ),
+      GoRoute(
+        path: Routes.freelancerStartups,
+        builder: (_, __) => const StartupsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerDeals,
+        builder: (_, __) => const DealsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerOffers,
+        builder: (_, __) => const InvestorOffersPage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerPitchDeck,
+        builder: (_, __) => const FounderPitchDeckLivePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerBusinessPlan,
+        builder: (_, __) => const FounderBusinessPlanLivePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerInvestors,
+        builder: (_, __) => const InvestorsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerFunding,
+        builder: (_, __) => const FounderFundingLivePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerReports,
+        builder: (_, __) => const ClientReportsHubPage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerCreateProject,
+        builder: (_, s) =>
+            CreateProjectPage(projectId: s.uri.queryParameters['projectId']),
+      ),
+      GoRoute(
+        path: Routes.freelancerCreateStartup,
+        builder: (_, __) => const MyStartupStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerAddTask,
+        builder: (_, s) => ClientAddTaskPage(
+          task: s.extra is ClientTask ? s.extra as ClientTask : null,
+        ),
+      ),
 
       // Role sub-pages — Client
       GoRoute(
@@ -679,8 +771,115 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: Routes.clientAnalytics,
         builder: (_, __) => const RoleAnalyticsPage(role: UserRole.client),
       ),
+      GoRoute(
+        path: Routes.clientProposals,
+        builder: (_, __) => const ClientApplicationsPage(),
+      ),
+      GoRoute(
+        path: Routes.clientContracts,
+        builder: (_, __) => const FreelancerContractsPage(),
+      ),
+      GoRoute(
+        path: Routes.clientPortfolioPage,
+        builder: (_, __) => const FreelancerPortfolioPage(),
+      ),
+      GoRoute(
+        path: Routes.clientStartups,
+        builder: (_, __) => const StartupsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.clientDeals,
+        builder: (_, __) => const DealsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.clientOffers,
+        builder: (_, __) => const InvestorOffersPage(),
+      ),
+      GoRoute(
+        path: Routes.clientPitchDeck,
+        builder: (_, __) => const FounderPitchDeckLivePage(),
+      ),
+      GoRoute(
+        path: Routes.clientBusinessPlan,
+        builder: (_, __) => const FounderBusinessPlanLivePage(),
+      ),
+      GoRoute(
+        path: Routes.clientInvestors,
+        builder: (_, __) => const InvestorsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.clientFunding,
+        builder: (_, __) => const FounderFundingLivePage(),
+      ),
+      GoRoute(
+        path: Routes.clientCreateStartup,
+        builder: (_, __) => const MyStartupStandalonePage(),
+      ),
 
       // Role sub-pages — Investor
+      GoRoute(
+        path: Routes.investorProjects,
+        builder: (_, __) => const ProjectsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorProposals,
+        builder: (_, __) => const ProposalsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorContracts,
+        builder: (_, __) => const InvestorOffersPage(),
+      ),
+      GoRoute(
+        path: Routes.investorTasks,
+        builder: (_, __) => const ClientTasksPage(),
+      ),
+      GoRoute(
+        path: Routes.investorFreelancers,
+        builder: (_, __) => const FreelancersStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorApplications,
+        builder: (_, __) => const DealsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorTeams,
+        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.client),
+      ),
+      GoRoute(
+        path: Routes.investorPortfolioPage,
+        builder: (_, __) => const PortfolioStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorPitchDeck,
+        builder: (_, __) => const FounderPitchDeckLivePage(),
+      ),
+      GoRoute(
+        path: Routes.investorBusinessPlan,
+        builder: (_, __) => const FounderBusinessPlanLivePage(),
+      ),
+      GoRoute(
+        path: Routes.investorInvestors,
+        builder: (_, __) => const InvestorsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorFunding,
+        builder: (_, __) => const FounderFundingLivePage(),
+      ),
+      GoRoute(
+        path: Routes.investorCreateProject,
+        builder: (_, s) =>
+            CreateProjectPage(projectId: s.uri.queryParameters['projectId']),
+      ),
+      GoRoute(
+        path: Routes.investorCreateStartup,
+        builder: (_, __) => const MyStartupStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.investorAddTask,
+        builder: (_, s) => ClientAddTaskPage(
+          task: s.extra is ClientTask ? s.extra as ClientTask : null,
+        ),
+      ),
       GoRoute(
         path: Routes.investorPreferences,
         builder: (_, __) => const InvestorPreferencesPage(),
@@ -712,6 +911,50 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       // Role sub-pages — Founder
       GoRoute(
+        path: Routes.founderProjects,
+        builder: (_, __) => const ProjectsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderProposals,
+        builder: (_, __) => const ProposalsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderContracts,
+        builder: (_, __) => const FounderFundingLivePage(),
+      ),
+      GoRoute(
+        path: Routes.founderTasks,
+        builder: (_, __) => const ClientTasksPage(),
+      ),
+      GoRoute(
+        path: Routes.founderFreelancers,
+        builder: (_, __) => const FreelancersStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderApplications,
+        builder: (_, __) => const InvestorsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderTeams,
+        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.founder),
+      ),
+      GoRoute(
+        path: Routes.founderPortfolioPage,
+        builder: (_, __) => const MyStartupStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderStartups,
+        builder: (_, __) => const StartupsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderDeals,
+        builder: (_, __) => const DealsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderOffers,
+        builder: (_, __) => const InvestorOffersPage(),
+      ),
+      GoRoute(
         path: Routes.founderPitchDeck,
         builder: (_, __) => const FounderPitchDeckLivePage(),
       ),
@@ -734,6 +977,34 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.founderAnalytics,
         builder: (_, __) => const RoleAnalyticsPage(role: UserRole.founder),
+      ),
+      GoRoute(
+        path: Routes.founderReports,
+        builder: (_, __) => const ClientReportsHubPage(),
+      ),
+      GoRoute(
+        path: Routes.founderCreateProject,
+        builder: (_, s) =>
+            CreateProjectPage(projectId: s.uri.queryParameters['projectId']),
+      ),
+      GoRoute(
+        path: Routes.founderCreateStartup,
+        builder: (_, __) => const MyStartupStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderAddTask,
+        builder: (_, s) => ClientAddTaskPage(
+          task: s.extra is ClientTask ? s.extra as ClientTask : null,
+        ),
+      ),
+      GoRoute(
+        path: Routes.createProject,
+        builder: (_, s) =>
+            CreateProjectPage(projectId: s.uri.queryParameters['projectId']),
+      ),
+      GoRoute(
+        path: Routes.createStartup,
+        builder: (_, __) => const MyStartupStandalonePage(),
       ),
       GoRoute(
         path: '${Routes.publicFreelancer}/:id',
@@ -762,6 +1033,66 @@ GoRouter createRouter(AuthBloc authBloc) {
           type: PublicProfileType.founder,
           id: s.pathParameters['id']!,
         ),
+      ),
+      GoRoute(
+        path: '${Routes.freelancerProfile}/:id',
+        builder: (_, s) => PublicProfilePage(
+          type: PublicProfileType.freelancer,
+          id: s.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '${Routes.clientProfile}/:id',
+        builder: (_, s) => PublicProfilePage(
+          type: PublicProfileType.company,
+          id: s.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '${Routes.investorProfile}/:id',
+        builder: (_, s) => PublicProfilePage(
+          type: PublicProfileType.investor,
+          id: s.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '${Routes.founderProfile}/:id',
+        builder: (_, s) => PublicProfilePage(
+          type: PublicProfileType.founder,
+          id: s.pathParameters['id']!,
+        ),
+      ),
+      GoRoute(
+        path: '${Routes.profile}/:id',
+        builder: (_, s) {
+          final qType = s.uri.queryParameters['type']?.toLowerCase();
+          final type = switch (qType) {
+            'client' || 'company' => PublicProfileType.company,
+            'investor' => PublicProfileType.investor,
+            'founder' => PublicProfileType.founder,
+            _ => PublicProfileType.freelancer,
+          };
+          return PublicProfilePage(
+            type: type,
+            id: s.pathParameters['id']!,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/u/:id',
+        builder: (_, s) {
+          final qType = s.uri.queryParameters['type']?.toLowerCase();
+          final type = switch (qType) {
+            'client' || 'company' => PublicProfileType.company,
+            'investor' => PublicProfileType.investor,
+            'founder' => PublicProfileType.founder,
+            _ => PublicProfileType.freelancer,
+          };
+          return PublicProfilePage(
+            type: type,
+            id: s.pathParameters['id']!,
+          );
+        },
       ),
     ],
   );

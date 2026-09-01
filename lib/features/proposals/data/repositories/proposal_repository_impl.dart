@@ -1,3 +1,4 @@
+import '../../../../core/auth/token_role_helper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
@@ -9,16 +10,20 @@ import '../../domain/entities/proposal.dart';
 import '../../domain/repositories/proposal_repository.dart';
 
 class ProposalRepositoryImpl implements ProposalRepository {
-  ProposalRepositoryImpl([this._api]);
+  ProposalRepositoryImpl([this._api, this._tokenRoleHelper]);
 
   final ApiClientHelper? _api;
+  final TokenRoleHelper? _tokenRoleHelper;
+
+  Future<UserRole?> _role() async => await _tokenRoleHelper?.resolve();
 
   @override
-  Future<Result<Paginated<Proposal>>> getProposals(QueryParams params) {
+  Future<Result<Paginated<Proposal>>> getProposals(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
 
+    final role = await _role();
     return _api.getEnvelope<Paginated<Proposal>>(
-      ApiEndpoints.freelancerProposals,
+      ApiEndpoints.roleProposals(role),
       query: params.toApiQuery(),
       parser: (envelope) => ApiResponse.parsePaginated(
         envelope.data,
@@ -33,8 +38,9 @@ class ProposalRepositoryImpl implements ProposalRepository {
   Future<Result<Proposal>> getProposal(String id) async {
     if (_api == null) return _apiNotConfigured();
 
+    final role = await _role();
     return _api.get<Proposal>(
-      '${ApiEndpoints.freelancerProposals}/$id',
+      ApiEndpoints.roleProposal(role, id),
       parser: (data) =>
           _proposalFromJson(Map<String, dynamic>.from(data as Map)),
     );
@@ -50,6 +56,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
   }) async {
     if (_api == null) return _apiNotConfigured();
 
+    final role = await _role();
     final body = <String, dynamic>{
       'projectId': projectId,
       'bidAmount': bidAmount,
@@ -59,7 +66,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
     };
 
     return _api.post<Proposal>(
-      ApiEndpoints.freelancerProposals,
+      ApiEndpoints.roleProposals(role),
       body: body,
       parser: (data) =>
           _proposalFromJson(Map<String, dynamic>.from(data as Map)),
@@ -76,8 +83,9 @@ class ProposalRepositoryImpl implements ProposalRepository {
   }) async {
     if (_api == null) return _apiNotConfigured();
 
+    final role = await _role();
     return _api.putEnvelope<Proposal>(
-      ApiEndpoints.freelancerProposal(proposalId),
+      ApiEndpoints.roleProposal(role, proposalId),
       body: {
         'bidAmount': bidAmount,
         'coverLetter': coverLetter,
@@ -91,24 +99,30 @@ class ProposalRepositoryImpl implements ProposalRepository {
   @override
   Future<Result<bool>> withdraw(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.deleteAction(ApiEndpoints.freelancerProposalWithdraw(id));
+    final role = await _role();
+    return _api.deleteAction(
+      '/${ApiEndpoints.rolePath(role)}/proposals/$id/withdraw',
+    );
   }
 
   @override
   Future<Result<bool>> deleteProposal(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.deleteAction(ApiEndpoints.freelancerProposal(id));
+    final role = await _role();
+    return _api.deleteAction(ApiEndpoints.roleProposal(role, id));
   }
 
   @override
   Future<Result<bool>> updateStatus(String id, String status) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final rolePath = ApiEndpoints.rolePath(role);
     final normalized = status.toLowerCase().trim();
     final path = switch (normalized) {
-      'shortlisted' || 'shortlist' => ApiEndpoints.clientProposalShortlist(id),
-      'rejected' || 'reject' => ApiEndpoints.clientProposalReject(id),
-      'interview' => ApiEndpoints.clientProposalInterview(id),
-      'accepted' || 'accept' => ApiEndpoints.clientProposalAccept(id),
+      'shortlisted' || 'shortlist' => '/$rolePath/proposals/$id/shortlist',
+      'rejected' || 'reject' => '/$rolePath/proposals/$id/reject',
+      'interview' => '/$rolePath/proposals/$id/interview',
+      'accepted' || 'accept' => '/$rolePath/proposals/$id/accept',
       _ => null,
     };
     if (path == null) {

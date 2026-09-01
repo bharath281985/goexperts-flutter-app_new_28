@@ -789,7 +789,7 @@ class _FreelancerVerificationPageState
       identityItems.add(
         VerificationItem(
           key: 'identity',
-          label: 'Additional Identity Document',
+          label: 'Identity Document',
           value: '',
           status: 'missing',
           required: true,
@@ -1526,14 +1526,15 @@ class _FreelancerVerificationPageState
                 ? (_identityOptions[actualKey] ?? item.label)
                 : item.label;
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
-                left: AppSizes.md,
-                right: AppSizes.md,
-                top: AppSizes.md,
-              ),
-              child: SingleChildScrollView(
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                  left: AppSizes.md,
+                  right: AppSizes.md,
+                  top: AppSizes.md,
+                ),
+                child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1715,6 +1716,7 @@ class _FreelancerVerificationPageState
                   ],
                 ),
               ),
+            ),
             );
           },
         );

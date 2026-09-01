@@ -61,6 +61,9 @@ class Routes {
   static const founderVerification = '/founder/verification';
 
   // Common
+  static const profile = '/profile';
+  static const myReviews = '/my-reviews';
+  static const verification = '/verification';
   static const messages = '/messages';
   static const meetings = '/meetings';
   static const notifications = '/notifications';
@@ -70,10 +73,12 @@ class Routes {
   static const bookmarks = '/bookmarks';
   static const wallet = '/wallet';
   static const subscriptionsManage = '/subscriptions';
+  static const referrals = '/referrals';
   static const securityCenter = '/security';
   static const changePassword = '/change-password';
   static const privacyPolicy = '/privacy';
   static const termsOfService = '/terms';
+  static const legalDocument = '/legal-document';
   static const aboutGoExperts = '/about-goexperts';
   static const refundPolicy = '/refund-policy';
   static const helpCenter = '/help-center';
@@ -121,15 +126,48 @@ class Routes {
   static const freelancerWithdrawals = '/freelancer/withdrawals';
   static const freelancerInvoices = '/freelancer/invoices';
   static const freelancerAnalytics = '/freelancer/analytics';
+  static const freelancerFreelancers = '/freelancer/freelancers';
+  static const freelancerApplications = '/freelancer/applications';
+  static const freelancerTeams = '/freelancer/teams';
+  static const freelancerStartups = '/freelancer/startups';
+  static const freelancerDeals = '/freelancer/deals';
+  static const freelancerOffers = '/freelancer/offers';
+  static const freelancerPitchDeck = '/freelancer/pitch-deck';
+  static const freelancerBusinessPlan = '/freelancer/business-plan';
+  static const freelancerInvestors = '/freelancer/investors';
+  static const freelancerFunding = '/freelancer/funding';
+  static const freelancerReports = '/freelancer/reports';
+  static const freelancerCreateProject = '/freelancer/create-project';
+  static const freelancerCreateStartup = '/freelancer/create-startup';
+  static const freelancerAddTask = '/freelancer/tasks/add';
 
   // Role sub-pages — Client
   static const clientApplications = '/client/applications';
+  static const clientProposals = '/client/proposals';
+  static const clientContracts = '/client/contracts';
+  static const clientPortfolioPage = '/client/portfolio';
   static const clientShortlisted = '/client/shortlisted';
   static const clientTeams = '/client/teams';
   static const clientReports = '/client/reports';
   static const clientAnalytics = '/client/analytics';
+  static const clientStartups = '/client/startups';
+  static const clientDeals = '/client/deals';
+  static const clientOffers = '/client/offers';
+  static const clientPitchDeck = '/client/pitch-deck';
+  static const clientBusinessPlan = '/client/business-plan';
+  static const clientInvestors = '/client/investors';
+  static const clientFunding = '/client/funding';
+  static const clientCreateStartup = '/client/create-startup';
 
   // Role sub-pages — Investor
+  static const investorProjects = '/investor/projects';
+  static const investorProposals = '/investor/proposals';
+  static const investorContracts = '/investor/contracts';
+  static const investorTasks = '/investor/tasks';
+  static const investorFreelancers = '/investor/freelancers';
+  static const investorApplications = '/investor/applications';
+  static const investorTeams = '/investor/teams';
+  static const investorPortfolioPage = '/investor/portfolio-page';
   static const investorPreferences = '/investor/preferences';
   static const investorDueDiligence = '/investor/due-diligence';
   static const investorOffers = '/investor/offers';
@@ -137,12 +175,38 @@ class Routes {
   static const investorTransactions = '/investor/transactions';
   static const investorReports = '/investor/reports';
   static const investorAnalytics = '/investor/analytics';
+  static const investorPitchDeck = '/investor/pitch-deck';
+  static const investorBusinessPlan = '/investor/business-plan';
+  static const investorInvestors = '/investor/investors';
+  static const investorFunding = '/investor/funding';
+  static const investorCreateProject = '/investor/create-project';
+  static const investorCreateStartup = '/investor/create-startup';
+  static const investorAddTask = '/investor/tasks/add';
 
   // Role sub-pages — Founder
+  static const founderProjects = '/founder/projects';
+  static const founderProposals = '/founder/proposals';
+  static const founderContracts = '/founder/contracts';
+  static const founderTasks = '/founder/tasks';
+  static const founderFreelancers = '/founder/freelancers';
+  static const founderApplications = '/founder/applications';
+  static const founderTeams = '/founder/teams';
+  static const founderPortfolioPage = '/founder/portfolio-page';
+  static const founderStartups = '/founder/startups';
+  static const founderDeals = '/founder/deals';
+  static const founderOffers = '/founder/offers';
   static const founderPitchDeck = '/founder/pitch-deck';
   static const founderBusinessPlan = '/founder/business-plan';
   static const founderTeam = '/founder/team';
   static const founderHiring = '/founder/hiring';
   static const founderMedia = '/founder/media';
   static const founderAnalytics = '/founder/analytics';
+  static const founderReports = '/founder/reports';
+  static const founderCreateProject = '/founder/create-project';
+  static const founderCreateStartup = '/founder/create-startup';
+  static const founderAddTask = '/founder/tasks/add';
+
+  // Universal create shortcuts
+  static const createProject = '/create-project';
+  static const createStartup = '/create-startup';
 }

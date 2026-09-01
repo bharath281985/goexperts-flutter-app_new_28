@@ -877,9 +877,10 @@ class _ClientReportsHubPageState extends State<ClientReportsHubPage> {
   }
 
   Future<void> _load() async {
+    final role = context.read<AuthBloc>().state.user?.role;
     final api = sl<ApiClientHelper>();
     final tasks = await api.getEnvelope<List<Map<String, dynamic>>>(
-      ApiEndpoints.clientTasks,
+      ApiEndpoints.roleTasks(role),
       parser: (e) => _asMapList(e.data),
     );
     final milestones = await api.getEnvelope<List<Map<String, dynamic>>>(
@@ -903,8 +904,9 @@ class _ClientReportsHubPageState extends State<ClientReportsHubPage> {
   }
 
   Future<void> _patchTaskStatus(String id, String status) async {
+    final role = context.read<AuthBloc>().state.user?.role;
     final res = await sl<ApiClientHelper>().patchAction(
-      ApiEndpoints.clientTaskStatus(id),
+      '${ApiEndpoints.roleTasks(role)}/$id/status',
       body: {'status': status},
     );
     if (!mounted) return;

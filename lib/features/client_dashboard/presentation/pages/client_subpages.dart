@@ -26,6 +26,8 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../client_dashboard/domain/repositories/client_proposal_repository.dart';
 import '../../../proposals/domain/entities/proposal.dart';
 
@@ -178,8 +180,9 @@ class _ClientTasksPageState extends State<ClientTasksPage> {
 
   Future<Result<Paginated<ClientTask>>> _fetch(QueryParams q) async {
     try {
+      final userRole = context.read<AuthBloc>().state.user?.role;
       final response = await sl<DioClient>().raw.get<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}${ApiEndpoints.clientTasks}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.roleTasks(userRole)}',
         queryParameters: q.toApiQuery(),
       );
       final body = response.data ?? const <String, dynamic>{};
@@ -237,8 +240,9 @@ class _ClientTasksPageState extends State<ClientTasksPage> {
     if (!confirm || !mounted) return;
 
     try {
+      final userRole = context.read<AuthBloc>().state.user?.role;
       final response = await sl<DioClient>().raw.delete<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}${ApiEndpoints.clientTasks}/${task.id}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.roleTask(userRole, task.id)}',
       );
       final body = response.data ?? const <String, dynamic>{};
       if (!mounted) return;
@@ -505,8 +509,9 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
 
   Future<Result<bool>> _createTask(Map<String, dynamic> body) async {
     try {
+      final userRole = context.read<AuthBloc>().state.user?.role;
       final response = await sl<DioClient>().raw.post<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}${ApiEndpoints.clientTasks}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.roleTasks(userRole)}',
         data: body,
       );
       final responseBody = response.data ?? const <String, dynamic>{};
@@ -525,8 +530,9 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
 
   Future<Result<bool>> _updateTask(Map<String, dynamic> body) async {
     try {
+      final userRole = context.read<AuthBloc>().state.user?.role;
       final response = await sl<DioClient>().raw.put<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}${ApiEndpoints.clientTasks}/${widget.task!.id}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.roleTask(userRole, widget.task!.id)}',
         data: body,
       );
       final responseBody = response.data ?? const <String, dynamic>{};
@@ -713,8 +719,9 @@ class _ProjectPickerSheetState extends State<_ProjectPickerSheet> {
     });
 
     try {
+      final userRole = context.read<AuthBloc>().state.user?.role;
       final response = await sl<DioClient>().raw.get<Map<String, dynamic>>(
-        '${AppConfig.authBaseUrl}${ApiEndpoints.clientProjects}',
+        '${AppConfig.authBaseUrl}${ApiEndpoints.roleProjects(userRole)}',
         queryParameters: {
           'page': 1,
           'limit': 15,
@@ -820,9 +827,10 @@ class _ClientTeamsPageState extends State<ClientTeamsPage> {
   }
 
   Future<void> _load() async {
+    final userRole = context.read<AuthBloc>().state.user?.role;
     final api = sl<ApiClientHelper>();
     final res = await api.getEnvelope<List<Map<String, dynamic>>>(
-      ApiEndpoints.clientTeam,
+      ApiEndpoints.roleTeams(userRole),
       parser: (env) {
         final list = env.data as List?;
         if (list == null) return const [];
@@ -839,6 +847,7 @@ class _ClientTeamsPageState extends State<ClientTeamsPage> {
 
   Future<void> _invite() async {
     final ctrl = TextEditingController();
+    final userRole = context.read<AuthBloc>().state.user?.role;
     await showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -857,7 +866,7 @@ class _ClientTeamsPageState extends State<ClientTeamsPage> {
             onPressed: () async {
               final api = sl<ApiClientHelper>();
               final res = await api.postAction(
-                '${ApiEndpoints.clientTeam}/invite',
+                '${ApiEndpoints.roleTeams(userRole)}/invite',
                 body: {'email': ctrl.text.trim()},
               );
               if (!mounted) return;

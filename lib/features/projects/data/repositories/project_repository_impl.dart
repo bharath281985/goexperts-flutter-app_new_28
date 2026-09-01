@@ -24,8 +24,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
 
     final role = await _role();
     final String path;
-    if (role == UserRole.client) {
-      path = ApiEndpoints.clientProjects;
+    if (role != null) {
+      path = ApiEndpoints.roleProjects(role);
     } else {
       path = ApiEndpoints.publicProjects;
     }
@@ -48,8 +48,8 @@ class ProjectRepositoryImpl implements ProjectRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role == UserRole.client
-        ? ApiEndpoints.clientProject(id)
+    final path = role != null
+        ? ApiEndpoints.roleProject(role, id)
         : '${ApiEndpoints.publicProjects}/$id';
 
     final result = await _api.get<Project>(
@@ -66,8 +66,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
     Map<String, dynamic> data,
   ) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
     return _api.putEnvelope<Project>(
-      ApiEndpoints.clientProject(id),
+      ApiEndpoints.roleProject(role, id),
       body: data,
       parser: (envelope) =>
           Project.fromApiJson(Map<String, dynamic>.from(envelope.data as Map)),
@@ -77,8 +78,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Result<bool>> updateProjectStatus(String id, String status) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
     return _api.patchAction(
-      ApiEndpoints.clientProjectStatus(id),
+      ApiEndpoints.roleProjectStatus(role, id),
       body: {'status': status},
     );
   }
@@ -86,7 +88,23 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Result<bool>> deleteProject(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.deleteAction(ApiEndpoints.clientProject(id));
+    final role = await _role();
+    return _api.deleteAction(ApiEndpoints.roleProject(role, id));
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> shareProject(
+    String id,
+    List<String> channels,
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final res = await _api.post<Map<String, dynamic>>(
+      ApiEndpoints.roleProjectShare(role, id),
+      body: {'channels': channels},
+      parser: (d) => Map<String, dynamic>.from(d as Map),
+    );
+    return res;
   }
 
   @override

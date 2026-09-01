@@ -157,6 +157,11 @@ class _SettingsPageState extends State<SettingsPage> {
               leadingIcon: Icons.workspace_premium_outlined,
               onTap: () => context.push(Routes.subscriptionsManage),
             ),
+            AppListTile(
+              title: 'Referral Program',
+              leadingIcon: Icons.card_giftcard_outlined,
+              onTap: () => context.push(Routes.referrals),
+            ),
           ]),
           AppSizes.vGapLg,
           _group(context, 'Preferences', [

@@ -21,6 +21,8 @@ import '../../../../core/widgets/app_stepper.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/icon_widget.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../master_data/domain/entities/master_option.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
@@ -627,6 +629,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
       'attachments': [..._existingAttachmentUrls, ...attachmentUrls],
     };
 
+    final userRole = context.read<AuthBloc>().state.user?.role;
     if (_isEdit) {
       final res = await sl<ProjectRepository>().updateProject(
         widget.projectId!,
@@ -643,7 +646,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
     final api = sl<ApiClientHelper>();
     final res = await api.post<Map<String, dynamic>>(
-      ApiEndpoints.clientProjects,
+      ApiEndpoints.roleProjects(userRole),
       body: body,
       parser: (data) => Map<String, dynamic>.from(data as Map),
       allowNullData: false,

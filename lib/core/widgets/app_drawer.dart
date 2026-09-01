@@ -72,207 +72,351 @@ class AppDrawer extends StatelessWidget {
     final user = context.select((AuthBloc b) => b.state.user);
     final colors = context.colors;
 
-    if (role == UserRole.founder ||
-        role == UserRole.investor ||
-        role == UserRole.freelancer) {
-      return _FounderDrawer(
-        user: user,
-        sections: _sections(role),
-        currentPath: currentPath,
-        workspaceLabel: role == UserRole.investor
-            ? 'INVESTOR OS'
-            : role == UserRole.freelancer
-            ? 'FREELANCER HQ'
-            : 'FOUNDER OS',
-        role: role,
-      );
-    }
-
-    return Drawer(
-      backgroundColor: colors.surface,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(AppSizes.lg),
-              decoration: const BoxDecoration(
-                gradient: AppColors.primaryGradient,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      AppAvatar(
-                        name: user?.fullName ?? 'User',
-                        imageUrl: user?.avatarUrl,
-                        size: 52,
-                      ),
-                      AppSizes.hGapMd,
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              user?.fullName ?? context.tr('Guest'),
-                              style: TextStyle(
-                                color: colors.onPrimary,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 16,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            Text(
-                              context.tr(role.label),
-                              style: TextStyle(
-                                color: colors.onPrimary.withValues(alpha: 0.85),
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppSizes.vGapMd,
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSizes.md,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.onPrimary.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.workspace_premium_outlined,
-                          size: 15,
-                          color: colors.onPrimary,
-                        ),
-                        AppSizes.hGapSm,
-                        Flexible(
-                          child: Text(
-                            context.tr(_planLabel(user?.subscriptionPlan)),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.onPrimary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  context.read<AuthBloc>().add(const AuthRefreshUser());
-                  await Future.delayed(const Duration(milliseconds: 600));
-                },
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(vertical: AppSizes.sm),
-                  children: [
-                    for (final section in _sections(role)) ...[
-                      Theme(
-                        data: Theme.of(context).copyWith(
-                          dividerColor: Colors.transparent,
-                          splashColor: Colors.transparent,
-                          highlightColor: Colors.transparent,
-                        ),
-                        child: ExpansionTile(
-                          initiallyExpanded: section.entries.any(
-                            (e) =>
-                                e.route != null &&
-                                currentPath.startsWith(e.route!),
-                          ),
-                          tilePadding: const EdgeInsets.symmetric(
-                            horizontal: AppSizes.lg,
-                          ),
-                          title: Text(
-                            context.tr(section.title).toUpperCase(),
-                            style: context.text.labelSmall?.copyWith(
-                              letterSpacing: 1,
-                              color: context.colors.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          iconColor: context.colors.onSurfaceVariant,
-                          collapsedIconColor: context.colors.onSurfaceVariant,
-                          childrenPadding: EdgeInsets.zero,
-                          children: [
-                            for (final e in section.entries)
-                              _DrawerMenuTile(
-                                entry: e,
-                                currentPath: currentPath,
-                                dense: true,
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: AppSizes.xl,
-                                ),
-                                onTap: () {
-                                  Navigator.of(context).pop();
-                                  if (e.onTap != null) {
-                                    e.onTap!();
-                                  } else if (e.route != null) {
-                                    context.push(e.route!);
-                                  } else {
-                                    context.showSnack('Coming soon');
-                                  }
-                                },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    Divider(color: colors.outlineVariant),
-                    ListTile(
-                      leading: Icon(
-                        Icons.logout_rounded,
-                        size: 20,
-                        color: colors.error,
-                      ),
-                      title: Text(
-                        context.tr('Log Out'),
-                        style: context.text.bodyMedium?.copyWith(
-                          color: colors.error,
-                        ),
-                      ),
-                      onTap: () async {
-                        final confirm = await AppConfirmDialog.show(
-                          context,
-                          title: 'Log out?',
-                          message:
-                              'You will need to sign in again to access your account.',
-                          confirmLabel: 'Log Out',
-                          isDestructive: true,
-                          icon: Icons.logout_rounded,
-                        );
-                        if (confirm && context.mounted) {
-                          _showLogoutLoading(context);
-                          context.read<AuthBloc>().add(const AuthLoggedOut());
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+    return _FounderDrawer(
+      user: user,
+      sections: _sections(role),
+      currentPath: currentPath,
+      workspaceLabel: switch (role) {
+        UserRole.investor => 'INVESTOR OS',
+        UserRole.freelancer => 'FREELANCER HQ',
+        UserRole.founder => 'FOUNDER OS',
+        UserRole.client => 'CLIENT PORTAL',
+      },
+      role: role,
     );
   }
 
-  List<DrawerSection> _sections(UserRole role) {
+  /// Consolidated master drawer sections list without role duplication.
+  List<DrawerSection> _sections([UserRole? userRole]) {
+    final effectiveRole = userRole ?? role;
+    return [
+      DrawerSection('Overview', [
+        DrawerEntry(
+          'Dashboard',
+          Icons.dashboard_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerDashboard,
+            UserRole.client => Routes.clientDashboard,
+            UserRole.investor => Routes.investorDashboard,
+            UserRole.founder => Routes.founderDashboard,
+          },
+        ),
+        DrawerEntry(
+          'Analytics',
+          Icons.insights_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerAnalytics,
+            UserRole.client => Routes.clientAnalytics,
+            UserRole.investor => Routes.investorAnalytics,
+            UserRole.founder => Routes.founderAnalytics,
+          },
+        ),
+      ]),
+       DrawerSection('Profile & Identity', [
+        DrawerEntry(
+          'My Profile',
+          Icons.person_outline_rounded,
+          route: Routes.profile,
+        ),
+        DrawerEntry(
+          'Verification',
+          Icons.verified_user_outlined,
+          route: Routes.verification,
+        ),
+        DrawerEntry(
+          'Portfolio',
+          Icons.perm_media_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerPortfolioPage,
+            UserRole.client => Routes.clientProjects,
+            UserRole.investor => Routes.investorPortfolio,
+            UserRole.founder => Routes.founderStartup,
+          },
+        ),
+        if (effectiveRole == UserRole.freelancer) ...[
+          DrawerEntry(
+            'Experience',
+            Icons.timeline_outlined,
+            route: Routes.freelancerExperience,
+          ),
+          DrawerEntry(
+            'Education',
+            Icons.school_outlined,
+            route: Routes.freelancerEducation,
+          ),
+          DrawerEntry(
+            'Certificates',
+            Icons.workspace_premium_outlined,
+            route: Routes.freelancerCertificates,
+          ),
+        ],
+      ]),
+      DrawerSection('Projects & Tasks', [
+        DrawerEntry(
+          'Projects/Tasks',
+          Icons.work_outline_rounded,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerProjects,
+            UserRole.client => Routes.clientProjects,
+            UserRole.investor => Routes.investorProjects,
+            UserRole.founder => Routes.founderProjects,
+          },
+        ),
+        DrawerEntry(
+          'Proposals',
+          Icons.send_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerProposals,
+            UserRole.client => Routes.clientProposals,
+            UserRole.investor => Routes.investorProposals,
+            UserRole.founder => Routes.founderProposals,
+          },
+        ),
+        DrawerEntry(
+          'Projects Tracking',
+          Icons.view_kanban_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerTasks,
+            UserRole.client => Routes.clientTasks,
+            UserRole.investor => Routes.investorTasks,
+            UserRole.founder => Routes.founderTasks,
+          },
+        ),
+        DrawerEntry(
+          'Contracts',
+          Icons.assignment_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerContracts,
+            UserRole.client => Routes.clientContracts,
+            UserRole.investor => Routes.investorContracts,
+            UserRole.founder => Routes.founderContracts,
+          },
+        ),
+      ]),
+      DrawerSection('Talent & Teams', [
+        DrawerEntry(
+          'Hire Freelancers',
+          Icons.person_add_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerFreelancers,
+            UserRole.client => Routes.clientFreelancers,
+            UserRole.investor => Routes.investorFreelancers,
+            UserRole.founder => Routes.founderFreelancers,
+          },
+        ),
+        DrawerEntry(
+          'Applications',
+          Icons.inbox_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerApplications,
+            UserRole.client => Routes.clientApplications,
+            UserRole.investor => Routes.investorApplications,
+            UserRole.founder => Routes.founderApplications,
+          },
+        ),
+        DrawerEntry(
+          'Invitations',
+          Icons.send_outlined,
+          route: Routes.invitations,
+        ),
+        DrawerEntry(
+          'Teams',
+          Icons.groups_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerTeams,
+            UserRole.client => Routes.clientTeams,
+            UserRole.investor => Routes.investorTeams,
+            UserRole.founder => Routes.founderTeams,
+          },
+        ),
+      ]),
+      DrawerSection('Startup & Deals', [
+        DrawerEntry(
+          'My Startup',
+          Icons.rocket_launch_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerCreateStartup,
+            UserRole.client => Routes.clientCreateStartup,
+            UserRole.investor => Routes.investorCreateStartup,
+            UserRole.founder => Routes.founderStartup,
+          },
+        ),
+        DrawerEntry(
+          'Startup Discovery',
+          Icons.travel_explore_rounded,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerStartups,
+            UserRole.client => Routes.clientStartups,
+            UserRole.investor => Routes.investorStartups,
+            UserRole.founder => Routes.founderStartups,
+          },
+        ),
+        DrawerEntry(
+          'Opportunities',
+          Icons.handshake_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerDeals,
+            UserRole.client => Routes.clientDeals,
+            UserRole.investor => Routes.investorDeals,
+            UserRole.founder => Routes.founderDeals,
+          },
+        ),
+        DrawerEntry(
+          'Offers',
+          Icons.local_offer_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerOffers,
+            UserRole.client => Routes.clientOffers,
+            UserRole.investor => Routes.investorOffers,
+            UserRole.founder => Routes.founderOffers,
+          },
+        ),
+        DrawerEntry(
+          'Pitch Deck',
+          Icons.slideshow_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerPitchDeck,
+            UserRole.client => Routes.clientPitchDeck,
+            UserRole.investor => Routes.investorPitchDeck,
+            UserRole.founder => Routes.founderPitchDeck,
+          },
+        ),
+        DrawerEntry(
+          'Business Plan',
+          Icons.description_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerBusinessPlan,
+            UserRole.client => Routes.clientBusinessPlan,
+            UserRole.investor => Routes.investorBusinessPlan,
+            UserRole.founder => Routes.founderBusinessPlan,
+          },
+        ),
+        DrawerEntry(
+          'Investors',
+          Icons.trending_up_rounded,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerInvestors,
+            UserRole.client => Routes.clientInvestors,
+            UserRole.investor => Routes.investorInvestors,
+            UserRole.founder => Routes.founderInvestors,
+          },
+        ),
+        DrawerEntry(
+          'Funding',
+          Icons.savings_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerFunding,
+            UserRole.client => Routes.clientFunding,
+            UserRole.investor => Routes.investorFunding,
+            UserRole.founder => Routes.founderFunding,
+          },
+        ),
+        DrawerEntry(
+          'Investments / Portfolio',
+          Icons.pie_chart_outline_rounded,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerPortfolioPage,
+            UserRole.client => Routes.clientPortfolioPage,
+            UserRole.investor => Routes.investorPortfolio,
+            UserRole.founder => Routes.founderPortfolioPage,
+          },
+        ),
+        DrawerEntry(
+          'Reports',
+          Icons.assessment_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerReports,
+            UserRole.client => Routes.clientReports,
+            UserRole.investor => Routes.investorReports,
+            UserRole.founder => Routes.founderReports,
+          },
+        ),
+      ]),
+      DrawerSection('Communication', [
+        DrawerEntry(
+          'Calendar',
+          Icons.calendar_month_outlined,
+          route: Routes.calendar,
+        ),
+        DrawerEntry(
+          'Meetings',
+          Icons.event_outlined,
+          route: Routes.meetings,
+        ),
+        DrawerEntry(
+          'Watchlist',
+          Icons.bookmark_border_rounded,
+          route: Routes.bookmarks,
+        ),
+        DrawerEntry(
+          'Messages',
+          Icons.chat_bubble_outline_rounded,
+          route: Routes.messages,
+          badge: unreadMessages > 0 ? unreadMessages : null,
+        ),
+        DrawerEntry(
+          'Notifications',
+          Icons.notifications_none_rounded,
+          route: Routes.notifications,
+          badge: unreadNotifications > 0 ? unreadNotifications : null,
+        ),
+        DrawerEntry(
+          'Reviews',
+          Icons.star_border_rounded,
+          route: Routes.myReviews,
+        ),
+      ]),
+      DrawerSection('Finance', [
+        DrawerEntry(
+          'Subscriptions',
+          Icons.workspace_premium_outlined,
+          route: Routes.subscriptionsManage,
+        ),
+        DrawerEntry(
+          'Documents',
+          Icons.description_outlined,
+          route: switch (effectiveRole) {
+            UserRole.investor => Routes.investorDocuments,
+            UserRole.founder => Routes.founderPitchDeck,
+            UserRole.freelancer => Routes.freelancerCertificates,
+            UserRole.client => Routes.clientReports,
+          },
+        ),
+      ]),
+      const DrawerSection('Growth', [
+        DrawerEntry(
+          'Referral Program',
+          Icons.card_giftcard_outlined,
+          route: Routes.referrals,
+        ),
+      ]),
+      DrawerSection('System', [
+        DrawerEntry(
+          'Support',
+          Icons.support_agent_outlined,
+          route: Routes.support,
+        ),
+        DrawerEntry(
+          'Security',
+          Icons.security_outlined,
+          route: Routes.changePassword,
+        ),
+        DrawerEntry(
+          'Team Access',
+          Icons.people_outline_rounded,
+          route: switch (effectiveRole) {
+            UserRole.client => Routes.clientTeams,
+            UserRole.founder => Routes.founderTeam,
+            UserRole.investor => Routes.investorTeams,
+            UserRole.freelancer => Routes.freelancerTeams,
+          },
+        ),
+      ]),
+    ];
+  }
+
+  /*
+  List<DrawerSection> _sections1(UserRole role) {
     switch (role) {
       case UserRole.freelancer:
         return [
@@ -310,16 +454,6 @@ class AppDrawer extends StatelessWidget {
               route: Routes.freelancerPortfolioPage,
             ),
             DrawerEntry(
-              'Resume',
-              Icons.description_outlined,
-              route: Routes.freelancerResumeTemplates,
-            ),
-            DrawerEntry(
-              'Skills',
-              Icons.psychology_outlined,
-              route: Routes.freelancerSkills,
-            ),
-            DrawerEntry(
               'Experience',
               Icons.timeline_outlined,
               route: Routes.freelancerExperience,
@@ -351,7 +485,23 @@ class AppDrawer extends StatelessWidget {
               Icons.art_track_outlined,
               route: Routes.freelancerContracts,
             ),
-
+          ]),
+          const DrawerSection('Projects/Tasks', [
+            DrawerEntry(
+              'Projects/Tasks',
+              Icons.work_outline_rounded,
+              route: Routes.freelancerProjects,
+            ),
+            DrawerEntry(
+              'Projects/Tasks Tracking',
+              Icons.view_kanban_outlined,
+            ),
+            DrawerEntry(
+              'Projects/Tasks Contracts',
+              Icons.assignment_outlined,
+            ),
+          ]),
+          DrawerSection('Communication', [
             DrawerEntry(
               'Calendar',
               Icons.calendar_month_outlined,
@@ -373,7 +523,6 @@ class AppDrawer extends StatelessWidget {
               route: Routes.notifications,
               badge: unreadNotifications > 0 ? unreadNotifications : null,
             ),
-
             DrawerEntry(
               'Reviews',
               Icons.star_border_rounded,
@@ -387,52 +536,20 @@ class AppDrawer extends StatelessWidget {
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-
-            // DrawerEntry('Earnings', Icons.bar_chart_rounded),
-            // DrawerEntry(
-            //   'Wallet',
-            //   Icons.account_balance_wallet_outlined,
-
-            // ),
-            // DrawerEntry('Transactions', Icons.sync_alt_rounded),
-            // DrawerEntry(
-            //   'Withdrawals',
-            //   Icons.payments_outlined,
-
-            // ),
-            // DrawerEntry(
-            //   'Invoices',
-            //   Icons.receipt_long_outlined,
-
-            // ),
           ]),
-          // const DrawerSection('Growth', [
-          //   DrawerEntry(
-          //     'AI Assistant',
-          //     Icons.auto_awesome_outlined,
-          //     badgeText: 'New',
-          //     badgeColor: Color(0xFFFBC02D),
-          //   ),
-          //   DrawerEntry('AI Workspace', Icons.smart_toy_outlined),
-          //   DrawerEntry('Learning Center', Icons.menu_book_outlined),
-          //   DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
-          // ]),
+          const DrawerSection('Growth', [
+            DrawerEntry(
+              'Referral Program',
+              Icons.card_giftcard_outlined,
+              route: Routes.referrals,
+            ),
+          ]),
           const DrawerSection('System', [
-            // DrawerEntry('Connected Apps', Icons.power_outlined),
-            // DrawerEntry('Downloads', Icons.download_outlined),
-            // DrawerEntry('Activity Logs', Icons.show_chart_rounded),
-            // DrawerEntry('Audit Logs', Icons.list_alt_rounded),
-            // DrawerEntry('System Status', Icons.monitor_heart_outlined),
             DrawerEntry(
               'Support',
               Icons.support_agent_outlined,
               route: Routes.support,
             ),
-            // DrawerEntry(
-            //   'Settings',
-            //   Icons.settings_outlined,
-            //   route: Routes.settings,
-            // ),
             DrawerEntry(
               'Security',
               Icons.security_outlined,
@@ -452,7 +569,7 @@ class AppDrawer extends StatelessWidget {
               'Analytics & Reports',
               Icons.bar_chart_rounded,
               route: Routes.clientAnalytics,
-            ), // Placeholder
+            ),
           ]),
           const DrawerSection('Company', [
             DrawerEntry(
@@ -465,7 +582,6 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.clientVerification,
             ),
-            // DrawerEntry('Departments', Icons.account_balance_outlined),
             DrawerEntry(
               'Teams',
               Icons.groups_outlined,
@@ -478,9 +594,19 @@ class AppDrawer extends StatelessWidget {
               Icons.work_outline_rounded,
               route: Routes.clientProjects,
             ),
-            // DrawerEntry('Pipeline', Icons.view_kanban_outlined),
-            DrawerEntry('Tasks', Icons.task_alt_outlined),
-            // DrawerEntry('Contracts', Icons.assignment_outlined),
+            DrawerEntry(
+              'Projects Tracking',
+              Icons.view_kanban_outlined,
+            ),
+            DrawerEntry(
+              'Tasks',
+              Icons.task_alt_outlined,
+              route: Routes.clientTasks,
+            ),
+            DrawerEntry(
+              'Contracts',
+              Icons.assignment_outlined,
+            ),
           ]),
           const DrawerSection('Talent', [
             DrawerEntry(
@@ -523,19 +649,6 @@ class AppDrawer extends StatelessWidget {
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-
-            // DrawerEntry('Invoices', Icons.receipt_long_outlined),
-            // DrawerEntry(
-            //   'Payments',
-            //   Icons.payment_outlined,
-
-            // ),
-            // DrawerEntry(
-            //   'Wallet',
-            //   Icons.account_balance_wallet_outlined,
-
-            // ),
-            // DrawerEntry('Transactions', Icons.sync_alt_rounded),
           ]),
           const DrawerSection('Insights', [
             DrawerEntry(
@@ -552,45 +665,24 @@ class AppDrawer extends StatelessWidget {
             ),
           ]),
           const DrawerSection('Growth', [
-            // DrawerEntry(
-            //   'AI Hiring Assistant',
-            //   Icons.smart_toy_outlined,
-            //   badgeText: 'New',
-            //   badgeColor: Color(0xFFFBC02D),
-            // ),
-            DrawerEntry('Referral Program', Icons.card_giftcard_outlined),
-            // DrawerEntry('Documents', Icons.description_outlined),
-            // DrawerEntry('Downloads', Icons.download_outlined),
+            DrawerEntry(
+              'Referral Program',
+              Icons.card_giftcard_outlined,
+              route: Routes.referrals,
+            ),
           ]),
           const DrawerSection('System', [
-            // DrawerEntry(
-            //   'AI Assistant',
-            //   Icons.auto_awesome_outlined,
-            //   badgeText: '⌘',
-            //   badgeColor: Color(0xFFE53935),
-            // ),
             DrawerEntry(
               'Support',
               Icons.support_agent_outlined,
               route: Routes.support,
             ),
-            // DrawerEntry('Activity Log', Icons.show_chart_rounded),
-            // DrawerEntry('Audit Log', Icons.list_alt_rounded),
             DrawerEntry(
               'Security',
               Icons.security_outlined,
               route: Routes.changePassword,
             ),
-            // DrawerEntry('Roles & Permissions', Icons.manage_accounts_outlined),
             DrawerEntry('Team Access', Icons.people_outline_rounded),
-            // DrawerEntry('Connected Apps', Icons.power_outlined),
-            // DrawerEntry('API Keys', Icons.api_rounded),
-            // DrawerEntry('Component Library', Icons.widgets_outlined),
-            // DrawerEntry(
-            //   'Settings',
-            //   Icons.settings_outlined,
-            //   route: Routes.settings,
-            // ),
           ]),
         ];
       case UserRole.investor:
@@ -618,7 +710,6 @@ class AppDrawer extends StatelessWidget {
               Icons.handshake_outlined,
               route: Routes.investorDeals,
             ),
-
             DrawerEntry(
               'Offers',
               Icons.local_offer_outlined,
@@ -636,11 +727,6 @@ class AppDrawer extends StatelessWidget {
               Icons.pie_chart_outline_rounded,
               route: Routes.investorPortfolio,
             ),
-            // DrawerEntry(
-            //   'Transactions',
-            //   Icons.swap_horiz_rounded,
-            //   route: Routes.investorTransactions,
-            // ),
             DrawerEntry(
               'Reports',
               Icons.assessment_outlined,
@@ -671,24 +757,24 @@ class AppDrawer extends StatelessWidget {
               route: Routes.calendar,
             ),
           ]),
-
           const DrawerSection('Finance', [
             DrawerEntry(
               'Documents',
               Icons.description_outlined,
               route: Routes.investorDocuments,
             ),
-
             DrawerEntry(
               'Subscription',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-            // DrawerEntry(
-            //   'Wallet',
-            //   Icons.account_balance_wallet_outlined,
-
-            // ),
+          ]),
+          const DrawerSection('Growth', [
+            DrawerEntry(
+              'Referral Program',
+              Icons.card_giftcard_outlined,
+              route: Routes.referrals,
+            ),
           ]),
           const DrawerSection('Account', [
             DrawerEntry(
@@ -701,11 +787,6 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.investorVerification,
             ),
-            // DrawerEntry(
-            //   'Settings',
-            //   Icons.settings_outlined,
-            //   route: Routes.settings,
-            // ),
             DrawerEntry(
               'Security',
               Icons.shield_outlined,
@@ -753,11 +834,6 @@ class AppDrawer extends StatelessWidget {
               Icons.groups_outlined,
               route: Routes.founderTeam,
             ),
-            // DrawerEntry(
-            //   'Hiring',
-            //   Icons.person_add_alt_1_outlined,
-
-            // ),
           ]),
           const DrawerSection('Fundraising', [
             DrawerEntry(
@@ -790,11 +866,6 @@ class AppDrawer extends StatelessWidget {
               Icons.event_outlined,
               route: Routes.meetings,
             ),
-            //  DrawerEntry(
-            //   'Media & Documents',
-            //   Icons.perm_media_outlined,
-
-            // ),
           ]),
           const DrawerSection('Finance', [
             DrawerEntry(
@@ -802,11 +873,13 @@ class AppDrawer extends StatelessWidget {
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
-            //  DrawerEntry(
-            //   'Wallet',
-            //   Icons.account_balance_wallet_outlined,
-
-            // ),
+          ]),
+          const DrawerSection('Growth', [
+            DrawerEntry(
+              'Referral Program',
+              Icons.card_giftcard_outlined,
+              route: Routes.referrals,
+            ),
           ]),
           const DrawerSection('Account', [
             DrawerEntry(
@@ -819,11 +892,6 @@ class AppDrawer extends StatelessWidget {
               Icons.verified_user_outlined,
               route: Routes.founderVerification,
             ),
-            // DrawerEntry(
-            //   'Settings',
-            //   Icons.settings_outlined,
-            //   route: Routes.settings,
-            // ),
             DrawerEntry(
               'Security Center',
               Icons.shield_outlined,
@@ -838,6 +906,7 @@ class AppDrawer extends StatelessWidget {
         ];
     }
   }
+  */
 }
 
 class _FounderDrawer extends StatelessWidget {
@@ -1203,52 +1272,44 @@ class _FounderDrawerSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    return Theme(
-      data: Theme.of(context).copyWith(
-        dividerColor: Colors.transparent,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: AppSizes.sm),
-        child: ExpansionTile(
-          initiallyExpanded:
-              section.entries.any(
-                (e) => e.route != null && currentPath.startsWith(e.route!),
-              ) ||
-              section.title == 'Overview', // Keep overview open by default
-          tilePadding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
-          title: Text(
-            context.tr(section.title).toUpperCase(),
-            style: context.text.labelSmall?.copyWith(
-              color: colors.onSurfaceVariant,
-              fontSize: 9,
-              letterSpacing: 1.35,
-              fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSizes.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(
+              left: AppSizes.md,
+              right: AppSizes.md,
+              bottom: AppSizes.sm,
+            ),
+            child: Text(
+              context.tr(section.title).toUpperCase(),
+              style: context.text.labelSmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontSize: 10,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
-          iconColor: colors.onSurfaceVariant,
-          collapsedIconColor: colors.onSurfaceVariant,
-          childrenPadding: EdgeInsets.zero,
-          children: [
-            for (final entry in section.entries)
-              _DrawerMenuTile(
-                entry: entry,
-                currentPath: currentPath,
-                founderStyle: true,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  if (entry.onTap != null) {
-                    entry.onTap!();
-                  } else if (entry.route != null) {
-                    context.push(entry.route!);
-                  } else {
-                    context.showSnack('Coming soon');
-                  }
-                },
-              ),
-          ],
-        ),
+          for (final entry in section.entries)
+            _DrawerMenuTile(
+              entry: entry,
+              currentPath: currentPath,
+              founderStyle: true,
+              onTap: () {
+                Navigator.of(context).pop();
+                if (entry.onTap != null) {
+                  entry.onTap!();
+                } else if (entry.route != null) {
+                  context.push(entry.route!);
+                } else {
+                  context.showSnack('Coming soon');
+                }
+              },
+            ),
+        ],
       ),
     );
   }
@@ -1309,25 +1370,20 @@ class _DrawerMenuTile extends StatelessWidget {
         entry.route != null && currentPath.startsWith(entry.route!);
 
     final bgColor = isSelected
-        ? colors.primary.withValues(alpha: 0.1)
+        ? colors.onSurface.withValues(alpha: 0.08)
         : Colors.transparent;
-    final fgColor = isSelected ? colors.primary : colors.onSurfaceVariant;
-    final fontWeight = isSelected ? FontWeight.w700 : FontWeight.w500;
+    final fgColor = isSelected ? colors.onSurface : colors.onSurfaceVariant;
+    final fontWeight = isSelected ? FontWeight.w600 : FontWeight.w500;
 
     return Container(
       constraints: BoxConstraints(minHeight: founderStyle ? 44 : 0),
       margin: EdgeInsets.symmetric(
-        horizontal: founderStyle ? 0 : AppSizes.md,
+        horizontal: AppSizes.sm,
         vertical: 2,
       ),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(
-          founderStyle ? AppSizes.radiusSm : AppSizes.radiusMd,
-        ),
-        border: founderStyle && isSelected
-            ? Border(left: BorderSide(color: colors.primary, width: 3))
-            : null,
+        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
       ),
       child: Material(
         color: Colors.transparent,

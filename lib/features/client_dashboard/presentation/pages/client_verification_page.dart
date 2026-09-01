@@ -1335,14 +1335,15 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
-                left: AppSizes.md,
-                right: AppSizes.md,
-                top: AppSizes.md,
-              ),
-              child: SingleChildScrollView(
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                  left: AppSizes.md,
+                  right: AppSizes.md,
+                  top: AppSizes.md,
+                ),
+                child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1445,6 +1446,7 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                   ],
                 ),
               ),
+            ),
             );
           },
         );
@@ -1595,16 +1597,17 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                       ? (_identityOptions[actualKey] ?? item.label)
                       : item.label);
 
-            return Padding(
-              padding: EdgeInsets.only(
-                bottom: MediaQuery.viewInsetsOf(context).bottom,
-                left: AppSizes.md,
-                right: AppSizes.md,
-                top: AppSizes.md,
-              ),
-              child: Form(
-                key: formKey,
-                child: SingleChildScrollView(
+            return SafeArea(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom,
+                  left: AppSizes.md,
+                  right: AppSizes.md,
+                  top: AppSizes.md,
+                ),
+                child: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1911,6 +1914,7 @@ class _ClientVerificationPageState extends State<ClientVerificationPage> {
                   ),
                 ),
               ),
+            ),
             );
           },
         );

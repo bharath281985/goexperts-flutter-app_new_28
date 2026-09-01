@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../core/services/location_service.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
@@ -62,6 +63,8 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
   String? _selectedStage;
   final _minCheckSizeController = TextEditingController();
   final _maxCheckSizeController = TextEditingController();
+
+  final _locationService = const LocationService();
 
   // Dynamic API Master lists (100% Sourced from Backend APIs)
   List<String> _investorTypes = [];
@@ -364,6 +367,81 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
     });
   }
 
+  String? _matchCountry(String candidate) {
+    if (candidate.trim().isEmpty) return null;
+    final normalized = candidate.trim().toLowerCase();
+    for (final country in _countries) {
+      final current = country.trim().toLowerCase();
+      if (current == normalized ||
+          current.contains(normalized) ||
+          normalized.contains(current)) {
+        return country;
+      }
+    }
+    return candidate.trim();
+  }
+
+  Future<void> _autoDetectLocation() async {
+    try {
+      final detected = await _locationService.detectCurrentLocation();
+      if (!mounted) return;
+      setState(() {
+        if (detected.city.isNotEmpty) {
+          _cityController.text = detected.city;
+        } else if (detected.address.isNotEmpty) {
+          _cityController.text = detected.address;
+        }
+        _detectedLatitude = detected.latitude;
+        _detectedLongitude = detected.longitude;
+        final matchedCountry = detected.country.isNotEmpty
+            ? _matchCountry(detected.country)
+            : null;
+        if (matchedCountry != null && matchedCountry.isNotEmpty) {
+          _selectedCountry = matchedCountry;
+        }
+      });
+      _persistCurrentProgress();
+      if (_selectedCountry != null) {
+        await _loadStatesForCountry(_selectedCountry!);
+      }
+      if (mounted) {
+        showSignupTopMessage(
+          context,
+          'Location detected successfully',
+          isSuccess: true,
+        );
+      }
+    } on LocationServiceDisabledException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Please enable location services and try again',
+        isSuccess: false,
+      );
+    } on LocationPermissionDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission is required to detect your city',
+        isSuccess: false,
+      );
+    } on LocationPermissionPermanentlyDeniedException {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Location permission permanently denied. Please enable it in app settings',
+        isSuccess: false,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      showSignupTopMessage(
+        context,
+        'Could not detect current location. Please enter city manually.',
+        isSuccess: false,
+      );
+    }
+  }
+
   String? _accountValidationMessage() {
     final email = _emailController.text.trim();
     if (_fullNameController.text.trim().isEmpty) {
@@ -529,6 +607,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
             _persistCurrentProgress();
             _loadStatesForCountry(val);
           },
+          onAutoDetectLocation: _autoDetectLocation,
           onMobileCountryCodeChanged: (val) =>
               setState(() => _selectedMobileCountryCode = val),
           // onStateChanged: (val) {
