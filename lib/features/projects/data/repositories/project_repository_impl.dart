@@ -170,9 +170,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role == UserRole.client
-        ? ApiEndpoints.clientContracts
-        : ApiEndpoints.freelancerContracts;
+    final path = role != null
+        ? ApiEndpoints.roleContracts(role)
+        : ApiEndpoints.contracts;
     return _api.getEnvelope<Paginated<Contract>>(
       path,
       query: params.toApiQuery(),
@@ -190,9 +190,9 @@ class ProjectRepositoryImpl implements ProjectRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role == UserRole.client
-        ? '${ApiEndpoints.clientContracts}/$id'
-        : ApiEndpoints.freelancerContract(id);
+    final path = role != null
+        ? ApiEndpoints.roleContract(role, id)
+        : '${ApiEndpoints.contracts}/$id';
     return _api.get<Contract>(
       path,
       parser: (data) =>
@@ -203,8 +203,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Result<Contract>> createContract(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final path = role != null
+        ? ApiEndpoints.roleContracts(role)
+        : ApiEndpoints.clientContracts;
     return _api.postEnvelope<Contract>(
-      ApiEndpoints.clientContracts,
+      path,
       body: data,
       parser: (envelope) =>
           _contractFromJson(Map<String, dynamic>.from(envelope.data as Map)),
@@ -217,8 +221,12 @@ class ProjectRepositoryImpl implements ProjectRepository {
     Map<String, dynamic> data,
   ) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final path = role != null
+        ? ApiEndpoints.roleContract(role, id)
+        : '${ApiEndpoints.clientContracts}/$id';
     return _api.putEnvelope<Contract>(
-      '${ApiEndpoints.clientContracts}/$id',
+      path,
       body: data,
       parser: (envelope) =>
           _contractFromJson(Map<String, dynamic>.from(envelope.data as Map)),

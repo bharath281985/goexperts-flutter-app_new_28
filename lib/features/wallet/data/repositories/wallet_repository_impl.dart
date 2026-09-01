@@ -22,14 +22,8 @@ class WalletRepositoryImpl implements WalletRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role == UserRole.freelancer
-        ? ApiEndpoints.freelancerWallet
-        : role == UserRole.client
-        ? ApiEndpoints.clientWallet
-        : role == UserRole.founder
-        ? ApiEndpoints.founderWallet
-        : role == UserRole.investor
-        ? ApiEndpoints.investorWallet
+    final path = role != null
+        ? ApiEndpoints.roleWallet(role)
         : ApiEndpoints.wallet;
 
     final result = await _api.get<WalletSummary>(
@@ -55,14 +49,8 @@ class WalletRepositoryImpl implements WalletRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role == UserRole.freelancer
-        ? ApiEndpoints.freelancerWalletTransactions
-        : role == UserRole.client
-        ? ApiEndpoints.clientWalletTransactions
-        : role == UserRole.founder
-        ? '${ApiEndpoints.founderWallet}/transactions'
-        : role == UserRole.investor
-        ? ApiEndpoints.investorWalletTransactions
+    final path = role != null
+        ? '${ApiEndpoints.roleWallet(role)}/transactions'
         : ApiEndpoints.walletTransactions;
 
     final result = await _api.getEnvelope<Paginated<WalletTransaction>>(
@@ -85,10 +73,8 @@ class WalletRepositoryImpl implements WalletRepository {
     final role = await _role();
     final path = role == UserRole.freelancer
         ? ApiEndpoints.freelancerWalletPaymentHistory
-        : role == UserRole.client
-        ? ApiEndpoints.clientInvoices
-        : role == UserRole.founder
-        ? ApiEndpoints.founderInvoices
+        : role != null
+        ? '/${ApiEndpoints.rolePath(role)}/invoices'
         : ApiEndpoints.invoices;
 
     final result = await _api.getEnvelope<Paginated<Invoice>>(
@@ -107,8 +93,14 @@ class WalletRepositoryImpl implements WalletRepository {
   @override
   Future<Result<WalletTransaction>> getTransaction(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return const Err(
-      NotFoundFailure('Transaction detail API pending role prefix.'),
+    final role = await _role();
+    final path = role != null
+        ? '${ApiEndpoints.roleWallet(role)}/transactions/$id'
+        : '${ApiEndpoints.walletTransactions}/$id';
+    return _api.get<WalletTransaction>(
+      path,
+      parser: (data) =>
+          _transactionFromJson(Map<String, dynamic>.from(data as Map)),
     );
   }
 
@@ -118,7 +110,6 @@ class WalletRepositoryImpl implements WalletRepository {
 
     final role = await _role();
     if (role == UserRole.freelancer) {
-      // Freelancer doesn't have a dedicated `GET /invoices/:id` in the matrix.
       final listRes = await getInvoices(
         const QueryParams(page: 1, pageSize: 100),
       );
@@ -128,8 +119,11 @@ class WalletRepositoryImpl implements WalletRepository {
         return Success(match.first);
       });
     }
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/invoices/$id'
+        : '${ApiEndpoints.invoices}/$id';
     final result = await _api.get<Invoice>(
-      '${ApiEndpoints.invoices}/$id',
+      path,
       parser: (data) =>
           _invoiceFromJson(Map<String, dynamic>.from(data as Map)),
     );
@@ -145,12 +139,8 @@ class WalletRepositoryImpl implements WalletRepository {
   }) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.freelancer
-        ? ApiEndpoints.freelancerWalletWithdraw
-        : role == UserRole.founder
-        ? ApiEndpoints.founderWalletWithdraw
-        : role == UserRole.investor
-        ? ApiEndpoints.investorWalletWithdraw
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/wallet/withdraw'
         : ApiEndpoints.freelancerWalletWithdraw;
 
     return _api.postEnvelopeAcceptingHttpSuccess<String>(

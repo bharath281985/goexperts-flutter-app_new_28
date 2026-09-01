@@ -21,10 +21,8 @@ class StartupRepositoryImpl implements StartupRepository {
   Future<Result<Paginated<Startup>>> getStartups(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.investor
-        ? ApiEndpoints.investorStartups
-        : role == UserRole.founder
-        ? ApiEndpoints.founderIdeas
+    final path = role != null
+        ? ApiEndpoints.roleStartups(role)
         : ApiEndpoints.publicStartups;
     return _api.getEnvelope<Paginated<Startup>>(
       path,
@@ -42,10 +40,8 @@ class StartupRepositoryImpl implements StartupRepository {
   Future<Result<Startup>> getStartup(String id) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.investor
-        ? ApiEndpoints.investorStartup(id)
-        : role == UserRole.founder
-        ? '${ApiEndpoints.founderIdeas}/$id'
+    final path = role != null
+        ? ApiEndpoints.roleStartup(role, id)
         : '${ApiEndpoints.publicStartups}/$id';
     return _api.get<Startup>(
       path,
@@ -94,8 +90,12 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<Startup>> createIdea(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/startup'
+        : ApiEndpoints.founderStartup;
     return _api.post<Startup>(
-      ApiEndpoints.founderIdeas,
+      path,
       body: data,
       parser: (raw) =>
           Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
@@ -105,8 +105,12 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> updateIdea(String id, Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/startup'
+        : ApiEndpoints.founderStartup;
     return _api.putEnvelope<bool>(
-      ApiEndpoints.founderStartup,
+      path,
       body: data,
       parser: (env) => true,
     );
@@ -115,7 +119,11 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> deleteIdea(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.deleteAction('${ApiEndpoints.founderIdeas}/$id');
+    final role = await _role();
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/startup/$id'
+        : '${ApiEndpoints.founderStartup}/$id';
+    return _api.deleteAction(path);
   }
 
   Future<Result<T>> _apiNotConfigured<T>() async =>

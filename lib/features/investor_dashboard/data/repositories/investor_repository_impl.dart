@@ -21,9 +21,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
   Future<Result<Paginated<Investor>>> getInvestors(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.founder
-        ? ApiEndpoints.founderInvestors
-        : '/investors';
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/investors'
+        : ApiEndpoints.publicInvestors;
     return _api.getEnvelope<Paginated<Investor>>(
       path,
       query: params.toApiQuery(),
@@ -40,9 +40,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
   Future<Result<Investor>> getInvestor(String id) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.founder
-        ? ApiEndpoints.founderInvestor(id)
-        : '/investors/$id';
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/investors/$id'
+        : ApiEndpoints.publicInvestor(id);
     return _api.get<Investor>(
       path,
       parser: (raw) => _investorFromJson(Map<String, dynamic>.from(raw as Map)),
@@ -52,8 +52,12 @@ class InvestorRepositoryImpl implements InvestorRepository {
   @override
   Future<Result<Paginated<Deal>>> getDeals(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final path = role == UserRole.founder
+        ? ApiEndpoints.founderInvestorRequests
+        : ApiEndpoints.investorInvestments;
     return _api.getEnvelope<Paginated<Deal>>(
-      ApiEndpoints.investorInvestments,
+      path,
       query: params.toApiQuery(),
       parser: (env) {
         return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {

@@ -22,8 +22,8 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   ) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
-    final path = role == UserRole.client
-        ? ApiEndpoints.clientFreelancers
+    final path = role != null
+        ? ApiEndpoints.roleFreelancers(role)
         : ApiEndpoints.publicFreelancers;
     return _api.getEnvelope<Paginated<Freelancer>>(
       path,
@@ -41,8 +41,8 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   Future<Result<Freelancer>> getFreelancer(String id) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
-    final path = role == UserRole.client
-        ? '${ApiEndpoints.clientFreelancers}/$id'
+    final path = role != null
+        ? '/${ApiEndpoints.rolePath(role)}/freelancers/$id'
         : '${ApiEndpoints.publicFreelancers}/$id';
     return _api.get<Freelancer>(
       path,

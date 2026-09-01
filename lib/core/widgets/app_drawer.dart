@@ -70,7 +70,6 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final currentPath = GoRouterState.of(context).uri.path;
     final user = context.select((AuthBloc b) => b.state.user);
-    final colors = context.colors;
 
     return _FounderDrawer(
       user: user,
