@@ -16,7 +16,7 @@ class FounderRepositoryImpl implements FounderRepository {
   Future<Result<Paginated<Founder>>> getFounders(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
     return _api.getEnvelope<Paginated<Founder>>(
-      '/founders',
+      ApiEndpoints.publicFounders,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
         env.data,
@@ -31,7 +31,7 @@ class FounderRepositoryImpl implements FounderRepository {
   Future<Result<Founder>> getFounder(String id) async {
     if (_api == null) return _apiNotConfigured();
     return _api.get<Founder>(
-      '/founders/$id',
+      ApiEndpoints.publicFounder(id),
       parser: (raw) => _founderFromJson(Map<String, dynamic>.from(raw as Map)),
     );
   }

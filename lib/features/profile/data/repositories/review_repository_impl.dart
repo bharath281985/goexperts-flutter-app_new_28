@@ -108,6 +108,17 @@ class ReviewRepositoryImpl implements ReviewRepository {
   }
 
   @override
+  Future<Result<bool>> replyToReview(String id, String reply) async {
+    if (_api == null) return _apiNotConfigured();
+    final role = await _tokenRoleHelper?.resolve();
+    final rolePath = ApiEndpoints.rolePath(role);
+    return _api.postAction(
+      '/$rolePath/reviews/$id/reply',
+      body: {'reply': reply},
+    );
+  }
+
+  @override
   Future<Result<bool>> reportReview(String id, String reason) async {
     if (_api == null) return _apiNotConfigured();
     // Report via support ticket until a dedicated moderation API exists.

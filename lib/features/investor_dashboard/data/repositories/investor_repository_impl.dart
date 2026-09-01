@@ -21,8 +21,8 @@ class InvestorRepositoryImpl implements InvestorRepository {
   Future<Result<Paginated<Investor>>> getInvestors(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role != null
-        ? '/${ApiEndpoints.rolePath(role)}/investors'
+    final path = role == UserRole.founder
+        ? ApiEndpoints.founderInvestors
         : ApiEndpoints.publicInvestors;
     return _api.getEnvelope<Paginated<Investor>>(
       path,
@@ -40,8 +40,8 @@ class InvestorRepositoryImpl implements InvestorRepository {
   Future<Result<Investor>> getInvestor(String id) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role != null
-        ? '/${ApiEndpoints.rolePath(role)}/investors/$id'
+    final path = role == UserRole.founder
+        ? ApiEndpoints.founderInvestor(id)
         : ApiEndpoints.publicInvestor(id);
     return _api.get<Investor>(
       path,

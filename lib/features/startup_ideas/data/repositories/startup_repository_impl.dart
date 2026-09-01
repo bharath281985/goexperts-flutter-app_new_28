@@ -15,17 +15,26 @@ class StartupRepositoryImpl implements StartupRepository {
   final ApiClientHelper? _api;
   final TokenRoleHelper? _tokenRoleHelper;
 
-  Future<UserRole?> _role() async => await _tokenRoleHelper?.resolve();
-
   @override
   Future<Result<Paginated<Startup>>> getStartups(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role != null
-        ? ApiEndpoints.roleStartups(role)
-        : ApiEndpoints.publicStartups;
     return _api.getEnvelope<Paginated<Startup>>(
-      path,
+      ApiEndpoints.publicStartups,
+      query: params.toApiQuery(),
+      parser: (env) => ApiResponse.parsePaginated(
+        env.data,
+        env.meta,
+        Startup.fromApiJson,
+        fallbackPage: params.page,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<Paginated<Startup>>> getMyStartups(QueryParams params) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Paginated<Startup>>(
+      ApiEndpoints.publicMyStartups,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
         env.data,
@@ -39,12 +48,8 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<Startup>> getStartup(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role != null
-        ? ApiEndpoints.roleStartup(role, id)
-        : '${ApiEndpoints.publicStartups}/$id';
     return _api.get<Startup>(
-      path,
+      '${ApiEndpoints.publicStartups}/$id',
       parser: (raw) =>
           Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
     );
@@ -53,13 +58,9 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    if (role == UserRole.investor) {
-      final post = await _api.postAction(ApiEndpoints.investorStartupSave(id));
-      if (post.isSuccess) return post;
-      return _api.deleteAction(ApiEndpoints.investorStartupSave(id));
-    }
-    return _api.postAction('${ApiEndpoints.publicStartups}/$id/save');
+    final post = await _api.postAction('${ApiEndpoints.publicStartups}/$id/save');
+    if (post.isSuccess) return post;
+    return _api.deleteAction('${ApiEndpoints.publicStartups}/$id/save');
   }
 
   @override
@@ -75,7 +76,7 @@ class StartupRepositoryImpl implements StartupRepository {
   Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
     return _api.postEnvelope<bool>(
-      ApiEndpoints.investorOffer,
+      ApiEndpoints.publicInvestmentsOffer,
       body: data,
       parser: (env) => true,
     );
@@ -84,18 +85,14 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> withdrawInterest(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.patchAction(ApiEndpoints.investorCancelInvestment(id));
+    return _api.patchAction('${ApiEndpoints.publicInvestments}/$id/cancel');
   }
 
   @override
   Future<Result<Startup>> createIdea(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role != null
-        ? '/${ApiEndpoints.rolePath(role)}/startup'
-        : ApiEndpoints.founderStartup;
     return _api.post<Startup>(
-      path,
+      ApiEndpoints.publicStartups,
       body: data,
       parser: (raw) =>
           Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
@@ -105,12 +102,8 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> updateIdea(String id, Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role != null
-        ? '/${ApiEndpoints.rolePath(role)}/startup'
-        : ApiEndpoints.founderStartup;
     return _api.putEnvelope<bool>(
-      path,
+      '${ApiEndpoints.publicStartups}/$id',
       body: data,
       parser: (env) => true,
     );
@@ -119,11 +112,103 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> deleteIdea(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role != null
-        ? '/${ApiEndpoints.rolePath(role)}/startup/$id'
-        : '${ApiEndpoints.founderStartup}/$id';
-    return _api.deleteAction(path);
+    return _api.deleteAction('${ApiEndpoints.publicStartups}/$id');
+  }
+
+  @override
+  Future<Result<Paginated<dynamic>>> getMyInvestments(QueryParams params) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Paginated<dynamic>>(
+      ApiEndpoints.publicInvestments,
+      query: params.toApiQuery(),
+      parser: (env) => ApiResponse.parsePaginated(
+        env.data,
+        env.meta,
+        (raw) => raw,
+        fallbackPage: params.page,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<Paginated<dynamic>>> getIncomingOffers({
+    String? startupId,
+    QueryParams? params,
+  }) async {
+    if (_api == null) return _apiNotConfigured();
+    final path = (startupId != null && startupId.isNotEmpty)
+        ? '${ApiEndpoints.publicStartups}/$startupId/investor-requests'
+        : ApiEndpoints.publicInvestorRequests;
+    return _api.getEnvelope<Paginated<dynamic>>(
+      path,
+      query: params?.toApiQuery(),
+      parser: (env) => ApiResponse.parsePaginated(
+        env.data,
+        env.meta,
+        (raw) => raw,
+        fallbackPage: params?.page ?? 1,
+      ),
+    );
+  }
+
+  @override
+  Future<Result<bool>> acceptOffer(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.patchAction(ApiEndpoints.publicInvestorRequestAccept(id));
+  }
+
+  @override
+  Future<Result<bool>> rejectOffer(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.patchAction(ApiEndpoints.publicInvestorRequestReject(id));
+  }
+
+  @override
+  Future<Result<bool>> scheduleOfferMeeting(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.patchAction(ApiEndpoints.publicInvestorRequestMeeting(id));
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getFundingOverview() async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.publicFunding,
+      parser: (env) =>
+          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+    );
+  }
+
+  @override
+  Future<Result<bool>> createFundingRound(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.postAction(ApiEndpoints.publicFunding, body: data);
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getPitchDeck() async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.publicPitchDeck,
+      parser: (env) =>
+          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+    );
+  }
+
+  @override
+  Future<Result<bool>> saveBusinessPlan(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.postAction(ApiEndpoints.publicBusinessPlan, body: data);
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getBusinessPlan() async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.publicBusinessPlan,
+      parser: (env) =>
+          env.data is Map ? Map<String, dynamic>.from(env.data as Map) : {},
+    );
   }
 
   Future<Result<T>> _apiNotConfigured<T>() async =>

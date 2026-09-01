@@ -5,6 +5,7 @@ import '../entities/project.dart';
 abstract class ProjectRepository {
   Future<Result<Paginated<Project>>> getProjects(QueryParams params);
   Future<Result<Project>> getProject(String id);
+  Future<Result<Project>> createProject(Map<String, dynamic> data);
   Future<Result<Project>> updateProject(String id, Map<String, dynamic> data);
   Future<Result<bool>> updateProjectStatus(String id, String status);
   Future<Result<bool>> deleteProject(String id);

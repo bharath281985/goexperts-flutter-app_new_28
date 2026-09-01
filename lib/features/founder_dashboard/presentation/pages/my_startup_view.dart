@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -8,8 +9,10 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
+import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../widgets/edit_idea_bottom_sheet.dart';
@@ -38,10 +41,17 @@ class _MyStartupViewState extends State<MyStartupView> {
 
   Future<void> _load() async {
     final api = sl<ApiClientHelper>();
-    final res = await api.get<dynamic>(
-      ApiEndpoints.founderStartup,
+    var res = await api.get<dynamic>(
+      ApiEndpoints.publicMyStartups,
       parser: (raw) => raw,
     );
+
+    if (res.isFailure || res.valueOrNull == null) {
+      res = await api.get<dynamic>(
+        ApiEndpoints.founderStartup,
+        parser: (raw) => raw,
+      );
+    }
 
     if (!mounted) return;
 
@@ -49,13 +59,100 @@ class _MyStartupViewState extends State<MyStartupView> {
     final rawData = res.valueOrNull;
 
     if (rawData is List && rawData.isNotEmpty) {
-      startupData = Map<String, dynamic>.from(rawData.first as Map);
+      final first = rawData.first;
+      if (first is Map && first['id'] != null && first['id'].toString().isNotEmpty) {
+        startupData = Map<String, dynamic>.from(first);
+      }
     } else if (rawData is Map) {
-      startupData = Map<String, dynamic>.from(rawData);
+      if (rawData['items'] is List && (rawData['items'] as List).isNotEmpty) {
+        final first = (rawData['items'] as List).first;
+        if (first is Map && first['id'] != null && first['id'].toString().isNotEmpty) {
+          startupData = Map<String, dynamic>.from(first);
+        }
+      } else if (rawData['startups'] is List && (rawData['startups'] as List).isNotEmpty) {
+        final first = (rawData['startups'] as List).first;
+        if (first is Map && first['id'] != null && first['id'].toString().isNotEmpty) {
+          startupData = Map<String, dynamic>.from(first);
+        }
+      } else if (rawData['data'] is List && (rawData['data'] as List).isNotEmpty) {
+        final first = (rawData['data'] as List).first;
+        if (first is Map && first['id'] != null && first['id'].toString().isNotEmpty) {
+          startupData = Map<String, dynamic>.from(first);
+        }
+      } else if (rawData['data'] is Map && (rawData['data'] as Map)['id'] != null) {
+        startupData = Map<String, dynamic>.from(rawData['data'] as Map);
+      } else if (rawData['id'] != null && rawData['id'].toString().isNotEmpty) {
+        startupData = Map<String, dynamic>.from(rawData);
+      }
     }
 
     _startup = startupData;
     setState(() => _loading = false);
+  }
+
+  Future<void> _createStartup() async {
+    final user = context.read<AuthBloc>().state.user;
+    final location = (user?.location != null && user!.location!.trim().isNotEmpty)
+        ? user.location!
+        : 'Remote';
+
+    final defaultStartup = Startup(
+      id: '',
+      name: '',
+      tagline: '',
+      industry: 'Technology',
+      stage: 'Idea Stage',
+      founderName: user?.fullName ?? '',
+      founderAvatar: user?.avatarUrl,
+      fundingRequired: 0,
+      equityOffered: 0,
+      location: location,
+    );
+
+    final data = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => EditIdeaBottomSheet(startup: defaultStartup),
+    );
+
+    if (data == null) return;
+
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    final Map<String, dynamic> payload = Map<String, dynamic>.from(data);
+    if (user != null) {
+      payload['fullName'] = payload['fullName'] ?? user.fullName;
+      if (user.location != null && user.location!.isNotEmpty) {
+        payload['location'] = payload['location'] ?? user.location;
+      }
+      if (user.avatarUrl != null && user.avatarUrl!.isNotEmpty) {
+        payload['avatarUrl'] = payload['avatarUrl'] ?? user.avatarUrl;
+      }
+      if (user.phone != null && user.phone!.isNotEmpty) {
+        payload['phoneNumber'] = payload['phoneNumber'] ?? user.phone;
+      }
+    }
+    payload['visibility'] = payload['visibility'] ?? 'Public';
+
+    final repo = sl<StartupRepository>();
+    final res = await repo.createIdea(payload);
+
+    if (!mounted) return;
+    Navigator.pop(context); // Dismiss loading spinner
+
+    res.fold(
+      (f) => context.showSnack(f.message, isError: true),
+      (created) {
+        context.showSnack('Startup idea created successfully!');
+        _load();
+      },
+    );
   }
 
   Future<void> _editStartup() async {
@@ -127,6 +224,58 @@ class _MyStartupViewState extends State<MyStartupView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator());
+
+    if (_startup.isEmpty || _startup['id'] == null) {
+      return Scaffold(
+        backgroundColor: context.theme.scaffoldBackgroundColor,
+        appBar: AppBar(title: const Text('My Startup')),
+        body: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(AppSizes.screenPadding),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.rocket_launch_rounded,
+                    size: 40,
+                    color: AppColors.primary,
+                  ),
+                ),
+                AppSizes.vGapMd,
+                Text(
+                  "You Don't Have a Startup Yet",
+                  style: context.text.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                AppSizes.vGapSm,
+                Text(
+                  'Create your startup now to showcase your idea, upload pitch decks, and connect with investors.',
+                  textAlign: TextAlign.center,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: AppColors.subtleText,
+                  ),
+                ),
+                AppSizes.vGapLg,
+                AppPrimaryButton(
+                  label: 'Create Startup',
+                  icon: Icons.add_rounded,
+                  onPressed: _createStartup,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final name = _startup['startupName']?.toString().trim().isNotEmpty == true
         ? _startup['startupName'].toString()
         : (_startup['startup']?.toString() ??

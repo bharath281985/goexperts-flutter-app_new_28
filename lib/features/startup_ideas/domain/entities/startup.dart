@@ -222,8 +222,12 @@ class Startup extends Equatable {
       equityOffered: equityOffered,
       location: location,
       founderId:
+          (json['founder'] is Map
+              ? (json['founder'] as Map)['id']?.toString()
+              : json['founder']?.toString()) ??
           json['founderId']?.toString() ??
           explicitFounderId ??
+          profile?['userId']?.toString() ??
           profile?['id']?.toString() ??
           '',
       logoUrl: logoUrl,

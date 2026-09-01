@@ -12,5 +12,6 @@ abstract class ReviewRepository {
     required String targetType,
     String? targetId,
   });
+  Future<Result<bool>> replyToReview(String id, String reply);
   Future<Result<bool>> reportReview(String id, String reason);
 }

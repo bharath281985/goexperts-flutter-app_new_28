@@ -61,6 +61,17 @@ class ProjectRepositoryImpl implements ProjectRepository {
   }
 
   @override
+  Future<Result<Project>> createProject(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.postEnvelope<Project>(
+      ApiEndpoints.publicProjects,
+      body: data,
+      parser: (envelope) =>
+          Project.fromApiJson(Map<String, dynamic>.from(envelope.data as Map)),
+    );
+  }
+
+  @override
   Future<Result<Project>> updateProject(
     String id,
     Map<String, dynamic> data,

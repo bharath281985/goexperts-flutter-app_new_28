@@ -52,6 +52,7 @@ class ApiEndpoints {
   static const publicFreelancers = '/public/freelancers';
   static const publicClients = '/public/clients';
   static const publicInvestors = '/public/investors';
+  static const publicFounders = '/public/founders';
   static const publicStartups = '/public/startups';
   static const publicProjects = '/public/projects';
   static const publicPricing = '/public/pricing';
@@ -69,11 +70,29 @@ class ApiEndpoints {
   static const publicAvailabilities = '/public/availabilities';
   static const publicWorkModes = '/public/work-modes';
 
+  static const publicTasks = '/public/tasks';
+  static const publicVerification = '/public/verification';
+  static const publicMyStartups = '/public/startups/my-startups';
+  static const publicPitchDeck = '/public/pitch-deck';
+  static const publicBusinessPlan = '/public/business-plan';
+  static const publicFunding = '/public/funding';
+  static const publicInvestmentsOffer = '/public/investments/offer';
+  static const publicInvestments = '/public/investments';
+  static const publicInvestorRequests = '/public/investor-requests';
+
   static String publicFreelancer(String id) => '/public/freelancers/$id';
   static String publicClient(String id) => '/public/clients/$id';
   static String publicInvestor(String id) => '/public/investors/$id';
   static String publicStartup(String id) => '/public/startups/$id';
+  static String publicStartupSave(String id) => '/public/startups/$id/save';
   static String publicFounder(String id) => '/public/founders/$id';
+  static String publicTask(String id) => '/public/tasks/$id';
+  static String publicInvestorRequestAccept(String id) =>
+      '/public/investor-requests/$id/accept';
+  static String publicInvestorRequestReject(String id) =>
+      '/public/investor-requests/$id/reject';
+  static String publicInvestorRequestMeeting(String id) =>
+      '/public/investor-requests/$id/meeting';
 
   // ── Shared ────────────────────────────────────────────────────────────────
   static const referrals = '/referrals';

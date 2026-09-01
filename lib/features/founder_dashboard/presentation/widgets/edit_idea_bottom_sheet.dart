@@ -361,9 +361,11 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                         ),
                       ),
                     ),
-                    const Text(
-                      'Edit Startup Idea',
-                      style: TextStyle(
+                    Text(
+                      widget.startup.id.isEmpty
+                          ? 'Create Startup Idea'
+                          : 'Edit Startup Idea',
+                      style: const TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
@@ -616,9 +618,18 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                     'pitchDeck': pitchDiskUrl ?? '',
                                     'businessPlan': businessPlanUrl ?? '',
                                     'startupName': _nameController.text.trim(),
-                                    'industry': _industryId ?? _initialIndustry,
+                                    'startup': _nameController.text.trim(),
+                                    'name': _nameController.text.trim(),
+                                    'title': _bioController.text.trim(),
+                                    'tagline': _bioController.text.trim(),
+                                    'bio': _bioController.text.trim(),
+                                    'fullName':
+                                        _fullNameController.text.trim(),
+                                    'industry':
+                                        _industryId ?? _initialIndustry,
                                     'industryId': _industryId,
-                                    'category': _categoryId ?? _initialCategory,
+                                    'category':
+                                        _categoryId ?? _initialCategory,
                                     'categoryId': _categoryId,
                                     'stage': _stageId ?? _stage,
                                     'stageId': _stageId ?? _stage,
@@ -634,7 +645,11 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                         0.0,
                                   });
                                 },
-                          child: const Text('Update'),
+                          child: Text(
+                            widget.startup.id.isEmpty
+                                ? 'Publish Startup'
+                                : 'Update',
+                          ),
                         ),
                       ],
                     ),
