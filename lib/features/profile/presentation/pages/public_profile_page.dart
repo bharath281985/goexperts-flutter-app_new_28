@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -7,10 +8,12 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../core/auth/token_role_helper.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/bookmark_manager.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/follow_manager.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/image_url.dart';
@@ -158,9 +161,48 @@ String _formatLabel(dynamic val) {
       .join(' ');
 }
 
+Map<String, dynamic> _safeMap(dynamic val) {
+  if (val == null) return const {};
+  if (val is Map<String, dynamic>) return val;
+  if (val is Map) return Map<String, dynamic>.from(val);
+  if (val is String && val.trim().isNotEmpty) {
+    final trimmed = val.trim();
+    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+      try {
+        final decoded = jsonDecode(trimmed);
+        if (decoded is Map) return Map<String, dynamic>.from(decoded);
+      } catch (_) {}
+    }
+  }
+  return const {};
+}
+
+double _safeDouble(dynamic val, [double fallback = 0.0]) {
+  if (val == null) return fallback;
+  if (val is num) return val.toDouble();
+  if (val is String) {
+    return double.tryParse(val.replaceAll(RegExp(r'[^0-9.]'), '')) ?? fallback;
+  }
+  return fallback;
+}
+
+int _safeInt(dynamic val, [int fallback = 0]) {
+  if (val == null) return fallback;
+  if (val is num) return val.toInt();
+  if (val is String) {
+    return int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ?? fallback;
+  }
+  return fallback;
+}
+
+String _cleanCityString(String rawCity) {
+  if (rawCity.isEmpty) return '';
+  return rawCity.replaceAll(RegExp(r'\{.*?\}'), '').replaceAll(RegExp(r',\s*,+'), ',').trim();
+}
+
   /// Builds a ProfileViewData from the raw API data map.
   ProfileViewData? _parse(Map<String, dynamic> raw) {
-    final reg = raw['registrationData'] as Map<String, dynamic>? ?? {};
+    final reg = _safeMap(raw['registrationData']);
     final id = raw['id']?.toString() ?? widget.id;
     final fullName =
         raw['fullName']?.toString() ??
@@ -174,8 +216,9 @@ String _formatLabel(dynamic val) {
     final avatarUrl = rawAvatarUrl == null || rawAvatarUrl.isEmpty
         ? null
         : normalizeImageUrl(rawAvatarUrl);
+    final rawCity = _cleanCityString(raw['city']?.toString() ?? reg['city']?.toString() ?? '');
     final locationParts = [
-      raw['city']?.toString() ?? reg['city']?.toString() ?? '',
+      rawCity,
       raw['state']?.toString() ?? reg['state']?.toString() ?? '',
       raw['country']?.toString() ?? reg['country']?.toString() ?? '',
     ]
@@ -222,9 +265,9 @@ String _formatLabel(dynamic val) {
     switch (widget.type) {
       case PublicProfileType.freelancer:
         {
-          final fp = raw['freelancerProfile'] as Map? ??
-              raw['profile'] as Map? ??
-              (reg.isNotEmpty ? reg : raw);
+          final fp = _safeMap(
+            raw['freelancerProfile'] ?? raw['profile'] ?? (reg.isNotEmpty ? reg : raw),
+          );
           final skills = _extractList(
             fp['skills'] ?? reg['skills'] ?? raw['skills'],
           );
@@ -244,10 +287,9 @@ String _formatLabel(dynamic val) {
                 raw['workMode'] ??
                 raw['workModes'],
           );
-          final hourlyRate = (fp['hourlyRate'] as num?)?.toDouble() ??
-              (reg['hourlyRate'] as num?)?.toDouble() ??
-              (raw['hourlyRate'] as num?)?.toDouble() ??
-              0.0;
+          final hourlyRate = _safeDouble(
+            fp['hourlyRate'] ?? reg['hourlyRate'] ?? raw['hourlyRate'],
+          );
           final rawExp = fp['experienceLevel'] ??
               fp['experience'] ??
               reg['experienceLevel'] ??
@@ -326,7 +368,7 @@ String _formatLabel(dynamic val) {
         }
       case PublicProfileType.company:
         {
-          final cp = raw['clientProfile'] as Map? ?? raw;
+          final cp = _safeMap(raw['clientProfile'] ?? raw);
           final company = cp['company']?.toString() ?? fullName;
           final industry = cp['industry']?.toString() ?? '';
           return ProfileViewData(
@@ -351,11 +393,11 @@ String _formatLabel(dynamic val) {
         }
       case PublicProfileType.investor:
         {
-          final ip = raw['investorProfile'] as Map? ?? raw;
+          final ip = _safeMap(raw['investorProfile'] ?? raw);
           final firm =
               ip['firm']?.toString() ?? ip['company']?.toString() ?? '';
-          final ticketMin = (ip['ticketMin'] as num?)?.toDouble() ?? 0.0;
-          final ticketMax = (ip['ticketMax'] as num?)?.toDouble() ?? 0.0;
+          final ticketMin = _safeDouble(ip['ticketMin']);
+          final ticketMax = _safeDouble(ip['ticketMax']);
           final focusRaw = ip['focusAreas'] is String
               ? ip['focusAreas'].toString()
               : '';
@@ -401,10 +443,7 @@ String _formatLabel(dynamic val) {
                     .toSet()
                     .toList()
               : <String>[];
-          final deals =
-              (ip['deals'] as num?)?.toInt() ??
-              (ip['investmentsCount'] as num?)?.toInt() ??
-              0;
+          final deals = _safeInt(ip['deals'] ?? ip['investmentsCount']);
           return ProfileViewData(
             name: fullName,
             headline: [
@@ -444,16 +483,14 @@ String _formatLabel(dynamic val) {
         }
       case PublicProfileType.founder:
         {
-          final fp = raw['founderProfile'] as Map? ?? raw;
+          final fp = _safeMap(raw['founderProfile'] ?? raw);
           final founderName = fp['founder']?.toString() ?? fullName;
 
-          final startupMap = fp['startup'] is Map
-              ? (fp['startup'] as Map)
-              : null;
+          final startupMap = _safeMap(fp['startup']);
           final startupName =
               fp['startupName']?.toString() ??
-              startupMap?['startup']?.toString() ??
-              startupMap?['name']?.toString() ??
+              startupMap['startup']?.toString() ??
+              startupMap['name']?.toString() ??
               (fp['startup'] is String ? fp['startup'].toString() : null) ??
               fullName;
 
@@ -463,20 +500,18 @@ String _formatLabel(dynamic val) {
                         ?.toString() ??
                     ''
               : industryValue?.toString() ??
-                    startupMap?['industry']?.toString() ??
+                    startupMap['industry']?.toString() ??
                     '';
           final rawStage = fp['stage']?.toString() ?? '';
-          final startupStage = startupMap?['stage']?.toString() ?? '';
+          final startupStage = startupMap['stage']?.toString() ?? '';
           final stage = rawStage.contains('-') && startupStage.isNotEmpty
               ? startupStage
               : (rawStage.isNotEmpty ? rawStage : startupStage);
 
           final teamSizeValue = fp['teamSize'];
-          final startupMetrics = startupMap?['metrics'] is Map
-              ? startupMap!['metrics'] as Map
-              : null;
+          final startupMetrics = _safeMap(startupMap['metrics']);
           final startupTeamSize =
-              startupMap?['teamSize'] ?? startupMetrics?['teamSize'];
+              startupMap['teamSize'] ?? startupMetrics['teamSize'];
           final teamSizeLabel = teamSizeValue is Map
               ? (teamSizeValue['name'] ?? teamSizeValue['label'])?.toString() ??
                     ''
@@ -485,11 +520,9 @@ String _formatLabel(dynamic val) {
               : startupTeamSize is num
               ? startupTeamSize.toInt().toString()
               : startupTeamSize?.toString() ?? '';
-          final raised =
-              (fp['raised'] as num?)?.toDouble() ??
-              (startupMap?['fundingRaised'] as num?)?.toDouble() ??
-              (startupMap?['funding'] as num?)?.toDouble() ??
-              0.0;
+          final raised = _safeDouble(
+            fp['raised'] ?? startupMap['fundingRaised'] ?? startupMap['funding'],
+          );
 
           final primaryGoals = fp['PrimaryGoal'];
           final skillsRaw = raw['skills']?.toString() ?? '';
@@ -562,10 +595,13 @@ String _formatLabel(dynamic val) {
 
   Future<Map<String, dynamic>> _loadAll() async {
     final api = sl<ApiClientHelper>();
+    final role = await sl<TokenRoleHelper>().resolve();
     final String endpoint;
     switch (widget.type) {
       case PublicProfileType.freelancer:
-        endpoint = ApiEndpoints.publicFreelancer(widget.id);
+        endpoint = role == UserRole.client
+            ? '${ApiEndpoints.clientFreelancers}/${widget.id}'
+            : ApiEndpoints.publicFreelancer(widget.id);
         break;
       case PublicProfileType.company:
         endpoint = ApiEndpoints.publicClient(widget.id);
@@ -578,10 +614,23 @@ String _formatLabel(dynamic val) {
         break;
     }
 
-    final rawResult = await api.get<Map<String, dynamic>>(
+    var rawResult = await api.get<Map<String, dynamic>>(
       endpoint,
       parser: (data) => Map<String, dynamic>.from(data as Map),
     );
+
+    if (rawResult.isFailure && widget.type == PublicProfileType.freelancer) {
+      final fallbackEndpoint = endpoint.contains('client')
+          ? ApiEndpoints.publicFreelancer(widget.id)
+          : '${ApiEndpoints.clientFreelancers}/${widget.id}';
+      final fallbackResult = await api.get<Map<String, dynamic>>(
+        fallbackEndpoint,
+        parser: (data) => Map<String, dynamic>.from(data as Map),
+      );
+      if (fallbackResult.isSuccess) {
+        rawResult = fallbackResult;
+      }
+    }
 
     final raw = rawResult.valueOrNull ?? {};
     final profile = raw.isNotEmpty ? _parse(raw) : null;
@@ -749,7 +798,7 @@ String _formatLabel(dynamic val) {
             return Scaffold(
               appBar: AppBar(
                 leading: IconTapWidget(
-                  onTap: () => Navigator.of(context).maybePop(),
+                  onTap: () => Navigator.of(context).maybePop(true),
                 ),
                 title: Text(
                   widget.type == PublicProfileType.freelancer
@@ -781,14 +830,19 @@ String _formatLabel(dynamic val) {
                   data: profile,
                   reviews: reviews,
                   onShare: () => _showShareSheet(context, profile),
-                  onPrimaryAction: () {
+                  onPrimaryAction: () async {
                     if (widget.type == PublicProfileType.freelancer) {
-                      InviteFreelancerDialog.show(
+                      final invited = await InviteFreelancerDialog.show(
                         context,
                         freelancerId: widget.id,
                         freelancerName: profile.name,
                         freelancerAvatar: profile.avatarUrl,
                       );
+                      if (invited == true && mounted) {
+                        setState(() {
+                          _future = _loadAll();
+                        });
+                      }
                     } else if (profile.primaryActionLabel == 'Connect') {
                       ScheduleMeetingSheet.show(
                         context,

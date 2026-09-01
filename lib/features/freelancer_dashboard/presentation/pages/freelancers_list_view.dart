@@ -110,14 +110,24 @@ class _FreelancersListViewState extends State<FreelancersListView> {
       ],
       itemBuilder: (context, f, _) => AppFreelancerCard(
         freelancer: f,
-        onTap: () => context.push('${Routes.publicFreelancer}/${f.id}'),
+        onTap: () async {
+          await context.push('${Routes.publicFreelancer}/${f.id}');
+          if (context.mounted) {
+            context.read<ListBloc<Freelancer>>().add(const ListRefreshed());
+          }
+        },
         onSave: () => _toggleSave(context, f),
-        onInvite: () => InviteFreelancerDialog.show(
-          context,
-          freelancerId: f.id,
-          freelancerName: f.name,
-          freelancerAvatar: f.avatarUrl,
-        ),
+        onInvite: () async {
+          final invited = await InviteFreelancerDialog.show(
+            context,
+            freelancerId: f.id,
+            freelancerName: f.name,
+            freelancerAvatar: f.avatarUrl,
+          );
+          if (invited == true && context.mounted) {
+            context.read<ListBloc<Freelancer>>().add(const ListRefreshed());
+          }
+        },
       ),
     );
   }

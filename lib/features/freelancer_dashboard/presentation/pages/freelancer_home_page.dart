@@ -18,7 +18,6 @@ import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
-import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../meetings/presentation/widgets/meeting_card.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 
@@ -966,8 +965,12 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
                       ),
                       child: AppProjectCard(
                         project: p,
-                        onTap: () =>
-                            context.push('${Routes.projectDetails}/${p.id}'),
+                        onTap: () async {
+                          await context.push('${Routes.projectDetails}/${p.id}');
+                          if (context.mounted) {
+                            context.read<DashboardCubit>().refresh();
+                          }
+                        },
                       ),
                     ),
                   )

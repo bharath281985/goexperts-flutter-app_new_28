@@ -230,7 +230,12 @@ class BookmarksPage extends StatelessWidget {
         final bloc = context.read<ListBloc<Project>>();
         return AppProjectCard(
           project: p.copyWith(isSaved: true),
-          onTap: () => context.push('${Routes.projectDetails}/${p.id}'),
+          onTap: () async {
+            await context.push('${Routes.projectDetails}/${p.id}');
+            if (context.mounted) {
+              bloc.add(const ListRefreshed());
+            }
+          },
           onSave: () async {
             final result = await sl<ProjectRepository>().toggleSave(p.id);
             if (!context.mounted) return;
@@ -264,7 +269,12 @@ class BookmarksPage extends StatelessWidget {
         final bloc = context.read<ListBloc<Freelancer>>();
         return AppFreelancerCard(
           freelancer: f.copyWith(isSaved: true),
-          onTap: () => context.push('${Routes.publicFreelancer}/${f.id}'),
+          onTap: () async {
+            await context.push('${Routes.publicFreelancer}/${f.id}');
+            if (context.mounted) {
+              bloc.add(const ListRefreshed());
+            }
+          },
           onSave: () async {
             final result = await sl<FreelancerRepository>().toggleSave(f.id);
             if (!context.mounted) return;

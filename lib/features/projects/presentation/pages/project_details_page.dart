@@ -451,11 +451,16 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                                       gradient: !project.isApplied,
                                       onPressed: project.isApplied
                                           ? null
-                                          : () => context.push(
-                                              '${Routes.apply}?type=Project'
-                                              '&projectId=${Uri.encodeComponent(project.id)}'
-                                              '&name=${Uri.encodeComponent(project.title)}',
-                                            ),
+                                          : () async {
+                                              final applied = await context.push<bool>(
+                                                '${Routes.apply}?type=Project'
+                                                '&projectId=${Uri.encodeComponent(project.id)}'
+                                                '&name=${Uri.encodeComponent(project.title)}',
+                                              );
+                                              if (applied == true && mounted) {
+                                                _reload();
+                                              }
+                                            },
                                     ),
                                   ),
                                 ],

@@ -17,7 +17,7 @@ import '../utils/paginated.dart';
 class InviteFreelancerDialog {
   InviteFreelancerDialog._();
 
-  static Future<void> show(
+  static Future<bool?> show(
     BuildContext context, {
     required String freelancerId,
     required String freelancerName,
@@ -34,10 +34,10 @@ class InviteFreelancerDialog {
       // ignore – sheet will show "no projects" state
     }
 
-    if (!context.mounted) return;
+    if (!context.mounted) return false;
 
     // ── 2. Show the sheet with the data already available ──────────────────
-    await showModalBottomSheet<void>(
+    return showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -116,7 +116,7 @@ class _InviteSheetState extends State<_InviteSheet> {
       if (!mounted) return;
       if (res.isSuccess) {
         context.showSnack('Invitation sent to ${widget.freelancerName}');
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true);
       } else {
         context.showSnack(
           res.failureOrNull?.message ?? 'Failed to send invitation',
