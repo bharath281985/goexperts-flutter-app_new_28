@@ -152,13 +152,23 @@ class AppDrawer extends StatelessWidget {
       ]),
       DrawerSection('Projects & Tasks', [
         DrawerEntry(
-          'Projects/Tasks',
+          'Explore Projects/Tasks',
           Icons.work_outline_rounded,
           route: switch (effectiveRole) {
             UserRole.freelancer => Routes.freelancerProjects,
             UserRole.client => Routes.clientProjects,
             UserRole.investor => Routes.investorProjects,
             UserRole.founder => Routes.founderProjects,
+          },
+        ),
+        DrawerEntry(
+          'My Projects',
+          Icons.folder_special_outlined,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerMyProjects,
+            UserRole.client => Routes.clientMyProjects,
+            UserRole.investor => Routes.investorMyProjects,
+            UserRole.founder => Routes.founderMyProjects,
           },
         ),
         DrawerEntry(
@@ -485,19 +495,26 @@ class AppDrawer extends StatelessWidget {
               route: Routes.freelancerContracts,
             ),
           ]),
-          const DrawerSection('Projects/Tasks', [
+          DrawerSection('Projects/Tasks', [
             DrawerEntry(
-              'Projects/Tasks',
+              'Explore Projects/Tasks',
               Icons.work_outline_rounded,
               route: Routes.freelancerProjects,
             ),
             DrawerEntry(
+              'My Projects',
+              Icons.folder_special_outlined,
+              route: Routes.freelancerMyProjects,
+            ),
+            DrawerEntry(
               'Projects/Tasks Tracking',
               Icons.view_kanban_outlined,
+              route: Routes.freelancerTasks,
             ),
             DrawerEntry(
               'Projects/Tasks Contracts',
               Icons.assignment_outlined,
+              route: Routes.freelancerContracts,
             ),
           ]),
           DrawerSection('Communication', [

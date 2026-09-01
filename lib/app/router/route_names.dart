@@ -20,6 +20,7 @@ class Routes {
   // Freelancer
   static const freelancerDashboard = '/freelancer/dashboard';
   static const freelancerProjects = '/freelancer/projects';
+  static const freelancerMyProjects = '/freelancer/my-projects';
   static const freelancerProposals = '/freelancer/proposals';
   static const freelancerWallet = '/freelancer/wallet';
   static const freelancerProfile = '/freelancer/profile';
@@ -35,6 +36,7 @@ class Routes {
   // Client
   static const clientDashboard = '/client/dashboard';
   static const clientProjects = '/client/projects';
+  static const clientMyProjects = '/client/my-projects';
   static const clientCreateProject = '/client/create-project';
   static const clientTasks = '/client/tasks';
   static const clientAddTask = '/client/tasks/add';
@@ -45,6 +47,7 @@ class Routes {
 
   // Investor
   static const investorDashboard = '/investor/dashboard';
+  static const investorMyProjects = '/investor/my-projects';
   static const investorStartups = '/investor/startups';
   static const investorDeals = '/investor/deals';
   static const investorPortfolio = '/investor/portfolio';
@@ -53,6 +56,7 @@ class Routes {
 
   // Founder
   static const founderDashboard = '/founder/dashboard';
+  static const founderMyProjects = '/founder/my-projects';
   static const founderStartup = '/founder/startup';
   static const founderListStartup = '/founder/list-startup';
   static const founderInvestors = '/founder/investors';
@@ -62,6 +66,7 @@ class Routes {
 
   // Common
   static const profile = '/profile';
+  static const myProjects = '/my-projects';
   static const myReviews = '/my-reviews';
   static const verification = '/verification';
   static const messages = '/messages';

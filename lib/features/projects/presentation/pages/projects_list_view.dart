@@ -161,7 +161,6 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     }
 
     final repo = sl<ProjectRepository>();
-    final isClient = _role == UserRole.client;
 
     return CatalogView<Project>(
       fetcher: (params) {
@@ -194,7 +193,7 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       emptyTitle: 'No projects found',
       emptyMessage: 'Try adjusting your search or filters.',
       emptyIcon: Icons.work_outline_rounded,
-      header: isClient ? const _CreateProjectHeader() : null,
+      header: const _CreateProjectHeader(),
       sortOptions: _projectSortOptions,
       filterSections: _filterSections,
       itemBuilder: (context, project, _) => AppProjectCard(

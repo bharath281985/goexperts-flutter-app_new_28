@@ -18,21 +18,22 @@ class ProjectRepositoryImpl implements ProjectRepository {
   final TokenRoleHelper? _tokenRoleHelper;
 
   Future<UserRole?> _role() async => await _tokenRoleHelper?.resolve();
+
   @override
   Future<Result<Paginated<Project>>> getProjects(QueryParams params) async {
+    return getExploreProjects(params);
+  }
+
+  @override
+  Future<Result<Paginated<Project>>> getExploreProjects(
+    QueryParams params,
+  ) async {
     if (_api == null) return _apiNotConfigured();
 
-    final role = await _role();
-    final String path;
-    if (role != null) {
-      path = ApiEndpoints.roleProjects(role);
-    } else {
-      path = ApiEndpoints.publicProjects;
-    }
-
-    final result = await _api.getEnvelope<Paginated<Project>>(
-      path,
-      query: params.toApiQuery(),
+    final query = params.toApiQuery();
+    var result = await _api.getEnvelope<Paginated<Project>>(
+      ApiEndpoints.publicProjects,
+      query: query,
       parser: (envelope) => ApiResponse.parsePaginated(
         envelope.data,
         envelope.meta,
@@ -40,6 +41,59 @@ class ProjectRepositoryImpl implements ProjectRepository {
         fallbackPage: params.page,
       ),
     );
+    if (result.isFailure) {
+      final fallback = await _api.getEnvelope<Paginated<Project>>(
+        ApiEndpoints.freelancerProjectsSearch,
+        query: query,
+        parser: (envelope) => ApiResponse.parsePaginated(
+          envelope.data,
+          envelope.meta,
+          Project.fromApiJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (fallback.isSuccess) {
+        result = fallback;
+      }
+    }
+    return result;
+  }
+
+  @override
+  Future<Result<Paginated<Project>>> getMyProjects(QueryParams params) async {
+    if (_api == null) return _apiNotConfigured();
+
+    final role = await _role();
+    final path = role != null
+        ? ApiEndpoints.roleProjects(role)
+        : ApiEndpoints.clientProjects;
+
+    final query = params.toApiQuery();
+    var result = await _api.getEnvelope<Paginated<Project>>(
+      path,
+      query: query,
+      parser: (envelope) => ApiResponse.parsePaginated(
+        envelope.data,
+        envelope.meta,
+        Project.fromApiJson,
+        fallbackPage: params.page,
+      ),
+    );
+    if (result.isFailure && path != ApiEndpoints.freelancerProjects) {
+      final fallback = await _api.getEnvelope<Paginated<Project>>(
+        ApiEndpoints.freelancerProjects,
+        query: query,
+        parser: (envelope) => ApiResponse.parsePaginated(
+          envelope.data,
+          envelope.meta,
+          Project.fromApiJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (fallback.isSuccess) {
+        result = fallback;
+      }
+    }
     return result;
   }
 
@@ -73,8 +127,19 @@ class ProjectRepositoryImpl implements ProjectRepository {
   @override
   Future<Result<Project>> createProject(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.postEnvelope<Project>(
+    final role = await _role();
+    final primary = await _api.postEnvelope<Project>(
       ApiEndpoints.publicProjects,
+      body: data,
+      parser: (envelope) =>
+          Project.fromApiJson(Map<String, dynamic>.from(envelope.data as Map)),
+    );
+    if (primary.isSuccess) return primary;
+    final rolePath = role != null
+        ? ApiEndpoints.roleProjects(role)
+        : ApiEndpoints.clientProjects;
+    return _api.postEnvelope<Project>(
+      rolePath,
       body: data,
       parser: (envelope) =>
           Project.fromApiJson(Map<String, dynamic>.from(envelope.data as Map)),
@@ -113,7 +178,6 @@ class ProjectRepositoryImpl implements ProjectRepository {
     return _api.deleteAction(ApiEndpoints.roleProject(role, id));
   }
 
-  @override
   Future<Result<Map<String, dynamic>>> shareProject(
     String id,
     List<String> channels,

@@ -7,6 +7,7 @@ import '../../features/investor_dashboard/presentation/pages/portfolio_list_view
 import '../../features/meetings/presentation/pages/meetings_list_view.dart';
 import '../../features/messages/presentation/pages/conversations_list_view.dart';
 import '../../features/profile/presentation/pages/my_profile_page.dart';
+import '../../features/projects/presentation/pages/my_projects_list_view.dart';
 import '../../features/projects/presentation/pages/projects_list_view.dart';
 import '../../features/proposals/presentation/pages/proposals_list_view.dart';
 import '../../features/startup_ideas/presentation/pages/startups_list_view.dart';
@@ -29,7 +30,14 @@ class ProjectsStandalonePage extends StatelessWidget {
   const ProjectsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'Projects', const ProjectsListView());
+      _wrap(context, 'Explore Projects', const ProjectsListView());
+}
+
+class MyProjectsStandalonePage extends StatelessWidget {
+  const MyProjectsStandalonePage({super.key});
+  @override
+  Widget build(BuildContext context) =>
+      _wrap(context, 'My Projects', const MyProjectsListView());
 }
 
 class ProposalsStandalonePage extends StatelessWidget {

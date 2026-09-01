@@ -293,6 +293,10 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, __) => const ProjectsStandalonePage(),
       ),
       GoRoute(
+        path: Routes.freelancerMyProjects,
+        builder: (_, __) => const MyProjectsStandalonePage(),
+      ),
+      GoRoute(
         path: Routes.freelancerProposals,
         builder: (_, __) => const ProposalsStandalonePage(),
       ),
@@ -340,6 +344,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.clientProjects,
         builder: (_, __) => const ProjectsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.clientMyProjects,
+        builder: (_, __) => const MyProjectsStandalonePage(),
       ),
       GoRoute(
         path: Routes.clientCreateProject,
@@ -636,6 +644,10 @@ GoRouter createRouter(AuthBloc authBloc) {
         ),
       ),
       GoRoute(
+        path: Routes.myProjects,
+        builder: (_, __) => const MyProjectsStandalonePage(),
+      ),
+      GoRoute(
         path: Routes.invitations,
         builder: (_, __) => const InvitationsPage(),
       ),
@@ -822,6 +834,10 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, __) => const ProjectsStandalonePage(),
       ),
       GoRoute(
+        path: Routes.investorMyProjects,
+        builder: (_, __) => const MyProjectsStandalonePage(),
+      ),
+      GoRoute(
         path: Routes.investorProposals,
         builder: (_, __) => const ProposalsStandalonePage(),
       ),
@@ -913,6 +929,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.founderProjects,
         builder: (_, __) => const ProjectsStandalonePage(),
+      ),
+      GoRoute(
+        path: Routes.founderMyProjects,
+        builder: (_, __) => const MyProjectsStandalonePage(),
       ),
       GoRoute(
         path: Routes.founderProposals,
