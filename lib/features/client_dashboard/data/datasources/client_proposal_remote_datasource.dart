@@ -28,7 +28,7 @@ class ClientProposalRemoteDatasource {
     String projectId,
     QueryParams params,
   ) async {
-    final result = await _api.getEnvelope<Paginated<Proposal>>(
+    var result = await _api.getEnvelope<Paginated<Proposal>>(
       ApiEndpoints.clientProjectProposals(projectId),
       query: params.toApiQuery(),
       parser: (envelope) => ApiResponse.parsePaginated(
@@ -38,6 +38,19 @@ class ClientProposalRemoteDatasource {
         fallbackPage: params.page,
       ),
     );
+    if (result.isFailure) {
+      final fallback = await _api.getEnvelope<Paginated<Proposal>>(
+        '/public/projects/$projectId/proposals',
+        query: params.toApiQuery(),
+        parser: (envelope) => ApiResponse.parsePaginated(
+          envelope.data,
+          envelope.meta,
+          ClientProposalModel.fromJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (fallback.isSuccess) result = fallback;
+    }
     return result.fold((f) => throw Exception(f.message), (data) => data);
   }
 

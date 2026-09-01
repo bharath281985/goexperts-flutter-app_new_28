@@ -52,11 +52,21 @@ class ProjectRepositoryImpl implements ProjectRepository {
         ? ApiEndpoints.roleProject(role, id)
         : '${ApiEndpoints.publicProjects}/$id';
 
-    final result = await _api.get<Project>(
+    var result = await _api.get<Project>(
       path,
       parser: (data) =>
           Project.fromApiJson(Map<String, dynamic>.from(data as Map)),
     );
+    if (result.isFailure && path != '${ApiEndpoints.publicProjects}/$id') {
+      final publicResult = await _api.get<Project>(
+        '${ApiEndpoints.publicProjects}/$id',
+        parser: (data) =>
+            Project.fromApiJson(Map<String, dynamic>.from(data as Map)),
+      );
+      if (publicResult.isSuccess) {
+        result = publicResult;
+      }
+    }
     return result;
   }
 
@@ -242,6 +252,28 @@ class ProjectRepositoryImpl implements ProjectRepository {
       parser: (envelope) =>
           _contractFromJson(Map<String, dynamic>.from(envelope.data as Map)),
     );
+  }
+
+  @override
+  Future<Result<bool>> acceptContract(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final primary = await _api.postAction(
+      '/${ApiEndpoints.rolePath(role)}/contracts/$id/accept',
+    );
+    if (primary.isSuccess) return primary;
+    return _api.postAction(ApiEndpoints.freelancerContractAccept(id));
+  }
+
+  @override
+  Future<Result<bool>> rejectContract(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    final role = await _role();
+    final primary = await _api.postAction(
+      '/${ApiEndpoints.rolePath(role)}/contracts/$id/reject',
+    );
+    if (primary.isSuccess) return primary;
+    return _api.postAction(ApiEndpoints.freelancerContractReject(id));
   }
 
   static Contract _contractFromJson(Map<String, dynamic> json) {

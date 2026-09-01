@@ -16,4 +16,6 @@ abstract class ProjectRepository {
   Future<Result<Contract>> getContract(String id);
   Future<Result<Contract>> createContract(Map<String, dynamic> data);
   Future<Result<Contract>> updateContract(String id, Map<String, dynamic> data);
+  Future<Result<bool>> acceptContract(String id);
+  Future<Result<bool>> rejectContract(String id);
 }

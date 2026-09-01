@@ -130,4 +130,50 @@ class FreelancerTaskRepositoryImpl implements FreelancerTaskRepository {
     );
     return res.fold((f) => Err(f), (_) => const Success(true));
   }
+
+  @override
+  Future<Result<bool>> startTimer(String taskId) {
+    return _api.postAction(ApiEndpoints.freelancerTaskTimerStart(taskId));
+  }
+
+  @override
+  Future<Result<bool>> stopTimer(String taskId) {
+    return _api.postAction(ApiEndpoints.freelancerTaskTimerStop(taskId));
+  }
+
+  @override
+  Future<Result<bool>> logTime(
+    String taskId, {
+    required double hours,
+    String? description,
+    String? date,
+  }) {
+    return _api.postAction(
+      ApiEndpoints.freelancerTaskTimeLog(taskId),
+      body: {
+        'hours': hours,
+        if (description != null) 'description': description,
+        if (date != null) 'date': date,
+      },
+    );
+  }
+
+  @override
+  Future<Result<FreelancerTask>> createTask(Map<String, dynamic> data) async {
+    final primary = await _api.postEnvelope<FreelancerTask>(
+      ApiEndpoints.clientTasks,
+      body: data,
+      parser: (env) => FreelancerTask.fromApiJson(
+        Map<String, dynamic>.from(env.data as Map),
+      ),
+    );
+    if (primary.isSuccess) return primary;
+    return _api.postEnvelope<FreelancerTask>(
+      ApiEndpoints.freelancerTasks,
+      body: data,
+      parser: (env) => FreelancerTask.fromApiJson(
+        Map<String, dynamic>.from(env.data as Map),
+      ),
+    );
+  }
 }

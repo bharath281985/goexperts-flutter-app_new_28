@@ -26,19 +26,37 @@ class WalletRepositoryImpl implements WalletRepository {
         ? ApiEndpoints.roleWallet(role)
         : ApiEndpoints.wallet;
 
-    final result = await _api.get<WalletSummary>(
+    WalletSummary parseWallet(dynamic data) {
+      final map = Map<String, dynamic>.from(data as Map);
+      final balance = (map['availableBalance'] as num?)?.toDouble() ??
+          (map['available'] as num?)?.toDouble() ??
+          (map['balance'] as num?)?.toDouble() ??
+          0;
+      final pending = (map['pendingBalance'] as num?)?.toDouble() ??
+          (map['pending'] as num?)?.toDouble() ??
+          0;
+      final lifetime = (map['totalEarnings'] as num?)?.toDouble() ??
+          (map['lifetime'] as num?)?.toDouble() ??
+          balance;
+      return WalletSummary(
+        available: balance,
+        pending: pending,
+        lifetime: lifetime,
+        escrow: (map['escrow'] as num?)?.toDouble() ?? 0,
+      );
+    }
+
+    var result = await _api.get<WalletSummary>(
       path,
-      parser: (data) {
-        final map = Map<String, dynamic>.from(data as Map);
-        final balance = (map['balance'] as num?)?.toDouble() ?? 0;
-        return WalletSummary(
-          available: (map['available'] as num?)?.toDouble() ?? balance,
-          pending: (map['pending'] as num?)?.toDouble() ?? 0,
-          lifetime: (map['lifetime'] as num?)?.toDouble() ?? balance,
-          escrow: (map['escrow'] as num?)?.toDouble() ?? 0,
-        );
-      },
+      parser: parseWallet,
     );
+    if (result.isFailure && role == UserRole.freelancer) {
+      final summaryRes = await _api.get<WalletSummary>(
+        '/freelancer/wallet/summary',
+        parser: parseWallet,
+      );
+      if (summaryRes.isSuccess) result = summaryRes;
+    }
     return result;
   }
 
@@ -143,18 +161,45 @@ class WalletRepositoryImpl implements WalletRepository {
         ? '/${ApiEndpoints.rolePath(role)}/wallet/withdraw'
         : ApiEndpoints.freelancerWalletWithdraw;
 
-    return _api.postEnvelopeAcceptingHttpSuccess<String>(
-      path,
-      body: {
-        'amount': amount,
-        'method': method,
-        if (method == 'bank' && bankDetails != null) 'bankDetails': bankDetails,
-        if (method == 'upi' && upiDetails != null) 'upiDetails': upiDetails,
+    final body = <String, dynamic>{
+      'amount': amount,
+      'payoutMethod': method == 'bank' ? 'bank_transfer' : method,
+      'method': method,
+      if (method == 'bank' && bankDetails != null) ...{
+        'bankDetails': bankDetails,
+        'accountDetails': {
+          'accountNumber':
+              bankDetails['accountNumber'] ??
+              bankDetails['account_number'] ??
+              '',
+          'ifscCode': bankDetails['ifscCode'] ?? bankDetails['ifsc'] ?? '',
+          'accountHolderName':
+              bankDetails['accountHolderName'] ??
+              bankDetails['holderName'] ??
+              '',
+        },
       },
+      if (method == 'upi' && upiDetails != null) 'upiDetails': upiDetails,
+    };
+
+    var res = await _api.postEnvelopeAcceptingHttpSuccess<String>(
+      path,
+      body: body,
       parser: (envelope) => envelope.message?.trim().isNotEmpty == true
           ? envelope.message!.trim()
           : 'Withdrawal requested',
     );
+    if (res.isFailure && path != ApiEndpoints.freelancerWalletWithdraw) {
+      final fallback = await _api.postEnvelopeAcceptingHttpSuccess<String>(
+        ApiEndpoints.freelancerWalletWithdraw,
+        body: body,
+        parser: (envelope) => envelope.message?.trim().isNotEmpty == true
+            ? envelope.message!.trim()
+            : 'Withdrawal requested',
+      );
+      if (fallback.isSuccess) res = fallback;
+    }
+    return res;
   }
 
   @override

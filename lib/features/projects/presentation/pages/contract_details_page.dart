@@ -101,6 +101,45 @@ class ContractDetailsPage extends StatelessWidget {
             ),
           );
         }
+        if (c.status == EntityStatus.pending && role != UserRole.client) {
+          return Padding(
+            padding: const EdgeInsets.all(AppSizes.lg),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppSecondaryButton(
+                    label: 'Reject Offer',
+                    icon: Icons.close_rounded,
+                    onPressed: () => _confirmAndExecutePost(
+                      context,
+                      title: 'Reject Contract Offer?',
+                      message: 'Are you sure you want to reject this contract offer?',
+                      confirmLabel: 'Reject',
+                      isDestructive: true,
+                      action: () => sl<ProjectRepository>().rejectContract(c.id),
+                      successMsg: 'Contract offer rejected',
+                    ),
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: AppPrimaryButton(
+                    label: 'Accept Offer',
+                    icon: Icons.check_rounded,
+                    onPressed: () => _confirmAndExecutePost(
+                      context,
+                      title: 'Accept Contract Offer?',
+                      message: 'Accept this contract offer to begin work and milestone tracking.',
+                      confirmLabel: 'Accept Offer',
+                      action: () => sl<ProjectRepository>().acceptContract(c.id),
+                      successMsg: 'Contract accepted successfully',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
         return Padding(
           padding: const EdgeInsets.all(AppSizes.lg),
           child: Row(
@@ -496,6 +535,38 @@ class ContractDetailsPage extends StatelessWidget {
       context.showSnack(successMsg);
       context.read<DetailCubit<Contract>>().load();
     });
+  }
+
+  Future<void> _confirmAndExecutePost(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required String confirmLabel,
+    required Future<dynamic> Function() action,
+    required String successMsg,
+    bool isDestructive = false,
+  }) async {
+    final ok = await AppConfirmDialog.show(
+      context,
+      title: title,
+      message: message,
+      confirmLabel: confirmLabel,
+      isDestructive: isDestructive,
+    );
+    if (!ok || !context.mounted) return;
+    final res = await action();
+    if (!context.mounted) return;
+    if (res is Result) {
+      if (res.isFailure) {
+        context.showSnack(
+          res.failureOrNull?.message ?? 'Operation failed',
+          isError: true,
+        );
+        return;
+      }
+    }
+    context.showSnack(successMsg);
+    context.read<DetailCubit<Contract>>().load();
   }
 }
 

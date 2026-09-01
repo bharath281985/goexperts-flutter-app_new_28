@@ -3,7 +3,6 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
-import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/startup.dart';
@@ -33,8 +32,8 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<Paginated<Startup>>> getMyStartups(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.getEnvelope<Paginated<Startup>>(
-      ApiEndpoints.publicMyStartups,
+    var res = await _api.getEnvelope<Paginated<Startup>>(
+      ApiEndpoints.founderIdeas,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
         env.data,
@@ -43,6 +42,20 @@ class StartupRepositoryImpl implements StartupRepository {
         fallbackPage: params.page,
       ),
     );
+    if (res.isFailure) {
+      final fallback = await _api.getEnvelope<Paginated<Startup>>(
+        ApiEndpoints.publicMyStartups,
+        query: params.toApiQuery(),
+        parser: (env) => ApiResponse.parsePaginated(
+          env.data,
+          env.meta,
+          Startup.fromApiJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (fallback.isSuccess) res = fallback;
+    }
+    return res;
   }
 
   @override
@@ -58,8 +71,12 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final post = await _api.postAction('${ApiEndpoints.publicStartups}/$id/save');
+    var post = await _api.postAction(ApiEndpoints.investorStartupSave(id));
     if (post.isSuccess) return post;
+    post = await _api.postAction('${ApiEndpoints.publicStartups}/$id/save');
+    if (post.isSuccess) return post;
+    final del = await _api.deleteAction(ApiEndpoints.investorStartupSave(id));
+    if (del.isSuccess) return del;
     return _api.deleteAction('${ApiEndpoints.publicStartups}/$id/save');
   }
 
@@ -75,6 +92,12 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
+    final primary = await _api.postEnvelope<bool>(
+      ApiEndpoints.investorOffer,
+      body: data,
+      parser: (env) => true,
+    );
+    if (primary.isSuccess) return primary;
     return _api.postEnvelope<bool>(
       ApiEndpoints.publicInvestmentsOffer,
       body: data,
@@ -91,6 +114,13 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<Startup>> createIdea(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
+    final primary = await _api.post<Startup>(
+      ApiEndpoints.founderIdeas,
+      body: data,
+      parser: (raw) =>
+          Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
+    );
+    if (primary.isSuccess) return primary;
     return _api.post<Startup>(
       ApiEndpoints.publicStartups,
       body: data,

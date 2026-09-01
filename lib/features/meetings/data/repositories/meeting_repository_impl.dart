@@ -86,12 +86,9 @@ class MeetingRepositoryImpl implements MeetingRepository {
   Future<Result<bool>> schedule(Meeting meeting) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
-    if (role == UserRole.freelancer) {
-      return const Err(
-        ServerFailure('Freelancer cannot schedule meetings via this API.'),
-      );
-    }
-    final path = (role == UserRole.client)
+    final path = (role == UserRole.freelancer)
+        ? ApiEndpoints.freelancerMeetings
+        : (role == UserRole.client)
         ? ApiEndpoints.clientMeetings
         : (role == UserRole.investor)
         ? ApiEndpoints.investorMeetings
@@ -112,11 +109,22 @@ class MeetingRepositoryImpl implements MeetingRepository {
       'date': date,
       'time': time,
       'mode': meeting.isVideo ? 'Online' : 'Offline',
-      'meeting_link': meeting.meetingLink.trim(),
+      if (meeting.title.isNotEmpty) 'title': meeting.title,
+      if (meeting.description.isNotEmpty) 'description': meeting.description,
+      if (meeting.meetingLink.trim().isNotEmpty)
+        'meeting_link': meeting.meetingLink.trim(),
+      if (meeting.withUser.isNotEmpty) 'with': meeting.withUser,
+      if (withUserId != null) 'userId': withUserId,
     };
     if (role == UserRole.founder) {
       body['investorId'] = withUserId;
-    } else {
+    } else if (role == UserRole.investor) {
+      body['founderId'] = withUserId;
+    } else if (role == UserRole.client) {
+      body['freelancerId'] = withUserId;
+      body['founderId'] = withUserId;
+    } else if (role == UserRole.freelancer) {
+      body['clientId'] = withUserId;
       body['founderId'] = withUserId;
     }
 
@@ -127,12 +135,9 @@ class MeetingRepositoryImpl implements MeetingRepository {
   Future<Result<bool>> cancel(String id) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
-    if (role == UserRole.freelancer) {
-      return const Err(
-        ServerFailure('Freelancer cannot cancel meetings via this API.'),
-      );
-    }
-    final base = (role == UserRole.client)
+    final base = (role == UserRole.freelancer)
+        ? ApiEndpoints.freelancerMeetings
+        : (role == UserRole.client)
         ? ApiEndpoints.clientMeetings
         : (role == UserRole.investor)
         ? ApiEndpoints.investorMeetings
