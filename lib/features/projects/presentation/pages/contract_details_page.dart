@@ -9,6 +9,7 @@ import '../../../../core/bloc/detail_cubit.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/result.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
@@ -542,7 +543,7 @@ class ContractDetailsPage extends StatelessWidget {
     required String title,
     required String message,
     required String confirmLabel,
-    required Future<dynamic> Function() action,
+    required Future<Result<bool>> Function() action,
     required String successMsg,
     bool isDestructive = false,
   }) async {
@@ -556,17 +557,13 @@ class ContractDetailsPage extends StatelessWidget {
     if (!ok || !context.mounted) return;
     final res = await action();
     if (!context.mounted) return;
-    if (res is Result) {
-      if (res.isFailure) {
-        context.showSnack(
-          res.failureOrNull?.message ?? 'Operation failed',
-          isError: true,
-        );
-        return;
-      }
-    }
-    context.showSnack(successMsg);
-    context.read<DetailCubit<Contract>>().load();
+    res.fold(
+      (f) => context.showSnack(f.message, isError: true),
+      (_) {
+        context.showSnack(successMsg);
+        context.read<DetailCubit<Contract>>().load();
+      },
+    );
   }
 }
 

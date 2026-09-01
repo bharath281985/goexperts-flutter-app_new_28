@@ -110,20 +110,20 @@ class MeetingRepositoryImpl implements MeetingRepository {
       'time': time,
       'mode': meeting.isVideo ? 'Online' : 'Offline',
       if (meeting.title.isNotEmpty) 'title': meeting.title,
-      if (meeting.description.isNotEmpty) 'description': meeting.description,
+      if (meeting.agenda.isNotEmpty) 'description': meeting.agenda,
       if (meeting.meetingLink.trim().isNotEmpty)
         'meeting_link': meeting.meetingLink.trim(),
-      if (meeting.withUser.isNotEmpty) 'with': meeting.withUser,
-      if (withUserId != null) 'userId': withUserId,
+      if (meeting.withName.isNotEmpty) 'with': meeting.withName,
+      if (withUserId != null && withUserId.isNotEmpty) 'userId': withUserId,
     };
-    if (role == UserRole.founder) {
+    if (role == UserRole.founder && withUserId != null && withUserId.isNotEmpty) {
       body['investorId'] = withUserId;
-    } else if (role == UserRole.investor) {
+    } else if (role == UserRole.investor && withUserId != null && withUserId.isNotEmpty) {
       body['founderId'] = withUserId;
-    } else if (role == UserRole.client) {
+    } else if (role == UserRole.client && withUserId != null && withUserId.isNotEmpty) {
       body['freelancerId'] = withUserId;
       body['founderId'] = withUserId;
-    } else if (role == UserRole.freelancer) {
+    } else if (role == UserRole.freelancer && withUserId != null && withUserId.isNotEmpty) {
       body['clientId'] = withUserId;
       body['founderId'] = withUserId;
     }
