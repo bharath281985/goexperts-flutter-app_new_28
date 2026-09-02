@@ -64,27 +64,45 @@ class ClientProposalRemoteDatasource {
   }
 
   Future<Proposal> _patchStatus(String id, String endpoint) async {
-    await _api.patchAction(endpoint);
+    final res = await _api.patchAction(endpoint);
+    if (res.isFailure) {
+      final message = res.failureOrNull?.message ?? 'Request failed';
+      throw Exception(message);
+    }
     return getProposal(id);
   }
 
-  Future<Proposal> shortlist(String id) =>
-      _patchStatus(id, ApiEndpoints.clientProposalShortlist(id));
+  Future<Proposal> shortlist(String id) => _patchStatus(
+    id,
+    ApiEndpoints.clientProposalShortlist(id),
+  );
 
-  Future<Proposal> reject(String id) =>
-      _patchStatus(id, ApiEndpoints.clientProposalReject(id));
+  Future<Proposal> reject(String id) => _patchStatus(
+    id,
+    ApiEndpoints.clientProposalReject(id),
+  );
 
-  Future<Proposal> moveToInterview(String id) =>
-      _patchStatus(id, ApiEndpoints.clientProposalInterview(id));
+  Future<Proposal> moveToInterview(String id) => _patchStatus(
+    id,
+    ApiEndpoints.clientProposalInterview(id),
+  );
 
-  Future<Proposal> accept(String id) =>
-      _patchStatus(id, ApiEndpoints.clientProposalAccept(id));
+  Future<Proposal> accept(String id) => _patchStatus(
+    id,
+    ApiEndpoints.clientProposalAccept(id),
+  );
 
   Future<bool> sendMessage(String id, String message) async {
-    final result = await _api.postAction(
+    var result = await _api.postAction(
       ApiEndpoints.clientProposalMessage(id),
       body: {'message': message},
     );
+    if (result.isFailure) {
+      result = await _api.postAction(
+        '/client/proposals/$id/message',
+        body: {'message': message},
+      );
+    }
     return result.fold((f) => throw Exception(f.message), (v) => v);
   }
 }

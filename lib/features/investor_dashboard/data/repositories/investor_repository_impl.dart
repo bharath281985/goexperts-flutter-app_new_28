@@ -56,87 +56,47 @@ class InvestorRepositoryImpl implements InvestorRepository {
     final path = role == UserRole.founder
         ? ApiEndpoints.founderInvestorRequests
         : ApiEndpoints.investorInvestments;
-    return _api.getEnvelope<Paginated<Deal>>(
+
+    var res = await _api.getEnvelope<Paginated<Deal>>(
       path,
       query: params.toApiQuery(),
       parser: (env) {
         return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
           final raw = Map<String, dynamic>.from(rawRaw as Map);
-          final ideaDetails =
-              raw['startupDetails'] as Map? ?? raw['ideaDetails'] as Map?;
-          final userDetails = ideaDetails?['user'] as Map?;
-          final startupId =
-              raw['startup']?.toString() ??
-              ideaDetails?['id']?.toString() ??
-              raw['startupId']?.toString() ??
-              '';
-
-          int parsedDocsCount = (raw['documentsCount'] as num?)?.toInt() ?? 0;
-          Map<String, dynamic> actualDocs = {};
-          if (raw['docs'] is String && (raw['docs'] as String).isNotEmpty) {
-            try {
-              final Map<String, dynamic> docsMap = jsonDecode(
-                raw['docs'] as String,
-              );
-              actualDocs = docsMap;
-              parsedDocsCount = docsMap.values
-                  .where((v) => v != null && v.toString().trim().isNotEmpty)
-                  .length;
-            } catch (_) {}
-          } else if (raw['docs'] is Map) {
-            final docsMap = raw['docs'] as Map;
-            actualDocs = Map<String, dynamic>.from(docsMap);
-            parsedDocsCount = docsMap.values
-                .where((v) => v != null && v.toString().trim().isNotEmpty)
-                .length;
-          }
-
-          return Deal(
-            id: raw['id']?.toString() ?? '',
-            startupId: startupId,
-            startupName:
-                ideaDetails?['startup']?.toString() ??
-                raw['startupName']?.toString() ??
-                raw['name']?.toString() ??
-                'Startup',
-            founderName:
-                userDetails?['fullName']?.toString() ??
-                ideaDetails?['founder']?.toString() ??
-                raw['founderName']?.toString() ??
-                'Founder',
-            stage:
-                ideaDetails?['stage']?.toString() ??
-                raw['stage']?.toString() ??
-                'MVP',
-            amount:
-                (raw['offer'] as num?)?.toDouble() ??
-                (raw['amount'] as num?)?.toDouble() ??
-                0.0,
-            equity: (raw['equity'] as num?)?.toDouble() ?? 0.0,
-            status: EntityStatus.fromString(
-              raw['status']?.toString() ?? 'pending',
-            ),
-            updatedAt:
-                DateTime.tryParse(raw['updatedAt']?.toString() ?? '') ??
-                DateTime.now(),
-            startupLogo:
-                ideaDetails?['logo']?.toString() ??
-                raw['startupLogo']?.toString() ??
-                raw['logoUrl']?.toString(),
-            hasNda: raw['hasNda'] as bool? ?? false,
-            documentsCount: parsedDocsCount,
-            documents: actualDocs,
-            founderId:
-                userDetails?['id']?.toString() ??
-                ideaDetails?['userId']?.toString() ??
-                ideaDetails?['founderId']?.toString() ??
-                raw['founderId']?.toString() ??
-                raw['userId']?.toString() ??
-                startupId,
-          );
+          return _dealFromJson(raw);
         }, fallbackPage: params.page);
       },
     );
+
+    if (res.isFailure && path != ApiEndpoints.founderInvestorRequests) {
+      final fallback = await _api.getEnvelope<Paginated<Deal>>(
+        ApiEndpoints.founderInvestorRequests,
+        query: params.toApiQuery(),
+        parser: (env) {
+          return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
+            final raw = Map<String, dynamic>.from(rawRaw as Map);
+            return _dealFromJson(raw);
+          }, fallbackPage: params.page);
+        },
+      );
+      if (fallback.isSuccess) res = fallback;
+    }
+
+    if (res.isFailure && path != ApiEndpoints.publicInvestments) {
+      final publicFallback = await _api.getEnvelope<Paginated<Deal>>(
+        ApiEndpoints.publicInvestments,
+        query: params.toApiQuery(),
+        parser: (env) {
+          return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
+            final raw = Map<String, dynamic>.from(rawRaw as Map);
+            return _dealFromJson(raw);
+          }, fallbackPage: params.page);
+        },
+      );
+      if (publicFallback.isSuccess) res = publicFallback;
+    }
+
+    return res;
   }
 
   @override
@@ -179,12 +139,68 @@ class InvestorRepositoryImpl implements InvestorRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final post = await _api.postAction(
+    var post = await _api.postAction(ApiEndpoints.investorStartupSave(id));
+    if (post.isSuccess) return post;
+    post = await _api.postAction(
       ApiEndpoints.investorWatchlist,
       body: {'startupId': id},
     );
     if (post.isSuccess) return post;
+    final del = await _api.deleteAction(ApiEndpoints.investorStartupSave(id));
+    if (del.isSuccess) return del;
     return _api.deleteAction(ApiEndpoints.investorWatchlistItem(id));
+  }
+
+  @override
+  Future<Result<bool>> expressInterest(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    final primary = await _api.postEnvelope<bool>(
+      ApiEndpoints.investorInvestmentsExpressInterest,
+      body: data,
+      parser: (_) => true,
+    );
+    if (primary.isSuccess) return primary;
+    return submitOffer(data);
+  }
+
+  @override
+  Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    final primary = await _api.postEnvelope<bool>(
+      ApiEndpoints.investorOffer,
+      body: data,
+      parser: (_) => true,
+    );
+    if (primary.isSuccess) return primary;
+    return _api.postEnvelope<bool>(
+      ApiEndpoints.publicInvestmentsOffer,
+      body: data,
+      parser: (_) => true,
+    );
+  }
+
+  @override
+  Future<Result<Deal>> getInvestment(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    final primary = await _api.get<Deal>(
+      ApiEndpoints.investorInvestment(id),
+      parser: (raw) => _dealFromJson(Map<String, dynamic>.from(raw as Map)),
+    );
+    if (primary.isSuccess) return primary;
+    return _api.get<Deal>(
+      '${ApiEndpoints.publicInvestments}/$id',
+      parser: (raw) => _dealFromJson(Map<String, dynamic>.from(raw as Map)),
+    );
+  }
+
+  @override
+  Future<Result<bool>> cancelInvestment(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    final primary = await _api.patchAction(
+      ApiEndpoints.investorCancelInvestment(id),
+    );
+    if (primary.isSuccess) return primary;
+    return _api.patchAction('${ApiEndpoints.publicInvestments}/$id/cancel');
   }
 
   @override
@@ -207,6 +223,81 @@ class InvestorRepositoryImpl implements InvestorRepository {
       ApiEndpoints.investorInvestmentStatus(id),
       body: {'status': status},
       parser: (_) => true,
+    );
+  }
+
+  Deal _dealFromJson(Map<String, dynamic> raw) {
+    final ideaDetails =
+        raw['startupDetails'] as Map? ?? raw['ideaDetails'] as Map?;
+    final userDetails = ideaDetails?['user'] as Map?;
+    final startupId =
+        raw['startup']?.toString() ??
+        ideaDetails?['id']?.toString() ??
+        raw['startupId']?.toString() ??
+        '';
+
+    int parsedDocsCount = (raw['documentsCount'] as num?)?.toInt() ?? 0;
+    Map<String, dynamic> actualDocs = {};
+    if (raw['docs'] is String && (raw['docs'] as String).isNotEmpty) {
+      try {
+        final Map<String, dynamic> docsMap = jsonDecode(
+          raw['docs'] as String,
+        );
+        actualDocs = docsMap;
+        parsedDocsCount = docsMap.values
+            .where((v) => v != null && v.toString().trim().isNotEmpty)
+            .length;
+      } catch (_) {}
+    } else if (raw['docs'] is Map) {
+      final docsMap = raw['docs'] as Map;
+      actualDocs = Map<String, dynamic>.from(docsMap);
+      parsedDocsCount = docsMap.values
+          .where((v) => v != null && v.toString().trim().isNotEmpty)
+          .length;
+    }
+
+    return Deal(
+      id: raw['id']?.toString() ?? '',
+      startupId: startupId,
+      startupName:
+          ideaDetails?['startup']?.toString() ??
+          raw['startupName']?.toString() ??
+          raw['name']?.toString() ??
+          'Startup',
+      founderName:
+          userDetails?['fullName']?.toString() ??
+          ideaDetails?['founder']?.toString() ??
+          raw['founderName']?.toString() ??
+          'Founder',
+      stage:
+          ideaDetails?['stage']?.toString() ??
+          raw['stage']?.toString() ??
+          'MVP',
+      amount:
+          (raw['offer'] as num?)?.toDouble() ??
+          (raw['amount'] as num?)?.toDouble() ??
+          0.0,
+      equity: (raw['equity'] as num?)?.toDouble() ?? 0.0,
+      status: EntityStatus.fromString(
+        raw['status']?.toString() ?? 'pending',
+      ),
+      updatedAt:
+          DateTime.tryParse(raw['updatedAt']?.toString() ?? '') ??
+          DateTime.now(),
+      startupLogo:
+          ideaDetails?['logo']?.toString() ??
+          raw['startupLogo']?.toString() ??
+          raw['logoUrl']?.toString(),
+      hasNda: raw['hasNda'] as bool? ?? false,
+      documentsCount: parsedDocsCount,
+      documents: actualDocs,
+      founderId:
+          userDetails?['id']?.toString() ??
+          ideaDetails?['userId']?.toString() ??
+          ideaDetails?['founderId']?.toString() ??
+          raw['founderId']?.toString() ??
+          raw['userId']?.toString() ??
+          startupId,
     );
   }
 

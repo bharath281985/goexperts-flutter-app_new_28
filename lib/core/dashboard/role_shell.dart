@@ -30,6 +30,7 @@ import '../utils/enums.dart';
 import '../widgets/app_bottom_navigation.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/icon_widget.dart';
+import '../../app/router/route_names.dart';
 import 'dashboard_cubit.dart';
 
 /// A single tab within a role shell.
@@ -51,6 +52,7 @@ class RoleShell extends StatefulWidget {
 }
 
 class _RoleShellState extends State<RoleShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late int _index = widget.initialIndex;
   int _walletRefreshToken = 0;
   late final DashboardCubit _cubit;
@@ -283,6 +285,63 @@ class _RoleShellState extends State<RoleShell> {
     ];
   }
 
+  String _activeRouteForCurrentTab() {
+    switch (widget.role) {
+      case UserRole.freelancer:
+        switch (_index) {
+          case 0:
+            return Routes.freelancerDashboard;
+          case 1:
+            return Routes.freelancerProjects;
+          case 2:
+            return Routes.messages;
+          case 3:
+            return Routes.freelancerProfile;
+          default:
+            return Routes.freelancerDashboard;
+        }
+      case UserRole.client:
+        switch (_index) {
+          case 0:
+            return Routes.clientDashboard;
+          case 1:
+            return Routes.clientProjects;
+          case 2:
+            return Routes.clientFreelancers;
+          case 3:
+            return Routes.messages;
+          default:
+            return Routes.clientDashboard;
+        }
+      case UserRole.founder:
+        switch (_index) {
+          case 0:
+            return Routes.founderDashboard;
+          case 1:
+            return Routes.founderStartup;
+          case 2:
+            return Routes.founderInvestors;
+          case 3:
+            return Routes.messages;
+          default:
+            return Routes.founderDashboard;
+        }
+      case UserRole.investor:
+        switch (_index) {
+          case 0:
+            return Routes.investorDashboard;
+          case 1:
+            return Routes.investorStartups;
+          case 2:
+            return Routes.investorDeals;
+          case 3:
+            return Routes.messages;
+          default:
+            return Routes.investorDashboard;
+        }
+    }
+  }
+
   void _selectTab(List<_Tab> tabs, int index) {
     if (index == 0 && _index == index) {
       _cubit.refresh();
@@ -309,29 +368,40 @@ class _RoleShellState extends State<RoleShell> {
             prev.unreadMessagesCount != next.unreadMessagesCount ||
             prev.unreadNotificationsCount != next.unreadNotificationsCount,
         builder: (context, state) {
-          return Scaffold(
-            drawer: AppDrawer(
-              role: widget.role,
-              unreadNotifications: state.unreadNotificationsCount,
-              unreadMessages: state.unreadMessagesCount,
-            ),
-            appBar: current.title == null
-                ? null
-                : AppBar(
-                    leading: Builder(
-                      builder: (scaffoldContext) => IconTapWidget(
-                        onTap: () => Scaffold.of(scaffoldContext).openDrawer(),
-                        iconImage: AppAssets.menuIcon,
-                        padding: 8,
+          return PopScope(
+            canPop: _index == 0,
+            onPopInvokedWithResult: (didPop, result) {
+              if (!didPop && _index != 0) {
+                _selectTab(tabs, 0);
+              }
+            },
+            child: Scaffold(
+              key: _scaffoldKey,
+              drawer: AppDrawer(
+                role: widget.role,
+                activeRoute: _activeRouteForCurrentTab(),
+                onTabSelected: (tabIdx) => _selectTab(tabs, tabIdx),
+                unreadNotifications: state.unreadNotificationsCount,
+                unreadMessages: state.unreadMessagesCount,
+              ),
+              appBar: current.title == null
+                  ? null
+                  : AppBar(
+                      leading: Builder(
+                        builder: (scaffoldContext) => IconTapWidget(
+                          onTap: () => Scaffold.of(scaffoldContext).openDrawer(),
+                          iconImage: AppAssets.menuIcon,
+                          padding: 8,
+                        ),
                       ),
+                      title: Text(context.tr(current.title!)),
                     ),
-                    title: Text(context.tr(current.title!)),
-                  ),
-            body: current.body,
-            bottomNavigationBar: AppBottomNavigation(
-              items: _navItems(tabs, state.unreadMessagesCount),
-              currentIndex: _index,
-              onTap: (i) => _selectTab(tabs, i),
+              body: current.body,
+              bottomNavigationBar: AppBottomNavigation(
+                items: _navItems(tabs, state.unreadMessagesCount),
+                currentIndex: _index,
+                onTap: (i) => _selectTab(tabs, i),
+              ),
             ),
           );
         },

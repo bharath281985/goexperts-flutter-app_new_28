@@ -1,9 +1,6 @@
 import 'dart:convert';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_html/flutter_html.dart';
-
 import '../../../../app/config/app_config.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -73,57 +70,7 @@ class _PublicContentPageState extends State<PublicContentPage> {
         ? AppErrorState(message: _error, onRetry: _load)
         : ListView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),
-            children: [
-              Html(
-                data: _markdownToHtml(_content),
-                style: {
-                  'body': Style(
-                    fontSize: FontSize(16),
-                    lineHeight: const LineHeight(1.6),
-                    color: context.colors.onSurface,
-                  ),
-                  'h1': Style(
-                    fontSize: FontSize(24),
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
-                    margin: Margins.only(bottom: 16),
-                  ),
-                  'h2': Style(
-                    fontSize: FontSize(20),
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
-                    margin: Margins.only(top: 24, bottom: 12),
-                  ),
-                  'h3': Style(
-                    fontSize: FontSize(18),
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.onSurface,
-                    margin: Margins.only(top: 20, bottom: 10),
-                  ),
-                  'p': Style(
-                    fontSize: FontSize(16),
-                    margin: Margins.only(bottom: 12),
-                    lineHeight: const LineHeight(1.6),
-                    color: context.colors.onSurface,
-                  ),
-                  'ul': Style(margin: Margins.only(bottom: 16, left: 16)),
-                  'li': Style(
-                    fontSize: FontSize(16),
-                    margin: Margins.only(bottom: 8),
-                    lineHeight: const LineHeight(1.6),
-                    color: context.colors.onSurface,
-                  ),
-                  'strong': Style(
-                    fontWeight: FontWeight.w600,
-                    color: context.colors.onSurface,
-                  ),
-                  'a': Style(
-                    color: AppColors.primary,
-                    textDecoration: TextDecoration.underline,
-                  ),
-                },
-              ),
-            ],
+            children: _renderContent(context, _content),
           );
 
     if (!widget.showAppBar) {
@@ -144,6 +91,81 @@ class _PublicContentPageState extends State<PublicContentPage> {
       ),
       body: body,
     );
+  }
+
+  List<Widget> _renderContent(BuildContext context, String raw) {
+    final clean = raw.replaceAll(RegExp(r'<[^>]*>'), '');
+    final lines = clean.split('\n');
+    final widgets = <Widget>[];
+
+    for (final rawLine in lines) {
+      final line = rawLine.trim();
+      if (line.isEmpty) {
+        widgets.add(const SizedBox(height: 8));
+        continue;
+      }
+
+      if (line.startsWith('### ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 6),
+          child: Text(
+            line.substring(4),
+            style: context.text.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ));
+      } else if (line.startsWith('## ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 20, bottom: 8),
+          child: Text(
+            line.substring(3),
+            style: context.text.titleLarge?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ));
+      } else if (line.startsWith('# ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(top: 24, bottom: 12),
+          child: Text(
+            line.substring(2),
+            style: context.text.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        widgets.add(Padding(
+          padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('•  ', style: TextStyle(fontWeight: FontWeight.bold)),
+              Expanded(
+                child: Text(
+                  line.substring(2),
+                  style: context.text.bodyMedium?.copyWith(height: 1.5),
+                ),
+              ),
+            ],
+          ),
+        ));
+      } else {
+        widgets.add(Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text(
+            line,
+            style: context.text.bodyMedium?.copyWith(height: 1.6),
+          ),
+        ));
+      }
+    }
+
+    return widgets;
   }
 
   String? _extractContent(dynamic data) {
@@ -178,87 +200,23 @@ class _PublicContentPageState extends State<PublicContentPage> {
       final title = map['title']?.toString();
       final subtitle = map['subtitle']?.toString();
       if (title != null && title.trim().isNotEmpty) {
-        buffer.write('<h1>${_escape(title)}</h1>');
+        buffer.writeln('# $title\n');
       }
       if (subtitle != null && subtitle.trim().isNotEmpty) {
-        buffer.write('<p>${_escape(subtitle)}</p>');
+        buffer.writeln('$subtitle\n');
       }
       for (final section in sections.whereType<Map>()) {
         final heading = section['title']?.toString();
         final body = section['content']?.toString();
         if (heading != null && heading.trim().isNotEmpty) {
-          buffer.write('<h2>${_escape(heading)}</h2>');
+          buffer.writeln('## $heading\n');
         }
         if (body != null && body.trim().isNotEmpty) {
-          buffer.write(body);
+          buffer.writeln('$body\n');
         }
       }
       return buffer.toString();
     }
     return map['content']?.toString();
-  }
-
-  String _markdownToHtml(String source) {
-    if (source.trimLeft().startsWith('<')) return source;
-    final lines = source.split('\n');
-    final buffer = StringBuffer();
-    var inList = false;
-    for (final rawLine in lines) {
-      final line = rawLine.trim();
-      if (line.isEmpty) {
-        if (inList) {
-          buffer.write('</ul>');
-          inList = false;
-        }
-        continue;
-      }
-      if (line.startsWith('### ')) {
-        if (inList) {
-          buffer.write('</ul>');
-          inList = false;
-        }
-        buffer.write('<h3>${_inline(line.substring(4))}</h3>');
-      } else if (line.startsWith('## ')) {
-        if (inList) {
-          buffer.write('</ul>');
-          inList = false;
-        }
-        buffer.write('<h2>${_inline(line.substring(3))}</h2>');
-      } else if (line.startsWith('# ')) {
-        if (inList) {
-          buffer.write('</ul>');
-          inList = false;
-        }
-        buffer.write('<h1>${_inline(line.substring(2))}</h1>');
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        if (!inList) {
-          buffer.write('<ul>');
-          inList = true;
-        }
-        buffer.write('<li>${_inline(line.substring(2))}</li>');
-      } else {
-        if (inList) {
-          buffer.write('</ul>');
-          inList = false;
-        }
-        buffer.write('<p>${_inline(line)}</p>');
-      }
-    }
-    if (inList) buffer.write('</ul>');
-    return buffer.toString();
-  }
-
-  String _inline(String text) {
-    return _escape(text).replaceAllMapped(
-      RegExp(r'\*\*(.+?)\*\*'),
-      (match) => '<strong>${match.group(1)}</strong>',
-    );
-  }
-
-  String _escape(String text) {
-    return text
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;');
   }
 }

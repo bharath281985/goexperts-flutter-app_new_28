@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:syncfusion_flutter_pdfviewer/pdfviewer.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -8,11 +9,8 @@ import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/share_sheet.dart';
 
-/// A reusable document viewer shell with type-aware preview.
-///
-/// For images, renders the actual image from the URL.
-/// For PDFs and other document types, provides an option to open externally.
-class DocumentViewerPage extends StatelessWidget {
+/// A reusable document viewer shell with in-app interactive PDF & image preview.
+class DocumentViewerPage extends StatefulWidget {
   const DocumentViewerPage({
     super.key,
     required this.type,
@@ -25,12 +23,20 @@ class DocumentViewerPage extends StatelessWidget {
   final String? url;
 
   @override
+  State<DocumentViewerPage> createState() => _DocumentViewerPageState();
+}
+
+class _DocumentViewerPageState extends State<DocumentViewerPage> {
+  bool _pdfLoadError = false;
+  String? _pdfErrorMessage;
+
+  @override
   Widget build(BuildContext context) {
-    final meta = _metaFor(type, url);
+    final meta = _metaFor(widget.type, widget.url);
     return AppScaffold(
       appBar: AppBar(
         leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-        title: Text(name ?? '$type Viewer'),
+        title: Text(widget.name ?? '${widget.type} Viewer'),
         actions: [
           IconButton(
             onPressed: () => _share(context),
@@ -59,11 +65,11 @@ class DocumentViewerPage extends StatelessWidget {
   }
 
   Future<void> _openExternal(BuildContext context) async {
-    if (url == null || url!.isEmpty) {
+    if (widget.url == null || widget.url!.isEmpty) {
       context.showSnack('No document URL available', isError: true);
       return;
     }
-    final uri = Uri.tryParse(url!);
+    final uri = Uri.tryParse(widget.url!);
     if (uri == null) {
       context.showSnack('Invalid document URL', isError: true);
       return;
@@ -84,34 +90,59 @@ class DocumentViewerPage extends StatelessWidget {
   }
 
   void _share(BuildContext context) {
-    if (url == null || url!.isEmpty) {
+    if (widget.url == null || widget.url!.isEmpty) {
       context.showSnack('No document URL to share', isError: true);
       return;
     }
     ShareSheet.show(
       context,
-      title: name ?? 'Document',
-      subtitle: '$type document',
-      link: url!,
+      title: widget.name ?? 'Document',
+      subtitle: '${widget.type} document',
+      link: widget.url!,
     );
   }
 
   Widget _preview(BuildContext context, _DocMeta meta) {
-    // If we have a URL and it's an image, show the actual image
-    if (meta.kind == _DocKind.image && url != null && url!.isNotEmpty) {
+    final cleanUrl = widget.url?.trim();
+    final hasUrl = cleanUrl != null && cleanUrl.isNotEmpty && cleanUrl != 'null';
+
+    // 1. Image Preview
+    if (meta.kind == _DocKind.image && hasUrl) {
       return InteractiveViewer(
         minScale: 0.5,
         maxScale: 4.0,
         child: Container(
           color: Colors.black,
           alignment: Alignment.center,
-          child: CustomCachedImage(imageUrl: url!, fit: BoxFit.contain),
+          child: CustomCachedImage(imageUrl: cleanUrl, fit: BoxFit.contain),
         ),
       );
     }
 
-    // For documents with a URL, show an action-oriented preview
-    if (url != null && url!.isNotEmpty) {
+    // 2. In-App Interactive PDF Viewer
+    final isPdf = widget.type.toLowerCase() == 'pdf' ||
+        cleanUrl?.toLowerCase().contains('.pdf') == true;
+
+    if (isPdf && hasUrl && !_pdfLoadError) {
+      return SfPdfViewer.network(
+        cleanUrl!,
+        canShowScrollHead: true,
+        canShowScrollStatus: true,
+        enableDoubleTapZooming: true,
+        pageSpacing: 4,
+        onDocumentLoadFailed: (PdfDocumentLoadFailedDetails details) {
+          if (mounted) {
+            setState(() {
+              _pdfLoadError = true;
+              _pdfErrorMessage = details.description;
+            });
+          }
+        },
+      );
+    }
+
+    // 3. For non-PDF docs or if in-app render failed, show action card
+    if (hasUrl) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(AppSizes.xl),
@@ -128,7 +159,7 @@ class DocumentViewerPage extends StatelessWidget {
               ),
               AppSizes.vGapXl,
               Text(
-                name ?? '$type Document',
+                widget.name ?? '${widget.type} Document',
                 style: context.text.titleLarge?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
@@ -136,15 +167,24 @@ class DocumentViewerPage extends StatelessWidget {
               ),
               AppSizes.vGapSm,
               Text(
-                type.toUpperCase(),
+                widget.type.toUpperCase(),
                 style: context.text.labelMedium?.copyWith(
                   color: meta.color,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 1.2,
                 ),
               ),
+              if (_pdfErrorMessage != null) ...[
+                AppSizes.vGapMd,
+                Text(
+                  _pdfErrorMessage!,
+                  style: context.text.bodySmall?.copyWith(
+                    color: AppColors.danger,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
               AppSizes.vGapXl,
-              AppSizes.vGapLg,
               FilledButton.icon(
                 onPressed: () => _openExternal(context),
                 icon: const Icon(Icons.open_in_new_rounded),
@@ -164,10 +204,11 @@ class DocumentViewerPage extends StatelessWidget {
               ),
               AppSizes.vGapMd,
               Text(
-                'Tap to open in your device\'s default viewer',
+                'Tap to open in your device\'s default viewer or browser',
                 style: context.text.bodySmall?.copyWith(
                   color: AppColors.subtleText,
                 ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),
@@ -216,6 +257,9 @@ class DocumentViewerPage extends StatelessWidget {
   }
 
   Widget _toolbar(BuildContext context, _DocMeta meta) {
+    final cleanUrl = widget.url?.trim();
+    final hasUrl = cleanUrl != null && cleanUrl.isNotEmpty && cleanUrl != 'null';
+
     return SafeArea(
       top: false,
       child: Container(
@@ -236,21 +280,21 @@ class DocumentViewerPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name ?? '$type document',
+                    widget.name ?? '${widget.type} document',
                     style: context.text.titleSmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
-                    url != null && url!.isNotEmpty
-                        ? type.toUpperCase()
-                        : '$type · no URL',
+                    hasUrl
+                        ? widget.type.toUpperCase()
+                        : '${widget.type} · no URL',
                     style: context.text.labelSmall,
                   ),
                 ],
               ),
             ),
-            if (url != null && url!.isNotEmpty) ...[
+            if (hasUrl) ...[
               IconButton(
                 onPressed: () => _openExternal(context),
                 icon: const Icon(Icons.open_in_new_rounded),
@@ -264,10 +308,7 @@ class DocumentViewerPage extends StatelessWidget {
   }
 
   _DocMeta _metaFor(String type, String? url) {
-    // First check the explicit type parameter
     final lower = type.toLowerCase();
-
-    // If type is generic or 'pdf', also check the URL for file extension hints
     final urlLower = (url ?? '').toLowerCase();
 
     String effectiveType = lower;

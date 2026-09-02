@@ -206,8 +206,33 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
     );
   }
 
+  Future<void> _acceptOffer(Proposal p) async {
+    final ok = await AppConfirmDialog.show(
+      context,
+      title: 'Accept Offer?',
+      message: 'You are accepting the client offer for this project.',
+      confirmLabel: 'Accept Offer',
+    );
+    if (!ok || !mounted) return;
+    setState(() => _busy = true);
+    final res = await sl<ProposalRepository>().acceptOffer(p.id);
+    if (!mounted) return;
+    setState(() => _busy = false);
+    res.fold(
+      (f) => context.showSnack(f.message, isError: true),
+      (_) {
+        context.showSnack('Offer accepted successfully!');
+        _reload();
+      },
+    );
+  }
+
   Widget _freelancerActions(BuildContext context, Proposal p) {
     final withdrawn = p.status == EntityStatus.withdrawn;
+    final isOffered =
+        p.status == EntityStatus.accepted ||
+        p.status.toString().toLowerCase().contains('offer');
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -216,22 +241,35 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           AppSizes.lg,
           AppSizes.lg,
         ),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: AppSecondaryButton(
-                label: withdrawn ? 'Withdrawn' : 'Withdraw',
-                icon: Icons.undo_rounded,
-                onPressed: withdrawn ? null : () => _withdraw(p),
+            if (isOffered) ...[
+              AppPrimaryButton(
+                label: 'Accept Client Offer',
+                icon: Icons.check_circle_outline_rounded,
+                onPressed: () => _acceptOffer(p),
               ),
-            ),
-            AppSizes.hGapMd,
-            Expanded(
-              child: AppPrimaryButton(
-                label: 'Message Client',
-                icon: Icons.chat_bubble_outline_rounded,
-                onPressed: () => _messageClient(p),
-              ),
+              AppSizes.vGapMd,
+            ],
+            Row(
+              children: [
+                Expanded(
+                  child: AppSecondaryButton(
+                    label: withdrawn ? 'Withdrawn' : 'Withdraw',
+                    icon: Icons.undo_rounded,
+                    onPressed: withdrawn ? null : () => _withdraw(p),
+                  ),
+                ),
+                AppSizes.hGapMd,
+                Expanded(
+                  child: AppSecondaryButton(
+                    label: 'Message Client',
+                    icon: Icons.chat_bubble_outline_rounded,
+                    onPressed: () => _messageClient(p),
+                  ),
+                ),
+              ],
             ),
           ],
         ),

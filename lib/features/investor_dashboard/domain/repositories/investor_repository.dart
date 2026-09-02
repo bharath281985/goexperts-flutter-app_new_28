@@ -8,7 +8,10 @@ abstract class InvestorRepository {
   Future<Result<Paginated<Deal>>> getDeals(QueryParams params);
   Future<Result<Paginated<PortfolioItem>>> getPortfolio(QueryParams params);
   Future<Result<bool>> toggleFollow(String id);
-  Future<Result<bool>> toggleSave(String id);
+  Future<Result<bool>> expressInterest(Map<String, dynamic> data);
+  Future<Result<bool>> submitOffer(Map<String, dynamic> data);
+  Future<Result<Deal>> getInvestment(String id);
+  Future<Result<bool>> cancelInvestment(String id);
   Future<Result<bool>> updateInvestment(String id, Map<String, dynamic> data);
   Future<Result<bool>> updateInvestmentStatus(String id, String status);
   Future<Result<Map<String, dynamic>>> getVerificationDetails();

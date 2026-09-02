@@ -101,27 +101,11 @@ class ProjectRepositoryImpl implements ProjectRepository {
   Future<Result<Project>> getProject(String id) async {
     if (_api == null) return _apiNotConfigured();
 
-    final role = await _role();
-    final path = role != null
-        ? ApiEndpoints.roleProject(role, id)
-        : '${ApiEndpoints.publicProjects}/$id';
-
-    var result = await _api.get<Project>(
-      path,
+    return _api.get<Project>(
+      '${ApiEndpoints.publicProjects}/$id',
       parser: (data) =>
           Project.fromApiJson(Map<String, dynamic>.from(data as Map)),
     );
-    if (result.isFailure && path != '${ApiEndpoints.publicProjects}/$id') {
-      final publicResult = await _api.get<Project>(
-        '${ApiEndpoints.publicProjects}/$id',
-        parser: (data) =>
-            Project.fromApiJson(Map<String, dynamic>.from(data as Map)),
-      );
-      if (publicResult.isSuccess) {
-        result = publicResult;
-      }
-    }
-    return result;
   }
 
   @override

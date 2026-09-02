@@ -136,12 +136,27 @@ class Startup extends Equatable {
         json['bio']?.toString() ??
         profile?['bio']?.toString() ??
         '';
-    final industry =
-        json['industry']?.toString() ??
-        profile?['industry']?.toString() ??
-        'General';
-    final stage =
-        json['stage']?.toString() ?? profile?['stage']?.toString() ?? 'MVP';
+    String parseOptionName(dynamic field, [dynamic fallback]) {
+      if (field is Map) {
+        final n = field['name'] ?? field['label'] ?? field['value'] ?? field['title'];
+        if (n != null && n.toString().trim().isNotEmpty) return n.toString().trim();
+      }
+      if (field is String && field.trim().isNotEmpty) {
+        return field.trim();
+      }
+      if (fallback != null) {
+        return parseOptionName(fallback);
+      }
+      return '';
+    }
+
+    final rawIndName = json['industryName'] ?? json['industry'] ?? profile?['industry'];
+    final parsedInd = parseOptionName(rawIndName);
+    final industry = parsedInd.isNotEmpty ? parsedInd : 'General';
+
+    final rawStageName = json['stageName'] ?? json['stage'] ?? profile?['stage'];
+    final parsedStage = parseOptionName(rawStageName);
+    final stage = parsedStage.isNotEmpty ? parsedStage : 'MVP';
     final founderName =
         json['founderName']?.toString() ??
         profile?['fullName']?.toString() ??
@@ -174,8 +189,8 @@ class Startup extends Equatable {
         profile?['country'] as String? ??
         profile?['countryId'] as String?;
     String location =
-        json['location'] as String? ?? profile?['location'] as String? ?? 'N/A';
-    if (json['location'] == null && profile?['location'] == null) {
+        json['location'] as String? ?? profile?['location'] as String? ?? '';
+    if (location.isEmpty) {
       if (city != null && country != null) {
         location = '$city, $country';
       } else if (city != null) {
@@ -184,6 +199,17 @@ class Startup extends Equatable {
         location = country;
       }
     }
+
+    final uuidRegex = RegExp(
+      r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$',
+      caseSensitive: false,
+    );
+    final locParts = location
+        .split(',')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty && !uuidRegex.hasMatch(p))
+        .toList();
+    location = locParts.isNotEmpty ? locParts.join(', ') : (location.isNotEmpty && !uuidRegex.hasMatch(location) ? location : 'N/A');
 
     final logoUrl =
         json['logoUrl'] as String? ??

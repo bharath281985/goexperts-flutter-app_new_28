@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as p;
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -8,6 +10,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 
 class EditIdeaBottomSheet extends StatefulWidget {
@@ -27,8 +30,6 @@ class EditIdeaBottomSheet extends StatefulWidget {
 class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _fullNameController;
-  late final TextEditingController _bioController;
   late final TextEditingController _fundingController;
   late final TextEditingController _equityController;
   late final TextEditingController _teamSizeController;
@@ -62,10 +63,6 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.startup.name);
-    _fullNameController = TextEditingController(
-      text: widget.startup.founderName,
-    );
-    _bioController = TextEditingController(text: widget.startup.tagline);
 
     final rawInd = widget.rawStartup?['industry'];
     final rawCat = widget.rawStartup?['category'];
@@ -104,7 +101,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
     _equityController = TextEditingController(
       text: widget.startup.equityOffered.toStringAsFixed(0),
     );
-    // Parse team size if we can, otherwise default 1
+
     final tsStr =
         widget.rawStartup?['teamSize']?.toString() ??
         widget.startup.tags.where((t) => t.contains('Team')).firstOrNull;
@@ -112,10 +109,21 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
       text: tsStr != null ? tsStr.replaceAll(RegExp(r'[^0-9]'), '') : '1',
     );
 
-    _networkLogoUrl = widget.startup.logoUrl;
-    _networkCoverUrl = widget.startup.coverUrl;
-    _networkPitchDiskUrl = widget.startup.pitchDeckUrl;
-    _networkBusinessPlanUrl = widget.startup.businessPlanUrl;
+    final logoVal = widget.startup.logoUrl;
+    _networkLogoUrl = (logoVal != null && logoVal.isNotEmpty)
+        ? logoVal
+        : (widget.rawStartup?['logo']?.toString() ??
+              widget.rawStartup?['logoUrl']?.toString());
+
+    final coverVal = widget.startup.coverUrl;
+    _networkCoverUrl = (coverVal != null && coverVal.isNotEmpty)
+        ? coverVal
+        : widget.rawStartup?['coverUrl']?.toString();
+
+    _networkPitchDiskUrl =
+        widget.startup.pitchDeckUrl ?? widget.rawStartup?['pitchDeck']?.toString();
+    _networkBusinessPlanUrl =
+        widget.startup.businessPlanUrl ?? widget.rawStartup?['businessPlan']?.toString();
     _loadOptions();
   }
 
@@ -208,11 +216,107 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
   @override
   void dispose() {
     _nameController.dispose();
-    _fullNameController.dispose();
-    _bioController.dispose();
     _fundingController.dispose();
     _equityController.dispose();
+    _teamSizeController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showImageSourcePicker({
+    required String title,
+    required Function(ImageSource) onSourceSelected,
+  }) async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text('Choose from Gallery'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onSourceSelected(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.camera_alt_outlined,
+                  color: AppColors.primary,
+                ),
+                title: const Text('Take a Photo'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onSourceSelected(ImageSource.camera);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickLogo(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _localLogoPath = image.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showTopSnack('Failed to pick logo: $e', isError: true);
+      }
+    }
+  }
+
+  Future<void> _pickCover(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _localCoverPath = image.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showTopSnack('Failed to pick cover banner: $e', isError: true);
+      }
+    }
   }
 
   Future<void> _pickPitchDisk() async {
@@ -249,6 +353,246 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
         context.showTopSnack('Failed to pick Business Plan: $e', isError: true);
       }
     }
+  }
+
+  Widget _buildImageHeader() {
+    final hasCover = _localCoverPath != null ||
+        (_networkCoverUrl != null && _networkCoverUrl!.isNotEmpty);
+    final hasLogo = _localLogoPath != null ||
+        (_networkLogoUrl != null && _networkLogoUrl!.isNotEmpty);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 175,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Cover Image Container (Top 0 to 130)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 130,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showImageSourcePicker(
+                    title: 'Select Cover Banner',
+                    onSourceSelected: _pickCover,
+                  ),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.25),
+                        width: 1.5,
+                      ),
+                      image: _localCoverPath != null
+                          ? DecorationImage(
+                              image: FileImage(File(_localCoverPath!)),
+                              fit: BoxFit.cover,
+                            )
+                          : (_networkCoverUrl != null &&
+                                  _networkCoverUrl!.isNotEmpty
+                              ? DecorationImage(
+                                  image: NetworkImage(_networkCoverUrl!),
+                                  fit: BoxFit.cover,
+                                )
+                              : null),
+                    ),
+                    child: !hasCover
+                        ? Center(
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: const [
+                                Icon(
+                                  Icons.add_photo_alternate_outlined,
+                                  color: AppColors.primary,
+                                  size: 24,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Upload Cover Banner',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Align(
+                            alignment: Alignment.topRight,
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  GestureDetector(
+                                    onTap: () => _showImageSourcePicker(
+                                      title: 'Change Cover Banner',
+                                      onSourceSelected: _pickCover,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.65,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.edit_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  GestureDetector(
+                                    onTap: () => setState(() {
+                                      _localCoverPath = null;
+                                      _networkCoverUrl = null;
+                                    }),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(6),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withValues(
+                                          alpha: 0.65,
+                                        ),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.delete_outline_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+              ),
+
+              // Logo Avatar Box (Overlapping at top 95)
+              Positioned(
+                top: 95,
+                left: 16,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showImageSourcePicker(
+                    title: 'Select Startup Logo',
+                    onSourceSelected: _pickLogo,
+                  ),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.white,
+                          border: Border.all(color: Colors.white, width: 3),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: ClipOval(
+                          child: _localLogoPath != null
+                              ? Image.file(
+                                  File(_localLogoPath!),
+                                  fit: BoxFit.cover,
+                                )
+                              : (_networkLogoUrl != null &&
+                                      _networkLogoUrl!.isNotEmpty
+                                  ? CustomCachedImage(
+                                      imageUrl: _networkLogoUrl!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Container(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
+                                      child: const Icon(
+                                        Icons.business,
+                                        color: AppColors.primary,
+                                        size: 36,
+                                      ),
+                                    )),
+                        ),
+                      ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Text button to change logo right next to avatar
+              Positioned(
+                top: 136,
+                left: 98,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => _showImageSourcePicker(
+                    title: 'Select Startup Logo',
+                    onSourceSelected: _pickLogo,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        hasLogo
+                            ? Icons.edit_outlined
+                            : Icons.add_a_photo_outlined,
+                        size: 15,
+                        color: AppColors.primary,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        hasLogo ? 'Change Logo' : 'Upload Logo',
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
+    );
   }
 
   Widget _buildDocPickerItem({
@@ -373,6 +717,9 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                     ),
                     const SizedBox(height: 20),
 
+                    // Visual Cover Banner and Logo Picker
+                    _buildImageHeader(),
+
                     _buildDocPickerItem(
                       label: 'Pitch Deck',
                       localPath: _localPitchDiskPath,
@@ -396,22 +743,9 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                     ),
                     const SizedBox(height: 12),
                     AppTextField(
-                      controller: _fullNameController,
-                      label: 'Full Name',
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: 12),
-                    AppTextField(
-                      controller: _bioController,
-                      label: 'Bio',
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: 12),
-                    AppTextField(
                       controller: _nameController,
                       label: 'Startup Name',
                       hint: 'e.g. HealthBridge AI',
-                      readOnly: true,
                     ),
                     const SizedBox(height: 12),
                     if (_loadingOptions)
@@ -422,6 +756,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                         children: [
                           DropdownButtonFormField<String>(
                             initialValue: _industryId,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Industry',
                               border: OutlineInputBorder(),
@@ -448,6 +783,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             initialValue: _categoryId,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Category',
                               border: OutlineInputBorder(),
@@ -474,6 +810,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                           const SizedBox(height: 12),
                           DropdownButtonFormField<String>(
                             initialValue: _stageId,
+                            isExpanded: true,
                             decoration: const InputDecoration(
                               labelText: 'Stage',
                               border: OutlineInputBorder(),
@@ -614,17 +951,14 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                   if (!mounted) return;
                                   Navigator.pop(context, {
                                     'logo': logoUrl ?? '',
+                                    'logoUrl': logoUrl ?? '',
                                     'coverUrl': coverUrl ?? '',
+                                    'cover': coverUrl ?? '',
                                     'pitchDeck': pitchDiskUrl ?? '',
                                     'businessPlan': businessPlanUrl ?? '',
                                     'startupName': _nameController.text.trim(),
                                     'startup': _nameController.text.trim(),
                                     'name': _nameController.text.trim(),
-                                    'title': _bioController.text.trim(),
-                                    'tagline': _bioController.text.trim(),
-                                    'bio': _bioController.text.trim(),
-                                    'fullName':
-                                        _fullNameController.text.trim(),
                                     'industry':
                                         _industryId ?? _initialIndustry,
                                     'industryId': _industryId,
@@ -643,6 +977,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                           _equityController.text.trim(),
                                         ) ??
                                         0.0,
+                                    'visibility': 'Public',
                                   });
                                 },
                           child: Text(

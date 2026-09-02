@@ -14,6 +14,7 @@ import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
+import '../../../investor_dashboard/domain/repositories/investor_repository.dart';
 import '../../../proposals/domain/repositories/proposal_repository.dart';
 
 /// A single reusable application form that adapts to the application [type].
@@ -189,6 +190,25 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
         (failure) => context.showSnack(failure.message, isError: true),
         (_) {
           context.showSnack('Proposal sent to client for review!');
+          Navigator.of(context).maybePop();
+        },
+      );
+      return;
+    }
+
+    if (_isInvestment && widget.projectId != null) {
+      final amount = double.tryParse(_budget.text.trim()) ?? 0;
+      final result = await sl<InvestorRepository>().expressInterest({
+        'startupId': widget.projectId!,
+        'offer': amount,
+        'message': _coverLetter.text.trim(),
+      });
+      if (!mounted) return;
+      setState(() => _submitting = false);
+      result.fold(
+        (failure) => context.showSnack(failure.message, isError: true),
+        (_) {
+          context.showSnack('Investment interest expressed successfully!');
           Navigator.of(context).maybePop();
         },
       );

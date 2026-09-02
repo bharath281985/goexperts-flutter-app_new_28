@@ -78,8 +78,6 @@ class _RoleAnalyticsPageState extends State<RoleAnalyticsPage> {
   }
 
   List<_Metric> _metrics() {
-    if (_data.isEmpty) return _mockMetrics();
-
     switch (widget.role) {
       case UserRole.founder:
         return [
@@ -211,38 +209,7 @@ class _RoleAnalyticsPageState extends State<RoleAnalyticsPage> {
     }
   }
 
-  List<_Metric> _mockMetrics() {
-    return const [
-      _Metric(
-        'Loading...',
-        '-',
-        Icons.hourglass_empty,
-        '',
-        AppColors.subtleText,
-      ),
-      _Metric(
-        'Loading...',
-        '-',
-        Icons.hourglass_empty,
-        '',
-        AppColors.subtleText,
-      ),
-      _Metric(
-        'Loading...',
-        '-',
-        Icons.hourglass_empty,
-        '',
-        AppColors.subtleText,
-      ),
-      _Metric(
-        'Loading...',
-        '-',
-        Icons.hourglass_empty,
-        '',
-        AppColors.subtleText,
-      ),
-    ];
-  }
+
 
   (List<double>, List<String>) _chartData() {
     if (_data.isEmpty) return ([], []);

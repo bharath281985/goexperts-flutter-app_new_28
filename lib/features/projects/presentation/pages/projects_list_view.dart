@@ -193,7 +193,6 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       emptyTitle: 'No projects found',
       emptyMessage: 'Try adjusting your search or filters.',
       emptyIcon: Icons.work_outline_rounded,
-      header: const _CreateProjectHeader(),
       sortOptions: _projectSortOptions,
       filterSections: _filterSections,
       itemBuilder: (context, project, _) => AppProjectCard(
@@ -207,31 +206,6 @@ class _ProjectsListViewState extends State<ProjectsListView> {
         onUpdateStatus: project.isOwner
             ? () => _openProjectDetails(context, project.id)
             : null,
-      ),
-    );
-  }
-}
-
-class _CreateProjectHeader extends StatelessWidget {
-  const _CreateProjectHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Align(
-        alignment: Alignment.centerRight,
-        child: FilledButton.icon(
-          onPressed: () async {
-            await context.push<bool>(
-              Routes.clientCreateProject,
-            );
-            if (!context.mounted) return;
-            context.read<ListBloc<Project>>().add(const ListRefreshed());
-          },
-          icon: const Icon(Icons.add_rounded),
-          label: Text(context.tr('Create Project')),
-        ),
       ),
     );
   }

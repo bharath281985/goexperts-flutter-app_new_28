@@ -9,6 +9,7 @@ abstract class StartupRepository {
   Future<Result<bool>> toggleSave(String id);
   Future<Result<bool>> toggleFollow(String id);
   Future<Result<bool>> submitOffer(Map<String, dynamic> data);
+  Future<Result<bool>> expressInterest(Map<String, dynamic> data);
   Future<Result<bool>> withdrawInterest(String id);
   Future<Result<Startup>> createIdea(Map<String, dynamic> data);
   Future<Result<bool>> updateIdea(String id, Map<String, dynamic> data);
@@ -22,7 +23,12 @@ abstract class StartupRepository {
   });
   Future<Result<bool>> acceptOffer(String id);
   Future<Result<bool>> rejectOffer(String id);
-  Future<Result<bool>> scheduleOfferMeeting(String id);
+  Future<Result<bool>> scheduleOfferMeeting(
+    String id, {
+    String? date,
+    String? time,
+    Map<String, dynamic>? data,
+  });
 
   // Pitch Deck & Business Plan
   Future<Result<Map<String, dynamic>>> getFundingOverview();

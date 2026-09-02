@@ -3,6 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/startup.dart';
@@ -14,26 +15,73 @@ class StartupRepositoryImpl implements StartupRepository {
   final ApiClientHelper? _api;
   final TokenRoleHelper? _tokenRoleHelper;
 
-  @override
-  Future<Result<Paginated<Startup>>> getStartups(QueryParams params) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.getEnvelope<Paginated<Startup>>(
-      ApiEndpoints.publicStartups,
-      query: params.toApiQuery(),
-      parser: (env) => ApiResponse.parsePaginated(
-        env.data,
-        env.meta,
-        Startup.fromApiJson,
-        fallbackPage: params.page,
-      ),
-    );
+  Future<String> _rolePath() async {
+    final role = await _tokenRoleHelper?.resolve();
+    return ApiEndpoints.rolePath(role);
+  }
+
+  Future<List<String>> _myStartupPaths() async {
+    final rolePath = await _rolePath();
+    return switch (rolePath) {
+      'freelancer' => [
+        ApiEndpoints.freelancerMyStartups,
+        ApiEndpoints.freelancerIdeas,
+        ApiEndpoints.publicMyStartups,
+      ],
+      'client' => [
+        ApiEndpoints.clientMyStartups,
+        ApiEndpoints.clientIdeas,
+        ApiEndpoints.publicMyStartups,
+      ],
+      'investor' => [
+        ApiEndpoints.investorMyStartups,
+        ApiEndpoints.investorIdeas,
+        ApiEndpoints.publicMyStartups,
+      ],
+      _ => [
+        ApiEndpoints.founderIdeas,
+        ApiEndpoints.publicMyStartups,
+      ],
+    };
+  }
+
+  Future<List<String>> _createIdeaPaths() async {
+    final rolePath = await _rolePath();
+    return switch (rolePath) {
+      'freelancer' => [ApiEndpoints.freelancerStartups, ApiEndpoints.freelancerIdeas],
+      'client' => [ApiEndpoints.clientStartups, ApiEndpoints.clientIdeas],
+      'investor' => [ApiEndpoints.investorStartups, ApiEndpoints.investorIdeas],
+      _ => [ApiEndpoints.founderIdeas, ApiEndpoints.publicStartups],
+    };
+  }
+
+  Future<List<String>> _ideaItemPaths(String id) async {
+    final rolePath = await _rolePath();
+    return switch (rolePath) {
+      'freelancer' => [
+        '${ApiEndpoints.freelancerIdeas}/$id',
+        '${ApiEndpoints.freelancerStartups}/$id',
+      ],
+      'client' => [
+        '${ApiEndpoints.clientIdeas}/$id',
+        '${ApiEndpoints.clientStartups}/$id',
+      ],
+      'investor' => [
+        '${ApiEndpoints.investorIdeas}/$id',
+        '${ApiEndpoints.investorStartups}/$id',
+      ],
+      _ => [
+        ApiEndpoints.founderIdea(id),
+        '${ApiEndpoints.publicStartups}/$id',
+      ],
+    };
   }
 
   @override
-  Future<Result<Paginated<Startup>>> getMyStartups(QueryParams params) async {
+  Future<Result<Paginated<Startup>>> getStartups(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
     var res = await _api.getEnvelope<Paginated<Startup>>(
-      ApiEndpoints.founderIdeas,
+      ApiEndpoints.publicStartups,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
         env.data,
@@ -44,7 +92,7 @@ class StartupRepositoryImpl implements StartupRepository {
     );
     if (res.isFailure) {
       final fallback = await _api.getEnvelope<Paginated<Startup>>(
-        ApiEndpoints.publicMyStartups,
+        ApiEndpoints.investorStartups,
         query: params.toApiQuery(),
         parser: (env) => ApiResponse.parsePaginated(
           env.data,
@@ -59,13 +107,51 @@ class StartupRepositoryImpl implements StartupRepository {
   }
 
   @override
+  Future<Result<Paginated<Startup>>> getMyStartups(QueryParams params) async {
+    if (_api == null) return _apiNotConfigured();
+    Result<Paginated<Startup>> res = const Err(ServerFailure('No data'));
+    for (final path in await _myStartupPaths()) {
+      res = await _api.getEnvelope<Paginated<Startup>>(
+        path,
+        query: params.toApiQuery(),
+        parser: (env) => ApiResponse.parsePaginated(
+          env.data,
+          env.meta,
+          Startup.fromApiJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (res.isSuccess) break;
+    }
+    return res;
+  }
+
+  @override
   Future<Result<Startup>> getStartup(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.get<Startup>(
+
+    var res = await _api.get<Startup>(
       '${ApiEndpoints.publicStartups}/$id',
       parser: (raw) =>
           Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
     );
+
+    if (res.isFailure) {
+      res = await _api.get<Startup>(
+        ApiEndpoints.founderIdea(id),
+        parser: (raw) =>
+            Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
+      );
+    }
+
+    if (res.isFailure) {
+      res = await _api.get<Startup>(
+        ApiEndpoints.investorStartup(id),
+        parser: (raw) =>
+            Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
+      );
+    }
+    return res;
   }
 
   @override
@@ -90,6 +176,18 @@ class StartupRepositoryImpl implements StartupRepository {
   }
 
   @override
+  Future<Result<bool>> expressInterest(Map<String, dynamic> data) async {
+    if (_api == null) return _apiNotConfigured();
+    final primary = await _api.postEnvelope<bool>(
+      ApiEndpoints.investorInvestmentsExpressInterest,
+      body: data,
+      parser: (env) => true,
+    );
+    if (primary.isSuccess) return primary;
+    return submitOffer(data);
+  }
+
+  @override
   Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
     final primary = await _api.postEnvelope<bool>(
@@ -108,48 +206,60 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> withdrawInterest(String id) async {
     if (_api == null) return _apiNotConfigured();
+    final primary = await _api.patchAction(
+      ApiEndpoints.investorCancelInvestment(id),
+    );
+    if (primary.isSuccess) return primary;
     return _api.patchAction('${ApiEndpoints.publicInvestments}/$id/cancel');
   }
 
   @override
   Future<Result<Startup>> createIdea(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    final primary = await _api.post<Startup>(
-      ApiEndpoints.founderIdeas,
-      body: data,
-      parser: (raw) =>
-          Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
-    );
-    if (primary.isSuccess) return primary;
-    return _api.post<Startup>(
-      ApiEndpoints.publicStartups,
-      body: data,
-      parser: (raw) =>
-          Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
-    );
+    Result<Startup> res = const Err(ServerFailure('No data'));
+    for (final path in await _createIdeaPaths()) {
+      res = await _api.post<Startup>(
+        path,
+        body: data,
+        parser: (raw) =>
+            Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
+      );
+      if (res.isSuccess) break;
+    }
+    return res;
   }
 
   @override
   Future<Result<bool>> updateIdea(String id, Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.putEnvelope<bool>(
-      '${ApiEndpoints.publicStartups}/$id',
-      body: data,
-      parser: (env) => true,
-    );
+    Result<bool> res = const Err(ServerFailure('No data'));
+    for (final path in await _ideaItemPaths(id)) {
+      res = await _api.putEnvelope<bool>(
+        path,
+        body: data,
+        parser: (env) => true,
+      );
+      if (res.isSuccess) break;
+    }
+    return res;
   }
 
   @override
   Future<Result<bool>> deleteIdea(String id) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.deleteAction('${ApiEndpoints.publicStartups}/$id');
+    Result<bool> res = const Err(ServerFailure('No data'));
+    for (final path in await _ideaItemPaths(id)) {
+      res = await _api.deleteAction(path);
+      if (res.isSuccess) break;
+    }
+    return res;
   }
 
   @override
   Future<Result<Paginated<dynamic>>> getMyInvestments(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.getEnvelope<Paginated<dynamic>>(
-      ApiEndpoints.publicInvestments,
+    var res = await _api.getEnvelope<Paginated<dynamic>>(
+      ApiEndpoints.investorInvestments,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
         env.data,
@@ -158,6 +268,20 @@ class StartupRepositoryImpl implements StartupRepository {
         fallbackPage: params.page,
       ),
     );
+    if (res.isFailure) {
+      final fallback = await _api.getEnvelope<Paginated<dynamic>>(
+        ApiEndpoints.publicInvestments,
+        query: params.toApiQuery(),
+        parser: (env) => ApiResponse.parsePaginated(
+          env.data,
+          env.meta,
+          (raw) => raw,
+          fallbackPage: params.page,
+        ),
+      );
+      if (fallback.isSuccess) res = fallback;
+    }
+    return res;
   }
 
   @override
@@ -167,9 +291,9 @@ class StartupRepositoryImpl implements StartupRepository {
   }) async {
     if (_api == null) return _apiNotConfigured();
     final path = (startupId != null && startupId.isNotEmpty)
-        ? '${ApiEndpoints.publicStartups}/$startupId/investor-requests'
-        : ApiEndpoints.publicInvestorRequests;
-    return _api.getEnvelope<Paginated<dynamic>>(
+        ? '${ApiEndpoints.publicStartups}/$startupId/proposals'
+        : ApiEndpoints.founderInvestorRequests;
+    var res = await _api.getEnvelope<Paginated<dynamic>>(
       path,
       query: params?.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
@@ -179,24 +303,66 @@ class StartupRepositoryImpl implements StartupRepository {
         fallbackPage: params?.page ?? 1,
       ),
     );
+    if (res.isFailure) {
+      final fallbackPath = (startupId != null && startupId.isNotEmpty)
+          ? '${ApiEndpoints.publicStartups}/$startupId/investor-requests'
+          : ApiEndpoints.publicInvestorRequests;
+      final fallback = await _api.getEnvelope<Paginated<dynamic>>(
+        fallbackPath,
+        query: params?.toApiQuery(),
+        parser: (env) => ApiResponse.parsePaginated(
+          env.data,
+          env.meta,
+          (raw) => raw,
+          fallbackPage: params?.page ?? 1,
+        ),
+      );
+      if (fallback.isSuccess) res = fallback;
+    }
+    return res;
   }
 
   @override
   Future<Result<bool>> acceptOffer(String id) async {
     if (_api == null) return _apiNotConfigured();
+    final primary = await _api.patchAction(
+      ApiEndpoints.founderInvestorRequestAccept(id),
+    );
+    if (primary.isSuccess) return primary;
     return _api.patchAction(ApiEndpoints.publicInvestorRequestAccept(id));
   }
 
   @override
   Future<Result<bool>> rejectOffer(String id) async {
     if (_api == null) return _apiNotConfigured();
+    final primary = await _api.patchAction(
+      ApiEndpoints.founderInvestorRequestReject(id),
+    );
+    if (primary.isSuccess) return primary;
     return _api.patchAction(ApiEndpoints.publicInvestorRequestReject(id));
   }
 
   @override
-  Future<Result<bool>> scheduleOfferMeeting(String id) async {
+  Future<Result<bool>> scheduleOfferMeeting(
+    String id, {
+    String? date,
+    String? time,
+    Map<String, dynamic>? data,
+  }) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.patchAction(ApiEndpoints.publicInvestorRequestMeeting(id));
+    final body = data ?? <String, dynamic>{
+      if (date != null) 'date': date,
+      if (time != null) 'time': time,
+    };
+    final primary = await _api.patchAction(
+      ApiEndpoints.founderInvestorRequestMeeting(id),
+      body: body.isNotEmpty ? body : null,
+    );
+    if (primary.isSuccess) return primary;
+    return _api.patchAction(
+      ApiEndpoints.publicInvestorRequestMeeting(id),
+      body: body.isNotEmpty ? body : null,
+    );
   }
 
   @override

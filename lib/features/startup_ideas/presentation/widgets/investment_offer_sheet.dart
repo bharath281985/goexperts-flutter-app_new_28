@@ -92,6 +92,9 @@ class _InvestmentOfferSheetState extends State<InvestmentOfferSheet>
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
+    if (picked != null) {
+      setState(() => _meetingDate = picked);
+    }
   }
 
   Future<void> _submit() async {
@@ -99,14 +102,17 @@ class _InvestmentOfferSheetState extends State<InvestmentOfferSheet>
 
     setState(() => _submitting = true);
 
-    final body = {
+    final body = <String, dynamic>{
       'startupId': widget.startupId,
       'offer': double.tryParse(_offer.text.trim()) ?? 0,
       'equity': double.tryParse(_equity.text.trim()) ?? 0,
       'message': _message.text.trim(),
+      if (_meetingDate != null) 'meetingDate': _meetingDate!.toIso8601String(),
     };
 
-    final Result<bool> res = await sl<StartupRepository>().submitOffer(body);
+    final Result<bool> res = _meetingDate != null
+        ? await sl<StartupRepository>().expressInterest(body)
+        : await sl<StartupRepository>().submitOffer(body);
 
     if (!mounted) return;
 

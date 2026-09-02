@@ -55,6 +55,41 @@ class ProposalRepositoryImpl implements ProposalRepository {
   }
 
   @override
+  Future<Result<Paginated<Proposal>>> getProjectProposals(
+    String projectId,
+    QueryParams params,
+  ) async {
+    if (_api == null) return _apiNotConfigured();
+
+    var result = await _api.getEnvelope<Paginated<Proposal>>(
+      '/public/projects/$projectId/proposals',
+      query: params.toApiQuery(),
+      parser: (envelope) => ApiResponse.parsePaginated(
+        envelope.data,
+        envelope.meta,
+        _proposalFromJson,
+        fallbackPage: params.page,
+      ),
+    );
+    if (result.isFailure) {
+      final fallback = await _api.getEnvelope<Paginated<Proposal>>(
+        ApiEndpoints.clientProjectProposals(projectId),
+        query: params.toApiQuery(),
+        parser: (envelope) => ApiResponse.parsePaginated(
+          envelope.data,
+          envelope.meta,
+          _proposalFromJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (fallback.isSuccess) {
+        result = fallback;
+      }
+    }
+    return result;
+  }
+
+  @override
   Future<Result<Proposal>> getProposal(String id) async {
     if (_api == null) return _apiNotConfigured();
 
@@ -76,6 +111,16 @@ class ProposalRepositoryImpl implements ProposalRepository {
       );
       if (fallback.isSuccess) {
         result = fallback;
+      }
+    }
+    if (result.isFailure && path != ApiEndpoints.clientProposal(id)) {
+      final clientFallback = await _api.get<Proposal>(
+        ApiEndpoints.clientProposal(id),
+        parser: (data) =>
+            _proposalFromJson(Map<String, dynamic>.from(data as Map)),
+      );
+      if (clientFallback.isSuccess) {
+        result = clientFallback;
       }
     }
     return result;
@@ -135,8 +180,12 @@ class ProposalRepositoryImpl implements ProposalRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
+    final path = role != null
+        ? ApiEndpoints.roleProposal(role, proposalId)
+        : ApiEndpoints.freelancerProposal(proposalId);
+
     return _api.putEnvelope<Proposal>(
-      ApiEndpoints.roleProposal(role, proposalId),
+      path,
       body: {
         'bidAmount': bidAmount,
         'coverLetter': coverLetter,
@@ -150,12 +199,30 @@ class ProposalRepositoryImpl implements ProposalRepository {
   @override
   Future<Result<bool>> withdraw(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _role();
     final primary = await _api.deleteAction(
-      '/${ApiEndpoints.rolePath(role)}/proposals/$id/withdraw',
+      ApiEndpoints.freelancerProposalWithdraw(id),
     );
     if (primary.isSuccess) return primary;
-    return _api.deleteAction(ApiEndpoints.freelancerProposalWithdraw(id));
+
+    final role = await _role();
+    final fallback = await _api.deleteAction(
+      '/${ApiEndpoints.rolePath(role)}/proposals/$id/withdraw',
+    );
+    if (fallback.isSuccess) return fallback;
+
+    return _api.postAction(ApiEndpoints.freelancerProposalWithdraw(id));
+  }
+
+  @override
+  Future<Result<bool>> acceptOffer(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    var res = await _api.postAction(
+      ApiEndpoints.freelancerProposalAcceptOffer(id),
+    );
+    if (res.isSuccess) return res;
+    return _api.patchAction(
+      '${ApiEndpoints.freelancerProposals}/$id/accept-offer',
+    );
   }
 
   @override
@@ -181,7 +248,36 @@ class ProposalRepositoryImpl implements ProposalRepository {
     if (path == null) {
       return Err(ValidationFailure('Unsupported proposal status: $status'));
     }
-    return _api.patchAction(path);
+    var res = await _api.patchAction(path);
+    if (res.isFailure) {
+      final fallbackPath = switch (normalized) {
+        'shortlisted' || 'shortlist' => ApiEndpoints.clientProposalShortlist(id),
+        'rejected' || 'reject' => ApiEndpoints.clientProposalReject(id),
+        'interview' => ApiEndpoints.clientProposalInterview(id),
+        'accepted' || 'accept' => ApiEndpoints.clientProposalAccept(id),
+        _ => null,
+      };
+      if (fallbackPath != null && fallbackPath != path) {
+        final fallback = await _api.patchAction(fallbackPath);
+        if (fallback.isSuccess) res = fallback;
+      }
+    }
+    return res;
+  }
+
+  @override
+  Future<Result<bool>> sendMessage(String id, String message) async {
+    if (_api == null) return _apiNotConfigured();
+    var res = await _api.postAction(
+      ApiEndpoints.clientProposalMessage(id),
+      body: {'message': message},
+    );
+    if (res.isSuccess) return res;
+    final role = await _role();
+    return _api.postAction(
+      '/${ApiEndpoints.rolePath(role)}/proposals/$id/message',
+      body: {'message': message},
+    );
   }
 
   static Proposal _proposalFromJson(Map<String, dynamic> json) {

@@ -163,10 +163,15 @@ class ApiEndpoints {
       '/freelancer/projects/recommended';
   static const freelancerProjectsNearby = '/freelancer/projects/nearby';
   static const freelancerProjectsSearch = '/freelancer/projects/search';
+  static const freelancerStartups = '/freelancer/startups';
+  static const freelancerIdeas = '/freelancer/ideas';
+  static const freelancerMyStartups = '/freelancer/startups/my-startups';
   static const freelancerProposals = '/freelancer/proposals';
   static String freelancerProposal(String id) => '/freelancer/proposals/$id';
   static String freelancerProposalWithdraw(String id) =>
       '/freelancer/proposals/$id/withdraw';
+  static String freelancerProposalAcceptOffer(String id) =>
+      '/freelancer/proposals/$id/accept-offer';
   static const freelancerPortfolio = '/freelancer/portfolio';
   static String freelancerPortfolioItem(String id) =>
       '/freelancer/portfolio/$id';
@@ -276,6 +281,9 @@ class ApiEndpoints {
   static const clientProfileLogo = '/client/profile/logo';
   static const clientProfileDocuments = '/client/profile/documents';
   static const clientVerification = '/client/verification';
+  static const clientStartups = '/client/startups';
+  static const clientIdeas = '/client/ideas';
+  static const clientMyStartups = '/client/startups/my-startups';
   static const clientProjects = '/client/projects';
   static String clientProject(String id) => '/client/projects/$id';
   static String clientProjectStatus(String id) => '/client/projects/$id/status';
@@ -342,6 +350,8 @@ class ApiEndpoints {
   static const investorProfileAvatar = '/investor/profile/avatar';
   static const investorProfileDocuments = '/investor/profile/documents';
   static const investorStartups = '/investor/startups';
+  static const investorIdeas = '/investor/ideas';
+  static const investorMyStartups = '/investor/startups/my-startups';
   static String investorStartup(String id) => '/investor/startups/$id';
   static const investorStartupsRecommended = '/investor/startups/recommended';
   static const investorStartupsTrending = '/investor/startups/trending';
@@ -358,6 +368,8 @@ class ApiEndpoints {
   static String investorInvestment(String id) => '/investor/investments/$id';
   static String investorCancelInvestment(String id) =>
       '/investor/investments/$id/cancel';
+  static const investorInvestmentsExpressInterest =
+      '/investor/investments/express-interest';
   static const investorOffer = '/investor/investments/offer';
   static String investorInvestmentStatus(String id) =>
       '/investor/investments/$id/status';
@@ -383,6 +395,7 @@ class ApiEndpoints {
 
   // ── Founder ───────────────────────────────────────────────────────────────
   static const founderIdeas = '/founder/ideas';
+  static String founderIdea(String id) => '/founder/ideas/$id';
   static const founderDashboard = '/founder/dashboard';
   // Founder personal profile uses the startup profile endpoints on the API.
   static const founderProfile = '/founder/profile';

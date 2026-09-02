@@ -44,11 +44,15 @@ class AppDrawer extends StatelessWidget {
   const AppDrawer({
     super.key,
     required this.role,
+    this.activeRoute,
+    this.onTabSelected,
     this.unreadNotifications = 0,
     this.unreadMessages = 0,
   });
 
   final UserRole role;
+  final String? activeRoute;
+  final ValueChanged<int>? onTabSelected;
   final int unreadNotifications;
   final int unreadMessages;
 
@@ -68,13 +72,14 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentPath = GoRouterState.of(context).uri.path;
+    final currentPath = activeRoute ?? GoRouterState.of(context).uri.path;
     final user = context.select((AuthBloc b) => b.state.user);
 
     return _FounderDrawer(
       user: user,
       sections: _sections(role),
       currentPath: currentPath,
+      onTabSelected: onTabSelected,
       workspaceLabel: switch (role) {
         UserRole.investor => 'INVESTOR OS',
         UserRole.freelancer => 'FREELANCER HQ',
@@ -932,6 +937,7 @@ class _FounderDrawer extends StatelessWidget {
     required this.currentPath,
     required this.workspaceLabel,
     required this.role,
+    this.onTabSelected,
   });
 
   final AppUser? user;
@@ -939,6 +945,7 @@ class _FounderDrawer extends StatelessWidget {
   final String currentPath;
   final String workspaceLabel;
   final UserRole role;
+  final ValueChanged<int>? onTabSelected;
 
   Future<void> _refresh(BuildContext context) async {
     context.read<AuthBloc>().add(const AuthRefreshUser());
@@ -993,6 +1000,8 @@ class _FounderDrawer extends StatelessWidget {
                       _FounderDrawerSection(
                         section: section,
                         currentPath: currentPath,
+                        role: role,
+                        onTabSelected: onTabSelected,
                       ),
                     Padding(
                       padding: const EdgeInsets.only(top: AppSizes.sm),
@@ -1280,10 +1289,43 @@ class _FounderDrawerSection extends StatelessWidget {
   const _FounderDrawerSection({
     required this.section,
     required this.currentPath,
+    required this.role,
+    this.onTabSelected,
   });
 
   final DrawerSection section;
   final String currentPath;
+  final UserRole role;
+  final ValueChanged<int>? onTabSelected;
+
+  int? _resolveTabIndex(String route) {
+    switch (role) {
+      case UserRole.freelancer:
+        if (route == Routes.freelancerDashboard) return 0;
+        if (route == Routes.freelancerProjects) return 1;
+        if (route == Routes.messages) return 2;
+        if (route == Routes.freelancerProfile) return 3;
+        return null;
+      case UserRole.client:
+        if (route == Routes.clientDashboard) return 0;
+        if (route == Routes.clientProjects) return 1;
+        if (route == Routes.clientFreelancers) return 2;
+        if (route == Routes.messages) return 3;
+        return null;
+      case UserRole.founder:
+        if (route == Routes.founderDashboard) return 0;
+        if ( route == Routes.founderStartup) return 1;
+        if (route == Routes.founderInvestors) return 2;
+        if (route == Routes.messages) return 3;
+        return null;
+      case UserRole.investor:
+        if (route == Routes.investorDashboard) return 0;
+        if (route == Routes.investorStartups) return 1;
+        if (route == Routes.investorDeals) return 2;
+        if (route == Routes.messages) return 3;
+        return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1315,11 +1357,26 @@ class _FounderDrawerSection extends StatelessWidget {
               currentPath: currentPath,
               founderStyle: true,
               onTap: () {
+                final route = entry.route;
+                final customTap = entry.onTap;
                 Navigator.of(context).pop();
-                if (entry.onTap != null) {
-                  entry.onTap!();
-                } else if (entry.route != null) {
-                  context.push(entry.route!);
+                if (customTap != null) {
+                  customTap();
+                } else if (route != null) {
+                  final tabIndex = _resolveTabIndex(route);
+                  if (tabIndex != null && onTabSelected != null) {
+                    onTabSelected!(tabIndex);
+                    return;
+                  }
+                  if (currentPath == route) return;
+                  if (route == Routes.freelancerDashboard ||
+                      route == Routes.clientDashboard ||
+                      route == Routes.investorDashboard ||
+                      route == Routes.founderDashboard) {
+                    context.go(route);
+                  } else {
+                    context.push(route);
+                  }
                 } else {
                   context.showSnack('Coming soon');
                 }
@@ -1382,8 +1439,10 @@ class _DrawerMenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isSelected =
-        entry.route != null && currentPath.startsWith(entry.route!);
+    final isSelected = entry.route != null &&
+        (currentPath == entry.route ||
+            (entry.route != '/' &&
+                currentPath.startsWith('${entry.route}/')));
 
     final bgColor = isSelected
         ? colors.onSurface.withValues(alpha: 0.08)
