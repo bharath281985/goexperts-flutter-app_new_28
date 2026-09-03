@@ -475,7 +475,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               tag: 'Access',
               icon: Icons.groups_rounded,
               color: const Color(0xFFEC4899),
-              onTap: () => context.push(Routes.teamMembers),
+              onTap: () => context.push(Routes.clientTeams),
               width: width,
             ),
           ],
@@ -696,107 +696,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  Widget _buildHeroBanner(BuildContext context, DashboardState state) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        left: AppSizes.screenPadding,
-        right: AppSizes.screenPadding,
-        top: AppSizes.screenPadding,
-        bottom: 8,
-      ),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(22),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0B1220), Color(0xFF111B2E), Color(0xFF090A0F)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primaryBlack.withValues(alpha: 0.12),
-              blurRadius: 28,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _pillTag(Icons.star_rounded, 'FREE', AppColors.warning),
-                _pillTag(
-                  Icons.trending_up_rounded,
-                  '${state.clientActiveProjects} active',
-                  AppColors.success,
-                ),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Text(
-              'Welcome back, ${context.read<AuthBloc>().state.user?.fullName ?? "Client"}.',
-              style: const TextStyle(
-                color: AppColors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                height: 1.05,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text.rich(
-              TextSpan(
-                text: 'You have ',
-                children: [
-                  TextSpan(
-                    text: '${state.clientPendingProposals} approvals',
-                    style: const TextStyle(color: Color(0xFFFDE68A)),
-                  ),
-                  const TextSpan(text: ', '),
-                  TextSpan(
-                    text: '${state.clientPendingPayments} pending payments',
-                    style: const TextStyle(color: Color(0xFFFCA5A5)),
-                  ),
-                  const TextSpan(text: ' and 0 new applications waiting.'),
-                ],
-              ),
-              style: TextStyle(
-                color: AppColors.white.withValues(alpha: 0.82),
-                fontSize: 13,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                _pillTag(
-                  Icons.verified_outlined,
-                  'Verified Enterprise',
-                  const Color(0xFF22C55E),
-                ),
-                _pillTag(
-                  Icons.business_rounded,
-                  'In-house Team',
-                  AppColors.info,
-                ),
-                _pillTag(
-                  Icons.work_outline_rounded,
-                  '${state.clientActiveProjects} active projects',
-                  AppColors.primary,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   @override
   void initState() {
@@ -932,79 +831,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context) {
-    return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Quick actions',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: AppColors.primaryBlack,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Jump into the tools you use most',
-            style: TextStyle(fontSize: 12, color: AppColors.subtleText),
-          ),
-          const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final int columns = context.isMobile ? 2 : 4;
-            const double spacing = 12.0;
-            final double width =
-                (constraints.maxWidth - (columns - 1) * spacing) / columns;
-
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                DashboardActionButton(
-                  text: 'Post Project',
-                  icon: Icons.add,
-                  color: const Color(
-                    0xFFE50A36,
-                  ), // Vibrant red, matching screenshot
-                  onTap: () => context.push(Routes.clientCreateProject),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Invite Freelancer',
-                  icon: Icons.person_add_alt_1,
-                  color: const Color(0xFF2563EB), // Blue
-                  onTap: () => context.push(Routes.clientFreelancers),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Book Meeting',
-                  icon: Icons.edit_calendar,
-                  color: const Color(0xFF9333EA), // Purple
-                  onTap: () => context.push(Routes.meetings),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Generate Invoice',
-                  icon: Icons.receipt_long,
-                  color: const Color(0xFFEA580C), // Orange
-                  onTap: () => context.push(Routes.clientPayments),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Fund Wallet',
-                  icon: Icons.account_balance_wallet,
-                  color: const Color(0xFF2563EB), // Blue
-                  onTap: () => context.push(Routes.wallet),
-                  width: width,
-                ),
-              ],
-            );
-          },
-        ),
-      ],
-    );
-  }
 
   Widget _buildMetricsGrid(BuildContext context, DashboardState state) {
     if (context.isMobile) {

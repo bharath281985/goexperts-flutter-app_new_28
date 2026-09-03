@@ -756,10 +756,4 @@ class _FounderHomePageState extends State<FounderHomePage> {
       onTap: onTap,
     );
   }
-
-  
-  
-
-
-  
 }
