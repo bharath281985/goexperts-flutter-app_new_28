@@ -9,17 +9,13 @@ import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
-import '../../../../core/widgets/app_gradient_header.dart';
 import '../../../../core/widgets/app_list_tile.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/dashboard/dashboard_cubit.dart';
-// DashboardCubit is optional — MyProfilePage works with AuthBloc alone.
-// We access it with a null-safe try to avoid crashes on standalone pages.
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../domain/repositories/review_repository.dart';
-import 'my_reviews_page.dart';
 
 class MyProfilePage extends StatefulWidget {
   const MyProfilePage({super.key});
@@ -33,6 +29,13 @@ class _MyProfilePageState extends State<MyProfilePage> {
   int _reviewsCount = 0;
   bool _loadingAverage = true;
 
+  // Dynamic Profile Completeness & Document Verification
+  int _profileCompletion = 0;
+  bool _isVerified = false;
+  String _verificationStatus = 'unverified'; // 'verified', 'under_review', 'action_required', 'unverified'
+  int _verifiedDocsCount = 0;
+  int _missingDocsCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +45,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
   void _refreshAllData() {
     context.read<AuthBloc>().add(const AuthRefreshUser());
     _syncRoleProfile();
+    _fetchVerificationStatus();
     _fetchAverage();
   }
 
@@ -119,6 +123,32 @@ class _MyProfilePageState extends State<MyProfilePage> {
           ?.toString()
           .trim();
 
+      // Dynamic Profile Completion calculation
+      final rawComp = data['profileCompletion'] ??
+          data['profile_completion'] ??
+          data['completionPercentage'] ??
+          (data['user'] is Map ? (data['user'] as Map)['profileCompletion'] : null);
+
+      int computedPercent = (user.profileCompletion ?? 0);
+      if (rawComp != null) {
+        computedPercent = (rawComp as num).toInt();
+      } else {
+        int filled = 0;
+        const int totalFields = 7;
+        if ((nameStr ?? user.fullName ?? '').isNotEmpty) filled++;
+        if ((avatarStr ?? user.avatarUrl ?? '').isNotEmpty) filled++;
+        if ((user.email).isNotEmpty) filled++;
+        if ((user.headline ?? '').isNotEmpty) filled++;
+        if (data['bio'] != null || data['description'] != null || data['about'] != null) filled++;
+        if (data['skills'] != null || data['category'] != null || data['industry'] != null) filled++;
+        if (data['hourlyRate'] != null || data['location'] != null || data['experience'] != null) filled++;
+        computedPercent = ((filled / totalFields) * 100).round().clamp(0, 100);
+      }
+
+      setState(() {
+        _profileCompletion = computedPercent;
+      });
+
       if (nameStr != null || avatarStr != null) {
         final currentUser = context.read<AuthBloc>().state.user;
         if (currentUser != null) {
@@ -127,11 +157,96 @@ class _MyProfilePageState extends State<MyProfilePage> {
               currentUser.copyWith(
                 fullName: nameStr ?? currentUser.fullName,
                 avatarUrl: avatarStr ?? currentUser.avatarUrl,
+                profileCompletion: computedPercent,
               ),
             ),
           );
         }
       }
+    });
+  }
+
+  Future<void> _fetchVerificationStatus() async {
+    final user = context.read<AuthBloc>().state.user;
+    if (user == null || user.role == null) return;
+
+    final api = sl<ApiClientHelper>();
+    final endpoint = switch (user.role!) {
+      UserRole.freelancer => ApiEndpoints.freelancerVerification,
+      UserRole.client => ApiEndpoints.clientVerification,
+      UserRole.investor => ApiEndpoints.investorVerification,
+      UserRole.founder => ApiEndpoints.founderVerification,
+    };
+
+    final res = await api.getEnvelope<Map<String, dynamic>>(
+      endpoint,
+      parser: (raw) {
+        if (raw.data is Map) {
+          return Map<String, dynamic>.from(raw.data as Map);
+        }
+        return {};
+      },
+    );
+
+    if (!mounted) return;
+
+    res.fold((_) {}, (data) {
+      final payload = (data['data'] is Map)
+          ? Map<String, dynamic>.from(data['data'] as Map)
+          : data;
+
+      final rawKycStatus = (payload['kycStatus'] ??
+              payload['kyc_status'] ??
+              payload['status'] ??
+              payload['verificationStatus'] ??
+              '')
+          .toString()
+          .trim()
+          .toUpperCase();
+
+      final missingCount = (payload['missingCount'] ??
+              payload['missing_count'] as num?)
+          ?.toInt() ??
+          0;
+      final pendingCount = (payload['pendingCount'] ??
+              payload['pending_count'] as num?)
+          ?.toInt() ??
+          0;
+      final verifiedCount = (payload['verifiedCount'] ??
+              payload['verified_count'] as num?)
+          ?.toInt() ??
+          0;
+
+      final isAccVerified = (rawKycStatus == 'APPROVED' ||
+              rawKycStatus == 'VERIFIED' ||
+              payload['accountVerified'] == true) &&
+          missingCount == 0;
+
+      String statusKey = 'unverified';
+      if (isAccVerified || (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
+        statusKey = 'verified';
+      } else if (rawKycStatus == 'PENDING' ||
+          rawKycStatus == 'UNDER_REVIEW' ||
+          rawKycStatus == 'IN_REVIEW' ||
+          pendingCount > 0) {
+        statusKey = 'pending';
+      } else if (rawKycStatus == 'REJECTED' ||
+          rawKycStatus == 'ACTION_REQUIRED') {
+        statusKey = 'action_required';
+      } else if (missingCount > 0 ||
+          rawKycStatus == 'NOT_SUBMITTED' ||
+          rawKycStatus == 'MISSING') {
+        statusKey = 'missing';
+      } else {
+        statusKey = 'unverified';
+      }
+
+      setState(() {
+        _isVerified = isAccVerified;
+        _verificationStatus = statusKey;
+        _verifiedDocsCount = verifiedCount;
+        _missingDocsCount = missingCount;
+      });
     });
   }
 
@@ -173,8 +288,6 @@ class _MyProfilePageState extends State<MyProfilePage> {
     final user = state.user;
     final role = user?.role ?? UserRole.freelancer;
 
-    // Try to read DashboardCubit — it may not be present when the page is
-    // reached via a standalone route (e.g. from the drawer).
     DashboardState? dashState;
     try {
       dashState = context.watch<DashboardCubit>().state;
@@ -182,417 +295,833 @@ class _MyProfilePageState extends State<MyProfilePage> {
       dashState = null;
     }
 
-    // Map dynamic fields based on role
-    String metric1Val = '1.2K';
-    String metric1Label = 'Followers';
-    String metric2Val = '94';
-    String metric2Label = 'Projects';
+    final activeCompletion = _profileCompletion > 0
+        ? _profileCompletion
+        : (user?.profileCompletion ?? dashState?.dashboardProfileCompletion ?? 0);
+
+    // Role-specific metrics
+    String metric1Val = '0';
+    String metric1Label = 'Projects';
+    IconData metric1Icon = Icons.folder_outlined;
+    String metric2Val = '₹0';
+    String metric2Label = 'Earned';
+    IconData metric2Icon = Icons.account_balance_wallet_outlined;
 
     if (role == UserRole.investor) {
       metric1Label = 'Investments';
-      metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
+      metric1Val = dashState?.activeProjectsCount.toString() ?? '0';
+      metric1Icon = Icons.trending_up_rounded;
       metric2Label = 'Portfolio';
       metric2Val = dashState != null
           ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
-          : '—';
+          : '₹0';
+      metric2Icon = Icons.account_balance_rounded;
     } else if (role == UserRole.founder) {
       metric1Label = 'Meetings';
       metric1Val = dashState?.topSkills.isNotEmpty == true
           ? dashState!.topSkills.first
           : '0';
+      metric1Icon = Icons.event_available_rounded;
       metric2Label = 'Raised';
       metric2Val = dashState != null
           ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
-          : '—';
+          : '₹0';
+      metric2Icon = Icons.monetization_on_outlined;
     } else if (role == UserRole.client) {
       metric1Label = 'Projects';
-      metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
-      metric2Label = 'Spend';
+      metric1Val = dashState?.activeProjectsCount.toString() ?? '0';
+      metric1Icon = Icons.assignment_outlined;
+      metric2Label = 'Total Spend';
       metric2Val = dashState != null
           ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
-          : '—';
+          : '₹0';
+      metric2Icon = Icons.payments_outlined;
     } else if (role == UserRole.freelancer) {
       metric1Label = 'Projects';
-      metric1Val = dashState?.activeProjectsCount.toString() ?? '—';
-      metric2Label = 'Earned';
+      metric1Val = dashState?.activeProjectsCount.toString() ?? '0';
+      metric1Icon = Icons.work_outline_rounded;
+      metric2Label = 'Total Earned';
       metric2Val = dashState != null
           ? '₹${dashState.monthlyEarnings.toStringAsFixed(0)}'
-          : '—';
+          : '₹0';
+      metric2Icon = Icons.savings_outlined;
     }
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        context.read<AuthBloc>().add(const AuthRefreshUser());
-        DashboardCubit? dashboardCubit;
-        try {
-          dashboardCubit = context.read<DashboardCubit>();
-        } catch (_) {}
-        await Future.wait([_syncRoleProfile(), _fetchAverage()]);
-        if (!mounted) return;
-        dashboardCubit?.refresh();
-      },
-      child: ListView(
-        padding: EdgeInsets.zero,
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          AppGradientHeader(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      context.tr('My Profile'),
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
+    final topInset = MediaQuery.viewPaddingOf(context).top;
+
+    return Scaffold(
+      backgroundColor: context.isDark ? AppColors.darkBackground : AppColors.background,
+      body: RefreshIndicator(
+        color: AppColors.primary,
+        backgroundColor: Colors.white,
+        onRefresh: () async {
+          context.read<AuthBloc>().add(const AuthRefreshUser());
+          DashboardCubit? dashboardCubit;
+          try {
+            dashboardCubit = context.read<DashboardCubit>();
+          } catch (_) {}
+          await Future.wait([
+            _syncRoleProfile(),
+            _fetchVerificationStatus(),
+            _fetchAverage(),
+          ]);
+          if (!mounted) return;
+          dashboardCubit?.refresh();
+        },
+        child: ListView(
+          padding: EdgeInsets.zero,
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            // ─── PROFESSIONAL HEADER & IDENTITY ───────────────────────────────
+            Container(
+              color: context.isDark ? AppColors.darkCard : Colors.white,
+              padding: EdgeInsets.fromLTRB(
+                AppSizes.screenPadding,
+                topInset + 16,
+                AppSizes.screenPadding,
+                20,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top Title Bar
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        context.tr('My Profile'),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: context.isDark ? Colors.white : AppColors.darkText,
+                          letterSpacing: -0.4,
+                        ),
                       ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      onPressed: () => _navigateAndRefresh(
-                        () => context.push(Routes.changePassword),
+                      IconButton(
+                        onPressed: () => _navigateAndRefresh(
+                          () => context.push(Routes.changePassword),
+                        ),
+                        icon: Icon(
+                          Icons.settings_outlined,
+                          color: context.isDark ? Colors.white70 : AppColors.mutedText,
+                          size: 22,
+                        ),
+                        tooltip: 'Account Settings',
                       ),
-                      icon: const Icon(
-                        Icons.settings_outlined,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-                AppSizes.vGapMd,
-                Row(
-                  children: [
-                    AppAvatar(
-                      name: user?.fullName ?? 'User',
-                      imageUrl: user?.avatarUrl,
-                      size: 64,
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // User Info Row
+                  Row(
+                    children: [
+                      Stack(
                         children: [
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  user?.fullName ?? 'Guest',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
+                          AppAvatar(
+                            name: user?.fullName ?? 'User',
+                            imageUrl: user?.avatarUrl,
+                            size: 68,
+                          ),
+                          if (user?.isVerified ?? _isVerified)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.1),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.verified_rounded,
+                                  color: AppColors.success,
+                                  size: 18,
                                 ),
                               ),
-                              if (user?.isVerified ?? false) ...[
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.verified_rounded,
-                                  color: Colors.white,
-                                  size: 16,
-                                ),
-                              ],
-                            ],
-                          ),
-                          if ((user?.email ?? '').isNotEmpty)
+                            ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              user!.email,
+                              user?.fullName ?? 'User Profile',
                               style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.95),
-                                fontSize: 13,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: context.isDark ? Colors.white : AppColors.darkText,
+                                letterSpacing: -0.2,
                               ),
                               overflow: TextOverflow.ellipsis,
                             ),
-                          Text(
-                            user?.headline?.isNotEmpty == true
-                                ? user!.headline!
-                                : role.label,
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(AppSizes.screenPadding),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                AppCard(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _stat(
-                          context,
-                          _loadingAverage ? '…' : _rating.toStringAsFixed(1),
-                          'Rating',
-                        ),
-                      ),
-                      _divider(context),
-                      Expanded(
-                        child: _stat(
-                          context,
-                          _loadingAverage ? '…' : _reviewsCount.toString(),
-                          'Reviews',
-                        ),
-                      ),
-                      _divider(context),
-                      Expanded(child: _stat(context, metric1Val, metric1Label)),
-                      _divider(context),
-                      Expanded(child: _stat(context, metric2Val, metric2Label)),
-                    ],
-                  ),
-                ),
-                AppSizes.vGapLg,
-                _group(context, 'Profile', [
-                  _tile(context, Icons.edit_outlined, 'Edit Profile', () {
-                    _navigateAndRefresh(() async {
-                      switch (role) {
-                        case UserRole.investor:
-                          await context.push(Routes.investorProfile);
-                          break;
-                        case UserRole.founder:
-                          await context.push(Routes.founderProfile);
-                          break;
-                        case UserRole.client:
-                          await context.push(Routes.clientProfile);
-                          break;
-                        case UserRole.freelancer:
-                          await context.push(Routes.freelancerEditProfile);
-                          break;
-                      }
-                    });
-                  }),
-
-                  if (role == UserRole.freelancer || role == UserRole.investor)
-                    _tile(context, Icons.collections_outlined, 'Portfolio', () {
-                      _navigateAndRefresh(() async {
-                        if (role == UserRole.investor) {
-                          await context.push(Routes.investorPortfolio);
-                        } else {
-                          await context.push(Routes.freelancerPortfolioPage);
-                        }
-                      });
-                    }),
-                  _tile(
-                    context,
-                    Icons.star_outline_rounded,
-                    'Reviews',
-                    () => _navigateAndRefresh(() async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const MyReviewsPage(),
-                        ),
-                      );
-                    }),
-                  ),
-                  _tile(context, Icons.insights_outlined, 'Analytics', () {
-                    _navigateAndRefresh(() async {
-                      switch (role) {
-                        case UserRole.investor:
-                          await context.push(Routes.investorAnalytics);
-                          break;
-                        case UserRole.founder:
-                          await context.push(Routes.founderAnalytics);
-                          break;
-                        case UserRole.client:
-                          await context.push(Routes.clientAnalytics);
-                          break;
-                        case UserRole.freelancer:
-                          await context.push(Routes.freelancerAnalytics);
-                          break;
-                      }
-                    });
-                  }),
-                ]),
-                AppSizes.vGapLg,
-                _group(context, 'Account', [
-                  _tile(
-                    context,
-                    Icons.workspace_premium_outlined,
-                    'Subscription',
-                    () => _navigateAndRefresh(
-                      () => context.push(Routes.subscriptionsManage),
-                    ),
-                  ),
-                  _tile(
-                    context,
-                    Icons.card_giftcard_outlined,
-                    'Referral Program',
-                    () => _navigateAndRefresh(
-                      () => context.push(Routes.referrals),
-                    ),
-                  ),
-
-                  _tile(
-                    context,
-                    Icons.shield_outlined,
-                    'Security Center',
-                    () => _navigateAndRefresh(
-                      () => context.push(Routes.changePassword),
-                    ),
-                  ),
-                  _tile(
-                    context,
-                    Icons.bookmark_outline_rounded,
-                    'Bookmarks',
-                    () => _navigateAndRefresh(
-                      () => context.push(Routes.bookmarks),
-                    ),
-                  ),
-
-                  _tile(
-                    context,
-                    Icons.help_outline_rounded,
-                    'Support',
-                    () =>
-                        _navigateAndRefresh(() => context.push(Routes.support)),
-                  ),
-                  _tile(
-                    context,
-                    Icons.delete_outline_rounded,
-                    'Delete Account',
-                    () => _navigateAndRefresh(
-                      () => context.push(Routes.deleteAccount),
-                    ),
-                  ),
-                ]),
-                AppSizes.vGapLg,
-                AppCard(
-                  onTap: () async {
-                    final confirm = await AppConfirmDialog.show(
-                      context,
-                      title: 'Log out?',
-                      message: 'You will need to sign in again.',
-                      confirmLabel: 'Log Out',
-                      isDestructive: true,
-                      icon: Icons.logout_rounded,
-                    );
-                    if (confirm && context.mounted) {
-                      showDialog<void>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) => PopScope(
-                          canPop: false,
-                          child: Center(
-                            child: Container(
+                            const SizedBox(height: 2),
+                            if ((user?.email ?? '').isNotEmpty)
+                              Text(
+                                user!.email,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AppColors.mutedText,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            const SizedBox(height: 6),
+                            Container(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 24,
-                                vertical: 20,
+                                horizontal: 9,
+                                vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: const [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 10,
-                                    offset: Offset(0, 4),
-                                  ),
-                                ],
+                                color: context.isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : AppColors.background,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: context.isDark
+                                      ? AppColors.darkBorder
+                                      : AppColors.border,
+                                  width: 1,
+                                ),
                               ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        AppColors.primary,
-                                      ),
-                                    ),
-                                  ),
-                                  SizedBox(width: 16),
-                                  Text(
-                                    'Logging out...',
-                                    style: TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.darkText,
-                                      decoration: TextDecoration.none,
-                                    ),
-                                  ),
-                                ],
+                              child: Text(
+                                role.label.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: context.isDark
+                                      ? Colors.white70
+                                      : AppColors.darkText,
+                                  letterSpacing: 0.5,
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                      );
-                      context.read<AuthBloc>().add(const AuthLoggedOut());
-                    }
-                  },
-                  child: Row(
-                    children: [
-                      const Icon(Icons.logout_rounded, color: AppColors.danger),
-                      const SizedBox(width: AppSizes.md),
-                      Text(
-                        context.tr('Log Out'),
-                        style: const TextStyle(
-                          color: AppColors.danger,
-                          fontWeight: FontWeight.w600,
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const Divider(height: 1, thickness: 1, color: AppColors.border),
+
+            Padding(
+              padding: const EdgeInsets.all(AppSizes.screenPadding),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ─── CLEAN METRICS STRIP ─────────────────────────────────────
+                  AppCard(
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: _cleanMetric(
+                            icon: Icons.star_rounded,
+                            iconColor: const Color(0xFFF59E0B),
+                            value: _loadingAverage ? '…' : _rating.toStringAsFixed(1),
+                            label: 'Rating',
+                            caption: _loadingAverage ? '—' : '$_reviewsCount reviews',
+                          ),
+                        ),
+                        _cleanDivider(),
+                        Expanded(
+                          child: _cleanMetric(
+                            icon: metric1Icon,
+                            iconColor: AppColors.primary,
+                            value: metric1Val,
+                            label: metric1Label,
+                            caption: 'Active',
+                          ),
+                        ),
+                        _cleanDivider(),
+                        Expanded(
+                          child: _cleanMetric(
+                            icon: metric2Icon,
+                            iconColor: AppColors.success,
+                            value: metric2Val,
+                            label: metric2Label,
+                            caption: 'Total',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ─── PROFILE COMPLETION STATUS CARD ──────────────────────────
+                  if (activeCompletion < 100) ...[
+                    InkWell(
+                      onTap: () => _navigateAndRefresh(() async {
+                        switch (role) {
+                          case UserRole.investor:
+                            await context.push(Routes.investorProfile);
+                            break;
+                          case UserRole.founder:
+                            await context.push(Routes.founderProfile);
+                            break;
+                          case UserRole.client:
+                            await context.push(Routes.clientProfile);
+                            break;
+                          case UserRole.freelancer:
+                            await context.push(Routes.freelancerEditProfile);
+                            break;
+                        }
+                      }),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: context.isDark ? AppColors.darkCard : Colors.white,
+                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                          border: Border.all(
+                            color: context.isDark ? AppColors.darkBorder : AppColors.border,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.tune_rounded,
+                                      size: 18,
+                                      color: AppColors.primary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      context.tr('Profile Completion'),
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: context.isDark ? Colors.white : AppColors.darkText,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                Text(
+                                  '$activeCompletion%',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: (activeCompletion / 100.0).clamp(0.0, 1.0),
+                                minHeight: 6,
+                                backgroundColor: context.isDark
+                                    ? Colors.white.withValues(alpha: 0.1)
+                                    : AppColors.background,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  AppColors.primary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Complete your bio, skills and documents to maximize project match rates.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.mutedText,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ─── SECTION 1: WORK & PROFILE ───────────────────────────────
+                  _sectionTitle(context, 'WORK & PROFILE'),
+                  AppCard(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        // Edit Profile with live percentage
+                        _profileTile(
+                          context,
+                          icon: Icons.person_outline_rounded,
+                          title: 'Edit Profile',
+                          subtitle: 'Personal info, bio, skills and rates',
+                          trailing: _buildPercentageBadge(activeCompletion),
+                          onTap: () {
+                            _navigateAndRefresh(() async {
+                              switch (role) {
+                                case UserRole.investor:
+                                  await context.push(Routes.investorProfile);
+                                  break;
+                                case UserRole.founder:
+                                  await context.push(Routes.founderProfile);
+                                  break;
+                                case UserRole.client:
+                                  await context.push(Routes.clientProfile);
+                                  break;
+                                case UserRole.freelancer:
+                                  await context.push(Routes.freelancerEditProfile);
+                                  break;
+                              }
+                            });
+                          },
+                        ),
+                        _tileDivider(context),
+
+                        // Verification & Documents
+                        _profileTile(
+                          context,
+                          icon: Icons.verified_user_outlined,
+                          title: 'Verification & Documents',
+                          subtitle: _getVerificationSubtitle(),
+                          trailing: _buildVerificationBadge(),
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.verification),
+                          ),
+                        ),
+
+                        // Portfolio
+                        if (role == UserRole.freelancer || role == UserRole.investor) ...[
+                          _tileDivider(context),
+                          _profileTile(
+                            context,
+                            icon: Icons.collections_bookmark_outlined,
+                            title: 'My Portfolio',
+                            subtitle: 'Showcase projects and case studies',
+                            onTap: () {
+                              _navigateAndRefresh(() async {
+                                if (role == UserRole.investor) {
+                                  await context.push(Routes.investorPortfolio);
+                                } else {
+                                  await context.push(Routes.freelancerPortfolioPage);
+                                }
+                              });
+                            },
+                          ),
+                        ],
+                        _tileDivider(context),
+
+                        // Bookmarks
+                        _profileTile(
+                          context,
+                          icon: Icons.bookmark_outline_rounded,
+                          title: 'My Bookmarks',
+                          subtitle: 'Saved items, bookmarks & shortlist',
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.bookmarks),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ─── SECTION 2: ACCOUNT & BILLING ───────────────────────────
+                  _sectionTitle(context, 'ACCOUNT & BILLING'),
+                  AppCard(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        _profileTile(
+                          context,
+                          icon: Icons.workspace_premium_outlined,
+                          title: 'My Subscription',
+                          subtitle: 'Plan details, limits and invoices',
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.subscriptionsManage),
+                          ),
+                        ),
+                        _tileDivider(context),
+                        _profileTile(
+                          context,
+                          icon: Icons.card_giftcard_outlined,
+                          title: 'My Referrals',
+                          subtitle: 'Invite colleagues and earn rewards',
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.referrals),
+                          ),
+                        ),
+                        _tileDivider(context),
+                        _profileTile(
+                          context,
+                          icon: Icons.lock_outline_rounded,
+                          title: 'Security Center',
+                          subtitle: 'Password, PIN and account safety',
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.changePassword),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // ─── SECTION 3: PREFERENCES & SUPPORT ───────────────────────
+                  _sectionTitle(context, 'SUPPORT & SETTINGS'),
+                  AppCard(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Column(
+                      children: [
+                        _profileTile(
+                          context,
+                          icon: Icons.help_outline_rounded,
+                          title: 'Help & Support',
+                          subtitle: 'Frequently asked questions and support desk',
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.support),
+                          ),
+                        ),
+                        _tileDivider(context),
+                        _profileTile(
+                          context,
+                          icon: Icons.delete_outline_rounded,
+                          title: 'Delete Account',
+                          subtitle: 'Permanently close your GoExperts account',
+                          onTap: () => _navigateAndRefresh(
+                            () => context.push(Routes.deleteAccount),
+                          ),
+                          isDestructive: true,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ─── LOGOUT BUTTON ───────────────────────────────────────────
+                  AppCard(
+                    onTap: () => _handleLogout(context),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.logout_rounded,
+                          color: AppColors.danger,
+                          size: 19,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          context.tr('Log Out'),
+                          style: const TextStyle(
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── CLEAN UI HELPERS ─────────────────────────────────────────────────────
+
+  Widget _cleanMetric({
+    required IconData icon,
+    required Color iconColor,
+    required String value,
+    required String label,
+    required String caption,
+  }) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: iconColor),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        Text(
+          caption,
+          style: const TextStyle(
+            fontSize: 11,
+            color: AppColors.mutedText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _cleanDivider() {
+    return Container(
+      width: 1,
+      height: 44,
+      margin: const EdgeInsets.symmetric(horizontal: 4),
+      color: AppColors.border,
+    );
+  }
+
+  Widget _sectionTitle(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 8),
+      child: Text(
+        context.tr(title),
+        style: const TextStyle(
+          color: AppColors.mutedText,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.6,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPercentageBadge(int percent) {
+    final clamped = percent.clamp(0, 100);
+    final isFull = clamped >= 100;
+    final color = isFull ? AppColors.success : AppColors.primary;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$clamped%',
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: AppColors.mutedText,
           ),
         ],
       ),
     );
   }
 
-  Widget _stat(BuildContext context, String value, String label) => Column(
-    children: [
-      Text(value, style: context.text.titleMedium),
-      Text(context.tr(label), style: context.text.labelSmall),
-    ],
-  );
+  String _getVerificationSubtitle() {
+    switch (_verificationStatus) {
+      case 'verified':
+        return 'KYC & documents verified';
+      case 'pending':
+      case 'under_review':
+        return _missingDocsCount > 0
+            ? '$_missingDocsCount missing • Review in progress'
+            : 'KYC documents under review';
+      case 'action_required':
+        return 'Updates required on submitted documents';
+      case 'missing':
+        return '$_missingDocsCount documents pending submission';
+      case 'unverified':
+      default:
+        return _missingDocsCount > 0
+            ? '$_missingDocsCount documents pending submission'
+            : 'Submit government ID & verification proofs';
+    }
+  }
 
-  Widget _divider(BuildContext context) =>
-      Container(width: 1, height: 28, color: context.theme.dividerColor);
+  Widget _buildVerificationBadge() {
+    Color badgeColor;
+    String badgeText;
+    IconData badgeIcon;
 
-  Widget _group(BuildContext context, String title, List<Widget> children) =>
-      AppCard(
-        padding: const EdgeInsets.symmetric(vertical: AppSizes.sm),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.md,
-                AppSizes.sm,
-                AppSizes.md,
-                AppSizes.xs,
+    switch (_verificationStatus) {
+      case 'verified':
+        badgeColor = AppColors.success;
+        badgeText = 'Verified';
+        badgeIcon = Icons.verified_rounded;
+        break;
+      case 'pending':
+      case 'under_review':
+        badgeColor = AppColors.warning;
+        badgeText = 'In Review';
+        badgeIcon = Icons.schedule_rounded;
+        break;
+      case 'action_required':
+        badgeColor = AppColors.danger;
+        badgeText = 'Action Req.';
+        badgeIcon = Icons.error_outline_rounded;
+        break;
+      case 'missing':
+        badgeColor = AppColors.warning;
+        badgeText = _missingDocsCount > 0 ? '$_missingDocsCount Missing' : 'Missing Docs';
+        badgeIcon = Icons.pending_actions_rounded;
+        break;
+      case 'unverified':
+      default:
+        badgeColor = AppColors.mutedText;
+        badgeText = 'Not Verified';
+        badgeIcon = Icons.upload_file_rounded;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: badgeColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: badgeColor.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(badgeIcon, size: 12, color: badgeColor),
+          const SizedBox(width: 4),
+          Text(
+            context.tr(badgeText),
+            style: TextStyle(
+              color: badgeColor,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: AppColors.mutedText,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _profileTile(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    Widget? trailing,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return AppListTile(
+      title: title,
+      subtitle: subtitle,
+      leadingIcon: icon,
+      trailing: trailing,
+      iconColor: isDestructive ? AppColors.danger : AppColors.primary,
+      onTap: onTap,
+    );
+  }
+
+  Widget _tileDivider(BuildContext context) {
+    return const Divider(
+      height: 1,
+      thickness: 1,
+      indent: 56,
+      endIndent: 16,
+      color: AppColors.border,
+    );
+  }
+
+  Future<void> _handleLogout(BuildContext context) async {
+    final confirm = await AppConfirmDialog.show(
+      context,
+      title: 'Log out?',
+      message: 'You will need to sign in again to access your account.',
+      confirmLabel: 'Log Out',
+      isDestructive: true,
+      icon: Icons.logout_rounded,
+    );
+    if (confirm && context.mounted) {
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => PopScope(
+          canPop: false,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 20,
               ),
-              child: Text(
-                context.tr(title).toUpperCase(),
-                style: context.text.labelSmall?.copyWith(letterSpacing: 1),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 10,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 16),
+                  Text(
+                    'Logging out...',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkText,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                ],
               ),
             ),
-            ...children,
-          ],
+          ),
         ),
       );
-
-  Widget _tile(
-    BuildContext context,
-    IconData icon,
-    String label,
-    VoidCallback onTap,
-  ) => AppListTile(title: label, leadingIcon: icon, onTap: onTap);
+      context.read<AuthBloc>().add(const AuthLoggedOut());
+    }
+  }
 }

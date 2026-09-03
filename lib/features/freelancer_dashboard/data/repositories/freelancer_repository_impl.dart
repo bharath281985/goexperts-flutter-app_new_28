@@ -53,36 +53,7 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    // If currently saved → DELETE to unsave; otherwise POST to save
-    final isSaved = BookmarkManager.instance.isBookmarked(
-          BookmarkManager.categoryFreelancers,
-          id,
-        ) ||
-        await _isSaved(id);
-    if (isSaved) {
-      return _api.deleteAction(ApiEndpoints.clientFreelancerSave(id));
-    } else {
-      return _api.postAction(ApiEndpoints.clientFreelancerSave(id));
-    }
-  }
-
-  /// Check current saved state from the API.
-  Future<bool> _isSaved(String id) async {
-    try {
-      final res = await _api!.get<List<dynamic>>(
-        ApiEndpoints.clientFreelancersSaved,
-        parser: (data) => data is List ? data : [],
-      );
-      final list = res.valueOrNull ?? [];
-      return list.any((e) {
-        final m = e is Map ? e : {};
-        return m['id']?.toString() == id ||
-            m['freelancerId']?.toString() == id ||
-            m['_id']?.toString() == id;
-      });
-    } catch (_) {
-      return false;
-    }
+    return _api.postAction(ApiEndpoints.publicFreelancerSave(id));
   }
 
 

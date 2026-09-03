@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/constants/app_assets.dart';
 import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../../app/router/route_names.dart';
@@ -11,6 +12,7 @@ import '../extensions/context_extensions.dart';
 import '../utils/enums.dart';
 import 'app_avatar.dart';
 import 'app_confirm_dialog.dart';
+import 'gradient_icon.dart';
 
 /// A drawer menu entry.
 class DrawerEntry {
@@ -56,6 +58,17 @@ class AppDrawer extends StatelessWidget {
   final int unreadNotifications;
   final int unreadMessages;
 
+  /// Remembers the last active route selected in the drawer across navigations.
+  static String? _lastSelectedRoute;
+
+  static void clearLastSelectedRoute() {
+    _lastSelectedRoute = null;
+  }
+
+  static void setLastSelectedRoute(String route) {
+    _lastSelectedRoute = route;
+  }
+
   static final _uuidPattern = RegExp(
     r'^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$',
     caseSensitive: false,
@@ -72,7 +85,8 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentPath = activeRoute ?? GoRouterState.of(context).uri.path;
+    final pathFromUri = GoRouterState.of(context).uri.path;
+    final currentPath = _lastSelectedRoute ?? activeRoute ?? pathFromUri;
     final user = context.select((AuthBloc b) => b.state.user);
 
     return _FounderDrawer(
@@ -105,38 +119,44 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderDashboard,
           },
         ),
-        DrawerEntry(
-          'Analytics',
-          Icons.insights_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerAnalytics,
-            UserRole.client => Routes.clientAnalytics,
-            UserRole.investor => Routes.investorAnalytics,
-            UserRole.founder => Routes.founderAnalytics,
-          },
-        ),
+        // DrawerEntry(
+        //   'Analytics',
+        //   Icons.insights_outlined,
+        //   route: switch (effectiveRole) {
+        //     UserRole.freelancer => Routes.freelancerAnalytics,
+        //     UserRole.client => Routes.clientAnalytics,
+        //     UserRole.investor => Routes.investorAnalytics,
+        //     UserRole.founder => Routes.founderAnalytics,
+        //   },
+        // ),
       ]),
-       DrawerSection('Profile & Identity', [
+      DrawerSection('Profile Management', [
         DrawerEntry(
           'My Profile',
           Icons.person_outline_rounded,
           route: Routes.profile,
         ),
         DrawerEntry(
-          'Verification',
+          'KYC/Verification',
           Icons.verified_user_outlined,
           route: Routes.verification,
         ),
         DrawerEntry(
-          'Portfolio',
-          Icons.perm_media_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerPortfolioPage,
-            UserRole.client => Routes.clientProjects,
-            UserRole.investor => Routes.investorPortfolio,
-            UserRole.founder => Routes.founderStartup,
-          },
+          'My Watchlist',
+          Icons.bookmark_border_rounded,
+          route: Routes.bookmarks,
         ),
+        DrawerEntry(
+          'My Referrals',
+          Icons.card_giftcard_outlined,
+          route: Routes.referrals,
+        ),
+        DrawerEntry(
+          'My Subscriptions',
+          Icons.workspace_premium_outlined,
+          route: Routes.subscriptionsManage,
+        ),
+
         if (effectiveRole == UserRole.freelancer) ...[
           DrawerEntry(
             'Experience',
@@ -155,19 +175,85 @@ class AppDrawer extends StatelessWidget {
           ),
         ],
       ]),
-      DrawerSection('Projects & Tasks', [
+      DrawerSection('My Teams & Team Access Management', [
         DrawerEntry(
-          'Explore Projects/Tasks',
-          Icons.work_outline_rounded,
+          'Teams',
+          Icons.groups_outlined,
           route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerProjects,
-            UserRole.client => Routes.clientProjects,
-            UserRole.investor => Routes.investorProjects,
-            UserRole.founder => Routes.founderProjects,
+            UserRole.freelancer => Routes.freelancerTeams,
+            UserRole.client => Routes.clientTeams,
+            UserRole.investor => Routes.investorTeams,
+            UserRole.founder => Routes.founderTeams,
           },
         ),
         DrawerEntry(
-          'My Projects',
+          'Team Access',
+          Icons.people_outline_rounded,
+         
+          
+        ),
+      ]),
+      DrawerSection('Invitations', [
+        DrawerEntry('Invitations', Icons.send_outlined),
+      ]),
+      DrawerSection('Explore More', [
+        if (effectiveRole != UserRole.client) ...[
+          DrawerEntry(
+            'Explore Businesses', 
+            Icons.work_outline_rounded,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerProjects,
+              UserRole.client => Routes.clientProjects,
+              UserRole.investor => Routes.investorProjects,
+              UserRole.founder => Routes.founderProjects,
+            },
+          ),
+        ],
+        if (effectiveRole != UserRole.freelancer) ...[
+          DrawerEntry(
+            'Explore Freelancers',
+            Icons.person_add_outlined,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerFreelancers,
+              UserRole.client => Routes.clientFreelancers,
+              UserRole.investor => Routes.investorFreelancers,
+              UserRole.founder => Routes.founderFreelancers,
+            },
+          ),
+        ],
+        if (effectiveRole != UserRole.founder) ...[
+          DrawerEntry(
+            'Explore Startup Ideas',
+            Icons.travel_explore_rounded,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerStartups,
+              UserRole.client => Routes.clientStartups,
+              UserRole.investor => Routes.investorStartups,
+              UserRole.founder => Routes.founderStartups,
+            },
+          ),
+        ],
+        if (effectiveRole != UserRole.investor) ...[
+          DrawerEntry(
+            "Explore Investers",
+            Icons.monetization_on_outlined,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerInvestors,
+              UserRole.client => Routes.clientInvestors,
+              UserRole.investor => Routes.investorInvestors,
+              UserRole.founder => Routes.founderInvestors,
+            },
+          ),
+        ],
+      ]),
+      DrawerSection('My Stuff', [
+
+       
+        if (effectiveRole == UserRole.client||effectiveRole == UserRole.freelancer) ...[
+
+        if(effectiveRole != UserRole.freelancer)
+        DrawerEntry(
+          'My Projects/Tasks',
           Icons.folder_special_outlined,
           route: switch (effectiveRole) {
             UserRole.freelancer => Routes.freelancerMyProjects,
@@ -176,17 +262,7 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderMyProjects,
           },
         ),
-        DrawerEntry(
-          'Proposals',
-          Icons.send_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerProposals,
-            UserRole.client => Routes.clientProposals,
-            UserRole.investor => Routes.investorProposals,
-            UserRole.founder => Routes.founderProposals,
-          },
-        ),
-        DrawerEntry(
+          DrawerEntry(
           'Projects Tracking',
           Icons.view_kanban_outlined,
           route: switch (effectiveRole) {
@@ -206,46 +282,21 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderContracts,
           },
         ),
-      ]),
-      DrawerSection('Talent & Teams', [
-        DrawerEntry(
-          'Hire Freelancers',
-          Icons.person_add_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerFreelancers,
-            UserRole.client => Routes.clientFreelancers,
-            UserRole.investor => Routes.investorFreelancers,
-            UserRole.founder => Routes.founderFreelancers,
-          },
-        ),
-        DrawerEntry(
-          'Applications',
-          Icons.inbox_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerApplications,
-            UserRole.client => Routes.clientApplications,
-            UserRole.investor => Routes.investorApplications,
-            UserRole.founder => Routes.founderApplications,
-          },
-        ),
-        DrawerEntry(
-          'Invitations',
-          Icons.send_outlined,
-          route: Routes.invitations,
-        ),
-        DrawerEntry(
-          'Teams',
-          Icons.groups_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerTeams,
-            UserRole.client => Routes.clientTeams,
-            UserRole.investor => Routes.investorTeams,
-            UserRole.founder => Routes.founderTeams,
-          },
-        ),
-      ]),
-      DrawerSection('Startup & Deals', [
-        DrawerEntry(
+        ],
+        
+        if (role == UserRole.freelancer || role == UserRole.investor)
+          DrawerEntry(
+            'My Portfolio',
+            Icons.folder_special_outlined,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerPortfolioPage,
+              UserRole.client => Routes.clientPortfolioPage,
+              UserRole.investor => Routes.investorPortfolio,
+              UserRole.founder => Routes.founderPortfolioPage,
+            },
+          ),
+          if (effectiveRole == UserRole.founder||effectiveRole == UserRole.investor) ...[
+           if(effectiveRole != UserRole.investor)DrawerEntry(
           'My Startup',
           Icons.rocket_launch_outlined,
           route: switch (effectiveRole) {
@@ -256,36 +307,30 @@ class AppDrawer extends StatelessWidget {
           },
         ),
         DrawerEntry(
-          'Startup Discovery',
-          Icons.travel_explore_rounded,
+          'My Proposals',
+          Icons.send_outlined,
           route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerStartups,
-            UserRole.client => Routes.clientStartups,
-            UserRole.investor => Routes.investorStartups,
-            UserRole.founder => Routes.founderStartups,
-          },
-        ),
-        DrawerEntry(
-          'Opportunities',
-          Icons.handshake_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerDeals,
-            UserRole.client => Routes.clientDeals,
-            UserRole.investor => Routes.investorDeals,
+            UserRole.freelancer => Routes.freelancerProposals,
+            UserRole.client => Routes.clientProposals,
+           UserRole.investor => Routes.investorDeals,
             UserRole.founder => Routes.founderDeals,
           },
         ),
-        DrawerEntry(
-          'Offers',
-          Icons.local_offer_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerOffers,
-            UserRole.client => Routes.clientOffers,
-            UserRole.investor => Routes.investorOffers,
-            UserRole.founder => Routes.founderOffers,
-          },
-        ),
-        DrawerEntry(
+      
+        
+
+       
+        // DrawerEntry(
+        //   'Offers',
+        //   Icons.local_offer_outlined,
+        //   route: switch (effectiveRole) {
+        //     UserRole.freelancer => Routes.freelancerOffers,
+        //     UserRole.client => Routes.clientOffers,
+        //     UserRole.investor => Routes.investorOffers,
+        //     UserRole.founder => Routes.founderOffers,
+        //   },
+        // ),
+        if(effectiveRole != UserRole.investor)...[ DrawerEntry(
           'Pitch Deck',
           Icons.slideshow_outlined,
           route: switch (effectiveRole) {
@@ -305,16 +350,8 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderBusinessPlan,
           },
         ),
-        DrawerEntry(
-          'Investors',
-          Icons.trending_up_rounded,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerInvestors,
-            UserRole.client => Routes.clientInvestors,
-            UserRole.investor => Routes.investorInvestors,
-            UserRole.founder => Routes.founderInvestors,
-          },
-        ),
+        ],
+        
         DrawerEntry(
           'Funding',
           Icons.savings_outlined,
@@ -325,86 +362,14 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderFunding,
           },
         ),
-        DrawerEntry(
-          'Investments / Portfolio',
-          Icons.pie_chart_outline_rounded,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerPortfolioPage,
-            UserRole.client => Routes.clientPortfolioPage,
-            UserRole.investor => Routes.investorPortfolio,
-            UserRole.founder => Routes.founderPortfolioPage,
-          },
-        ),
-        DrawerEntry(
-          'Reports',
-          Icons.assessment_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerReports,
-            UserRole.client => Routes.clientReports,
-            UserRole.investor => Routes.investorReports,
-            UserRole.founder => Routes.founderReports,
-          },
-        ),
-      ]),
-      DrawerSection('Communication', [
-        DrawerEntry(
-          'Calendar',
-          Icons.calendar_month_outlined,
-          route: Routes.calendar,
-        ),
-        DrawerEntry(
-          'Meetings',
-          Icons.event_outlined,
-          route: Routes.meetings,
-        ),
-        DrawerEntry(
-          'Watchlist',
-          Icons.bookmark_border_rounded,
-          route: Routes.bookmarks,
-        ),
-        DrawerEntry(
-          'Messages',
-          Icons.chat_bubble_outline_rounded,
-          route: Routes.messages,
-          badge: unreadMessages > 0 ? unreadMessages : null,
-        ),
-        DrawerEntry(
-          'Notifications',
-          Icons.notifications_none_rounded,
-          route: Routes.notifications,
-          badge: unreadNotifications > 0 ? unreadNotifications : null,
-        ),
-        DrawerEntry(
-          'Reviews',
-          Icons.star_border_rounded,
-          route: Routes.myReviews,
-        ),
-      ]),
-      DrawerSection('Finance', [
-        DrawerEntry(
-          'Subscriptions',
-          Icons.workspace_premium_outlined,
-          route: Routes.subscriptionsManage,
-        ),
-        DrawerEntry(
-          'Documents',
-          Icons.description_outlined,
-          route: switch (effectiveRole) {
-            UserRole.investor => Routes.investorDocuments,
-            UserRole.founder => Routes.founderPitchDeck,
-            UserRole.freelancer => Routes.freelancerCertificates,
-            UserRole.client => Routes.clientReports,
-          },
-        ),
-      ]),
-      const DrawerSection('Growth', [
-        DrawerEntry(
-          'Referral Program',
-          Icons.card_giftcard_outlined,
-          route: Routes.referrals,
-        ),
-      ]),
+        ]
+      
+      ]
+      ),
+      
+
       DrawerSection('System', [
+        DrawerEntry("My Social Links", Icons.public),
         DrawerEntry(
           'Support',
           Icons.support_agent_outlined,
@@ -416,14 +381,9 @@ class AppDrawer extends StatelessWidget {
           route: Routes.changePassword,
         ),
         DrawerEntry(
-          'Team Access',
-          Icons.people_outline_rounded,
-          route: switch (effectiveRole) {
-            UserRole.client => Routes.clientTeams,
-            UserRole.founder => Routes.founderTeam,
-            UserRole.investor => Routes.investorTeams,
-            UserRole.freelancer => Routes.freelancerTeams,
-          },
+          "Delete My Account",
+          Icons.delete_outline_rounded,
+          route: Routes.deleteAccount,
         ),
       ]),
     ];
@@ -979,8 +939,14 @@ class _FounderDrawer extends StatelessWidget {
         child: Column(
           children: [
             _FounderBrandHeader(
+              user: user,
+              role: role,
               workspaceLabel: workspaceLabel,
               onRefresh: () => _refresh(context),
+              onProfileTap: () {
+                Navigator.of(context).pop();
+                context.push(Routes.profile);
+              },
             ),
             Expanded(
               child: RefreshIndicator(
@@ -988,14 +954,12 @@ class _FounderDrawer extends StatelessWidget {
                 child: ListView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.fromLTRB(
+                    AppSizes.sm,
                     AppSizes.md,
                     AppSizes.sm,
                     AppSizes.md,
-                    AppSizes.md,
                   ),
                   children: [
-                    _FounderIdentityCard(user: user, role: role),
-                    AppSizes.vGapMd,
                     for (final section in sections)
                       _FounderDrawerSection(
                         section: section,
@@ -1013,6 +977,8 @@ class _FounderDrawer extends StatelessWidget {
                       color: colors.error,
                       onTap: () => _logout(context),
                     ),
+                    const SizedBox(height: AppSizes.sm),
+                    const _FounderDrawerFooter(),
                   ],
                 ),
               ),
@@ -1026,88 +992,18 @@ class _FounderDrawer extends StatelessWidget {
 
 class _FounderBrandHeader extends StatelessWidget {
   const _FounderBrandHeader({
+    required this.user,
+    required this.role,
     required this.workspaceLabel,
     required this.onRefresh,
+    this.onProfileTap,
   });
-
-  final String workspaceLabel;
-  final VoidCallback onRefresh;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.colors;
-    return Container(
-      constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.fromLTRB(
-        AppSizes.md,
-        AppSizes.sm,
-        AppSizes.sm,
-        AppSizes.sm,
-      ),
-      decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: colors.primary,
-              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-            ),
-            child: Text(
-              'G',
-              style: context.text.labelLarge?.copyWith(
-                color: colors.onPrimary,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-          AppSizes.hGapSm,
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Go Experts',
-                  style: context.text.labelLarge?.copyWith(
-                    color: colors.onSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  workspaceLabel,
-                  style: context.text.labelSmall?.copyWith(
-                    color: colors.primary,
-                    fontSize: 9,
-                    letterSpacing: 1.4,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: context.tr('Refresh profile'),
-            onPressed: onRefresh,
-            icon: const Icon(Icons.refresh_rounded),
-            color: colors.onSurfaceVariant,
-            iconSize: 20,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FounderIdentityCard extends StatelessWidget {
-  const _FounderIdentityCard({required this.user, required this.role});
 
   final AppUser? user;
   final UserRole role;
+  final String workspaceLabel;
+  final VoidCallback onRefresh;
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1119,132 +1015,212 @@ class _FounderIdentityCard extends StatelessWidget {
                 ? 'Investor'
                 : role == UserRole.freelancer
                 ? 'Freelancer'
-                : 'Your startup',
+                : role == UserRole.client
+                ? 'Business Owner'
+                : 'Founder',
           )
         : name;
+
     final completion = (user?.profileCompletion ?? 0).clamp(0, 100);
-    final plan = AppDrawer._planLabel(user?.subscriptionPlan);
-    final status = user?.subscriptionStatus?.trim();
+    final isVerified = user?.isVerified == true;
 
-    final healthLabel = completion >= 80
-        ? context.tr(
-            role == UserRole.investor
-                ? 'Investor profile ready'
-                : role == UserRole.freelancer
-                ? 'Profile complete'
-                : 'Startup ready',
-          )
-        : completion >= 50
-        ? context.tr(
-            role == UserRole.investor
-                ? 'Profile taking shape'
-                : role == UserRole.freelancer
-                ? 'Building momentum'
-                : 'Building momentum',
-          )
-        : context.tr('Complete your profile');
-
-    return Container(
-      padding: const EdgeInsets.all(AppSizes.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
-        border: Border.all(color: colors.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              AppAvatar(name: displayName, imageUrl: user?.avatarUrl, size: 44),
-              AppSizes.hGapMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+    return InkWell(
+      onTap: onProfileTap,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(
+          AppSizes.md,
+          AppSizes.md,
+          AppSizes.md,
+          AppSizes.md,
+        ),
+        decoration: BoxDecoration(
+          color: context.isDark ? AppColors.darkCard : Colors.white,
+          border: Border(
+            bottom: BorderSide(
+              color: context.isDark ? AppColors.darkBorder : AppColors.border,
+            ),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
                   children: [
-                    Text(
-                      displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.text.bodyMedium?.copyWith(
-                        color: colors.onSurface,
-                        fontWeight: FontWeight.w800,
+                    Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.25),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: AppAvatar(
+                        name: displayName,
+                        imageUrl: user?.avatarUrl,
+                        size: 42,
                       ),
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      user?.headline?.trim().isNotEmpty == true
-                          ? user!.headline!.trim()
-                          : context.tr(
-                              role == UserRole.investor
-                                  ? 'Investor workspace'
-                                  : role == UserRole.freelancer
-                                  ? 'Freelancer workspace'
-                                  : 'Founder workspace',
-                            ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: context.text.labelSmall?.copyWith(
-                        color: colors.onSurfaceVariant,
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: isVerified
+                              ? AppColors.success
+                              : AppColors.warning,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: context.isDark
+                                ? AppColors.darkCard
+                                : Colors.white,
+                            width: 2,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          AppSizes.vGapMd,
-          Wrap(
-            spacing: AppSizes.sm,
-            runSpacing: AppSizes.xs,
-            children: [
-              _FounderMetaLabel(
-                icon: Icons.workspace_premium_outlined,
-                label: role == UserRole.freelancer
-                    ? 'Job Success: 95%'
-                    : context.tr(plan),
-                emphasize: role == UserRole.freelancer,
-              ),
-              if (role != UserRole.freelancer &&
-                  status != null &&
-                  status.isNotEmpty)
-                _FounderMetaLabel(
-                  icon: Icons.circle,
-                  label: context.tr(status),
-                  emphasize: status.toLowerCase() == 'active',
-                ),
-            ],
-          ),
-          AppSizes.vGapMd,
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  healthLabel,
-                  style: context.text.labelSmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        displayName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.bodyMedium?.copyWith(
+                          color: colors.onSurface,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          workspaceLabel,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 9.5,
+                            letterSpacing: 1.1,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              Text(
-                '$completion%',
-                style: context.text.labelSmall?.copyWith(
-                  color: colors.onSurface,
-                  fontWeight: FontWeight.w800,
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  size: 20,
+                  color: AppColors.mutedText,
+                ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  context.tr(
+                    completion >= 100
+                        ? 'Profile Complete'
+                        : 'Profile Completion',
+                  ),
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.mutedText,
+                  ),
+                ),
+                Text(
+                  '$completion%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: completion >= 100
+                        ? AppColors.success
+                        : AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: (completion / 100.0).clamp(0.0, 1.0),
+                minHeight: 4.5,
+                backgroundColor: context.isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : AppColors.background,
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  completion >= 100 ? AppColors.success : AppColors.primary,
                 ),
               ),
-            ],
-          ),
-          AppSizes.vGapSm,
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-            child: LinearProgressIndicator(
-              value: completion / 100,
-              minHeight: 5,
-              color: colors.primary,
-              backgroundColor: colors.surfaceContainerHighest,
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FounderDrawerFooter extends StatelessWidget {
+  const _FounderDrawerFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSizes.sm,
+        AppSizes.md,
+        AppSizes.sm,
+        AppSizes.xs,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Image.asset(
+            AppAssets.fullBannerImage,
+            height: 22,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Image.asset(
+              AppAssets.appLogo,
+              height: 22,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '© 2016 Go Experts. All rights reserved.',
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: AppColors.mutedText,
+              letterSpacing: 0.2,
+            ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -1299,32 +1275,23 @@ class _FounderDrawerSection extends StatelessWidget {
   final ValueChanged<int>? onTabSelected;
 
   int? _resolveTabIndex(String route) {
-    switch (role) {
-      case UserRole.freelancer:
-        if (route == Routes.freelancerDashboard) return 0;
-        if (route == Routes.freelancerProjects) return 1;
-        if (route == Routes.messages) return 2;
-        if (route == Routes.freelancerProfile) return 3;
-        return null;
-      case UserRole.client:
-        if (route == Routes.clientDashboard) return 0;
-        if (route == Routes.clientProjects) return 1;
-        if (route == Routes.clientFreelancers) return 2;
-        if (route == Routes.messages) return 3;
-        return null;
-      case UserRole.founder:
-        if (route == Routes.founderDashboard) return 0;
-        if ( route == Routes.founderStartup) return 1;
-        if (route == Routes.founderInvestors) return 2;
-        if (route == Routes.messages) return 3;
-        return null;
-      case UserRole.investor:
-        if (route == Routes.investorDashboard) return 0;
-        if (route == Routes.investorStartups) return 1;
-        if (route == Routes.investorDeals) return 2;
-        if (route == Routes.messages) return 3;
-        return null;
+    if (route == Routes.freelancerDashboard ||
+        route == Routes.clientDashboard ||
+        route == Routes.founderDashboard ||
+        route == Routes.investorDashboard) {
+      return 0;
     }
+    if (route == Routes.messages) return 1;
+    if (route == Routes.bookmarks) return 2;
+    if (route == Routes.meetings) return 3;
+    if (route == Routes.profile ||
+        route == Routes.freelancerProfile ||
+        route == Routes.clientProfile ||
+        route == Routes.founderProfile ||
+        route == Routes.investorProfile) {
+      return 4;
+    }
+    return null;
   }
 
   @override
@@ -1356,9 +1323,13 @@ class _FounderDrawerSection extends StatelessWidget {
               entry: entry,
               currentPath: currentPath,
               founderStyle: true,
-              onTap: () {
+              onTap: () async {
                 final route = entry.route;
                 final customTap = entry.onTap;
+                if (route != null) {
+                  AppDrawer._lastSelectedRoute = route;
+                }
+                final rootScaffold = Scaffold.maybeOf(context);
                 Navigator.of(context).pop();
                 if (customTap != null) {
                   customTap();
@@ -1369,13 +1340,11 @@ class _FounderDrawerSection extends StatelessWidget {
                     return;
                   }
                   if (currentPath == route) return;
-                  if (route == Routes.freelancerDashboard ||
-                      route == Routes.clientDashboard ||
-                      route == Routes.investorDashboard ||
-                      route == Routes.founderDashboard) {
-                    context.go(route);
-                  } else {
-                    context.push(route);
+                  await context.push(route);
+                  if (rootScaffold != null &&
+                      rootScaffold.mounted &&
+                      !rootScaffold.isDrawerOpen) {
+                    rootScaffold.openDrawer();
                   }
                 } else {
                   context.showSnack('Coming soon');
@@ -1406,7 +1375,11 @@ class _FounderFooterAction extends StatelessWidget {
     return ListTile(
       minTileHeight: 44,
       contentPadding: const EdgeInsets.symmetric(horizontal: AppSizes.sm),
-      leading: Icon(icon, color: color, size: 19),
+      leading: GradientIcon(
+        icon: icon,
+        size: 19,
+        colors: [color, AppColors.primary],
+      ),
       title: Text(
         label,
         style: context.text.bodySmall?.copyWith(
@@ -1439,26 +1412,44 @@ class _DrawerMenuTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
-    final isSelected = entry.route != null &&
+    final isSelected =
+        entry.route != null &&
         (currentPath == entry.route ||
-            (entry.route != '/' &&
-                currentPath.startsWith('${entry.route}/')));
+            (entry.route != '/' && currentPath.startsWith('${entry.route}/')));
 
-    final bgColor = isSelected
-        ? colors.onSurface.withValues(alpha: 0.08)
+    final isDestructive = entry.label.toLowerCase().contains('delete');
+    final gradientColors = isDestructive
+        ? [AppColors.danger, AppColors.primary]
+        : [AppColors.primary, AppColors.secondary];
+
+    final backgroundGradient = isSelected
+        ? LinearGradient(
+            colors: isDestructive
+                ? [
+                    AppColors.danger.withValues(alpha: 0.16),
+                    AppColors.primary.withValues(alpha: 0.06),
+                  ]
+                : [
+                    AppColors.primary.withValues(alpha: 0.16),
+                    AppColors.secondary.withValues(alpha: 0.06),
+                  ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          )
+        : null;
+
+    final borderColor = isSelected
+        ? AppColors.primary.withValues(alpha: 0.28)
         : Colors.transparent;
-    final fgColor = isSelected ? colors.onSurface : colors.onSurfaceVariant;
-    final fontWeight = isSelected ? FontWeight.w600 : FontWeight.w500;
 
     return Container(
       constraints: BoxConstraints(minHeight: founderStyle ? 44 : 0),
-      margin: EdgeInsets.symmetric(
-        horizontal: AppSizes.sm,
-        vertical: 2,
-      ),
+      margin: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 2),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: isSelected ? null : Colors.transparent,
+        gradient: backgroundGradient,
         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        border: Border.all(color: borderColor, width: isSelected ? 1.0 : 0.0),
       ),
       child: Material(
         color: Colors.transparent,
@@ -1472,29 +1463,52 @@ class _DrawerMenuTile extends StatelessWidget {
               EdgeInsets.symmetric(
                 horizontal: founderStyle ? AppSizes.md : AppSizes.md,
               ),
-          leading: Icon(
-            entry.icon,
-            color: fgColor,
+          leading: GradientIcon(
+            icon: entry.icon,
             size: founderStyle ? 19 : 20,
+            colors: gradientColors,
           ),
-          title: Text(
-            context.tr(entry.label),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: context.text.bodyMedium?.copyWith(
-              color: fgColor,
-              fontWeight: fontWeight,
-              fontSize: founderStyle ? 13 : null,
-            ),
-          ),
-          trailing: _buildBadge(context, colors),
+          title: isSelected
+              ? ShaderMask(
+                  blendMode: BlendMode.srcIn,
+                  shaderCallback: (bounds) => LinearGradient(
+                    colors: gradientColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ).createShader(bounds),
+                  child: Text(
+                    context.tr(entry.label),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: context.text.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: founderStyle ? 13 : null,
+                    ),
+                  ),
+                )
+              : Text(
+                  context.tr(entry.label),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                    fontSize: founderStyle ? 13 : null,
+                  ),
+                ),
+          trailing: _buildBadge(context, colors, isSelected),
           onTap: onTap,
         ),
       ),
     );
   }
 
-  Widget? _buildBadge(BuildContext context, ColorScheme colors) {
+  Widget? _buildBadge(
+    BuildContext context,
+    ColorScheme colors,
+    bool isSelected,
+  ) {
     if (entry.badge != null) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -1525,6 +1539,15 @@ class _DrawerMenuTile extends StatelessWidget {
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),
+        ),
+      );
+    } else if (isSelected) {
+      return Container(
+        width: 6,
+        height: 6,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: AppColors.primaryGradient,
         ),
       );
     }

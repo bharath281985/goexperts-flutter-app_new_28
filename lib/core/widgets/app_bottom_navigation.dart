@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../extensions/context_extensions.dart';
+import 'gradient_icon.dart';
 
 /// A tab definition for [AppBottomNavigation].
 class AppNavItem {
@@ -11,6 +12,7 @@ class AppNavItem {
     required this.activeIcon,
     this.badgeCount = 0,
     this.badgeText,
+    this.badgeWidget,
   });
 
   final String label;
@@ -18,6 +20,7 @@ class AppNavItem {
   final IconData activeIcon;
   final int badgeCount;
   final String? badgeText;
+  final Widget? badgeWidget;
 }
 
 /// Branded bottom navigation bar shared by every role shell.
@@ -82,6 +85,18 @@ class _NavCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = selected ? AppColors.primary : context.text.bodySmall?.color;
+    final iconWidget = selected
+        ? GradientIcon(
+            icon: item.activeIcon,
+            size: 24,
+            colors: [context.colors.primary, context.colors.secondary],
+          )
+        : Icon(
+            item.icon,
+            color: color,
+            size: 24,
+          );
+
     return Expanded(
       child: InkWell(
         onTap: onTap,
@@ -89,17 +104,26 @@ class _NavCell extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Badge(
-              isLabelVisible: item.badgeText != null
-                  ? item.badgeText!.isNotEmpty
-                  : item.badgeCount > 0,
-              label: Text(item.badgeText ?? '${item.badgeCount}'),
-              child: Icon(
-                selected ? item.activeIcon : item.icon,
-                color: color,
-                size: 24,
+            if (item.badgeWidget != null)
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  iconWidget,
+                  Positioned(
+                    top: -1,
+                    right: -4,
+                    child: item.badgeWidget!,
+                  ),
+                ],
+              )
+            else
+              Badge(
+                isLabelVisible: item.badgeText != null
+                    ? item.badgeText!.isNotEmpty
+                    : item.badgeCount > 0,
+                label: Text(item.badgeText ?? '${item.badgeCount}'),
+                child: iconWidget,
               ),
-            ),
             const SizedBox(height: 3),
             Text(
               context.tr(item.label),

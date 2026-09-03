@@ -139,16 +139,7 @@ class InvestorRepositoryImpl implements InvestorRepository {
   @override
   Future<Result<bool>> toggleSave(String id) async {
     if (_api == null) return _apiNotConfigured();
-    var post = await _api.postAction(ApiEndpoints.investorStartupSave(id));
-    if (post.isSuccess) return post;
-    post = await _api.postAction(
-      ApiEndpoints.investorWatchlist,
-      body: {'startupId': id},
-    );
-    if (post.isSuccess) return post;
-    final del = await _api.deleteAction(ApiEndpoints.investorStartupSave(id));
-    if (del.isSuccess) return del;
-    return _api.deleteAction(ApiEndpoints.investorWatchlistItem(id));
+    return _api.postAction(ApiEndpoints.publicStartupSave(id));
   }
 
   @override

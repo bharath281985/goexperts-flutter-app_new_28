@@ -224,6 +224,29 @@ class DashboardState extends Equatable {
     return int.tryParse(val?.toString() ?? '') ?? 0;
   }
 
+  /// Universal KYC status across all roles (APPROVED, PENDING, MISSING)
+  String get kycStatus =>
+      dashboardData['kycStatus']?.toString().toUpperCase() ??
+      (accountVerified
+          ? 'APPROVED'
+          : (verificationMissingCount > 0 ? 'MISSING' : 'PENDING'));
+
+  /// Universal Referrals count across all roles
+  int get referralsCount {
+    final val = dashboardData['referralsCount'] ??
+        dashboardData['referralCount'] ??
+        dashboardData['referrals'];
+    if (val is num) return val.toInt();
+    return int.tryParse(val?.toString() ?? '') ?? 0;
+  }
+
+  /// Universal wallet balance across all roles
+  double get effectiveWalletBalance {
+    final val = dashboardData['walletBalance'];
+    if (val is num) return val.toDouble();
+    return walletBalance;
+  }
+
   // --- Founder Dashboard Getters ---
   String get founderProfileStrength =>
       (dashboardData['profileCompletion'] ?? 0).toString();
@@ -247,6 +270,20 @@ class DashboardState extends Equatable {
       (dashboardData['fundingRaised'] as num?)?.toDouble() ?? 0.0;
   double get founderFundingGoal =>
       (dashboardData['fundingGoal'] as num?)?.toDouble() ?? 0.0;
+  double get founderWalletBalance =>
+      (dashboardData['walletBalance'] as num?)?.toDouble() ?? walletBalance;
+  int get founderReferralsCount {
+    final val = dashboardData['referralsCount'] ??
+        dashboardData['referralCount'] ??
+        dashboardData['referrals'];
+    if (val is num) return val.toInt();
+    return int.tryParse(val?.toString() ?? '') ?? 0;
+  }
+  String get founderKycStatus =>
+      dashboardData['kycStatus']?.toString().toUpperCase() ??
+      (accountVerified
+          ? 'APPROVED'
+          : (verificationMissingCount > 0 ? 'MISSING' : 'PENDING'));
 
   // --- Freelancer Dashboard Getters ---
   String get freelancerProfileCompletion =>

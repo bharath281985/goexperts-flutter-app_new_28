@@ -338,6 +338,7 @@ class _DealCard extends StatelessWidget {
   void _showDocs(BuildContext context, Map<String, dynamic> docs) {
     showModalBottomSheet(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {

@@ -348,6 +348,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(
@@ -460,6 +461,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(

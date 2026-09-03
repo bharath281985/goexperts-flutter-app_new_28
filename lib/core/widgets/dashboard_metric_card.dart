@@ -26,16 +26,16 @@ class DashboardMetricCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.only(top: 12, left: 12, right: 12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primaryBlack.withValues(alpha: 0.02),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+              color: AppColors.primaryBlack.withValues(alpha: 0.04),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
@@ -50,10 +50,10 @@ class DashboardMetricCard extends StatelessWidget {
                   child: Text(
                     title.toUpperCase(),
                     style: const TextStyle(
-                      fontSize: 9,
+                      fontSize: 10,
                       color: AppColors.subtleText,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+                      letterSpacing: 0.8,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -98,31 +98,32 @@ class DashboardMetricCard extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Text(
               value,
               style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
                 color: AppColors.primaryBlack,
+                height: 1.05,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
             Container(
-              height: 3,
+              height: 4,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: AppColors.background,
-                borderRadius: BorderRadius.circular(1.5),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Container(
-                  width: 60,
-                  height: 3,
+                  width: 72,
+                  height: 4,
                   decoration: BoxDecoration(
                     color: lineColor,
-                    borderRadius: BorderRadius.circular(1.5),
+                    borderRadius: BorderRadius.circular(999),
                   ),
                 ),
               ),

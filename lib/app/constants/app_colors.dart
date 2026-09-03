@@ -8,6 +8,10 @@ class AppColors {
 
   // Brand
   static const Color primary = Color(0xFFE30613);
+  static const Color secondary = Color.fromARGB(255, 20, 5, 241); 
+  static const Color secondaryPrimary = Color(0xFFD4AF37); // Second Primary (Medium Gold)
+  static const Color mediumGold = Color(0xFFD4AF37);
+  static const Color gold = Color(0xFFD4AF37);
   static const Color primaryBlack = Color(0xFF111111);
 
   // Text
@@ -18,7 +22,9 @@ class AppColors {
   // Surfaces
   static const Color background = Color(0xFFF8F9FC);
   static const Color card = Color(0xFFFFFFFF);
+  static const Color cardGoldSurface = Color(0xFFFFFDF5);
   static const Color border = Color(0xFFE7EAF3);
+  static const Color cardGoldBorder = Color(0xFFEEDDAA);
 
   // Status
   static const Color success = Color(0xFF16A34A);
@@ -66,11 +72,17 @@ class AppColors {
   static const Color startupIconBlueSurface = Color(0xFFEAF1FF);
   static const Color startupIconPurpleSurface = Color(0xFFF1EAFF);
 
-  // Brand gradient used on hero/gradient headers.
+  // Brand gradient used on hero/gradient headers and icons.
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFE30613), Color(0xFFB00410)],
+    colors: [Color(0xFFE30613), Color(0xFFD4AF37)],
+  );
+
+  static const LinearGradient goldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFD4AF37), Color(0xFFC59B27)],
   );
 
   static const LinearGradient darkGradient = LinearGradient(

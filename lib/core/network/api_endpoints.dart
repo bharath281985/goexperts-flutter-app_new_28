@@ -81,11 +81,14 @@ class ApiEndpoints {
   static const publicInvestorRequests = '/public/investor-requests';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';
+  static String publicFreelancerSave(String id) =>
+      '/public/freelancers/$id/save';
   static String publicClient(String id) => '/public/clients/$id';
   static String publicInvestor(String id) => '/public/investors/$id';
   static String publicStartup(String id) => '/public/startups/$id';
   static String publicStartupSave(String id) => '/public/startups/$id/save';
   static String publicFounder(String id) => '/public/founders/$id';
+  static String publicFounderSave(String id) => '/public/founders/$id/save';
   static String publicTask(String id) => '/public/tasks/$id';
   static String publicInvestorRequestAccept(String id) =>
       '/public/investor-requests/$id/accept';
@@ -134,6 +137,7 @@ class ApiEndpoints {
   static const appFeatureFlags = '/app/feature-flags';
   static const appDeviceToken = '/app-config/device-token';
 
+
   // ── Payments ──────────────────────────────────────────────────────────────
   static const paymentsGateways = '/payments/gateways';
   static const paymentsInitiate = '/payments/initiate';
@@ -159,6 +163,8 @@ class ApiEndpoints {
   // Save / unsave project (freelancer side)
   static String freelancerProjectSave(String id) =>
       '/freelancer/projects/$id/save';
+  static String publicProjectSave(String id) => '/public/projects/$id/save';
+  static const publicProjectsSaved = '/public/projects/saved';
   static const freelancerProjectsRecommended =
       '/freelancer/projects/recommended';
   static const freelancerProjectsNearby = '/freelancer/projects/nearby';

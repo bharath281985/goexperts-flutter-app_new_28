@@ -3,6 +3,7 @@ import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../extensions/context_extensions.dart';
 import 'app_card.dart';
+import 'gradient_icon.dart';
 
 /// Compact metric card for dashboards (value + label + trend).
 class AppStatCard extends StatelessWidget {
@@ -46,7 +47,11 @@ class AppStatCard extends StatelessWidget {
                         color: color.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                       ),
-                      child: Icon(icon, color: color, size: AppSizes.iconSm),
+                      child: GradientIcon(
+                        icon: icon,
+                        size: AppSizes.iconSm,
+                        colors: [context.colors.primary, context.colors.secondary],
+                      ),
                     ),
                     const Spacer(),
                     if (trend != null)

@@ -166,6 +166,25 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
 
     if (meRes.isSuccess) {
       final userMap = meRes.valueOrNull ?? {};
+
+      int? completion;
+      final rawComp = userMap['profileCompletion'] ??
+          userMap['profile_completion'] ??
+          userMap['completionPercentage'] ??
+          userMap['completion_percentage'];
+      if (rawComp is num) {
+        completion = rawComp.toInt();
+      } else if (rawComp is String) {
+        completion = int.tryParse(rawComp);
+      }
+
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null && completion != null) {
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(current.copyWith(profileCompletion: completion)),
+        );
+      }
+
       _email.text = userMap['email']?.toString() ?? '';
       _fullName.text = (userMap['fullName']?.toString() ?? '').toTitleCase();
       _city.text =
@@ -414,6 +433,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(
@@ -520,6 +540,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(
@@ -650,8 +671,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         'targetRaise':
             double.tryParse(_targetRaise.text.trim()) ??
             _targetRaise.text.trim(),
-      if (_localAvatarPath != null || _avatarUrl != null)
-        'logo': _localAvatarPath ?? _avatarUrl,
+      if (_avatarUrl != null && _avatarUrl!.startsWith('http'))
+        'logo': _avatarUrl,
     };
 
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(

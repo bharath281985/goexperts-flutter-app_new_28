@@ -320,87 +320,6 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     );
   }
 
-  Future<void> _loadSkillsForIndustry(String industryId) async {
-    const cacheKey = '__all__';
-    if (_skillsByIndustryId.containsKey(cacheKey) &&
-        (_skillsByIndustryId[cacheKey] ?? []).isNotEmpty) {
-      setState(() {
-        _visibleSkills = _skillsByIndustryId[cacheKey] ?? [];
-      });
-      _populateSkillNames();
-      return;
-    }
-
-    setState(() {
-      _loadingSkills = true;
-    });
-
-    final repo = sl<MasterDataRepository>();
-    final allSkills = <SkillOption>[];
-    var page = 1;
-    const pageSize = 100;
-    var total = 0;
-
-    while (true) {
-      final result = await repo.getSkills(
-        categoryId: industryId,
-        page: page,
-        pageSize: pageSize,
-      );
-      if (!mounted) return;
-
-      if (result.isFailure) {
-        setState(() {
-          _loadingSkills = false;
-        });
-        return;
-      }
-
-      final batch = result.valueOrNull ?? [];
-      if (batch.isEmpty) break;
-
-      allSkills.addAll(batch.where((skill) => skill.name.isNotEmpty));
-
-      if (page == 1) {
-        final totalResult = await repo.getSkillsTotal(categoryId: industryId);
-        total = totalResult.valueOrNull ?? batch.length;
-      }
-
-      if (allSkills.length >= total || batch.length < pageSize) break;
-      page++;
-    }
-
-    if (!mounted) return;
-
-    for (final skill in allSkills) {
-      _skillNamesById[skill.id] = skill.name;
-    }
-
-    setState(() {
-      _skillsByIndustryId[cacheKey] = allSkills;
-      _visibleSkills = allSkills;
-      _loadingSkills = false;
-    });
-    _populateSkillNames();
-  }
-
-  void _populateSkillNames() {
-    for (final s in _visibleSkills) {
-      _skillNamesById[s.id] = s.name;
-    }
-  }
-
-  void _toggleSkill(String skillId) {
-    setState(() {
-      if (_selectedSkillIds.contains(skillId)) {
-        _selectedSkillIds.remove(skillId);
-      } else {
-        _selectedSkillIds.add(skillId);
-      }
-      _skillsError = null;
-    });
-  }
-
   String _skillLabels() {
     if (_selectedSkillIds.isEmpty) return '—';
     return _selectedSkillIds
@@ -411,6 +330,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
 
   @override
   void dispose() {
+    _onSkillsUpdated = null;
     _title.dispose();
     _desc.dispose();
     _skillSearch.dispose();
@@ -663,19 +583,115 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     if (_step > 0) setState(() => _step--);
   }
 
+  VoidCallback? _onSkillsUpdated;
+
+  Future<void> _loadSkillsForIndustry(String industryId) async {
+    final cleanId = industryId.trim();
+    if (cleanId.isEmpty) {
+      setState(() {
+        _visibleSkills = [];
+        _loadingSkills = false;
+      });
+      _onSkillsUpdated?.call();
+      return;
+    }
+
+    if (_skillsByIndustryId.containsKey(cleanId) &&
+        (_skillsByIndustryId[cleanId] ?? []).isNotEmpty) {
+      setState(() {
+        _visibleSkills = _skillsByIndustryId[cleanId] ?? [];
+        _loadingSkills = false;
+      });
+      _populateSkillNames();
+      _onSkillsUpdated?.call();
+      return;
+    }
+
+    setState(() {
+      _loadingSkills = true;
+    });
+    _onSkillsUpdated?.call();
+
+    final repo = sl<MasterDataRepository>();
+    final allSkills = <SkillOption>[];
+    var page = 1;
+    const pageSize = 100;
+    var total = 0;
+
+    try {
+      final result = await repo.getSkills(
+        categoryId: cleanId,
+        page: 1,
+        pageSize: 200,
+      );
+      if (mounted && result.isSuccess) {
+        final batch = result.valueOrNull ?? [];
+        allSkills.addAll(batch.where((skill) => skill.name.isNotEmpty));
+      }
+    } catch (_) {
+      // ignore
+    }
+
+    if (!mounted) return;
+
+    for (final skill in allSkills) {
+      _skillNamesById[skill.id] = skill.name;
+    }
+
+    setState(() {
+      _skillsByIndustryId[cleanId] = allSkills;
+      _visibleSkills = allSkills;
+      _loadingSkills = false;
+    });
+    _populateSkillNames();
+    _onSkillsUpdated?.call();
+  }
+
+  void _populateSkillNames() {
+    for (final s in _visibleSkills) {
+      _skillNamesById[s.id] = s.name;
+    }
+  }
+
+  void _toggleSkill(String skillId) {
+    setState(() {
+      if (_selectedSkillIds.contains(skillId)) {
+        _selectedSkillIds.remove(skillId);
+      } else {
+        _selectedSkillIds.add(skillId);
+      }
+      _skillsError = null;
+    });
+  }
+
   void _showSkillsBottomSheet() {
     if (_industryId == null || _industryId!.isEmpty) {
       context.showSnack('Please select an industry first', isError: true);
       return;
     }
 
+    if (_visibleSkills.isEmpty && !_loadingSkills) {
+      _loadSkillsForIndustry(_industryId!);
+    }
+
+    var isSheetMounted = true;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            _onSkillsUpdated = () {
+              if (mounted && isSheetMounted) {
+                try {
+                  setSheetState(() {});
+                } catch (_) {}
+              }
+            };
+
             final query = _skillSearch.text.trim().toLowerCase();
             final filtered = query.isEmpty
                 ? _visibleSkills
@@ -688,78 +704,96 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
               initialChildSize: 0.75,
               maxChildSize: 0.95,
               builder: (context, scrollController) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.screenPadding,
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Select Skills (${_selectedSkillIds.length})',
-                            style: context.text.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.of(context).pop();
-                              setState(() {});
-                            },
-                            child: const Text(
-                              'Done',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSizes.vGapSm,
-                      AppTextField(
-                        controller: _skillSearch,
-                        hint: 'Search skills…',
-                        prefixIcon: Icons.search_rounded,
-                        onChanged: (_) => setSheetState(() {}),
-                      ),
-                      AppSizes.vGapMd,
-                      Expanded(
-                        child: _loadingSkills
-                            ? const Center(child: CircularProgressIndicator())
-                            : filtered.isEmpty
-                            ? const Center(child: Text('No skills found'))
-                            : ListView.separated(
-                                controller: scrollController,
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final skill = filtered[index];
-                                  final isSelected = _selectedSkillIds.contains(
-                                    skill.id,
-                                  );
-                                  return CheckboxListTile(
-                                    title: Text(skill.name),
-                                    value: isSelected,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (_) {
-                                      _toggleSkill(skill.id);
-                                      setSheetState(() {});
-                                    },
-                                  );
-                                },
+                return SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.screenPadding,
+                      0,
+                      AppSizes.screenPadding,
+                      AppSizes.md,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select Skills (${_selectedSkillIds.length})',
+                              style: context.text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                               ),
-                      ),
-                      AppSizes.vGapMd,
-                      AppPrimaryButton(
-                        label: 'Done (${_selectedSkillIds.length} selected)',
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          setState(() {});
-                        },
-                      ),
-                      AppSizes.vGapLg,
-                    ],
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.of(context).pop();
+                                setState(() {});
+                              },
+                              child: const Text(
+                                'Done',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AppSizes.vGapSm,
+                        AppTextField(
+                          controller: _skillSearch,
+                          hint: 'Search skills…',
+                          prefixIcon: Icons.search_rounded,
+                          onChanged: (_) => setSheetState(() {}),
+                        ),
+                        AppSizes.vGapMd,
+                        Expanded(
+                          child: _loadingSkills
+                              ? const Center(child: CircularProgressIndicator())
+                              : filtered.isEmpty
+                              ? Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(AppSizes.lg),
+                                    child: Text(
+                                      _visibleSkills.isEmpty
+                                          ? 'No skills found for this industry'
+                                          : 'No matching skills found',
+                                      textAlign: TextAlign.center,
+                                      style: context.text.bodyMedium?.copyWith(
+                                        color: context.colors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              : ListView.separated(
+                                  controller: scrollController,
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, __) =>
+                                      const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final skill = filtered[index];
+                                    final isSelected = _selectedSkillIds.contains(
+                                      skill.id,
+                                    );
+                                    return CheckboxListTile(
+                                      title: Text(skill.name),
+                                      value: isSelected,
+                                      activeColor: AppColors.primary,
+                                      onChanged: (_) {
+                                        _toggleSkill(skill.id);
+                                        setSheetState(() {});
+                                      },
+                                    );
+                                  },
+                                ),
+                        ),
+                        AppSizes.vGapMd,
+                        AppPrimaryButton(
+                          label: 'Done (${_selectedSkillIds.length} selected)',
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -767,7 +801,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           },
         );
       },
-    );
+    ).whenComplete(() {
+      isSheetMounted = false;
+      _onSkillsUpdated = null;
+    });
   }
 
   @override
@@ -908,84 +945,86 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
             ),
           ),
         ],
-        AppSizes.vGapLg,
-        Text(
-          'Skills',
-          style: context.text.labelMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        AppSizes.vGapXs,
-        InkWell(
-          onTap: _showSkillsBottomSheet,
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.md,
-              vertical: AppSizes.md,
+        if (_industryId != null && _industryId!.isNotEmpty) ...[
+          AppSizes.vGapLg,
+          Text(
+            'Skills',
+            style: context.text.labelMedium?.copyWith(
+              fontWeight: FontWeight.w600,
             ),
-            decoration: BoxDecoration(
-              color: context.theme.cardColor,
-              borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-              border: Border.all(
-                color: _skillsError != null
-                    ? context.colors.error
-                    : context.colors.outline.withValues(alpha: 0.3),
+          ),
+          AppSizes.vGapXs,
+          InkWell(
+            onTap: _showSkillsBottomSheet,
+            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.md,
+                vertical: AppSizes.md,
+              ),
+              decoration: BoxDecoration(
+                color: context.theme.cardColor,
+                borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                border: Border.all(
+                  color: _skillsError != null
+                      ? context.colors.error
+                      : context.colors.outline.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _selectedSkillIds.isEmpty
+                          ? 'Select skills for this project'
+                          : '${_selectedSkillIds.length} skill(s) selected',
+                      style: _selectedSkillIds.isEmpty
+                          ? context.text.bodyMedium?.copyWith(
+                              color: context.colors.onSurfaceVariant,
+                            )
+                          : context.text.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                    ),
+                  ),
+                  Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: context.colors.onSurfaceVariant,
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    _selectedSkillIds.isEmpty
-                        ? 'Select skills for this project'
-                        : '${_selectedSkillIds.length} skill(s) selected',
-                    style: _selectedSkillIds.isEmpty
-                        ? context.text.bodyMedium?.copyWith(
-                            color: context.colors.onSurfaceVariant,
-                          )
-                        : context.text.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
+          ),
+          if (_skillsError != null) ...[
+            AppSizes.vGapXs,
+            Text(
+              _skillsError!,
+              style: context.text.bodySmall?.copyWith(
+                color: context.colors.error,
+              ),
+            ),
+          ],
+          if (_selectedSkillIds.isNotEmpty) ...[
+            AppSizes.vGapMd,
+            Wrap(
+              spacing: AppSizes.xs,
+              runSpacing: AppSizes.xs,
+              children: _selectedSkillIds.map((id) {
+                final name = _skillNamesById[id] ?? id;
+                return Chip(
+                  label: Text(name),
+                  deleteIcon: const Icon(Icons.close_rounded, size: 16),
+                  onDeleted: () => _toggleSkill(id),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  side: BorderSide.none,
+                  labelStyle: context.text.bodySmall?.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
                   ),
-                ),
-                Icon(
-                  Icons.arrow_drop_down_rounded,
-                  color: context.colors.onSurfaceVariant,
-                ),
-              ],
+                );
+              }).toList(),
             ),
-          ),
-        ),
-        if (_skillsError != null) ...[
-          AppSizes.vGapXs,
-          Text(
-            _skillsError!,
-            style: context.text.bodySmall?.copyWith(
-              color: context.colors.error,
-            ),
-          ),
-        ],
-        if (_selectedSkillIds.isNotEmpty) ...[
-          AppSizes.vGapMd,
-          Wrap(
-            spacing: AppSizes.xs,
-            runSpacing: AppSizes.xs,
-            children: _selectedSkillIds.map((id) {
-              final name = _skillNamesById[id] ?? id;
-              return Chip(
-                label: Text(name),
-                deleteIcon: const Icon(Icons.close_rounded, size: 16),
-                onDeleted: () => _toggleSkill(id),
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                side: BorderSide.none,
-                labelStyle: context.text.bodySmall?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              );
-            }).toList(),
-          ),
+          ],
         ],
       ],
     );

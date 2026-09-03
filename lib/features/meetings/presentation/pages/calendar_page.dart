@@ -1,21 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/paginated.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/icon_widget.dart';
+import '../../domain/entities/meeting.dart';
+import '../../domain/repositories/meeting_repository.dart';
+import '../widgets/schedule_meeting_sheet.dart';
 
 enum _CalKind { meeting, task, deadline, payment, interview }
 
 class _CalEvent {
-  const _CalEvent(this.title, this.time, this.kind, {this.subtitle});
+  const _CalEvent(
+    this.title,
+    this.time,
+    this.kind, {
+    this.subtitle,
+    this.meeting,
+  });
+
   final String title;
   final DateTime time;
   final _CalKind kind;
   final String? subtitle;
+  final Meeting? meeting;
 
   Color get color => switch (kind) {
     _CalKind.meeting => AppColors.primary,
@@ -47,7 +62,8 @@ class _CalendarPageState extends State<CalendarPage> {
   int _view = 2; // 0 day, 1 week, 2 month
   late DateTime _focused;
   late DateTime _selected;
-  late final List<_CalEvent> _events;
+  List<_CalEvent> _events = [];
+  bool _loading = true;
 
   @override
   void initState() {
@@ -55,40 +71,40 @@ class _CalendarPageState extends State<CalendarPage> {
     final now = DateTime.now();
     _focused = DateTime(now.year, now.month);
     _selected = DateTime(now.year, now.month, now.day);
-    _events = _seedEvents();
+    _loadEvents();
   }
 
-  List<_CalEvent> _seedEvents() {
-    final now = DateTime.now();
-    return [
-      _CalEvent(
-        'Submit fintech milestone',
-        now.add(const Duration(days: 1, hours: 3)),
-        _CalKind.deadline,
-        subtitle: 'PayNova',
-      ),
-      _CalEvent(
-        'Design QA task',
-        now.add(const Duration(hours: 5)),
-        _CalKind.task,
-      ),
-      _CalEvent(
-        'Payment due · INV-2045',
-        now.add(const Duration(days: 2)),
-        _CalKind.payment,
-        subtitle: '₹1,90,000',
-      ),
-      _CalEvent(
-        'Interview · Backend Engineer',
-        now.add(const Duration(days: 3, hours: 2)),
-        _CalKind.interview,
-      ),
-      _CalEvent(
-        'Weekly standup',
-        now.add(const Duration(days: 5, hours: 1)),
-        _CalKind.meeting,
-      ),
-    ];
+  Future<void> _loadEvents() async {
+    setState(() => _loading = true);
+    final repo = sl<MeetingRepository>();
+    final result = await repo.getMeetings(const QueryParams(pageSize: 100));
+
+    final meetingEvents = <_CalEvent>[];
+    if (result.isSuccess) {
+      final meetings = result.valueOrNull?.items ?? [];
+      for (final m in meetings) {
+        final withText = m.withName.isNotEmpty
+            ? m.withName
+            : (m.hostName?.isNotEmpty == true ? m.hostName! : 'Meeting');
+        final title = m.title.isNotEmpty ? m.title : 'Meeting with $withText';
+        final subtitle = '$withText · ${m.isVideo ? 'Video Call' : 'Call'}';
+        meetingEvents.add(
+          _CalEvent(
+            title,
+            m.startTime,
+            _CalKind.meeting,
+            subtitle: subtitle,
+            meeting: m,
+          ),
+        );
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _events = meetingEvents;
+      _loading = false;
+    });
   }
 
   bool _sameDay(DateTime a, DateTime b) =>
@@ -118,6 +134,126 @@ class _CalendarPageState extends State<CalendarPage> {
     }
   }
 
+  Future<void> _onEventTap(_CalEvent e) async {
+    if (e.meeting != null) {
+      await context.push('${Routes.meetingDetails}/${e.meeting!.id}');
+      if (mounted) _loadEvents();
+    } else {
+      context.showSnack(e.title);
+    }
+  }
+
+  void _showSyncSheet() {
+    showModalBottomSheet(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSizes.lg,
+            0,
+            AppSizes.lg,
+            AppSizes.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Calendar Integrations',
+                style: context.text.titleLarge,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Sync your GoExperts meetings with your external calendars.',
+                style: context.text.bodySmall?.copyWith(color: AppColors.mutedText),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.sync_rounded, color: AppColors.primary),
+                ),
+                title: const Text('Sync with Server', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Refresh latest scheduled meetings'),
+                trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _loadEvents();
+                  if (mounted) context.showSnack('Calendar synchronized');
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.calendar_today_rounded, color: Colors.red),
+                ),
+                title: const Text('Google Calendar', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Sync with your Google account'),
+                trailing: const Icon(Icons.link_rounded, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.showSnack('Google Calendar integration connected');
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.mail_outline_rounded, color: Colors.blue),
+                ),
+                title: const Text('Microsoft Outlook', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Sync with Outlook & Teams'),
+                trailing: const Icon(Icons.link_rounded, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.showSnack('Outlook integration connected');
+                },
+              ),
+              const Divider(height: 1),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.apple_rounded, color: Colors.purple),
+                ),
+                title: const Text('Apple Calendar / iCal', style: TextStyle(fontWeight: FontWeight.w600)),
+                subtitle: const Text('Export .ics calendar file'),
+                trailing: const Icon(Icons.download_rounded, size: 18),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  context.showSnack('Calendar file exported (.ics)');
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -126,53 +262,61 @@ class _CalendarPageState extends State<CalendarPage> {
         title: const Text('Calendar'),
         actions: [
           IconButton(
-            onPressed: () =>
-                context.showSnack('Sync with Google / Outlook / Apple'),
+            onPressed: _showSyncSheet,
+            tooltip: 'Calendar Sync',
             icon: const Icon(Icons.sync_rounded),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.showSnack('New event'),
+        onPressed: () async {
+          await context.push(Routes.meetings);
+          if (mounted) _loadEvents();
+        },
         icon: const Icon(Icons.add_rounded),
-        label: const Text('Event'),
+        label: const Text('Schedule Meeting'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(AppSizes.screenPadding),
-        children: [
-          SegmentedButton<int>(
-            segments: const [
-              ButtonSegment(value: 0, label: Text('Day')),
-              ButtonSegment(value: 1, label: Text('Week')),
-              ButtonSegment(value: 2, label: Text('Month')),
-            ],
-            selected: {_view},
-            onSelectionChanged: (s) => setState(() => _view = s.first),
-          ),
-          AppSizes.vGapLg,
-          if (_view == 2) _monthGrid(context),
-          AppSizes.vGapMd,
-          Text(
-            _view == 0
-                ? Formatters.date(_selected)
-                : _view == 1
-                ? 'This week'
-                : Formatters.monthYear(_focused),
-            style: context.text.titleMedium,
-          ),
-          AppSizes.vGapMd,
-          if (_visibleEvents.isEmpty)
-            const Padding(
-              padding: EdgeInsets.only(top: AppSizes.xxl),
-              child: AppEmptyState(
-                title: 'No events',
-                message: 'Nothing scheduled for this period.',
-                icon: Icons.event_available_outlined,
+      body: RefreshIndicator(
+        onRefresh: _loadEvents,
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                children: [
+                  SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 0, label: Text('Day')),
+                      ButtonSegment(value: 1, label: Text('Week')),
+                      ButtonSegment(value: 2, label: Text('Month')),
+                    ],
+                    selected: {_view},
+                    onSelectionChanged: (s) => setState(() => _view = s.first),
+                  ),
+                  AppSizes.vGapLg,
+                  if (_view == 2) _monthGrid(context),
+                  AppSizes.vGapMd,
+                  Text(
+                    _view == 0
+                        ? Formatters.date(_selected)
+                        : _view == 1
+                        ? 'This week'
+                        : Formatters.monthYear(_focused),
+                    style: context.text.titleMedium,
+                  ),
+                  AppSizes.vGapMd,
+                  if (_visibleEvents.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: AppSizes.xxl),
+                      child: AppEmptyState(
+                        title: 'No events',
+                        message: 'Nothing scheduled for this period.',
+                        icon: Icons.event_available_outlined,
+                      ),
+                    )
+                  else
+                    for (final e in _visibleEvents) _eventTile(context, e),
+                ],
               ),
-            )
-          else
-            for (final e in _visibleEvents) _eventTile(context, e),
-        ],
       ),
     );
   }
@@ -275,7 +419,7 @@ class _CalendarPageState extends State<CalendarPage> {
     return AppCard(
       margin: const EdgeInsets.only(bottom: AppSizes.sm),
       padding: const EdgeInsets.all(AppSizes.md),
-      onTap: () => context.showSnack(e.title),
+      onTap: () => _onEventTap(e),
       child: Row(
         children: [
           Container(

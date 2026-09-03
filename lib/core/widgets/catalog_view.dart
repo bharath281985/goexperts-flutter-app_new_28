@@ -128,9 +128,19 @@ class _CatalogBodyState<T> extends State<_CatalogBody<T>> {
   Future<void> _openFilters() async {
     if (widget.filterSections == null) return;
     final bloc = context.read<ListBloc<T>>();
+    final sections = widget.filterSections!();
+    final currentFilters = bloc.state.query.filters;
+    for (final s in sections) {
+      final existing = currentFilters[s.key];
+      if (existing is Iterable) {
+        s.selected = Set<String>.from(existing.map((e) => e.toString()));
+      } else if (existing is String && existing.isNotEmpty) {
+        s.selected = {existing};
+      }
+    }
     final result = await AppFilterBottomSheet.show(
       context,
-      sections: widget.filterSections!(),
+      sections: sections,
       sortOptions: widget.sortOptions,
       selectedSort: bloc.state.query.sortBy,
     );

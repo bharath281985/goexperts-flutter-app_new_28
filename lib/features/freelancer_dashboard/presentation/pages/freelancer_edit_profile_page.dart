@@ -734,6 +734,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(
@@ -849,6 +850,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(

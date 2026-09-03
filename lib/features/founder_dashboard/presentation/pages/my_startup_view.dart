@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 import '../../../startup_ideas/domain/repositories/startup_repository.dart';
 import '../widgets/edit_idea_bottom_sheet.dart';
@@ -197,7 +198,10 @@ class _MyStartupViewState extends State<MyStartupView> {
     if (!hasValidStartup) {
       return Scaffold(
         backgroundColor: context.theme.scaffoldBackgroundColor,
-        appBar: AppBar(title: const Text('My Startup')),
+        appBar: AppBar(
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('My Startup'),
+        ),
         body: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(AppSizes.screenPadding),

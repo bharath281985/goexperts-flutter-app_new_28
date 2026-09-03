@@ -1038,81 +1038,87 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
               initialChildSize: 0.75,
               maxChildSize: 0.95,
               builder: (context, scrollController) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Select Focus Areas (${_selectedFocusAreaIds.length})',
-                            style: context.text.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              _updateFocusAreasDisplayText();
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text(
-                              'Done',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSizes.vGapSm,
-                      AppTextField(
-                        controller: _categorySearch,
-                        hint: 'Search focus areas...',
-                        prefixIcon: Icons.search,
-                        onChanged: (_) => setSheetState(() {}),
-                      ),
-                      AppSizes.vGapMd,
-                      Expanded(
-                        child: filtered.isEmpty
-                            ? const Center(child: Text('No sectors found'))
-                            : ListView.separated(
-                                controller: scrollController,
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final cat = filtered[index];
-                                  final isSelected = _selectedFocusAreaIds
-                                      .contains(cat.id);
-                                  return CheckboxListTile(
-                                    title: Text(cat.name),
-                                    value: isSelected,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (_) {
-                                      setState(() {
-                                        if (isSelected) {
-                                          _selectedFocusAreaIds.remove(cat.id);
-                                        } else {
-                                          _selectedFocusAreaIds.add(cat.id);
-                                        }
-                                      });
-                                      setSheetState(() {});
-                                      _updateFocusAreasDisplayText();
-                                    },
-                                  );
-                                },
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.md,
+                      0,
+                      AppSizes.md,
+                      AppSizes.md,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select Focus Areas (${_selectedFocusAreaIds.length})',
+                              style: context.text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                               ),
-                      ),
-                      AppSizes.vGapMd,
-                      AppPrimaryButton(
-                        label:
-                            'Done (${_selectedFocusAreaIds.length} selected)',
-                        onPressed: () {
-                          _updateFocusAreasDisplayText();
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                      AppSizes.vGapLg,
-                    ],
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                _updateFocusAreasDisplayText();
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text(
+                                'Done',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AppSizes.vGapSm,
+                        AppTextField(
+                          controller: _categorySearch,
+                          hint: 'Search focus areas...',
+                          prefixIcon: Icons.search,
+                          onChanged: (_) => setSheetState(() {}),
+                        ),
+                        AppSizes.vGapMd,
+                        Expanded(
+                          child: filtered.isEmpty
+                              ? const Center(child: Text('No sectors found'))
+                              : ListView.separated(
+                                  controller: scrollController,
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, __) =>
+                                      const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final cat = filtered[index];
+                                    final isSelected = _selectedFocusAreaIds
+                                        .contains(cat.id);
+                                    return CheckboxListTile(
+                                      title: Text(cat.name),
+                                      value: isSelected,
+                                      activeColor: AppColors.primary,
+                                      onChanged: (_) {
+                                        setState(() {
+                                          if (isSelected) {
+                                            _selectedFocusAreaIds.remove(cat.id);
+                                          } else {
+                                            _selectedFocusAreaIds.add(cat.id);
+                                          }
+                                        });
+                                        setSheetState(() {});
+                                        _updateFocusAreasDisplayText();
+                                      },
+                                    );
+                                  },
+                                ),
+                        ),
+                        AppSizes.vGapMd,
+                        AppPrimaryButton(
+                          label:
+                              'Done (${_selectedFocusAreaIds.length} selected)',
+                          onPressed: () {
+                            _updateFocusAreasDisplayText();
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

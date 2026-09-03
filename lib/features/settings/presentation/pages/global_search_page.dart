@@ -19,7 +19,7 @@ class GlobalSearchPage extends StatefulWidget {
 
 class _GlobalSearchPageState extends State<GlobalSearchPage> {
   List<String> _recent = const [];
-  List<String> _trending = const [];
+  List<Map<String, dynamic>> _recommendedRoles = const [];
   bool _loading = true;
 
   @override
@@ -35,18 +35,41 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
       parser: (e) =>
           (e.data as List?)?.map((x) => x.toString()).toList() ?? const [],
     );
-    final rec = await api.getEnvelope<List<String>>(
+    final rec = await api.getEnvelope<List<Map<String, dynamic>>>(
       ApiEndpoints.discoveryRecommendations,
-      parser: (e) =>
-          (e.data as List?)?.map((x) => x.toString()).toList() ?? const [],
+      parser: (e) {
+        final data = e.data;
+        if (data is Map && data['recommendedRoles'] is List) {
+          return (data['recommendedRoles'] as List)
+              .map((x) => Map<String, dynamic>.from(x as Map))
+              .toList();
+        }
+        return const [];
+      },
     );
     if (!mounted) return;
     _recent = recent.valueOrNull?.isNotEmpty == true
         ? recent.valueOrNull!
         : ['Flutter developer', 'FinTech startups', 'UI/UX design'];
-    _trending = rec.valueOrNull?.isNotEmpty == true
+    _recommendedRoles = rec.valueOrNull?.isNotEmpty == true
         ? rec.valueOrNull!
-        : ['AI/ML', 'Web3', 'Remote', 'HealthTech'];
+        : [
+            {
+              'role': 'founder',
+              'label': 'Founders',
+              'description': 'Match with startup leaders, investors and product teams.',
+            },
+            {
+              'role': 'freelancer',
+              'label': 'Freelancers',
+              'description': 'Find vetted execution support for your work.',
+            },
+            {
+              'role': 'client',
+              'label': 'Clients',
+              'description': 'Discover companies actively hiring and buying services.',
+            },
+          ];
     setState(() => _loading = false);
   }
 
@@ -82,25 +105,15 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
           : ListView(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: _quick(
-                        context,
-                        Icons.mic_none_rounded,
-                        'Voice Search',
-                      ),
-                    ),
-                    AppSizes.hGapMd,
-                    Expanded(
-                      child: _quick(
-                        context,
-                        Icons.auto_awesome_outlined,
-                        'AI Search',
-                      ),
-                    ),
-                  ],
-                ),
+                const AppSectionHeader(title: 'Recommended Roles'),
+                AppSizes.vGapSm,
+                for (final item in _recommendedRoles)
+                  _roleCard(
+                    context,
+                    icon: _roleIcon(item['role']?.toString() ?? ''),
+                    title: item['label']?.toString() ?? 'Role',
+                    description: item['description']?.toString() ?? '',
+                  ),
                 AppSizes.vGapLg,
                 const AppSectionHeader(title: 'Recent Searches'),
                 AppSizes.vGapSm,
@@ -115,35 +128,71 @@ class _GlobalSearchPageState extends State<GlobalSearchPage> {
                     trailing: const Icon(Icons.north_west_rounded, size: 16),
                     onTap: () => context.showSnack('Searching "$r"'),
                   ),
-                AppSizes.vGapLg,
-                const AppSectionHeader(title: 'Trending'),
-                AppSizes.vGapSm,
-                Wrap(
-                  spacing: AppSizes.sm,
-                  runSpacing: AppSizes.sm,
-                  children: [
-                    for (final t in _trending)
-                      ActionChip(
-                        avatar: const Icon(
-                          Icons.trending_up_rounded,
-                          size: 16,
-                          color: AppColors.primary,
-                        ),
-                        label: Text(t),
-                        onPressed: () => context.showSnack('Searching "$t"'),
-                      ),
-                  ],
-                ),
               ],
             ),
     );
   }
 
-  Widget _quick(BuildContext context, IconData icon, String label) =>
-      OutlinedButton.icon(
-        onPressed: () => context.showSnack('$label (coming soon)'),
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-        style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(46)),
-      );
+  IconData _roleIcon(String role) {
+    return switch (role) {
+      'freelancer' => Icons.person_search_outlined,
+      'client' => Icons.business_center_outlined,
+      'investor' => Icons.trending_up_rounded,
+      'founder' => Icons.rocket_launch_outlined,
+      _ => Icons.layers_outlined,
+    };
+  }
+
+  Widget _roleCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSizes.sm),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: AppColors.primary),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.subtleText,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

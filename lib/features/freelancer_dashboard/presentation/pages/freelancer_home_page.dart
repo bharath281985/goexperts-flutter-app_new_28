@@ -4,11 +4,14 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
@@ -30,6 +33,8 @@ class FreelancerHomePage extends StatefulWidget {
 
 class _FreelancerHomePageState extends State<FreelancerHomePage> {
   bool _popupShown = false;
+  bool _recommendationsLoading = true;
+  Map<String, List<Map<String, dynamic>>> _recommendedItems = const {};
 
   void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
     if (_popupShown) return;
@@ -94,6 +99,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
                     //           const SizedBox(height: 16),
                     //       ],
                     _buildHeroBanner(context, state),
+                    _buildRecommendationTabs(context),
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: AppSizes.screenPadding,
@@ -102,17 +108,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 12),
-                         
                           _buildQuickActions(context),
-                          const SizedBox(height: 24),
-                          _buildMetricsGrid(context, state),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    _buildChartsSection(context, state),
-                    const SizedBox(height: 24),
-                    _buildBottomTabsSection(context, state),
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -122,83 +121,291 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
   }
 
   Widget _buildHeroBanner(BuildContext context, DashboardState state) {
+    final kycStatus = state.kycStatus;
+    final missingCount = state.verificationMissingCount;
+    final isVerified =
+        kycStatus == 'APPROVED' || (state.accountVerified && missingCount == 0);
+    final isPending = kycStatus == 'PENDING';
+
+    final Color badgeBgColor = isVerified
+        ? AppColors.success.withValues(alpha: 0.12)
+        : (isPending
+            ? AppColors.warning.withValues(alpha: 0.14)
+            : AppColors.primary.withValues(alpha: 0.12));
+    final Color badgeBorderColor = isVerified
+        ? AppColors.success.withValues(alpha: 0.3)
+        : (isPending
+            ? AppColors.warning.withValues(alpha: 0.35)
+            : AppColors.primary.withValues(alpha: 0.3));
+    final Color badgeTextColor = isVerified
+        ? AppColors.success
+        : (isPending ? AppColors.warning : AppColors.primary);
+    final IconData badgeIcon = isVerified
+        ? Icons.verified_rounded
+        : (isPending ? Icons.schedule_rounded : Icons.pending_actions_rounded);
+    final String badgeLabel = isVerified
+        ? 'Verified Freelancer'
+        : (isPending
+            ? 'KYC In Review'
+            : (missingCount > 0
+                ? '$missingCount Docs Missing'
+                : 'Verify Identity'));
+
+    final walletBalance = state.effectiveWalletBalance;
+    final referralsCount = state.referralsCount;
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.screenPadding,
-        vertical: AppSizes.sm,
+        vertical: AppSizes.xs,
       ),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0F172A), Color(0xFF1E293B), Color(0xFF090D16)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+          borderRadius: BorderRadius.circular(20),
+          color: context.isDark ? AppColors.darkCard : Colors.white,
+          border: Border.all(
+            color: context.isDark ? AppColors.darkBorder : AppColors.border,
           ),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: context.isDark ? 0.2 : 0.04,
+              ),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _buildBannerTag(
-                      Icons.circle,
-                      'Available for work',
-                      const Color(0xFF22C55E),
+              // Top Row: Dynamic Verification Status Badge & Profile Completion
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: () => context.push(Routes.freelancerVerification),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBgColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: badgeBorderColor, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badgeIcon, size: 14, color: badgeTextColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            badgeLabel,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: badgeTextColor,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 14,
+                            color: badgeTextColor.withValues(alpha: 0.8),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 8),
-                    _buildBannerTag(Icons.verified, 'Verified', AppColors.info),
-                    const SizedBox(width: 8),
-                    _buildBannerTag(
-                      Icons.workspace_premium,
-                      'Job Success 95%',
-                      AppColors.primary,
+                  ),
+                  InkWell(
+                    onTap: () => context.push(Routes.profile),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.tune_rounded,
+                            size: 14,
+                            color: AppColors.mutedText,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${state.dashboardProfileCompletion}% Profile',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text.rich(
-                TextSpan(
-                  text: 'You have ',
-                  children: [
-                    TextSpan(
-                      text:
-                          '${state.projects.isNotEmpty ? state.projects.length + 119 : 122} new project matches ',
-                      style: const TextStyle(color: Color(0xFFEF4444)),
+              const SizedBox(height: 14),
+              // Main Row: Wallet & Referrals Metric Cards
+              Row(
+                children: [
+                  // Wallet Card
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => context.push(Routes.wallet),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(
+                            alpha: context.isDark ? 0.1 : 0.05,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_wallet_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: AppColors.mutedText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              Formatters.currency(walletBalance),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Wallet Balance',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const TextSpan(text: 'and '),
-                    TextSpan(
-                      text:
-                          '₹${Formatters.compact(state.wallet?.available ?? 0)} ',
-                      style: const TextStyle(color: Color(0xFFFBBF24)),
+                  ),
+                  const SizedBox(width: 12),
+                  // Referrals Card
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => context.push(Routes.referrals),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(
+                            alpha: context.isDark ? 0.1 : 0.05,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.secondary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.card_giftcard_rounded,
+                                    size: 16,
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: AppColors.mutedText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '$referralsCount',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Total Referrals',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    const TextSpan(text: 'ready to withdraw.'),
-                  ],
-                ),
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  height: 1.3,
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Your pipeline is clear — browse open projects and send a fresh proposal today. Profile completion is at ${state.profileCompletionPercent}%.',
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 20),
-              _buildBannerActions(context, state),
             ],
           ),
         ),
@@ -206,14 +413,116 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     );
   }
 
+  Widget _buildQuickActions(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final int columns = context.isDesktop
+            ? 3
+            : (context.isTablet ? 3 : 2);
+        const double spacing = 12.0;
+        final double width =
+            (constraints.maxWidth - (columns - 1) * spacing) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: [
+            DashboardActionButton(
+              text: 'Find Projects',
+              subtitle: 'Browse vetted client contracts',
+              tag: 'Jobs',
+              icon: Icons.work_outline_rounded,
+              color: const Color(0xFF3B82F6),
+              onTap: () => context.push(Routes.freelancerProjects),
+              width: width,
+            ),
+            DashboardActionButton(
+              text: 'My Proposals',
+              subtitle: 'Track active bids & responses',
+              tag: 'Active',
+              icon: Icons.send_rounded,
+              color: const Color(0xFF8B5CF6),
+              onTap: () => context.push(Routes.freelancerProposals),
+              width: width,
+            ),
+            DashboardActionButton(
+              text: 'My Contracts',
+              subtitle: 'Milestones, deliverables & tasks',
+              tag: 'Work',
+              icon: Icons.assignment_turned_in_rounded,
+              color: const Color(0xFF10B981),
+              onTap: () => context.push(Routes.freelancerContracts),
+              width: width,
+            ),
+            DashboardActionButton(
+              text: 'My Portfolio',
+              subtitle: 'Case studies & proof of work',
+              tag: 'Showcase',
+              icon: Icons.folder_special_rounded,
+              color: const Color(0xFFF59E0B),
+              onTap: () => context.push(Routes.freelancerPortfolioPage),
+              width: width,
+            ),
+            DashboardActionButton(
+              text: 'Earnings & Payout',
+              subtitle: 'Instant payouts & invoice history',
+              tag: 'Finance',
+              icon: Icons.account_balance_wallet_rounded,
+              color: const Color(0xFF06B6D4),
+              onTap: () => context.push(Routes.wallet),
+              width: width,
+            ),
+            DashboardActionButton(
+              text: 'Certificates & Tests',
+              subtitle: 'Verified skills & badge proofs',
+              tag: 'Boost',
+              icon: Icons.workspace_premium_rounded,
+              color: const Color(0xFFEC4899),
+              onTap: () => context.push(Routes.freelancerCertificates),
+              width: width,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecommendations();
+  }
+
+  Future<void> _loadRecommendations() async {
+    final api = sl<ApiClientHelper>();
+    final res = await api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.discoveryRecommendations,
+      parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
+    );
+    if (!mounted) return;
+    final data = res.valueOrNull ?? const {};
+    final items = data['recommendedItems'];
+    if (items is Map) {
+      _recommendedItems = items.map(
+        (key, value) => MapEntry(
+          key.toString(),
+          (value as List? ?? const [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList(),
+        ),
+      );
+    }
+    setState(() => _recommendationsLoading = false);
+  }
+
   Widget _buildBannerActions(BuildContext context, DashboardState state) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildBannerButton(
-                'Apply to matches',
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildBannerButton(
+                      'Apply to matches',
                 Icons.bolt,
                 AppColors.primary,
                 onTap: () => context.push(Routes.freelancerProjects),
@@ -228,148 +537,34 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
                 onTap: () => context.push(Routes.wallet),
                 isDark: true,
               ),
-            ),
-          ],
-        ),
+                  ),
+                ],
+              ),
         const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
               child: _buildBannerButton(
-                'AI Proposal Writer',
+                'Withdraw earnings',
+                Icons.account_balance_wallet_outlined,
+                AppColors.primaryBlack,
+                onTap: () => context.push(Routes.wallet),
+                isDark: true,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _buildBannerButton(
+                'Create proposal',
                 Icons.auto_awesome_outlined,
                 AppColors.primaryBlack,
                 onTap: () => context.push(Routes.freelancerProjects),
                 isDark: true,
               ),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Builder(
-                builder: (ctx) => PopupMenuButton<String>(
-                  color: const Color(0xFF1E293B),
-                  elevation: 16,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(
-                      color: AppColors.white.withValues(alpha: 0.1),
-                    ),
-                  ),
-                  position: PopupMenuPosition.over,
-                  offset: const Offset(0, -210),
-                  itemBuilder: (_) => [
-                    PopupMenuItem(
-                      enabled: false,
-                      padding: EdgeInsets.zero,
-                      child: _buildProfileCompletionPopup(ctx, state),
-                    ),
-                  ],
-                  child: Container(
-                    height: 44,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlack.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.1),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.bar_chart_rounded,
-                          size: 14,
-                          color: AppColors.white,
-                        ),
-                        SizedBox(width: 6),
-                        Flexible(
-                          child: Text(
-                            'Profile Completion',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: AppColors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 4),
-                        Icon(
-                          Icons.keyboard_arrow_up,
-                          size: 14,
-                          color: AppColors.white,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildProfileCompletionPopup(
-    BuildContext context,
-    DashboardState state,
-  ) {
-    return Container(
-      width: 280,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'PROFILE COMPLETION',
-            style: TextStyle(
-              color: AppColors.subtleText,
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            textBaseline: TextBaseline.alphabetic,
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            children: [
-              Text(
-                '${state.profileCompletionPercent > 0 ? state.profileCompletionPercent : 70}%',
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'to All-Star',
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildProgressRow('Personal Info', 1.0),
-          const SizedBox(height: 10),
-          _buildProgressRow('Professional Info', 0.6),
-          const SizedBox(height: 10),
-          _buildProgressRow('Portfolio', 0.0),
-          const SizedBox(height: 10),
-          _buildProgressRow('Resume', 1.0),
-        ],
-      ),
     );
   }
 
@@ -477,84 +672,194 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       ],
     );
   }
+  Widget _buildBannerTag(IconData icon, String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 10, color: color),
+          const SizedBox(width: 4),
+          Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-  Widget _buildQuickActions(BuildContext context) {
+  Widget _buildBannerButton(
+    String text,
+    IconData icon,
+    Color bgColor, {
+    required VoidCallback onTap,
+    bool isDark = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        height: 44,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(24),
+          border: isDark
+              ? Border.all(color: AppColors.white.withValues(alpha: 0.2))
+              : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 14, color: AppColors.white),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                text,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressRow(String title, double value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Quick actions',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AppColors.primaryBlack,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(color: Colors.white70, fontSize: 10),
+            ),
+            Text(
+              '${(value * 100).toInt()}%',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(2),
+          child: LinearProgressIndicator(
+            value: value,
+            minHeight: 4,
+            backgroundColor: Colors.white12,
+            valueColor: AlwaysStoppedAnimation<Color>(
+              value >= 1.0 ? const Color(0xFF22C55E) : const Color(0xFFF59E0B),
+            ),
           ),
         ),
-        const Text(
-          'Jump into the tools you use most',
-          style: TextStyle(fontSize: 11, color: AppColors.subtleText),
-        ),
-        const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final int columns = context.isDesktop
-                ? 6
-                : (context.isTablet ? 4 : 3);
-            const double spacing = 5.0;
-            final double width =
-                (constraints.maxWidth - (columns - 1) * spacing) / columns;
-
-            return Wrap(
-              spacing: spacing,
-              runSpacing: spacing,
-              children: [
-                DashboardActionButton(
-                  text: 'Apply Project',
-                  icon: Icons.assignment_turned_in_outlined,
-                  color: AppColors.primary,
-                  onTap: () => context.push(Routes.freelancerProjects),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Update Profile',
-                  icon: Icons.person_outline,
-                  color: AppColors.warning,
-                  onTap: () => context.push(Routes.freelancerEditProfile),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Upload Portfolio',
-                  icon: Icons.upload_file_outlined,
-                  color: AppColors.projectPurple,
-                  onTap: () => context.push(Routes.wallet),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Book Meeting',
-                  icon: Icons.calendar_today_outlined,
-                  color: AppColors.info,
-                  onTap: () => context.push(Routes.meetings),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'Withdraw',
-                  icon: Icons.wallet_outlined,
-                  color: AppColors.success,
-                  onTap: () => context.push(Routes.wallet),
-                  width: width,
-                ),
-                DashboardActionButton(
-                  text: 'AI Proposal',
-                  icon: Icons.auto_awesome_outlined,
-                  color: AppColors.projectPurpleText,
-                  onTap: () => context.push(Routes.freelancerProjects),
-                  width: width,
-                ),
-              ],
-            );
-          },
-        ),
       ],
+    );
+  }
+
+  Widget _buildRecommendationTabs(BuildContext context) {
+    return AppSegmentedTabs(
+      tabs: {
+        'Projects': _buildRecommendationList('projects', Icons.work_outline, const Color(0xFF2563EB)),
+        'Clients': _buildRecommendationList('clients', Icons.groups_outlined, const Color(0xFF0F766E)),
+        'Startups': _buildRecommendationList('startups', Icons.rocket_launch_outlined, const Color(0xFF7C3AED)),
+      },
+    );
+  }
+
+  Widget _buildRecommendationList(String key, IconData icon, Color accent) {
+    final items = _recommendedItems[key] ?? const [];
+    if (_recommendationsLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (items.isEmpty) {
+      return _buildRecommendationEmpty('No recommendations yet.');
+    }
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      child: Column(
+        children: [
+          for (final item in items.take(5)) ...[
+            _buildRecommendationItemTile(item, icon, accent),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItemTile(Map<String, dynamic> item, IconData icon, Color accent) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item['title']?.toString() ?? 'Recommendation', style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(item['subtitle']?.toString() ?? '', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                if ((item['description']?.toString() ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(item['description']!.toString(), style: TextStyle(color: AppColors.projectSecondaryText, fontSize: 13)),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationEmpty(String text) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Text(text, style: TextStyle(color: AppColors.projectSecondaryText)),
     );
   }
 

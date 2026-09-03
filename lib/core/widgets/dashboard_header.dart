@@ -11,6 +11,7 @@ import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../extensions/context_extensions.dart';
 import 'app_confirm_dialog.dart';
 import 'app_avatar.dart';
+import 'app_drawer.dart';
 import 'app_gradient_header.dart';
 
 /// Gradient greeting header shared by all role home screens.
@@ -45,28 +46,34 @@ class DashboardHeader extends StatelessWidget {
             children: [
               if (onMenu != null)
                 IconTapWidget(
-                  onTap: onMenu,
+                  onTap: () {
+                    AppDrawer.clearLastSelectedRoute();
+                    onMenu?.call();
+                  },
                   iconImage: AppAssets.menuIcon,
                   padding: 8,
                 ),
               if (onMenu != null) AppSizes.hGapMd,
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '${context.tr(_greeting)},',
                       style: TextStyle(
-                        color: AppColors.white.withValues(alpha: 0.85),
-                        fontSize: 13,
+                        color: AppColors.white.withValues(alpha: 0.82),
+                        fontSize: 12,
+                        letterSpacing: 0.4,
                       ),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       firstName,
                       style: const TextStyle(
                         color: AppColors.white,
-                        fontSize: 22,
+                        fontSize: 24,
                         fontWeight: FontWeight.w800,
+                        height: 1.05,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -91,7 +98,7 @@ class DashboardHeader extends StatelessWidget {
               ),
               AppSizes.hGapSm,
               GestureDetector(
-                onTap: () => _showAccountPanel(context),
+                // onTap: () => _showAccountPanel(context),
                 child: AppAvatar(
                   name: user?.fullName ?? 'User',
                   imageUrl: user?.avatarUrl,
@@ -101,11 +108,20 @@ class DashboardHeader extends StatelessWidget {
             ],
           ),
           AppSizes.vGapMd,
-          Text(
-            context.tr(subtitle),
-            style: TextStyle(
-              color: AppColors.white.withValues(alpha: 0.9),
-              fontSize: 13,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: AppColors.white.withValues(alpha: 0.12)),
+            ),
+            child: Text(
+              context.tr(subtitle),
+              style: TextStyle(
+                color: AppColors.white.withValues(alpha: 0.92),
+                fontSize: 12,
+                height: 1.3,
+              ),
             ),
           ),
         ],

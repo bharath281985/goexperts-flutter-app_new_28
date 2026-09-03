@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../extensions/context_extensions.dart';
+import 'gradient_icon.dart';
 
 /// Compact list tile used in drawers, settings and menus.
 class AppListTile extends StatelessWidget {
@@ -42,10 +43,10 @@ class AppListTile extends StatelessWidget {
                     color: iconColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                   ),
-                  child: Icon(
-                    leadingIcon,
-                    color: iconColor,
+                  child: GradientIcon(
+                    icon: leadingIcon!,
                     size: AppSizes.iconSm,
+                    colors: [context.colors.primary, context.colors.secondary],
                   ),
                 )
               : null),

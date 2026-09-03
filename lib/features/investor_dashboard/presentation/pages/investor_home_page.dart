@@ -4,14 +4,18 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../../core/widgets/app_segmented_tabs.dart';
 import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
+import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_section_header.dart';
@@ -29,6 +33,8 @@ class InvestorHomePage extends StatefulWidget {
 
 class _InvestorHomePageState extends State<InvestorHomePage> {
   bool _popupShown = false;
+  bool _recommendationsLoading = true;
+  Map<String, List<Map<String, dynamic>>> _recommendedItems = const {};
 
   void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
     if (_popupShown) return;
@@ -98,88 +104,8 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
                     //   const SizedBox(height: 16),
                     // ],
                     _buildTopHeader(context, state),
-                   
+                    _buildRecommendationTabs(context),
                     _buildActionButtons(context),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.screenPadding,
-                        vertical: AppSizes.md,
-                      ),
-                      child: _buildGridCards(context, state),
-                    ),
-                    AppSegmentedTabs(
-                      tabs: {
-                        'Portfolio': AppChartCard(
-                          title: 'Portfolio Growth',
-                          subtitle: 'Cumulative deployment',
-                          color: AppColors.warning,
-                          data: _pipelineData(state.earningsChart),
-                        ),
-                        'Deal Mix': const _DealMixChart(),
-                        'Monthly': AppChartCard(
-                          title: 'Monthly Capital Deployment',
-                          subtitle: 'USD invested per month',
-                          color: AppColors.warning,
-                          height: 200,
-                          data: const [
-                            BarData('Aug', 0),
-                            BarData('Sep', 0),
-                            BarData('Oct', 0),
-                            BarData('Nov', 0),
-                            BarData('Dec', 0),
-                            BarData('Jan', 0),
-                            BarData('Feb', 50000),
-                            BarData('Mar', 0),
-                            BarData('Apr', 0),
-                            BarData('May', 50000),
-                            BarData('Jun', 0),
-                            BarData('Jul', 0),
-                          ],
-                        ),
-                      },
-                    ),
-                    AppSizes.vGapLg,
-                    AppSegmentedTabs(
-                      tabs: {
-                        'Startups': Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            AppSectionHeader(
-                              title: 'Recommended Startups',
-                              actionLabel: 'View all',
-                              onAction: () =>
-                                  context.push(Routes.investorStartups),
-                            ),
-                            AppSizes.vGapMd,
-                            if (state.startups.isEmpty)
-                              const Center(
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: AppSizes.xl,
-                                  ),
-                                  child: Text(
-                                    'No records found',
-                                    style: TextStyle(
-                                      color: AppColors.subtleText,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                              )
-                            else
-                              for (final s in state.startups.take(3))
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSizes.md,
-                                  ),
-                                  child: _buildCompactStartupTile(context, s),
-                                ),
-                          ],
-                        ),
-                        'New Meetings': _buildUpcomingMeetings(context, state),
-                        'New Messages': _buildRecentMessages(context, state),
-                      },
-                    ),
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -189,172 +115,467 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
   }
 
   Widget _buildTopHeader(BuildContext context, DashboardState state) {
-    final pending = state.investorPendingDeals;
-    final meetingsCount = state.upcomingMeetingsCount.toString();
-    final dealsClosed = state.investorDealsClosed;
+    final kycStatus = state.kycStatus;
+    final missingCount = state.verificationMissingCount;
+    final isVerified =
+        kycStatus == 'APPROVED' || (state.accountVerified && missingCount == 0);
+    final isPending = kycStatus == 'PENDING';
 
+    final Color badgeBgColor = isVerified
+        ? AppColors.success.withValues(alpha: 0.12)
+        : (isPending
+            ? AppColors.warning.withValues(alpha: 0.14)
+            : AppColors.primary.withValues(alpha: 0.12));
+    final Color badgeBorderColor = isVerified
+        ? AppColors.success.withValues(alpha: 0.3)
+        : (isPending
+            ? AppColors.warning.withValues(alpha: 0.35)
+            : AppColors.primary.withValues(alpha: 0.3));
+    final Color badgeTextColor = isVerified
+        ? AppColors.success
+        : (isPending ? AppColors.warning : AppColors.primary);
+    final IconData badgeIcon = isVerified
+        ? Icons.verified_rounded
+        : (isPending ? Icons.schedule_rounded : Icons.pending_actions_rounded);
+    final String badgeLabel = isVerified
+        ? 'Verified Investor'
+        : (isPending
+            ? 'KYC In Review'
+            : (missingCount > 0
+                ? '$missingCount Docs Missing'
+                : 'Verify Identity'));
+
+    final walletBalance = state.effectiveWalletBalance;
+    final referralsCount = state.referralsCount;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.screenPadding,
+        vertical: AppSizes.xs,
+      ),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          color: context.isDark ? AppColors.darkCard : Colors.white,
+          border: Border.all(
+            color: context.isDark ? AppColors.darkBorder : AppColors.border,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: context.isDark ? 0.2 : 0.04,
+              ),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Dynamic Verification Status Badge & Profile Completion
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  InkWell(
+                    onTap: () => context.push(Routes.investorVerification),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBgColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: badgeBorderColor, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badgeIcon, size: 14, color: badgeTextColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            badgeLabel,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: badgeTextColor,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 14,
+                            color: badgeTextColor.withValues(alpha: 0.8),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  InkWell(
+                    onTap: () => context.push(Routes.profile),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.tune_rounded,
+                            size: 14,
+                            color: AppColors.mutedText,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${state.dashboardProfileCompletion}% Profile',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              // Main Row: Wallet & Referrals Metric Cards
+              Row(
+                children: [
+                  // Wallet Card
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => context.push(Routes.wallet),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(
+                            alpha: context.isDark ? 0.1 : 0.05,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_wallet_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: AppColors.mutedText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              Formatters.currency(walletBalance),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Wallet Balance',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Referrals Card
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => context.push(Routes.referrals),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(
+                            alpha: context.isDark ? 0.1 : 0.05,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.secondary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.card_giftcard_rounded,
+                                    size: 16,
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: AppColors.mutedText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '$referralsCount',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Total Referrals',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.screenPadding,
         vertical: AppSizes.sm,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── Dark header banner (info only) ──
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF141414), Color(0xFF2e140d)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final int columns = context.isDesktop
+              ? 3
+              : (context.isTablet ? 3 : 2);
+          const double spacing = 12.0;
+          final double width =
+              (constraints.maxWidth - (columns - 1) * spacing) / columns;
+
+          return Wrap(
+            spacing: spacing,
+            runSpacing: spacing,
+            children: [
+              DashboardActionButton(
+                text: 'Discover Startups',
+                subtitle: 'Curated deals, sectors & pitch info',
+                tag: 'Deals',
+                icon: Icons.rocket_launch_rounded,
+                color: const Color(0xFF3B82F6),
+                onTap: () => context.push(Routes.investorStartups),
+                width: width,
               ),
-              borderRadius: BorderRadius.circular(16),
+              DashboardActionButton(
+                text: 'My Portfolio',
+                subtitle: 'Holdings, valuations & startup ROI',
+                tag: 'Holdings',
+                icon: Icons.pie_chart_rounded,
+                color: const Color(0xFF10B981),
+                onTap: () => context.push(Routes.investorPortfolio),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Active Deals',
+                subtitle: 'Term sheets, diligence & syndicates',
+                tag: 'Pipeline',
+                icon: Icons.handshake_rounded,
+                color: const Color(0xFF8B5CF6),
+                onTap: () => context.push(Routes.investorDeals),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Pitch Meetings',
+                subtitle: '1-on-1 calls with verified founders',
+                tag: '1-on-1',
+                icon: Icons.video_call_rounded,
+                color: const Color(0xFFF59E0B),
+                onTap: () => context.push(Routes.meetings),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Explore Investors',
+                subtitle: 'Angel networks & syndicate leads',
+                tag: 'Syndicate',
+                icon: Icons.monetization_on_rounded,
+                color: const Color(0xFFEC4899),
+                onTap: () => context.push(Routes.investorInvestors),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Wallet & Capital',
+                subtitle: 'Escrow deposits & transaction logs',
+                tag: 'Capital',
+                icon: Icons.account_balance_rounded,
+                color: const Color(0xFF06B6D4),
+                onTap: () => context.push(Routes.wallet),
+                width: width,
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecommendations();
+  }
+
+  Future<void> _loadRecommendations() async {
+    final api = sl<ApiClientHelper>();
+    final res = await api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.discoveryRecommendations,
+      parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
+    );
+    if (!mounted) return;
+    final items = (res.valueOrNull ?? const {})['recommendedItems'];
+    if (items is Map) {
+      _recommendedItems = items.map(
+        (key, value) => MapEntry(
+          key.toString(),
+          (value as List? ?? const [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList(),
+        ),
+      );
+    }
+    setState(() => _recommendationsLoading = false);
+  }
+
+  Widget _buildRecommendationTabs(BuildContext context) {
+    return AppSegmentedTabs(
+      tabs: {
+        'Startups': _buildRecommendationList('startups', Icons.rocket_launch_outlined, const Color(0xFF2563EB)),
+        'Founders': _buildRecommendationList('founders', Icons.person_outline, const Color(0xFF0F766E)),
+        'Freelancers': _buildRecommendationList('freelancers', Icons.engineering_outlined, const Color(0xFF7C3AED)),
+      },
+    );
+  }
+
+  Widget _buildRecommendationList(String key, IconData icon, Color accent) {
+    final items = _recommendedItems[key] ?? const [];
+    if (_recommendationsLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (items.isEmpty) return _buildRecommendationEmpty('No recommendations yet.');
+    return Container(
+      width: double.infinity,
+      child: Column(
+        children: [
+          for (final item in items.take(5)) ...[
+            _buildRecommendationItemTile(item, icon, accent),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItemTile(Map<String, dynamic> item, IconData icon, Color accent) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
             ),
+            child: Icon(icon, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    _buildTag(
-                      Icons.verified,
-                      'Verified Investor',
-                      AppColors.warning,
-                    ),
-                    const SizedBox(width: 8),
-                    _buildTag(
-                      Icons.star_border,
-                      'Premium Deal Flow',
-                      AppColors.subtleText,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Text.rich(
-                  TextSpan(
-                    text: 'You have ',
-                    children: [
-                      TextSpan(
-                        text: pending,
-                        style: const TextStyle(color: AppColors.warning),
-                      ),
-                      const TextSpan(text: ' pending interests and '),
-                      TextSpan(
-                        text: meetingsCount,
-                        style: const TextStyle(color: AppColors.success),
-                      ),
-                      const TextSpan(text: ' meetings listed.'),
-                    ],
-                  ),
-                  style: const TextStyle(
-                    color: AppColors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Portfolio activity shows $dealsClosed closed. Review your due diligence items.',
-                  style: const TextStyle(color: AppColors.white, fontSize: 11),
-                ),
-                const SizedBox(height: 14),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildHeaderButton(
-                        'Discover Startups',
-                        Icons.rocket_launch,
-                        AppColors.primaryBlack,
-                        () => context.push(Routes.investorStartups),
-                      ),
-                      const SizedBox(width: 10),
-                      _buildHeaderButton(
-                        'My Portfolio',
-                        Icons.pie_chart_outline,
-                        AppColors.primaryBlack,
-                        () => context.push(Routes.investorPortfolio),
-                        isDark: true,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                // ── Portfolio Overview button (bottom-right) ──
-                Row(
-                  children: [
-                    _buildHeaderButton(
-                      'Opportunities',
-                      Icons.bolt,
-                      AppColors.primaryBlack,
-                      () => context.push(Routes.investorDeals),
-                      isDark: true,
-                    ),
-                    Expanded(
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Builder(
-                          builder: (ctx) => PopupMenuButton<String>(
-                            color: AppColors.primaryBlack,
-                            elevation: 16,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                              side: BorderSide(
-                                color: AppColors.primary.withValues(alpha: 0.4),
-                              ),
-                            ),
-                            position: PopupMenuPosition.over,
-                            offset: const Offset(0, -210),
-                            itemBuilder: (_) => [
-                              PopupMenuItem(
-                                enabled: false,
-                                padding: const EdgeInsets.all(16),
-                                child: _buildPortfolioPopupContent(ctx, state),
-                              ),
-                            ],
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.projectBodyText,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.pie_chart,
-                                    size: 14,
-                                    color: AppColors.white,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Portfolio Overview',
-                                    style: TextStyle(
-                                      color: AppColors.white,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  SizedBox(width: 4),
-                                  Icon(
-                                    Icons.keyboard_arrow_up,
-                                    size: 14,
-                                    color: AppColors.white,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                Text(item['title']?.toString() ?? 'Recommendation', style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(item['subtitle']?.toString() ?? '', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                if ((item['description']?.toString() ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(item['description']!.toString(), style: TextStyle(color: AppColors.projectSecondaryText, fontSize: 13)),
+                ],
               ],
             ),
           ),
@@ -362,6 +583,17 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
       ),
     );
   }
+
+  Widget _buildRecommendationEmpty(String text) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Text(text, style: TextStyle(color: AppColors.projectSecondaryText)),
+  );
 
   Widget _buildTag(IconData icon, String text, Color color) {
     return Container(

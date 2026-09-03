@@ -30,6 +30,7 @@ export 'app_stat_card.dart';
 export 'app_status_chip.dart';
 export 'app_stepper.dart';
 export 'app_text_field.dart';
+export 'gradient_icon.dart';
 export 'paginated_list_view.dart';
 export 'responsive_wrapper.dart';
 export 'safe_bottom.dart';

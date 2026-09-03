@@ -103,182 +103,205 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: context.isDark ? AppColors.darkCard : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => Padding(
-          padding: EdgeInsets.fromLTRB(
-            AppSizes.lg,
-            AppSizes.lg,
-            AppSizes.lg,
-            MediaQuery.viewInsetsOf(context).bottom + AppSizes.lg,
-          ),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  member == null ? 'Invite team member' : 'Update team member',
-                  style: context.text.headlineSmall,
-                ),
-                AppSizes.vGapLg,
-                AppTextField(
-                  controller: _nameController,
-                  label: 'Name',
-                  hint: 'Full name',
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _emailController,
-                  label: 'Email',
-                  hint: 'name@example.com',
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: member == null || !_isClient,
-                ),
-                AppSizes.vGapMd,
-                _SuggestionField(
-                  controller: _roleController,
-                  label: 'Role',
-                  hint: _isClient ? 'Developer' : 'Co-Founder',
-                  options: _roleOptions.isNotEmpty
-                      ? _roleOptions
-                      : _isClient
-                      ? const [
-                          'Project Manager',
-                          'Developer',
-                          'Designer',
-                          'Quality Analyst',
-                          'Finance',
-                          'Operations',
-                        ]
-                      : const [
-                          'Co-Founder',
-                          'CEO',
-                          'CTO',
-                          'COO',
-                          'CMO',
-                          'Advisor',
-                        ],
-                ),
-                if (_isClient && member == null) ...[
-                  AppSizes.vGapMd,
-                  _SuggestionField(
-                    controller: _departmentController,
-                    label: 'Department',
-                    hint: 'Engineering',
-                    options: _departmentOptions.isNotEmpty
-                        ? _departmentOptions
-                        : const [
-                            'Engineering',
-                            'Product',
-                            'Design',
-                            'Marketing',
-                            'Sales',
-                            'Finance',
-                            'Operations',
-                            'Human Resources',
-                          ],
-                  ),
-                ],
-                if (!_isClient && member != null) ...[
-                  AppSizes.vGapMd,
-                  DropdownButtonFormField<String>(
-                    initialValue: status,
-                    decoration: const InputDecoration(labelText: 'Status'),
-                    items: const [
-                      DropdownMenuItem(
-                        value: 'invited',
-                        child: Text('Invited'),
-                      ),
-                      DropdownMenuItem(value: 'active', child: Text('Active')),
-                      DropdownMenuItem(
-                        value: 'inactive',
-                        child: Text('Inactive'),
-                      ),
-                    ],
-                    onChanged: (value) => status = value ?? status,
-                  ),
-                ],
-                if (formError != null) ...[
-                  AppSizes.vGapMd,
+        builder: (context, setSheetState) => SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              AppSizes.lg,
+              AppSizes.xs,
+              AppSizes.lg,
+              MediaQuery.viewInsetsOf(context).bottom + AppSizes.lg,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    formError!,
-                    style: const TextStyle(color: AppColors.danger),
-                  ),
-                ],
-                AppSizes.vGapXl,
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: submitting
-                        ? null
-                        : () async {
-                            final trimmedName = _nameController.text.trim();
-                            final trimmedEmail = _emailController.text.trim();
-                            final trimmedRole = _roleController.text.trim();
-                            if (trimmedName.isEmpty ||
-                                trimmedEmail.isEmpty ||
-                                trimmedRole.isEmpty ||
-                                !trimmedEmail.contains('@')) {
-                              setSheetState(
-                                () => formError =
-                                    'Enter a valid name, email, and role.',
-                              );
-                              return;
-                            }
-                            setSheetState(() {
-                              submitting = true;
-                              formError = null;
-                            });
-                            final result = member == null
-                                ? await _repository.invite(
-                                    name: trimmedName,
-                                    email: trimmedEmail,
-                                    role: trimmedRole,
-                                    department: _departmentController.text
-                                        .trim(),
-                                  )
-                                : await _repository.update(
-                                    member,
-                                    name: trimmedName,
-                                    email: trimmedEmail,
-                                    role: trimmedRole,
-                                    status: status,
-                                  );
-                            if (!sheetContext.mounted) return;
-                            if (result.isFailure) {
-                              setSheetState(() {
-                                submitting = false;
-                                formError = result.failureOrNull!.message;
-                              });
-                              return;
-                            }
-
-                            // Close any editable DropdownMenu overlay before
-                            // removing the sheet's inherited widget subtree.
-                            FocusManager.instance.primaryFocus?.unfocus();
-                            await Future<void>.delayed(
-                              const Duration(milliseconds: 100),
-                            );
-                            if (sheetContext.mounted) {
-                              Navigator.pop(sheetContext);
-                            }
-                          },
-                    icon: submitting
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(
-                            member == null
-                                ? Icons.person_add_alt_1_rounded
-                                : Icons.save_outlined,
-                          ),
-                    label: Text(
-                      member == null ? 'Send invitation' : 'Save changes',
+                    member == null ? 'Invite team member' : 'Update team member',
+                    style: context.text.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                ),
-              ],
+                  AppSizes.vGapLg,
+                  AppTextField(
+                    controller: _nameController,
+                    label: 'Name',
+                    hint: 'Full name',
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _emailController,
+                    label: 'Email',
+                    hint: 'name@example.com',
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: member == null || !_isClient,
+                  ),
+                  AppSizes.vGapMd,
+                  _SuggestionField(
+                    controller: _roleController,
+                    label: 'Role',
+                    hint: _isClient ? 'Developer' : 'Co-Founder',
+                    options: _roleOptions.isNotEmpty
+                        ? _roleOptions
+                        : _isClient
+                        ? const [
+                            'Project Manager',
+                            'Developer',
+                            'Designer',
+                            'Quality Analyst',
+                            'Finance',
+                            'Operations',
+                          ]
+                        : const [
+                            'Co-Founder',
+                            'CEO',
+                            'CTO',
+                            'COO',
+                            'CMO',
+                            'Advisor',
+                          ],
+                  ),
+                  if (_isClient && member == null) ...[
+                    AppSizes.vGapMd,
+                    _SuggestionField(
+                      controller: _departmentController,
+                      label: 'Department',
+                      hint: 'Engineering',
+                      options: _departmentOptions.isNotEmpty
+                          ? _departmentOptions
+                          : const [
+                              'Engineering',
+                              'Product',
+                              'Design',
+                              'Marketing',
+                              'Sales',
+                              'Finance',
+                              'Operations',
+                              'Human Resources',
+                            ],
+                    ),
+                  ],
+                  if (!_isClient && member != null) ...[
+                    AppSizes.vGapMd,
+                    DropdownButtonFormField<String>(
+                      initialValue: status,
+                      decoration: const InputDecoration(labelText: 'Status'),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'invited',
+                          child: Text('Invited'),
+                        ),
+                        DropdownMenuItem(value: 'active', child: Text('Active')),
+                        DropdownMenuItem(
+                          value: 'inactive',
+                          child: Text('Inactive'),
+                        ),
+                      ],
+                      onChanged: (value) => status = value ?? status,
+                    ),
+                  ],
+                  if (formError != null) ...[
+                    AppSizes.vGapMd,
+                    Text(
+                      formError!,
+                      style: const TextStyle(color: AppColors.danger),
+                    ),
+                  ],
+                  AppSizes.vGapXl,
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                        ),
+                      ),
+                      onPressed: submitting
+                          ? null
+                          : () async {
+                              final trimmedName = _nameController.text.trim();
+                              final trimmedEmail = _emailController.text.trim();
+                              final trimmedRole = _roleController.text.trim();
+                              if (trimmedName.isEmpty ||
+                                  trimmedEmail.isEmpty ||
+                                  trimmedRole.isEmpty ||
+                                  !trimmedEmail.contains('@')) {
+                                setSheetState(
+                                  () => formError =
+                                      'Enter a valid name, email, and role.',
+                                );
+                                return;
+                              }
+                              setSheetState(() {
+                                submitting = true;
+                                formError = null;
+                              });
+                              final result = member == null
+                                  ? await _repository.invite(
+                                      name: trimmedName,
+                                      email: trimmedEmail,
+                                      role: trimmedRole,
+                                      department: _departmentController.text
+                                          .trim(),
+                                    )
+                                  : await _repository.update(
+                                      member,
+                                      name: trimmedName,
+                                      email: trimmedEmail,
+                                      role: trimmedRole,
+                                      status: status,
+                                    );
+                              if (!sheetContext.mounted) return;
+                              if (result.isFailure) {
+                                setSheetState(() {
+                                  submitting = false;
+                                  formError = result.failureOrNull!.message;
+                                });
+                                return;
+                              }
+
+                              // Close any editable DropdownMenu overlay before
+                              // removing the sheet's inherited widget subtree.
+                              FocusManager.instance.primaryFocus?.unfocus();
+                              await Future<void>.delayed(
+                                const Duration(milliseconds: 100),
+                              );
+                              if (sheetContext.mounted) {
+                                Navigator.pop(sheetContext);
+                              }
+                            },
+                      icon: submitting
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Icon(
+                              member == null
+                                  ? Icons.person_add_alt_1_rounded
+                                  : Icons.save_outlined,
+                            ),
+                      label: Text(
+                        member == null ? 'Send invitation' : 'Save changes',
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                ],
+              ),
             ),
           ),
         ),

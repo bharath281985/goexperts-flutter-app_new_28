@@ -6,56 +6,142 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/bloc/list_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/result.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
-import '../../../founder_dashboard/presentation/widgets/edit_idea_bottom_sheet.dart';
+import '../../../master_data/domain/entities/master_option.dart';
+import '../../../master_data/domain/entities/skill_category.dart';
+import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/entities/startup.dart';
 import '../../domain/repositories/startup_repository.dart';
 import '../widgets/investment_offer_sheet.dart';
 import '../widgets/startup_card.dart';
 
+const _startupSortOptions = [
+  'Newest',
+  'Funding: High to Low',
+  'Funding: Low to High',
+  'Most interest',
+  'Most viewed',
+];
+
+const _startupSortApiValues = {
+  'Newest': 'newest',
+  'Funding: High to Low': 'funding_desc',
+  'Funding: Low to High': 'funding_asc',
+  'Most interest': 'trending',
+  'Most viewed': 'views',
+};
 
 /// Embeddable startup discovery catalog.
-class StartupsListView extends StatelessWidget {
+class StartupsListView extends StatefulWidget {
   const StartupsListView({super.key});
 
   @override
+  State<StartupsListView> createState() => _StartupsListViewState();
+}
+
+class _StartupsListViewState extends State<StartupsListView> {
+  List<SkillCategory> _categories = const [];
+  List<SkillCategory> _industries = const [];
+  List<MasterOption> _stages = const [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    final masterRepo = sl<MasterDataRepository>();
+    final results = await Future.wait([
+      masterRepo.getSkillCategories(page: 1, pageSize: 200),
+      masterRepo.getIndustries(),
+      masterRepo.getStartupStageOptions(),
+    ]);
+
+    final categoriesResult = results[0] as Result<List<SkillCategory>>;
+    final industriesResult = results[1] as Result<List<SkillCategory>>;
+    final stagesResult = results[2] as Result<List<MasterOption>>;
+
+    if (!mounted) return;
+    setState(() {
+      _categories = categoriesResult.valueOrNull ?? const [];
+      _industries = industriesResult.valueOrNull ?? const [];
+      _stages = stagesResult.valueOrNull ?? const [];
+      _loading = false;
+    });
+  }
+
+  List<FilterSection> _filterSections() => [
+    if (_categories.isNotEmpty)
+      FilterSection(
+        key: 'categoryId',
+        title: 'Category',
+        searchable: true,
+        searchHint: 'Search categories…',
+        optionItems: _categories
+            .map((c) => FilterOption(value: c.id, label: c.name))
+            .toList(),
+      ),
+    if (_industries.isNotEmpty)
+      FilterSection(
+        key: 'industry',
+        title: 'Industry',
+        searchable: true,
+        searchHint: 'Search industries…',
+        optionItems: _industries
+            .map((ind) => FilterOption(value: ind.name, label: ind.name))
+            .toList(),
+      ),
+    if (_stages.isNotEmpty)
+      FilterSection(
+        key: 'stage',
+        title: 'Stage',
+        optionItems: _stages
+            .map((st) => FilterOption(value: st.name, label: st.name))
+            .toList(),
+      ),
+  ];
+
+  @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     final repo = sl<StartupRepository>();
 
     return CatalogView<Startup>(
-      fetcher: repo.getStartups,
+      fetcher: (params) {
+        final sortLabel = params.sortBy;
+        final apiSort = sortLabel == null
+            ? null
+            : (_startupSortApiValues[sortLabel] ?? sortLabel);
+        return repo.getStartups(
+          params.copyWith(
+            sortBy: apiSort,
+            filters: {
+              for (final entry in params.filters.entries)
+                if (entry.key == 'categoryId')
+                  'categoryId': entry.value
+                else if (entry.key == 'industry')
+                  'industry': entry.value
+                else if (entry.key == 'stage')
+                  'stage': entry.value
+                else
+                  entry.key: entry.value,
+            },
+          ),
+        );
+      },
       searchHint: 'Search startups, industries…',
       emptyTitle: 'No startups found',
+      emptyMessage: 'Try adjusting your search or filters.',
       emptyIcon: Icons.rocket_launch_outlined,
-      sortOptions: const ['Most interest', 'Funding: High to Low', 'Newest'],
-      filterSections: () => [
-        FilterSection(
-          key: 'industry',
-          title: 'Industry',
-          options: const [
-            'AgriTech',
-            'HealthTech',
-            'EdTech',
-            'CleanTech',
-            'FinTech',
-            'SaaS',
-          ],
-        ),
-        FilterSection(
-          key: 'stage',
-          title: 'Stage',
-          options: const [
-            'Idea Stage',
-            'Prototype',
-            'MVP',
-            'Early Revenue',
-            'Early Traction',
-            'Growth',
-            'Expansion',
-          ],
-        ),
-      ],
+      sortOptions: _startupSortOptions,
+      filterSections: _filterSections,
       floatingActionButton: null,
       /*
       floatingActionButton: FloatingActionButton.extended(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../app/constants/app_colors.dart';
 import '../../app/dependency_injection/service_locator.dart';
 import '../../features/client_dashboard/presentation/pages/client_home_page.dart';
 import '../../features/founder_dashboard/presentation/pages/founder_home_page.dart';
@@ -23,6 +24,7 @@ import '../../features/startup_ideas/domain/repositories/startup_repository.dart
 import '../../features/startup_ideas/presentation/pages/startups_list_view.dart';
 import '../../features/wallet/domain/repositories/wallet_repository.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../features/settings/presentation/pages/bookmarks_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
 import '../network/api_client_helper.dart';
 import '../extensions/context_extensions.dart';
@@ -81,195 +83,86 @@ class _RoleShellState extends State<RoleShell> {
   }
 
   List<_Tab> _buildTabs() {
-    switch (widget.role) {
-      case UserRole.freelancer:
-        return [
-          const _Tab(
-            AppNavItem(
-              label: 'Home',
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            FreelancerHomePage(),
-          ),
-          const _Tab(
-            AppNavItem(
-              label: 'Projects',
-              icon: Icons.work_outline_rounded,
-              activeIcon: Icons.work_rounded,
-            ),
-            ProjectsListView(),
-            title: 'Discover Projects',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Chats',
-              icon: Icons.chat_bubble_outline_rounded,
-              activeIcon: Icons.chat_bubble_rounded,
-            ),
-            ConversationsListView(),
-            title: 'Messages',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Wallet',
-              icon: Icons.account_balance_wallet_outlined,
-              activeIcon: Icons.account_balance_wallet_rounded,
-            ),
-            WalletPage(embedded: true, refreshToken: _walletRefreshToken),
-            title: 'Wallet',
-          ),
-          const _Tab(
-            AppNavItem(
-              label: 'Profile',
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-            ),
-            MyProfilePage(),
-          ),
-        ];
-      case UserRole.client:
-        return const [
-          _Tab(
-            AppNavItem(
-              label: 'Home',
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            ClientHomePage(),
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Projects',
-              icon: Icons.work_outline_rounded,
-              activeIcon: Icons.work_rounded,
-            ),
-            ProjectsListView(),
-            title: 'My Projects',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Talent',
-              icon: Icons.groups_outlined,
-              activeIcon: Icons.groups_rounded,
-            ),
-            FreelancersListView(),
-            title: 'Hire Freelancers',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Chats',
-              icon: Icons.chat_bubble_outline_rounded,
-              activeIcon: Icons.chat_bubble_rounded,
-            ),
-            ConversationsListView(),
-            title: 'Messages',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Profile',
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-            ),
-            MyProfilePage(),
-          ),
-        ];
-      case UserRole.investor:
-        return const [
-          _Tab(
-            AppNavItem(
-              label: 'Home',
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            InvestorHomePage(),
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Startups',
-              icon: Icons.rocket_launch_outlined,
-              activeIcon: Icons.rocket_launch_rounded,
-            ),
-            StartupsListView(),
-            title: 'Discover Startups',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Deals',
-              icon: Icons.handshake_outlined,
-              activeIcon: Icons.handshake_rounded,
-            ),
-            DealsListView(),
-            title: 'Deal Rooms',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Meetings',
-              icon: Icons.event_outlined,
-              activeIcon: Icons.event_rounded,
-            ),
-            MeetingsListView(),
-            title: 'Meetings',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Profile',
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-            ),
-            MyProfilePage(),
-          ),
-        ];
-      case UserRole.founder:
-        return const [
-          _Tab(
-            AppNavItem(
-              label: 'Home',
-              icon: Icons.home_outlined,
-              activeIcon: Icons.home_rounded,
-            ),
-            FounderHomePage(),
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Startup',
-              icon: Icons.rocket_launch_outlined,
-              activeIcon: Icons.rocket_launch_rounded,
-            ),
-            MyStartupView(),
-            title: 'My Startup',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Investors',
-              icon: Icons.trending_up_rounded,
-              activeIcon: Icons.trending_up_rounded,
-            ),
-            InvestorsListView(),
-            title: 'Investors',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Chats',
-              icon: Icons.chat_bubble_outline_rounded,
-              activeIcon: Icons.chat_bubble_rounded,
-            ),
-            ConversationsListView(),
-            title: 'Messages',
-          ),
-          _Tab(
-            AppNavItem(
-              label: 'Profile',
-              icon: Icons.person_outline_rounded,
-              activeIcon: Icons.person_rounded,
-            ),
-            MyProfilePage(),
-          ),
-        ];
-    }
+    final homeView = switch (widget.role) {
+      UserRole.freelancer => const FreelancerHomePage(),
+      UserRole.client => const ClientHomePage(),
+      UserRole.founder => const FounderHomePage(),
+      UserRole.investor => const InvestorHomePage(),
+    };
+
+    return [
+      _Tab(
+        const AppNavItem(
+          label: 'Home',
+          icon: Icons.home_outlined,
+          activeIcon: Icons.home_rounded,
+        ),
+        homeView,
+      ),
+      _Tab(
+        const AppNavItem(
+          label: 'Chats',
+          icon: Icons.chat_bubble_outline_rounded,
+          activeIcon: Icons.chat_bubble_rounded,
+        ),
+        ConversationsListView(),
+        title: 'Messages',
+      ),
+      const _Tab(
+        AppNavItem(
+          label: 'My Wishlist',
+          icon: Icons.workspace_premium_outlined,
+          activeIcon: Icons.workspace_premium_rounded,
+        ),
+        BookmarksPage(embedded: true),
+        title: 'My Wishlist',
+      ),
+      _Tab(
+        const AppNavItem(
+          label: 'Meetings',
+          icon: Icons.event_outlined,
+          activeIcon: Icons.event_rounded,
+        ),
+        MeetingsListView(),
+        title: 'Meetings',
+      ),
+      const _Tab(
+        AppNavItem(
+          label: 'Profile',
+          icon: Icons.person_outline_rounded,
+          activeIcon: Icons.person_rounded,
+        ),
+        MyProfilePage(),
+      ),
+    ];
   }
 
-  List<AppNavItem> _navItems(List<_Tab> tabs, int unreadMessages) {
+  List<AppNavItem> _navItems(
+    List<_Tab> tabs,
+    int unreadMessages,
+    dynamic user,
+    DashboardState state,
+  ) {
+    final kycStatus = (state.dashboardData['kycStatus'] ??
+            state.dashboardData['kyc_status'] ??
+            state.dashboardData['verificationStatus'] ??
+            '')
+        .toString()
+        .trim()
+        .toUpperCase();
+
+    final missingCount = (state.dashboardData['missingCount'] ??
+            state.dashboardData['missing_count'] as num?)
+        ?.toInt() ??
+        0;
+
+    final isVerified = (kycStatus == 'APPROVED' || kycStatus == 'VERIFIED') &&
+        missingCount == 0;
+
+    final isPending = kycStatus == 'PENDING' ||
+        kycStatus == 'UNDER_REVIEW' ||
+        kycStatus == 'IN_REVIEW';
+
     return [
       for (final tab in tabs)
         AppNavItem(
@@ -281,68 +174,82 @@ class _RoleShellState extends State<RoleShell> {
                     ? null
                     : (unreadMessages > 99 ? '99+' : '$unreadMessages'))
               : null,
+          badgeWidget: tab.item.label == 'Profile'
+              ? _buildProfileVerificationBadge(isVerified, isPending)
+              : null,
         ),
     ];
   }
 
+  Widget _buildProfileVerificationBadge(bool isVerified, bool isPending) {
+    if (isVerified) {
+      return Container(
+        padding: const EdgeInsets.all(1),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.verified_rounded,
+          color: AppColors.success,
+          size: 11,
+        ),
+      );
+    } else if (isPending) {
+      return Container(
+        padding: const EdgeInsets.all(1),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(
+          Icons.schedule_rounded,
+          color: AppColors.warning,
+          size: 11,
+        ),
+      );
+    } else {
+      return Container(
+        width: 7.5,
+        height: 7.5,
+        decoration: BoxDecoration(
+          color: AppColors.warning,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 1.2),
+        ),
+      );
+    }
+  }
+
   String _activeRouteForCurrentTab() {
-    switch (widget.role) {
-      case UserRole.freelancer:
-        switch (_index) {
-          case 0:
-            return Routes.freelancerDashboard;
-          case 1:
-            return Routes.freelancerProjects;
-          case 2:
-            return Routes.messages;
-          case 3:
-            return Routes.freelancerProfile;
-          default:
-            return Routes.freelancerDashboard;
-        }
-      case UserRole.client:
-        switch (_index) {
-          case 0:
-            return Routes.clientDashboard;
-          case 1:
-            return Routes.clientProjects;
-          case 2:
-            return Routes.clientFreelancers;
-          case 3:
-            return Routes.messages;
-          default:
-            return Routes.clientDashboard;
-        }
-      case UserRole.founder:
-        switch (_index) {
-          case 0:
-            return Routes.founderDashboard;
-          case 1:
-            return Routes.founderStartup;
-          case 2:
-            return Routes.founderInvestors;
-          case 3:
-            return Routes.messages;
-          default:
-            return Routes.founderDashboard;
-        }
-      case UserRole.investor:
-        switch (_index) {
-          case 0:
-            return Routes.investorDashboard;
-          case 1:
-            return Routes.investorStartups;
-          case 2:
-            return Routes.investorDeals;
-          case 3:
-            return Routes.messages;
-          default:
-            return Routes.investorDashboard;
-        }
+    switch (_index) {
+      case 0:
+        return switch (widget.role) {
+          UserRole.freelancer => Routes.freelancerDashboard,
+          UserRole.client => Routes.clientDashboard,
+          UserRole.founder => Routes.founderDashboard,
+          UserRole.investor => Routes.investorDashboard,
+        };
+      case 1:
+        return Routes.messages;
+      case 2:
+        return Routes.bookmarks;
+      case 3:
+        return Routes.meetings;
+      case 4:
+        return switch (widget.role) {
+          UserRole.freelancer => Routes.freelancerProfile,
+          UserRole.client => Routes.clientProfile,
+          UserRole.founder => Routes.founderProfile,
+          UserRole.investor => Routes.investorProfile,
+        };
+      default:
+        return Routes.freelancerDashboard;
     }
   }
 
   void _selectTab(List<_Tab> tabs, int index) {
+    AppDrawer.clearLastSelectedRoute();
     if (index == 0 && _index == index) {
       _cubit.refresh();
     }
@@ -389,7 +296,10 @@ class _RoleShellState extends State<RoleShell> {
                   : AppBar(
                       leading: Builder(
                         builder: (scaffoldContext) => IconTapWidget(
-                          onTap: () => Scaffold.of(scaffoldContext).openDrawer(),
+                          onTap: () {
+                            AppDrawer.clearLastSelectedRoute();
+                            Scaffold.of(scaffoldContext).openDrawer();
+                          },
                           iconImage: AppAssets.menuIcon,
                           padding: 8,
                         ),
@@ -398,7 +308,12 @@ class _RoleShellState extends State<RoleShell> {
                     ),
               body: current.body,
               bottomNavigationBar: AppBottomNavigation(
-                items: _navItems(tabs, state.unreadMessagesCount),
+                items: _navItems(
+                  tabs,
+                  state.unreadMessagesCount,
+                  context.watch<AuthBloc>().state.user,
+                  state,
+                ),
                 currentIndex: _index,
                 onTap: (i) => _selectTab(tabs, i),
               ),

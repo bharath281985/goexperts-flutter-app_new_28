@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/dashboard/dashboard_cubit.dart';
@@ -11,6 +12,8 @@ import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_chart_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
@@ -28,6 +31,8 @@ class FounderHomePage extends StatefulWidget {
 
 class _FounderHomePageState extends State<FounderHomePage> {
   bool _popupShown = false;
+  bool _recommendationsLoading = true;
+  Map<String, List<Map<String, dynamic>>> _recommendedItems = const {};
 
   void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
     if (_popupShown) return;
@@ -98,17 +103,8 @@ class _FounderHomePageState extends State<FounderHomePage> {
                     // ],
                     _buildHeroBanner(context, state),
                    
-                    _buildActionButtons(context),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.screenPadding,
-                      ),
-                      child: _buildMetricsGrid(context, state),
-                    ),
-                    const SizedBox(height: 24),
-                    _buildChartsSection(context, state),
-                    const SizedBox(height: 24),
-                    _buildBottomTabsSection(context, state),
+                    _buildActionButtons(context), 
+                    _buildRecommendationTabs(context),
                     const SizedBox(height: 100),
                   ],
                 ),
@@ -118,98 +114,287 @@ class _FounderHomePageState extends State<FounderHomePage> {
   }
 
   Widget _buildHeroBanner(BuildContext context, DashboardState state) {
-    final raised = state.founderFundingRaised;
-    final goal = state.founderFundingGoal > 0 ? state.founderFundingGoal : 0.0;
-    final pitchViews = state.founderPitchDeckViews;
-    final meetings = state.upcomingMeetingsCount;
+    final kycStatus = state.founderKycStatus;
+    final missingCount = state.verificationMissingCount;
+    final isVerified =
+        kycStatus == 'APPROVED' || (state.accountVerified && missingCount == 0);
+    final isPending = kycStatus == 'PENDING';
+
+    final Color badgeBgColor = isVerified
+        ? AppColors.success.withValues(alpha: 0.12)
+        : (isPending
+            ? AppColors.warning.withValues(alpha: 0.14)
+            : AppColors.primary.withValues(alpha: 0.12));
+    final Color badgeBorderColor = isVerified
+        ? AppColors.success.withValues(alpha: 0.3)
+        : (isPending
+            ? AppColors.warning.withValues(alpha: 0.35)
+            : AppColors.primary.withValues(alpha: 0.3));
+    final Color badgeTextColor = isVerified
+        ? AppColors.success
+        : (isPending ? AppColors.warning : AppColors.primary);
+    final IconData badgeIcon = isVerified
+        ? Icons.verified_rounded
+        : (isPending ? Icons.schedule_rounded : Icons.pending_actions_rounded);
+    final String badgeLabel = isVerified
+        ? 'Verified Founder'
+        : (isPending
+            ? 'KYC In Review'
+            : (missingCount > 0
+                ? '$missingCount Docs Missing'
+                : 'Verify Identity'));
+
+    final walletBalance = state.founderWalletBalance;
+    final referralsCount = state.founderReferralsCount;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.screenPadding,
-        vertical: AppSizes.sm,
+        vertical: AppSizes.xs,
       ),
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1B0706), Color(0xFF330907), Color(0xFF140303)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+          borderRadius: BorderRadius.circular(20),
+          color: context.isDark ? AppColors.darkCard : Colors.white,
+          border: Border.all(
+            color: context.isDark ? AppColors.darkBorder : AppColors.border,
           ),
-          border: Border.all(color: AppColors.white.withValues(alpha: 0.05)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(
+                alpha: context.isDark ? 0.2 : 0.04,
+              ),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Top Row: Dynamic Verification Status Badge & Profile Completion
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildBannerTag(
-                    Icons.auto_awesome,
-                    'Live Fundraising Campaign',
-                    AppColors.primary,
+                  InkWell(
+                    onTap: () => context.push(Routes.founderVerification),
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBgColor,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: badgeBorderColor, width: 1),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badgeIcon, size: 14, color: badgeTextColor),
+                          const SizedBox(width: 5),
+                          Text(
+                            badgeLabel,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                              color: badgeTextColor,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.chevron_right_rounded,
+                            size: 14,
+                            color: badgeTextColor.withValues(alpha: 0.8),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  _buildBannerTag(
-                    Icons.health_and_safety,
-                    'Health Score ${state.founderProfileStrength}%',
-                    AppColors.subtleText,
+                  InkWell(
+                    onTap: () => context.push(Routes.profile),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 2,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.tune_rounded,
+                            size: 14,
+                            color: AppColors.mutedText,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${state.founderProfileStrength}% Profile',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Text.rich(
-                TextSpan(
-                  text: 'You raised ',
-                  children: [
-                    TextSpan(
-                      text: Formatters.compactCurrency(raised),
-                      style: const TextStyle(color: AppColors.primary),
-                    ),
-                    const TextSpan(text: ' of your '),
-                    TextSpan(
-                      text: Formatters.compactCurrency(goal),
-                      style: const TextStyle(color: AppColors.primary),
-                    ),
-                    const TextSpan(text: ' target round.'),
-                  ],
-                ),
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Pitch Views: $pitchViews. You have $meetings meetings listed. Keep pitching!',
-                style: TextStyle(
-                  color: AppColors.white.withValues(alpha: 0.6),
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
+              // Main Row: Wallet & Referrals Metric Cards
               Row(
                 children: [
+                  // Wallet Card
                   Expanded(
-                    child: _buildBannerButton(
-                      'Complete Startup Profile',
-                      Icons.edit,
-                      AppColors.primary,
-                      onTap: () => context.push(Routes.founderStartup),
+                    child: InkWell(
+                      onTap: () => context.push(Routes.wallet),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(
+                            alpha: context.isDark ? 0.1 : 0.05,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.account_balance_wallet_rounded,
+                                    size: 16,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: AppColors.mutedText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              Formatters.currency(walletBalance),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Wallet Balance',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 12),
+                  // Referrals Card
                   Expanded(
-                    child: _buildBannerButton(
-                      'Pitch Deck Manager',
-                      Icons.slideshow,
-                      AppColors.primaryBlack,
-                      isDark: true,
-                      onTap: () => context.push(Routes.founderPitchDeck),
+                    child: InkWell(
+                      onTap: () => context.push(Routes.referrals),
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary.withValues(
+                            alpha: context.isDark ? 0.1 : 0.05,
+                          ),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: AppColors.secondary.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.card_giftcard_rounded,
+                                    size: 16,
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 14,
+                                  color: AppColors.mutedText,
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              '$referralsCount',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Total Referrals',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -221,25 +406,96 @@ class _FounderHomePageState extends State<FounderHomePage> {
     );
   }
 
-  Widget _buildBannerTag(IconData icon, String text, Color color) {
+  @override
+  void initState() {
+    super.initState();
+    _loadRecommendations();
+  }
+
+  Future<void> _loadRecommendations() async {
+    final api = sl<ApiClientHelper>();
+    final res = await api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.discoveryRecommendations,
+      parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
+    );
+    if (!mounted) return;
+    final items = (res.valueOrNull ?? const {})['recommendedItems'];
+    if (items is Map) {
+      _recommendedItems = items.map(
+        (key, value) => MapEntry(
+          key.toString(),
+          (value as List? ?? const [])
+              .map((e) => Map<String, dynamic>.from(e as Map))
+              .toList(),
+        ),
+      );
+    }
+    setState(() => _recommendationsLoading = false);
+  }
+
+  Widget _buildRecommendationTabs(BuildContext context) {
+    return AppSegmentedTabs(
+      tabs: {
+        'Investors': _buildRecommendationList('investors', Icons.account_balance_outlined, const Color(0xFF2563EB)),
+        'Freelancers': _buildRecommendationList('freelancers', Icons.engineering_outlined, const Color(0xFF0F766E)),
+        'Clients': _buildRecommendationList('clients', Icons.groups_outlined, const Color(0xFF7C3AED)),
+      },
+    );
+  }
+
+  Widget _buildRecommendationList(String key, IconData icon, Color accent) {
+    final items = _recommendedItems[key] ?? const [];
+    if (_recommendationsLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(20),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (items.isEmpty) return _buildRecommendationEmpty('No recommendations yet.');
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      width: double.infinity,
+      child: Column(
+        children: [
+          for (final item in items.take(5)) ...[
+            _buildRecommendationItemTile(item, icon, accent),
+            const SizedBox(height: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendationItemTile(Map<String, dynamic> item, IconData icon, Color accent) {
+    return Container(
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 12, color: color),
-          const SizedBox(width: 4),
-          Text(
-            text,
-            style: TextStyle(
-              color: color,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: accent),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(item['title']?.toString() ?? 'Recommendation', style: const TextStyle(fontWeight: FontWeight.w800)),
+                const SizedBox(height: 4),
+                Text(item['subtitle']?.toString() ?? '', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w700)),
+                if ((item['description']?.toString() ?? '').isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(item['description']!.toString(), style: TextStyle(color: AppColors.projectSecondaryText, fontSize: 13)),
+                ],
+              ],
             ),
           ),
         ],
@@ -247,6 +503,18 @@ class _FounderHomePageState extends State<FounderHomePage> {
     );
   }
 
+  Widget _buildRecommendationEmpty(String text) => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(18),
+    decoration: BoxDecoration(
+      color: AppColors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: AppColors.border),
+    ),
+    child: Text(text, style: TextStyle(color: AppColors.projectSecondaryText)),
+  );
+
+ 
   Widget _buildBannerButton(
     String text,
     IconData icon,
@@ -296,14 +564,14 @@ class _FounderHomePageState extends State<FounderHomePage> {
   Widget _buildActionButtons(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.screenPadding + 10,
+        horizontal: AppSizes.screenPadding,
         vertical: AppSizes.sm,
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final int columns = context.isDesktop
-              ? 6
-              : (context.isTablet ? 4 : 3);
+              ? 3
+              : (context.isTablet ? 3 : 2);
           const double spacing = 12.0;
           final double width =
               (constraints.maxWidth - (columns - 1) * spacing) / columns;
@@ -313,45 +581,57 @@ class _FounderHomePageState extends State<FounderHomePage> {
             runSpacing: spacing,
             children: [
               DashboardActionButton(
-                text: 'Edit Startup',
-                icon: Icons.edit_note,
-                color: AppColors.warning,
-                onTap: () => context.push(Routes.founderStartup),
-                width: width,
-              ),
-              DashboardActionButton(
-                text: 'Upload Pitch Deck',
-                icon: Icons.upload_file,
-                color: AppColors.projectPurple,
+                text: 'Pitch Deck & Raise',
+                subtitle: 'Decks, traction & deck views',
+                tag: 'Raise',
+                icon: Icons.auto_graph_rounded,
+                color: const Color(0xFF3B82F6),
                 onTap: () => context.push(Routes.founderPitchDeck),
                 width: width,
               ),
               DashboardActionButton(
-                text: 'Invite Team',
-                icon: Icons.person_add,
-                color: AppColors.info,
-                onTap: () => context.push(Routes.founderTeam),
+                text: 'My Startup',
+                subtitle: 'Profile, traction & visibility',
+                tag: 'Profile',
+                icon: Icons.rocket_launch_rounded,
+                color: const Color(0xFFF59E0B),
+                onTap: () => context.push(Routes.founderStartup),
                 width: width,
               ),
               DashboardActionButton(
-                text: 'Schedule Meeting',
-                icon: Icons.calendar_month,
-                color: AppColors.success,
+                text: 'Hire Freelancers',
+                subtitle: 'Vetted developers & designers',
+                tag: 'Talent',
+                icon: Icons.person_search_rounded,
+                color: const Color(0xFF10B981),
+                onTap: () => context.push(Routes.founderFreelancers),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Team & Members',
+                subtitle: 'Co-founders, equity & access',
+                tag: 'Team',
+                icon: Icons.groups_rounded,
+                color: const Color(0xFF06B6D4),
+                onTap: () => context.push(Routes.founderTeams),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Explore Investors',
+                subtitle: 'Reach active angels & VCs',
+                tag: 'Network',
+                icon: Icons.monetization_on_rounded,
+                color: const Color(0xFFEC4899),
+                onTap: () => context.push(Routes.founderInvestors),
+                width: width,
+              ),
+              DashboardActionButton(
+                text: 'Pitch Meetings',
+                subtitle: 'Scheduled investor discussions',
+                tag: '1-on-1',
+                icon: Icons.calendar_month_rounded,
+                color: const Color(0xFF3B82F6),
                 onTap: () => context.push(Routes.meetings),
-                width: width,
-              ),
-              DashboardActionButton(
-                text: 'Request Funding',
-                icon: Icons.attach_money,
-                color: AppColors.primary,
-                onTap: () => context.push(Routes.founderFunding),
-                width: width,
-              ),
-              DashboardActionButton(
-                text: 'Export Reports',
-                icon: Icons.download,
-                color: AppColors.projectPurpleText,
-                onTap: () => context.push(Routes.founderAnalytics),
                 width: width,
               ),
             ],
@@ -367,7 +647,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
         final crossAxisCount = context.isDesktop
             ? 4
             : (context.isTablet ? 3 : 2);
-        const double spacing = 16.0; // matching AppSizes.sm
+        const double spacing = 16.0;
         final double width =
             (constraints.maxWidth - (crossAxisCount - 1) * spacing) /
             crossAxisCount;
@@ -477,301 +757,9 @@ class _FounderHomePageState extends State<FounderHomePage> {
     );
   }
 
-  Widget _buildEmptyStateCard(
-    String title,
-    String subtitle,
-    String emptyMessage, {
-    IconData icon = Icons.calendar_today,
-    VoidCallback? onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        width: double.infinity,
-        height: 200,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
-        ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            Text(
-              subtitle,
-              style: const TextStyle(color: AppColors.subtleText, fontSize: 11),
-            ),
-            const Spacer(),
-            Center(
-              child: Column(
-                children: [
-                  if (title.contains('Meeting')) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(icon, color: AppColors.subtleText, size: 24),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Text(
-                    emptyMessage,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                      color: AppColors.primaryBlack,
-                    ),
-                  ),
-                  if (title.contains('Meeting'))
-                    const Text(
-                      'Use your scheduler to invite interested investors.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: AppColors.subtleText,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const Spacer(),
-          ],
-        ),
-      ),
-    );
-  }
+  
+  
 
-  Widget _buildChartsSection(BuildContext context, DashboardState state) {
-    return AppSegmentedTabs(
-      tabs: {
-        'Interest Trend': AppChartCard(
-          title: 'Investor Interest Trend',
-          subtitle: 'Outreaches per month',
-          color: AppColors.primary,
-          height: 220,
-          data: _getChartData(state.earningsChart),
-        ),
-        'Funding Distribution': Container(
-          height: 220,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Funding Distribution',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-              ),
-              const Text(
-                'Current Target Breakdown',
-                style: TextStyle(color: AppColors.subtleText, fontSize: 11),
-              ),
-              const Spacer(),
-              Center(
-                child: SizedBox(
-                  width: 120,
-                  height: 120,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      CircularProgressIndicator(
-                        value: 1.0,
-                        strokeWidth: 16,
-                        color: AppColors.success,
-                      ),
-                      CircularProgressIndicator(
-                        value: 0.65,
-                        strokeWidth: 16,
-                        color: AppColors.warning,
-                      ),
-                      CircularProgressIndicator(
-                        value: 0.35,
-                        strokeWidth: 16,
-                        color: AppColors.danger,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const Spacer(),
-              const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.circle, size: 8, color: AppColors.danger),
-                  SizedBox(width: 4),
-                  Text('Seed', style: TextStyle(fontSize: 10)),
-                  SizedBox(width: 12),
-                  Icon(Icons.circle, size: 8, color: AppColors.warning),
-                  SizedBox(width: 4),
-                  Text('Extend', style: TextStyle(fontSize: 10)),
-                  SizedBox(width: 12),
-                  Icon(Icons.circle, size: 8, color: AppColors.success),
-                  SizedBox(width: 4),
-                  Text('Remaining', style: TextStyle(fontSize: 10)),
-                ],
-              ),
-            ],
-          ),
-        ),
-        'Activity Volume': AppChartCard(
-          title: 'Activity Volume',
-          subtitle: 'Deals by month',
-          color: AppColors.info,
-          height: 220,
-          data: _getChartData(state.earningsChart),
-        ),
-      },
-    );
-  }
 
-  Widget _buildBottomTabsSection(BuildContext context, DashboardState state) {
-    return AppSegmentedTabs(
-      tabs: {
-        'Milestones': _buildEmptyStateCard(
-          'Milestone Progress',
-          'Key roadmap checkpoints',
-          'No milestones yet.',
-          icon: Icons.flag,
-          onTap: () => context.push(Routes.founderStartup),
-        ),
-        'Recent Activity': _buildEmptyStateCard(
-          'Recent Investor Activity',
-          'From investor requests',
-          'No recent activity.',
-          icon: Icons.history,
-          onTap: () => context.push(Routes.founderInvestors),
-        ),
-        'Upcoming Meetings': state.meetings.isEmpty
-            ? _buildEmptyStateCard(
-                'Upcoming Meetings',
-                '',
-                'No meetings scheduled',
-                icon: Icons.calendar_today,
-                onTap: () => context.push(Routes.meetings),
-              )
-            : _buildMeetingsList(context, state.meetings),
-      },
-    );
-  }
-
-  Widget _buildMeetingsList(BuildContext context, List<Meeting> meetings) {
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: meetings.length > 3 ? 3 : meetings.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final meeting = meetings[index];
-        return Container(
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
-          ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 8,
-            ),
-            leading: CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.background,
-              backgroundImage: meeting.withAvatar != null
-                  ? NetworkImage(meeting.withAvatar!)
-                  : null,
-              child: meeting.withAvatar == null
-                  ? const Icon(Icons.person, color: AppColors.subtleText)
-                  : null,
-            ),
-            title: Text(
-              meeting.title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-            ),
-            subtitle: Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.calendar_today,
-                    size: 12,
-                    color: AppColors.subtleText,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    Formatters.dateTime(meeting.startTime),
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AppColors.subtleText,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(
-                    meeting.isVideo ? Icons.videocam : Icons.phone,
-                    size: 14,
-                    color: AppColors.primary,
-                  ),
-                ],
-              ),
-            ),
-            trailing: const Icon(
-              Icons.chevron_right,
-              color: AppColors.subtleText,
-            ),
-            onTap: () {
-              // Eventually navigate to meeting details
-              context.push(Routes.meetings);
-            },
-          ),
-        );
-      },
-    );
-  }
-
-  List<BarData> _getChartData(List<double> raw) {
-    if (raw.isEmpty) {
-      return const [
-        BarData('Aug', 0),
-        BarData('Sep', 0),
-        BarData('Oct', 0),
-        BarData('Nov', 0),
-        BarData('Dec', 0),
-        BarData('Jan', 0),
-        BarData('Feb', 0),
-        BarData('Mar', 0),
-        BarData('Apr', 0),
-        BarData('May', 0),
-        BarData('Jun', 0),
-        BarData('Jul', 0),
-      ];
-    }
-    final labels = [
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-    ];
-    return List.generate(labels.length, (i) {
-      return BarData(labels[i], i < raw.length ? raw[i] : 0);
-    });
-  }
+  
 }

@@ -36,7 +36,9 @@ import '../../../../core/bloc/list_bloc.dart';
 import '../../../../core/widgets/icon_widget.dart';
 
 class BookmarksPage extends StatelessWidget {
-  const BookmarksPage({super.key});
+  const BookmarksPage({super.key, this.embedded = false});
+
+  final bool embedded;
 
   Future<Result<Paginated<Project>>> _fetchProjects(QueryParams params) async {
     final res = await sl<ProjectRepository>().getProjects(params);
@@ -768,18 +770,31 @@ class BookmarksPage extends StatelessWidget {
         return DefaultTabController(
           length: tabs.length,
           child: Scaffold(
-            appBar: AppBar(
-              leading: IconTapWidget(
-                onTap: () => Navigator.of(context).maybePop(),
-              ),
-              title: const Text('Bookmarks'),
-              bottom: TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                tabs: tabs,
-              ),
-            ),
-            body: TabBarView(children: tabViews),
+            appBar: embedded
+                ? null
+                : AppBar(
+                    leading: IconTapWidget(
+                      onTap: () => Navigator.of(context).maybePop(),
+                    ),
+                    title: const Text('Bookmarks'),
+                    bottom: TabBar(
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      tabs: tabs,
+                    ),
+                  ),
+            body: embedded && tabs.isNotEmpty
+                ? Column(
+                    children: [
+                      TabBar(
+                        isScrollable: true,
+                        tabAlignment: TabAlignment.start,
+                        tabs: tabs,
+                      ),
+                      Expanded(child: TabBarView(children: tabViews)),
+                    ],
+                  )
+                : TabBarView(children: tabViews),
           ),
         );
       },

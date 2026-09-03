@@ -65,12 +65,17 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     int page = 1,
     int pageSize = 100,
   }) async {
-    // The public skills endpoint currently returns an empty list when an
-    // industry/category id is supplied. Fetch the shared skills catalogue and
-    // let callers reuse it for the selected industries.
+    final query = <String, dynamic>{
+      'page': page,
+      'limit': pageSize,
+      if (categoryId.trim().isNotEmpty) ...{
+        'categoryId': categoryId.trim(),
+        'industryId': categoryId.trim(),
+      },
+    };
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
-      query: {'page': page, 'limit': pageSize},
+      query: query,
       itemParser: SkillOption.fromJson,
     );
     if (result.isFailure) {
@@ -81,9 +86,17 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
 
   @override
   Future<Result<int>> getSkillsTotal({required String categoryId}) async {
+    final query = <String, dynamic>{
+      'page': 1,
+      'limit': 1,
+      if (categoryId.trim().isNotEmpty) ...{
+        'categoryId': categoryId.trim(),
+        'industryId': categoryId.trim(),
+      },
+    };
     final result = await _client.getList<SkillOption>(
       path: ApiEndpoints.publicSkills,
-      query: const {'page': 1, 'limit': 1},
+      query: query,
       itemParser: SkillOption.fromJson,
     );
     if (result.isFailure) {

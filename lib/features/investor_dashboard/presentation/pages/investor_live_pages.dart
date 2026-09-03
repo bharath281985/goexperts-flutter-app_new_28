@@ -130,6 +130,24 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     if (!mounted) return;
     final userMap = meRes.valueOrNull ?? {};
     if (userMap.isNotEmpty) {
+      int? completion;
+      final rawComp = userMap['profileCompletion'] ??
+          userMap['profile_completion'] ??
+          userMap['completionPercentage'] ??
+          userMap['completion_percentage'];
+      if (rawComp is num) {
+        completion = rawComp.toInt();
+      } else if (rawComp is String) {
+        completion = int.tryParse(rawComp);
+      }
+
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null && completion != null) {
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(current.copyWith(profileCompletion: completion)),
+        );
+      }
+
       _verified =
           userMap['isVerified'] as bool? ??
           userMap['verified'] as bool? ??
@@ -361,6 +379,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (ctx) {
         return StatefulBuilder(
@@ -397,81 +416,87 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
               initialChildSize: 0.75,
               maxChildSize: 0.95,
               builder: (context, scrollController) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Select Focus Areas (${_selectedFocusAreaIds.length})',
-                            style: context.text.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              _updateFocusAreasDisplayText();
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text(
-                              'Done',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSizes.vGapSm,
-                      AppTextField(
-                        controller: _categorySearch,
-                        hint: 'Search focus areas...',
-                        prefixIcon: Icons.search,
-                        onChanged: (_) => setSheetState(() {}),
-                      ),
-                      AppSizes.vGapMd,
-                      Expanded(
-                        child: filtered.isEmpty
-                            ? const Center(child: Text('No sectors found'))
-                            : ListView.separated(
-                                controller: scrollController,
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final cat = filtered[index];
-                                  final isSelected = _selectedFocusAreaIds
-                                      .contains(cat.id);
-                                  return CheckboxListTile(
-                                    title: Text(cat.name),
-                                    value: isSelected,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (_) {
-                                      setState(() {
-                                        if (isSelected) {
-                                          _selectedFocusAreaIds.remove(cat.id);
-                                        } else {
-                                          _selectedFocusAreaIds.add(cat.id);
-                                        }
-                                      });
-                                      setSheetState(() {});
-                                      _updateFocusAreasDisplayText();
-                                    },
-                                  );
-                                },
+                return SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSizes.md,
+                      0,
+                      AppSizes.md,
+                      AppSizes.md,
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select Focus Areas (${_selectedFocusAreaIds.length})',
+                              style: context.text.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
                               ),
-                      ),
-                      AppSizes.vGapMd,
-                      AppPrimaryButton(
-                        label:
-                            'Done (${_selectedFocusAreaIds.length} selected)',
-                        onPressed: () {
-                          _updateFocusAreasDisplayText();
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                      AppSizes.vGapLg,
-                    ],
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                _updateFocusAreasDisplayText();
+                                Navigator.of(context).pop();
+                              },
+                              child: const Text(
+                                'Done',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        AppSizes.vGapSm,
+                        AppTextField(
+                          controller: _categorySearch,
+                          hint: 'Search focus areas...',
+                          prefixIcon: Icons.search,
+                          onChanged: (_) => setSheetState(() {}),
+                        ),
+                        AppSizes.vGapMd,
+                        Expanded(
+                          child: filtered.isEmpty
+                              ? const Center(child: Text('No sectors found'))
+                              : ListView.separated(
+                                  controller: scrollController,
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, __) =>
+                                      const Divider(height: 1),
+                                  itemBuilder: (context, index) {
+                                    final cat = filtered[index];
+                                    final isSelected = _selectedFocusAreaIds
+                                        .contains(cat.id);
+                                    return CheckboxListTile(
+                                      title: Text(cat.name),
+                                      value: isSelected,
+                                      activeColor: AppColors.primary,
+                                      onChanged: (_) {
+                                        setState(() {
+                                          if (isSelected) {
+                                            _selectedFocusAreaIds.remove(cat.id);
+                                          } else {
+                                            _selectedFocusAreaIds.add(cat.id);
+                                          }
+                                        });
+                                        setSheetState(() {});
+                                        _updateFocusAreasDisplayText();
+                                      },
+                                    );
+                                  },
+                                ),
+                        ),
+                        AppSizes.vGapMd,
+                        AppPrimaryButton(
+                          label:
+                              'Done (${_selectedFocusAreaIds.length} selected)',
+                          onPressed: () {
+                            _updateFocusAreasDisplayText();
+                            Navigator.of(context).pop();
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -535,8 +560,10 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           'ticketMax':
               double.tryParse(_ticketMax.text.trim()) ?? _ticketMax.text.trim(),
       },
-      if (_localAvatarPath != null || _avatarUrl != null)
-        'logo': _localAvatarPath ?? _avatarUrl,
+      if (_avatarUrl != null && _avatarUrl!.startsWith('http')) ...{
+        'avatarUrl': _avatarUrl,
+        'logo': _avatarUrl,
+      },
     };
 
     final res = await sl<ApiClientHelper>().putEnvelope<Map<String, dynamic>>(
@@ -649,6 +676,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
             AuthUserUpdated(current.copyWith(avatarUrl: url)),
           );
         }
+        context.showSnack('Avatar updated successfully!');
+        _load();
       },
     );
   }
@@ -676,16 +705,16 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           : ListView(
               padding: const EdgeInsets.all(AppSizes.screenPadding),
               children: [
-                if (_verified)
-                  AppCard(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.verified, color: Colors.green, size: 20),
-                        const SizedBox(width: 8),
-                        const Text('Verified investor'),
-                      ],
-                    ),
-                  ),
+                // if (_verified)
+                //   AppCard(
+                //     child: Row(
+                //       children: [
+                //         const Icon(Icons.verified, color: Colors.green, size: 20),
+                //         const SizedBox(width: 8),
+                //         const Text('Verified investor'),
+                //       ],
+                //     ),
+                //   ),
                 if (_verified) AppSizes.vGapMd,
                 ProfileCompletionCard(
                   percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
