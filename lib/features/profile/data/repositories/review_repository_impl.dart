@@ -19,14 +19,32 @@ class ReviewRepositoryImpl implements ReviewRepository {
   Future<Result<Paginated<Review>>> getReviews(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
 
-    final role = await _tokenRoleHelper?.resolve();
-    final prefix = (role == UserRole.freelancer)
-        ? 'freelancer'
-        : (role == UserRole.client)
-        ? 'client'
-        : (role == UserRole.investor)
-        ? 'investor'
-        : 'founder';
+    String? prefix;
+    final targetType = params.filters['targetType']?.toString().toLowerCase() ??
+        params.filters['profileType']?.toString().toLowerCase();
+
+    if (targetType != null && targetType.isNotEmpty) {
+      if (targetType == 'freelancer') {
+        prefix = 'freelancer';
+      } else if (targetType == 'company' || targetType == 'client') {
+        prefix = 'client';
+      } else if (targetType == 'investor') {
+        prefix = 'investor';
+      } else if (targetType == 'founder') {
+        prefix = 'founder';
+      }
+    }
+
+    if (prefix == null) {
+      final role = await _tokenRoleHelper?.resolve();
+      prefix = (role == UserRole.freelancer)
+          ? 'freelancer'
+          : (role == UserRole.client)
+          ? 'client'
+          : (role == UserRole.investor)
+          ? 'investor'
+          : 'founder';
+    }
     final path = '/$prefix/reviews';
 
     return _api.getEnvelope<Paginated<Review>>(

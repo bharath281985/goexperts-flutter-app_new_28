@@ -68,7 +68,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
           onRefresh: () async {
             _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
-            await context.read<DashboardCubit>().refresh();
+            await Future.wait([
+              context.read<DashboardCubit>().refresh(),
+              _loadRecommendations(),
+            ]);
           },
           child: ListView(
             padding: EdgeInsets.zero,
@@ -522,7 +525,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget _buildRecommendationTabs(BuildContext context) {
     return DashboardRecommendationsSection(
       title: 'Top Matches For You',
-      subtitle: 'Verified freelance experts, active projects and strategic investors',
+      subtitle: 'Verified freelance experts, high-growth startups and strategic investors',
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
@@ -535,11 +538,11 @@ class _ClientHomePageState extends State<ClientHomePage> {
           viewAllRoute: Routes.clientFreelancers,
         ),
         RecommendationTabConfig(
-          key: 'projects',
-          label: 'Projects',
-          icon: Icons.task_alt_rounded,
+          key: 'startups',
+          label: 'Startups',
+          icon: Icons.rocket_launch_rounded,
           accent: Color(0xFF10B981),
-          viewAllRoute: Routes.clientMyProjects,
+          viewAllRoute: Routes.clientProjects,
         ),
         RecommendationTabConfig(
           key: 'investors',

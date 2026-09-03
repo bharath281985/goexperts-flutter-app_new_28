@@ -29,7 +29,7 @@ class StartupDetailsPage extends StatefulWidget {
 }
 
 class _StartupDetailsPageState extends State<StartupDetailsPage> {
-  late final Future<Result<Startup>> _future;
+  late Future<Result<Startup>> _future;
   bool? _hasInvestedOverride;
   bool? _isSavedOverride;
   bool _isLoadingAction = false;
@@ -38,6 +38,12 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
   void initState() {
     super.initState();
     _future = sl<StartupRepository>().getStartup(widget.id);
+  }
+
+  void _refresh() {
+    setState(() {
+      _future = sl<StartupRepository>().getStartup(widget.id);
+    });
   }
 
   @override
@@ -105,7 +111,13 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                   ),
                 ],
               ),
-              body: _content(context, s),
+              body: RefreshIndicator(
+                onRefresh: () async {
+                  _refresh();
+                  await _future;
+                },
+                child: _content(context, s),
+              ),
               bottomNavigationBar: SafeArea(
                 child: Container(
                   padding: const EdgeInsets.fromLTRB(
@@ -209,9 +221,8 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                                   success,
                                 ) {
                                   if (success) {
-                                    setState(() {
-                                      _hasInvestedOverride = false;
-                                    });
+                                    _hasInvestedOverride = false;
+                                    _refresh();
                                     context.showSnack(
                                       'Withdrew interest successfully',
                                     );
@@ -225,12 +236,8 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
                                 startupName: s.name,
                               );
                               if (submitted == true && mounted) {
-                                setState(() {
-                                  _hasInvestedOverride = true;
-                                  _future = sl<StartupRepository>().getStartup(
-                                    widget.id,
-                                  );
-                                });
+                                _hasInvestedOverride = true;
+                                _refresh();
                               }
                             }
                           },

@@ -71,7 +71,10 @@ class _FounderHomePageState extends State<FounderHomePage> {
           onRefresh: () async {
             _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
-            await context.read<DashboardCubit>().refresh();
+            await Future.wait([
+              context.read<DashboardCubit>().refresh(),
+              _loadRecommendations(),
+            ]);
           },
           child: loading
               ? const Padding(

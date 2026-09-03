@@ -73,7 +73,10 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
           onRefresh: () async {
             _popupShown = false;
             context.read<AuthBloc>().add(const AuthRefreshUser());
-            await context.read<DashboardCubit>().refresh();
+            await Future.wait([
+              context.read<DashboardCubit>().refresh(),
+              _loadRecommendations(),
+            ]);
           },
           child: loading
               ? const Padding(
@@ -505,7 +508,7 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
   Widget _buildRecommendationTabs(BuildContext context) {
     return DashboardRecommendationsSection(
       title: 'Top Matches For You',
-      subtitle: 'Verified startups, founders and specialized talent',
+      subtitle: 'Verified startups, client projects and specialized talent',
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
@@ -518,11 +521,11 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
           viewAllRoute: Routes.investorStartups,
         ),
         RecommendationTabConfig(
-          key: 'founders',
-          label: 'Founders',
-          icon: Icons.person_rounded,
+          key: 'projects',
+          label: 'Projects',
+          icon: Icons.task_alt_rounded,
           accent: Color(0xFF10B981),
-          viewAllRoute: Routes.investorStartups,
+          viewAllRoute: Routes.investorProjects,
         ),
         RecommendationTabConfig(
           key: 'freelancers',

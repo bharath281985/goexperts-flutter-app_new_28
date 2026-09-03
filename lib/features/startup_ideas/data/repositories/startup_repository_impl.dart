@@ -80,7 +80,7 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<Paginated<Startup>>> getStartups(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
-    var res = await _api.getEnvelope<Paginated<Startup>>(
+    return _api.getEnvelope<Paginated<Startup>>(
       ApiEndpoints.publicStartups,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
@@ -90,20 +90,6 @@ class StartupRepositoryImpl implements StartupRepository {
         fallbackPage: params.page,
       ),
     );
-    if (res.isFailure) {
-      final fallback = await _api.getEnvelope<Paginated<Startup>>(
-        ApiEndpoints.investorStartups,
-        query: params.toApiQuery(),
-        parser: (env) => ApiResponse.parsePaginated(
-          env.data,
-          env.meta,
-          Startup.fromApiJson,
-          fallbackPage: params.page,
-        ),
-      );
-      if (fallback.isSuccess) res = fallback;
-    }
-    return res;
   }
 
   @override
@@ -130,28 +116,11 @@ class StartupRepositoryImpl implements StartupRepository {
   Future<Result<Startup>> getStartup(String id) async {
     if (_api == null) return _apiNotConfigured();
 
-    var res = await _api.get<Startup>(
+    return _api.get<Startup>(
       '${ApiEndpoints.publicStartups}/$id',
       parser: (raw) =>
           Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
     );
-
-    if (res.isFailure) {
-      res = await _api.get<Startup>(
-        ApiEndpoints.founderIdea(id),
-        parser: (raw) =>
-            Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
-      );
-    }
-
-    if (res.isFailure) {
-      res = await _api.get<Startup>(
-        ApiEndpoints.investorStartup(id),
-        parser: (raw) =>
-            Startup.fromApiJson(Map<String, dynamic>.from(raw as Map)),
-      );
-    }
-    return res;
   }
 
   @override
