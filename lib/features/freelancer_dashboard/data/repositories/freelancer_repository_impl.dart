@@ -3,7 +3,6 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
-import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
@@ -67,12 +66,55 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   }
 
   @override
-  Future<Result<bool>> invite(String id) async {
+  Future<Result<bool>> invite(
+    String id, {
+    String? projectId,
+    String? message,
+  }) async {
     if (_api == null) return _apiNotConfigured();
-    // Opens chat / DM invite via client team invite when available.
-    return _api.postAction(
+
+    if (projectId != null && projectId.isNotEmpty) {
+      var projectRes = await _api.postAction(
+        '/client/projects/$projectId/invite',
+        body: {
+          'freelancerId': id,
+          if (message != null && message.trim().isNotEmpty)
+            'message': message.trim(),
+        },
+      );
+      if (projectRes.isSuccess) return projectRes;
+
+      projectRes = await _api.postAction(
+        '/client/projects/$projectId/invitations',
+        body: {
+          'freelancerId': id,
+          if (message != null && message.trim().isNotEmpty)
+            'message': message.trim(),
+        },
+      );
+      if (projectRes.isSuccess) return projectRes;
+    }
+
+    var res = await _api.postAction(
       '${ApiEndpoints.clientTeam}/invite',
-      body: {'freelancerId': id, 'role': 'member'},
+      body: {
+        'freelancerId': id,
+        'role': 'member',
+        if (projectId != null && projectId.isNotEmpty) 'projectId': projectId,
+        if (message != null && message.trim().isNotEmpty)
+          'message': message.trim(),
+      },
+    );
+    if (res.isSuccess) return res;
+
+    return _api.postAction(
+      '/client/invitations',
+      body: {
+        'freelancerId': id,
+        if (projectId != null && projectId.isNotEmpty) 'projectId': projectId,
+        if (message != null && message.trim().isNotEmpty)
+          'message': message.trim(),
+      },
     );
   }
 

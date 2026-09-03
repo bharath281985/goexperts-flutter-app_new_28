@@ -23,13 +23,20 @@ class InviteFreelancerDialog {
     required String freelancerName,
     String? freelancerAvatar,
   }) async {
-    // ── 1. Fetch projects before opening the sheet ──────────────────────────
+    // ── 1. Fetch client's projects before opening the sheet ─────────────────
     List<Project> projects = [];
     try {
-      final res = await sl<ProjectRepository>().getProjects(
-        const QueryParams(page: 1, pageSize: 100),
+      final projectRepo = sl<ProjectRepository>();
+      final res = await projectRepo.getMyProjects(
+        const QueryParams(page: 1, pageSize: 100, ascending: false),
       );
       projects = res.valueOrNull?.items ?? [];
+      if (projects.isEmpty) {
+        final fallback = await projectRepo.getProjects(
+          const QueryParams(page: 1, pageSize: 100, ascending: false),
+        );
+        projects = fallback.valueOrNull?.items ?? [];
+      }
     } catch (_) {
       // ignore – sheet will show "no projects" state
     }
@@ -112,7 +119,11 @@ class _InviteSheetState extends State<_InviteSheet> {
       _projectError = null;
     });
     try {
-      final res = await sl<FreelancerRepository>().invite(widget.freelancerId);
+      final res = await sl<FreelancerRepository>().invite(
+        widget.freelancerId,
+        projectId: _selectedProject?.id,
+        message: _msgCtrl.text.trim(),
+      );
       if (!mounted) return;
       if (res.isSuccess) {
         context.showSnack('Invitation sent to ${widget.freelancerName}');

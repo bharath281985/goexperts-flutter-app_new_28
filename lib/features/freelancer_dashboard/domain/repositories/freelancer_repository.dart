@@ -7,5 +7,5 @@ abstract class FreelancerRepository {
   Future<Result<Freelancer>> getFreelancer(String id);
   Future<Result<bool>> toggleSave(String id);
   Future<Result<bool>> toggleFollow(String id);
-  Future<Result<bool>> invite(String id);
+  Future<Result<bool>> invite(String id, {String? projectId, String? message});
 }

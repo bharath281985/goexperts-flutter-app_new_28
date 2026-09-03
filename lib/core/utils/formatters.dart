@@ -18,12 +18,12 @@ class Formatters {
     if (value >= 10000000) {
       return '\u20B9${(value / 10000000).toStringAsFixed(value % 10000000 == 0 ? 0 : 1)}Cr';
     }
-    if (value >= 100000) {
-      return '\u20B9${(value / 100000).toStringAsFixed(value % 100000 == 0 ? 0 : 1)}L';
-    }
-    if (value >= 1000) {
-      return '\u20B9${(value / 1000).toStringAsFixed(value % 1000 == 0 ? 0 : 1)}K';
-    }
+    // if (value >= 100000) {
+    //   return '\u20B9${(value / 100000).toStringAsFixed(value % 100000 == 0 ? 0 : 1)}L';
+    // }
+    // if (value >= 1000) {
+    //   return '\u20B9${(value / 1000).toStringAsFixed(value % 1000 == 0 ? 0 : 1)}K';
+    // }
     return _inr.format(value);
   }
 

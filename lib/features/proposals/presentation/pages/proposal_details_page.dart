@@ -133,9 +133,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconTapWidget(
-          onTap: () => Navigator.of(context).maybePop(),
-        ),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
         title: const Text('Proposal Details'),
         actions: [
           if (!isClient) ...[
@@ -221,13 +219,10 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
     final res = await sl<ProposalRepository>().acceptOffer(targetId);
     if (!mounted) return;
     setState(() => _busy = false);
-    res.fold(
-      (f) => context.showSnack(f.message, isError: true),
-      (_) {
-        context.showSnack('Offer accepted successfully!');
-        _reload();
-      },
-    );
+    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
+      context.showSnack('Offer accepted successfully!');
+      _reload();
+    });
   }
 
   Widget _freelancerActions(BuildContext context, Proposal p) {
@@ -389,7 +384,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
             ],
           ),
           AppSizes.vGapLg,
-          const AppSectionHeader(title: 'Cover Letter'),
+          const AppSectionHeader(title: 'My Cover Letter'),
           AppSizes.vGapSm,
           Text(p.coverLetter, style: context.text.bodyMedium),
           // AppSizes.vGapLg,
@@ -434,7 +429,13 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 18, color: AppColors.primary),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(icon, size: 18, color: AppColors.primary),
+            Text(label, style: context.text.labelSmall),
+          ],
+        ),
         AppSizes.vGapSm,
         Text(
           value,
@@ -442,7 +443,6 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        Text(label, style: context.text.labelSmall),
       ],
     ),
   );
