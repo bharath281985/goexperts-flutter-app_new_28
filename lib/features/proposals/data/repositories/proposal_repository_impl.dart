@@ -216,12 +216,48 @@ class ProposalRepositoryImpl implements ProposalRepository {
   @override
   Future<Result<bool>> acceptOffer(String id) async {
     if (_api == null) return _apiNotConfigured();
-    var res = await _api.postAction(
+
+    // 1. Try accepting directly as contract offer if id is contract ID
+    var res = await _api.postAction(ApiEndpoints.freelancerContractAccept(id));
+    if (res.isSuccess) return res;
+
+    // 2. If id is proposal ID, look up contract matching this proposal
+    try {
+      final contractsRes = await _api.getEnvelope<List<dynamic>>(
+        ApiEndpoints.freelancerContracts,
+        parser: (env) => (env.data is List) ? env.data as List : const [],
+      );
+      if (contractsRes.isSuccess && contractsRes.valueOrNull != null) {
+        final list = contractsRes.valueOrNull!;
+        for (final item in list) {
+          if (item is Map &&
+              (item['proposalId']?.toString() == id ||
+                  item['proposal_id']?.toString() == id)) {
+            final contractId = item['id']?.toString();
+            if (contractId != null && contractId.isNotEmpty) {
+              final contractAcceptRes = await _api.postAction(
+                ApiEndpoints.freelancerContractAccept(contractId),
+              );
+              if (contractAcceptRes.isSuccess) return contractAcceptRes;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 3. Fallback to POST on proposal endpoints (strictly POST, never PATCH)
+    res = await _api.postAction(
       ApiEndpoints.freelancerProposalAcceptOffer(id),
     );
     if (res.isSuccess) return res;
-    return _api.patchAction(
-      '${ApiEndpoints.freelancerProposals}/$id/accept-offer',
+
+    res = await _api.postAction(
+      '/freelancer/proposals/$id/accept',
+    );
+    if (res.isSuccess) return res;
+
+    return _api.postAction(
+      '/client/proposals/$id/accept',
     );
   }
 
@@ -285,20 +321,34 @@ class ProposalRepositoryImpl implements ProposalRepository {
     final deliveryDays =
         json['deliveryDays'] ?? json['deliveryTime'] ?? json['delivery_time'];
 
+    final project = json['project'] is Map<String, dynamic>
+        ? json['project'] as Map<String, dynamic>
+        : (json['project'] is Map
+            ? Map<String, dynamic>.from(json['project'] as Map)
+            : null);
+
+    final projectTitle = json['projectTitle'] as String? ??
+        json['project_title'] as String? ??
+        project?['title'] as String? ??
+        'Project';
+
+    final projectDescription = json['projectDescription'] as String? ??
+        json['project_description'] as String? ??
+        project?['description'] as String?;
+
     return Proposal(
       id: json['id']?.toString() ?? '',
       projectId:
-          json['projectId']?.toString() ?? json['project_id']?.toString() ?? '',
-      projectTitle:
-          json['projectTitle'] as String? ??
-          json['project_title'] as String? ??
-          'Project',
+          json['projectId']?.toString() ??
+          json['project_id']?.toString() ??
+          project?['id']?.toString() ??
+          '',
+      projectTitle: projectTitle,
+      projectDescription: projectDescription,
       clientId:
           json['clientId']?.toString() ??
           json['client_id']?.toString() ??
-          (json['project'] is Map
-              ? (json['project'] as Map)['client']?.toString()
-              : null),
+          project?['client']?.toString(),
       clientName:
           json['clientName'] as String? ?? json['client_name'] as String?,
       freelancerId:

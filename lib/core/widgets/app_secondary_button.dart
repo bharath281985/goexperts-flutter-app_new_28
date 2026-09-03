@@ -12,6 +12,8 @@ class AppSecondaryButton extends StatelessWidget {
     this.expanded = true,
     this.color,
     this.isLoading = false,
+    this.padding,
+    this.fontSize,
   });
 
   final String label;
@@ -20,6 +22,8 @@ class AppSecondaryButton extends StatelessWidget {
   final bool expanded;
   final Color? color;
   final bool isLoading;
+  final EdgeInsetsGeometry? padding;
+  final double? fontSize;
 
   @override
   Widget build(BuildContext context) {
@@ -39,13 +43,16 @@ class AppSecondaryButton extends StatelessWidget {
                 AppSizes.hGapSm,
               ],
               Flexible(
-                child: Text(
-                  context.tr(label),
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: fg,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    context.tr(label),
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: fg,
+                      fontWeight: FontWeight.w600,
+                      fontSize: fontSize ?? 15,
+                    ),
                   ),
                 ),
               ),
@@ -55,6 +62,7 @@ class AppSecondaryButton extends StatelessWidget {
     final button = OutlinedButton(
       onPressed: isLoading ? null : onPressed,
       style: OutlinedButton.styleFrom(
+        padding: padding,
         side: BorderSide(color: color ?? context.theme.dividerColor),
       ),
       child: child,

@@ -13,6 +13,7 @@ class Proposal extends Equatable {
     required this.status,
     required this.submittedAt,
     this.projectId,
+    this.projectDescription,
     this.clientId,
     this.clientName,
     this.freelancerId,
@@ -26,6 +27,7 @@ class Proposal extends Equatable {
   final String id;
   final String? projectId;
   final String projectTitle;
+  final String? projectDescription;
   final String? clientId;
   final String? clientName;
   final String? freelancerId;
@@ -44,10 +46,12 @@ class Proposal extends Equatable {
   Proposal copyWith({
     EntityStatus? status,
     String? contractId,
+    String? projectDescription,
   }) => Proposal(
     id: id,
     projectId: projectId,
     projectTitle: projectTitle,
+    projectDescription: projectDescription ?? this.projectDescription,
     clientId: clientId,
     clientName: clientName,
     freelancerId: freelancerId,
@@ -68,6 +72,8 @@ class Proposal extends Equatable {
   List<Object?> get props => [
     id,
     projectId,
+    projectTitle,
+    projectDescription,
     status,
     freelancerId,
     clientId,
