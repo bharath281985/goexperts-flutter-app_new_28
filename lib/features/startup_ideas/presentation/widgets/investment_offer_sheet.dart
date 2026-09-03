@@ -84,6 +84,7 @@ class _InvestmentOfferSheetState extends State<InvestmentOfferSheet>
     super.dispose();
   }
 
+  // ignore: unused_element
   Future<void> _pickDate() async {
     final now = DateTime.now();
     final picked = await showDatePicker(
@@ -277,6 +278,10 @@ class _InvestmentOfferSheetState extends State<InvestmentOfferSheet>
                         ),
                       ],
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),

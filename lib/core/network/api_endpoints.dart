@@ -292,6 +292,7 @@ class ApiEndpoints {
   static const clientMyStartups = '/client/startups/my-startups';
   static const clientProjects = '/client/projects';
   static String clientProject(String id) => '/client/projects/$id';
+  static String clientProjectInvite(String id) => '/client/projects/$id/invite';
   static String clientProjectStatus(String id) => '/client/projects/$id/status';
   static String clientProjectShare(String id) => '/client/projects/$id/share';
   static String clientProjectProposals(String projectId) =>

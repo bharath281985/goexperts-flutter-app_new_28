@@ -8,12 +8,10 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
-import '../../../../core/auth/token_role_helper.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/utils/bookmark_manager.dart';
-import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/follow_manager.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/image_url.dart';
@@ -95,16 +93,33 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
 
 List<String> _extractList(dynamic val) {
   if (val == null) return [];
+  if (val is Map) {
+    final str = (val['skillName'] ??
+            val['name'] ??
+            val['industryName'] ??
+            val['workModeName'] ??
+            val['experienceLevelName'] ??
+            val['label'] ??
+            val['title'] ??
+            val['value'])
+        ?.toString()
+        .trim();
+    if (str != null && str.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(str)) {
+      return [str];
+    }
+    return [];
+  }
   if (val is List) {
     return val
         .map((item) {
           if (item is Map) {
-            return (item['name'] ??
-                    item['label'] ??
-                    item['title'] ??
-                    item['skillName'] ??
+            return (item['skillName'] ??
+                    item['name'] ??
                     item['industryName'] ??
                     item['workModeName'] ??
+                    item['experienceLevelName'] ??
+                    item['label'] ??
+                    item['title'] ??
                     item['value'] ??
                     item['id'])
                 ?.toString()
@@ -129,7 +144,14 @@ List<String> _extractList(dynamic val) {
 String _formatLabel(dynamic val) {
   if (val == null) return '';
   if (val is Map) {
-    return (val['name'] ?? val['label'] ?? val['title'] ?? val['value'] ?? val['id'])
+    return (val['experienceLevelName'] ??
+            val['workModeName'] ??
+            val['industryName'] ??
+            val['skillName'] ??
+            val['name'] ??
+            val['label'] ??
+            val['title'] ??
+            val['value'])
             ?.toString()
             .trim() ??
         '';
@@ -268,38 +290,81 @@ String _cleanCityString(String rawCity) {
           final fp = _safeMap(
             raw['freelancerProfile'] ?? raw['profile'] ?? (reg.isNotEmpty ? reg : raw),
           );
-          final skills = _extractList(
-            fp['skills'] ?? reg['skills'] ?? raw['skills'],
+
+          // 1. Skills / Skills
+          var skills = _extractList(
+            raw['Skills'] ??
+                raw['skills'] ??
+                fp['Skills'] ??
+                fp['skills'] ??
+                reg['Skills'] ??
+                reg['skills'],
           );
-          final industries = _extractList(
-            fp['industry'] ??
-                fp['industries'] ??
-                reg['industry'] ??
-                reg['industries'] ??
-                raw['industry'] ??
-                raw['industries'],
-          );
-          final workModes = _extractList(
-            fp['workMode'] ??
-                fp['workModes'] ??
-                reg['workMode'] ??
-                reg['workModes'] ??
-                raw['workMode'] ??
-                raw['workModes'],
-          );
+          if (skills.isEmpty) {
+            skills = _extractList(raw['skills'] ?? fp['skills'] ?? reg['skills']);
+          }
+
+          // 2. Industry / industry / industries / industryName
+          var industries = _extractList(raw['industryName'] ?? raw['IndustryName']);
+          if (industries.isEmpty) {
+            industries = _extractList(
+              raw['Industry'] ??
+                  raw['industry'] ??
+                  raw['Industries'] ??
+                  raw['industries'] ??
+                  fp['Industry'] ??
+                  fp['industry'] ??
+                  fp['Industries'] ??
+                  fp['industries'] ??
+                  reg['Industry'] ??
+                  reg['industry'] ??
+                  reg['category'] ??
+                  raw['category'],
+            );
+          }
+
+          // 3. WorkMode / workMode / workModes / workModeName
+          var workModes = _extractList(raw['workModeName'] ?? raw['WorkModeName']);
+          if (workModes.isEmpty) {
+            workModes = _extractList(
+              raw['workMode'] ??
+                  raw['WorkMode'] ??
+                  raw['workModes'] ??
+                  raw['WorkModes'] ??
+                  fp['workMode'] ??
+                  fp['WorkMode'] ??
+                  fp['workModes'] ??
+                  fp['WorkModes'] ??
+                  reg['workMode'] ??
+                  reg['WorkMode'],
+            );
+          }
+
           final hourlyRate = _safeDouble(
             fp['hourlyRate'] ?? reg['hourlyRate'] ?? raw['hourlyRate'],
           );
-          final rawExp = fp['experienceLevel'] ??
+
+          // 4. Experience Level
+          final rawExp = raw['experienceLevelName'] ??
+              raw['ExperienceLevelName'] ??
+              raw['experienceLevel'] ??
+              raw['ExperienceLevel'] ??
+              raw['experience'] ??
+              raw['Experience'] ??
+              fp['experienceLevelName'] ??
+              fp['ExperienceLevelName'] ??
+              fp['experienceLevel'] ??
+              fp['ExperienceLevel'] ??
               fp['experience'] ??
               reg['experienceLevel'] ??
-              reg['experience'] ??
-              raw['experienceLevel'] ??
-              raw['experience'];
+              reg['experience'];
           final expLevel = _formatLabel(rawExp);
-          final titleHeadline = fp['titleHeadline']?.toString() ??
+
+          final titleHeadline = raw['titleHeadline']?.toString() ??
+              raw['professionalTitle']?.toString() ??
+              raw['title']?.toString() ??
+              fp['titleHeadline']?.toString() ??
               reg['titleHeadline']?.toString() ??
-              raw['titleHeadline']?.toString() ??
               raw['headline']?.toString() ??
               '';
 
@@ -331,14 +396,24 @@ String _cleanCityString(String rawCity) {
                     '${Formatters.compactCurrency(hourlyRate)}/hr',
                 ].join(' · ');
 
-          final stats = <String, String>{};
-          if (expLevel.isNotEmpty) {
-            stats['Experience'] = expLevel;
-          }
-          stats['Rate'] = hourlyRate > 0
-              ? '${Formatters.compactCurrency(hourlyRate)}/hr'
-              : '—';
-          stats['Skills'] = '${skills.length}';
+          final ratingRaw = raw['rating'] ?? fp['rating'] ?? reg['rating'];
+          final double? rating = ratingRaw is num
+              ? ratingRaw.toDouble()
+              : double.tryParse(ratingRaw?.toString() ?? '');
+          final reviewsCountRaw = raw['reviewsCount'] ?? fp['reviewsCount'] ?? reg['reviewsCount'];
+          final int reviewsCount = reviewsCountRaw is num
+              ? reviewsCountRaw.toInt()
+              : int.tryParse(reviewsCountRaw?.toString() ?? '') ?? 0;
+
+          final ratingStr = rating != null && rating > 0
+              ? (rating % 1 == 0 ? '${rating.toInt()}.0' : rating.toStringAsFixed(1))
+              : '5.0';
+
+          final stats = <String, String>{
+            'Experience': expLevel.isNotEmpty ? expLevel : '—',
+            'Rating': ratingStr,
+            'Skills Count': '${skills.length}',
+          };
 
           return ProfileViewData(
             name: fullName,
@@ -356,6 +431,8 @@ String _cleanCityString(String rawCity) {
             githubUrl: githubUrl,
             websiteUrl: websiteUrl,
             hourlyRate: hourlyRate > 0 ? hourlyRate : null,
+            rating: rating,
+            reviewsCount: reviewsCount,
             isFollowing: apiIsFollowing,
             isSaved: apiIsSaved,
             type: PublicProfileType.freelancer,
@@ -595,13 +672,10 @@ String _cleanCityString(String rawCity) {
 
   Future<Map<String, dynamic>> _loadAll() async {
     final api = sl<ApiClientHelper>();
-    final role = await sl<TokenRoleHelper>().resolve();
     final String endpoint;
     switch (widget.type) {
       case PublicProfileType.freelancer:
-        endpoint = role == UserRole.client
-            ? '${ApiEndpoints.clientFreelancers}/${widget.id}'
-            : ApiEndpoints.publicFreelancer(widget.id);
+        endpoint = ApiEndpoints.publicFreelancer(widget.id);
         break;
       case PublicProfileType.company:
         endpoint = ApiEndpoints.publicClient(widget.id);
@@ -620,9 +694,7 @@ String _cleanCityString(String rawCity) {
     );
 
     if (rawResult.isFailure && widget.type == PublicProfileType.freelancer) {
-      final fallbackEndpoint = endpoint.contains('client')
-          ? ApiEndpoints.publicFreelancer(widget.id)
-          : '${ApiEndpoints.clientFreelancers}/${widget.id}';
+      final fallbackEndpoint = '${ApiEndpoints.clientFreelancers}/${widget.id}';
       final fallbackResult = await api.get<Map<String, dynamic>>(
         fallbackEndpoint,
         parser: (data) => Map<String, dynamic>.from(data as Map),

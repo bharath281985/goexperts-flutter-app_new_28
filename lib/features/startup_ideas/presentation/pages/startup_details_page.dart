@@ -15,6 +15,7 @@ import '../../../../core/widgets/app_loading_shimmer.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../domain/entities/startup.dart';
 import '../../domain/repositories/startup_repository.dart';
 import '../../../../core/utils/result.dart';
@@ -56,14 +57,20 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Scaffold(
-                appBar: AppBar(title: const Text('Startup Details')),
+                appBar: AppBar(
+                  leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+                  title: const Text('Startup Details'),
+                ),
                 body: const AppLoadingShimmer(itemCount: 4, height: 120),
               );
             }
             final s = snapshot.data?.valueOrNull;
             if (s == null) {
               return Scaffold(
-                appBar: AppBar(title: const Text('Startup Details')),
+                appBar: AppBar(
+                  leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+                  title: const Text('Startup Details'),
+                ),
                 body: const AppErrorState(),
               );
             }
@@ -74,6 +81,7 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
             return Scaffold(
               backgroundColor: AppColors.background,
               appBar: AppBar(
+                leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
                 title: const Text('Startup Details'),
                 actions: [
                   IconButton(

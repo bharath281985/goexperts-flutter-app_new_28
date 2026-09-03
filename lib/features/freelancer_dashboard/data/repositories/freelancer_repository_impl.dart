@@ -39,14 +39,19 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   @override
   Future<Result<Freelancer>> getFreelancer(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final role = await _tokenRoleHelper?.resolve();
-    final path = role == UserRole.client
-        ? '${ApiEndpoints.clientFreelancers}/$id'
-        : '${ApiEndpoints.publicFreelancers}/$id';
-    return _api.get<Freelancer>(
+    final path = ApiEndpoints.publicFreelancer(id);
+    var res = await _api.get<Freelancer>(
       path,
       parser: (data) => _fromJson(Map<String, dynamic>.from(data as Map)),
     );
+    if (res.isFailure) {
+      final fallbackRes = await _api.get<Freelancer>(
+        '${ApiEndpoints.clientFreelancers}/$id',
+        parser: (data) => _fromJson(Map<String, dynamic>.from(data as Map)),
+      );
+      if (fallbackRes.isSuccess) return fallbackRes;
+    }
+    return res;
   }
 
   @override
@@ -74,44 +79,20 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
     if (_api == null) return _apiNotConfigured();
 
     if (projectId != null && projectId.isNotEmpty) {
-      var projectRes = await _api.postAction(
-        '/client/projects/$projectId/invite',
+      return _api.postAction(
+        ApiEndpoints.clientProjectInvite(projectId),
         body: {
           'freelancerId': id,
-          if (message != null && message.trim().isNotEmpty)
-            'message': message.trim(),
+          'message': message ?? '',
         },
       );
-      if (projectRes.isSuccess) return projectRes;
-
-      projectRes = await _api.postAction(
-        '/client/projects/$projectId/invitations',
-        body: {
-          'freelancerId': id,
-          if (message != null && message.trim().isNotEmpty)
-            'message': message.trim(),
-        },
-      );
-      if (projectRes.isSuccess) return projectRes;
     }
 
-    var res = await _api.postAction(
+    return _api.postAction(
       '${ApiEndpoints.clientTeam}/invite',
       body: {
         'freelancerId': id,
         'role': 'member',
-        if (projectId != null && projectId.isNotEmpty) 'projectId': projectId,
-        if (message != null && message.trim().isNotEmpty)
-          'message': message.trim(),
-      },
-    );
-    if (res.isSuccess) return res;
-
-    return _api.postAction(
-      '/client/invitations',
-      body: {
-        'freelancerId': id,
-        if (projectId != null && projectId.isNotEmpty) 'projectId': projectId,
         if (message != null && message.trim().isNotEmpty)
           'message': message.trim(),
       },
@@ -119,17 +100,45 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   }
 
   static Freelancer _fromJson(Map<String, dynamic> json) {
+    final rawSkills = json['Skills'] ?? json['skills'];
+    final skills = rawSkills is List
+        ? rawSkills
+            .map((e) => e is Map
+                ? (e['skillName'] ?? e['name'] ?? e['skill'] ?? '')?.toString() ?? ''
+                : e.toString())
+            .where((s) => s.trim().isNotEmpty)
+            .toList()
+        : (rawSkills is String
+            ? rawSkills
+                .split(',')
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList()
+            : const <String>[]);
+
+    final industryMap = json['Industry'] is Map
+        ? json['Industry'] as Map
+        : (json['industry'] is Map ? json['industry'] as Map : null);
+    final category = industryMap?['name']?.toString() ??
+        industryMap?['industryName']?.toString() ??
+        json['industryName'] as String? ??
+        json['category'] as String? ??
+        'General';
+
     return Freelancer(
       id: json['id']?.toString() ?? '',
       name:
           json['name'] as String? ??
           json['fullName'] as String? ??
           'Freelancer',
-      headline: json['headline'] as String? ?? '',
-      category: json['category'] as String? ?? 'General',
-      skills:
-          (json['skills'] as List?)?.map((e) => e.toString()).toList() ??
-          const [],
+      headline:
+          json['titleHeadline'] as String? ??
+          json['headline'] as String? ??
+          json['professionalTitle'] as String? ??
+          json['title'] as String? ??
+          '',
+      category: category,
+      skills: skills,
       hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0,
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,

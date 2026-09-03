@@ -11,6 +11,7 @@ import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../data/team_repository.dart';
 import '../../domain/team_member.dart';
@@ -331,6 +332,7 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
   @override
   Widget build(BuildContext context) => AppScaffold(
     appBar: AppBar(
+      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
       title: const Text('Team members'),
       actions: [
         IconButton(

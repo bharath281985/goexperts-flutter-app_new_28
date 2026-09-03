@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
-import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/share_sheet.dart';
 import '../../data/referral_repository.dart';
 import '../../domain/referral_details.dart';
@@ -49,7 +49,10 @@ class _ReferralProgramPageState extends State<ReferralProgramPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Referral Program')),
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: const Text('Referral Program'),
+      ),
       body: _loading
           ? const _LoadingView()
           : _error != null

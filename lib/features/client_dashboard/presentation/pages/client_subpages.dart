@@ -26,6 +26,7 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../client_dashboard/domain/repositories/client_proposal_repository.dart';
@@ -263,7 +264,10 @@ class _ClientTasksPageState extends State<ClientTasksPage> {
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
-      appBar: AppBar(title: const Text('Tasks')),
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: const Text('Tasks'),
+      ),
       body: CatalogView<ClientTask>(
         key: ValueKey(_refreshKey),
         fetcher: _fetch,
@@ -553,7 +557,10 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
   Widget build(BuildContext context) {
     final columns = context.isMobile ? 1 : 2;
     return AppScaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Edit Task' : 'Add New Task')),
+      appBar: AppBar(
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        title: Text(_isEditing ? 'Edit Task' : 'Add New Task'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(

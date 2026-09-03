@@ -158,17 +158,33 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Schedule Meeting',
-              style: context.text.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Text(
-              'with ${widget.targetName}',
-              style: context.text.bodyMedium?.copyWith(
-                color: AppColors.subtleText,
-              ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Schedule Meeting',
+                        style: context.text.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        'with ${widget.targetName}',
+                        style: context.text.bodyMedium?.copyWith(
+                          color: AppColors.subtleText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close_rounded),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
             ),
             AppSizes.vGapXl,
             AppTextField(
