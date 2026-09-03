@@ -21,6 +21,7 @@ import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
+import '../../../../core/widgets/dashboard_recommendations_section.dart';
 import '../../../meetings/presentation/widgets/meeting_card.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 
@@ -494,116 +495,61 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
   }
 
   Future<void> _loadRecommendations() async {
-    final api = sl<ApiClientHelper>();
-    final res = await api.getEnvelope<Map<String, dynamic>>(
-      ApiEndpoints.discoveryRecommendations,
-      parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
-    );
-    if (!mounted) return;
-    final data = res.valueOrNull ?? const {};
-    final items = data['recommendedItems'];
-    if (items is Map) {
-      _recommendedItems = items.map(
-        (key, value) => MapEntry(
-          key.toString(),
-          (value as List? ?? const [])
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList(),
-        ),
+    try {
+      final api = sl<ApiClientHelper>();
+      final res = await api.getEnvelope<Map<String, dynamic>>(
+        ApiEndpoints.discoveryRecommendations,
+        parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
       );
-    }
-    setState(() => _recommendationsLoading = false);
+      if (!mounted) return;
+      final data = res.valueOrNull ?? const {};
+      final items = data['recommendedItems'];
+      if (items is Map) {
+        _recommendedItems = items.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            (value as List? ?? const [])
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList(),
+          ),
+        );
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _recommendationsLoading = false);
   }
 
   
  
   Widget _buildRecommendationTabs(BuildContext context) {
-    return AppSegmentedTabs(
-      tabs: {
-        'Projects': _buildRecommendationList('projects', Icons.work_outline, const Color(0xFF2563EB)),
-        'Clients': _buildRecommendationList('clients', Icons.groups_outlined, const Color(0xFF0F766E)),
-        'Startups': _buildRecommendationList('startups', Icons.rocket_launch_outlined, const Color(0xFF7C3AED)),
-      },
+    return DashboardRecommendationsSection(
+      title: 'Top Matches For You',
+      subtitle: 'High-intent clients, active projects and high-growth startups',
+      isLoading: _recommendationsLoading,
+      items: _recommendedItems,
+      onRefresh: _loadRecommendations,
+      tabs: const [
+        RecommendationTabConfig(
+          key: 'projects',
+          label: 'Projects',
+          icon: Icons.work_rounded,
+          accent: Color(0xFF3B82F6),
+          viewAllRoute: Routes.freelancerProjects,
+        ),
+        RecommendationTabConfig(
+          key: 'clients',
+          label: 'Clients',
+          icon: Icons.business_rounded,
+          accent: Color(0xFF10B981),
+          viewAllRoute: Routes.freelancerProjects,
+        ),
+        RecommendationTabConfig(
+          key: 'startups',
+          label: 'Startups',
+          icon: Icons.rocket_launch_rounded,
+          accent: Color(0xFF8B5CF6),
+          viewAllRoute: Routes.freelancerProjects,
+        ),
+      ],
     );
   }
-
-  Widget _buildRecommendationList(String key, IconData icon, Color accent) {
-    final items = _recommendedItems[key] ?? const [];
-    if (_recommendationsLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(20),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (items.isEmpty) {
-      return _buildRecommendationEmpty('No recommendations yet.');
-    }
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          for (final item in items.take(5)) ...[
-            _buildRecommendationItemTile(item, icon, accent),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItemTile(Map<String, dynamic> item, IconData icon, Color accent) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['title']?.toString() ?? 'Recommendation', style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(item['subtitle']?.toString() ?? '', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w700)),
-                if ((item['description']?.toString() ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(item['description']!.toString(), style: TextStyle(color: AppColors.projectSecondaryText, fontSize: 13)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationEmpty(String text) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Text(text, style: TextStyle(color: AppColors.projectSecondaryText)),
-    );
-  }
-
- 
-
-
 }

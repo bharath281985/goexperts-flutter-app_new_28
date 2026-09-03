@@ -19,6 +19,7 @@ import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/app_segmented_tabs.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
+import '../../../../core/widgets/dashboard_recommendations_section.dart';
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -496,107 +497,58 @@ class _ClientHomePageState extends State<ClientHomePage> {
   }
 
   Future<void> _loadRecommendations() async {
-    final api = sl<ApiClientHelper>();
-    final res = await api.getEnvelope<Map<String, dynamic>>(
-      ApiEndpoints.discoveryRecommendations,
-      parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
-    );
-    if (!mounted) return;
-    final items = (res.valueOrNull ?? const {})['recommendedItems'];
-    if (items is Map) {
-      _recommendedItems = items.map(
-        (key, value) => MapEntry(
-          key.toString(),
-          (value as List? ?? const [])
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList(),
-        ),
+    try {
+      final api = sl<ApiClientHelper>();
+      final res = await api.getEnvelope<Map<String, dynamic>>(
+        ApiEndpoints.discoveryRecommendations,
+        parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
       );
-    }
-    setState(() => _recommendationsLoading = false);
+      if (!mounted) return;
+      final items = (res.valueOrNull ?? const {})['recommendedItems'];
+      if (items is Map) {
+        _recommendedItems = items.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            (value as List? ?? const [])
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList(),
+          ),
+        );
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _recommendationsLoading = false);
   }
 
   Widget _buildRecommendationTabs(BuildContext context) {
-    return AppSegmentedTabs(
-      tabs: {
-        'Freelancers': _buildRecommendationList('freelancers', Icons.person_search_outlined, const Color(0xFF2563EB)),
-        'Projects': _buildRecommendationList('projects', Icons.assignment_outlined, const Color(0xFF0F766E)),
-        'Investors': _buildRecommendationList('investors', Icons.account_balance_outlined, const Color(0xFF7C3AED)),
-      },
+    return DashboardRecommendationsSection(
+      title: 'Top Matches For You',
+      subtitle: 'Verified freelance experts, active projects and strategic investors',
+      isLoading: _recommendationsLoading,
+      items: _recommendedItems,
+      onRefresh: _loadRecommendations,
+      tabs: const [
+        RecommendationTabConfig(
+          key: 'freelancers',
+          label: 'Freelancers',
+          icon: Icons.person_search_rounded,
+          accent: Color(0xFF3B82F6),
+          viewAllRoute: Routes.clientFreelancers,
+        ),
+        RecommendationTabConfig(
+          key: 'projects',
+          label: 'Projects',
+          icon: Icons.task_alt_rounded,
+          accent: Color(0xFF10B981),
+          viewAllRoute: Routes.clientMyProjects,
+        ),
+        RecommendationTabConfig(
+          key: 'investors',
+          label: 'Investors',
+          icon: Icons.account_balance_rounded,
+          accent: Color(0xFF8B5CF6),
+          viewAllRoute: Routes.clientProjects,
+        ),
+      ],
     );
   }
-
-  Widget _buildRecommendationList(String key, IconData icon, Color accent) {
-    final items = _recommendedItems[key] ?? const [];
-    if (_recommendationsLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(20),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (items.isEmpty) return _buildRecommendationEmpty('No recommendations yet.');
-    return Container(
-      width: double.infinity,
-      child: Column(
-        children: [
-          for (final item in items.take(5)) ...[
-            _buildRecommendationItemTile(item, icon, accent),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItemTile(Map<String, dynamic> item, IconData icon, Color accent) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['title']?.toString() ?? 'Recommendation', style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(item['subtitle']?.toString() ?? '', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w700)),
-                if ((item['description']?.toString() ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(item['description']!.toString(), style: TextStyle(color: AppColors.projectSecondaryText, fontSize: 13)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationEmpty(String text) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: Text(text, style: TextStyle(color: AppColors.projectSecondaryText)),
-  );
-
-  
-
 }

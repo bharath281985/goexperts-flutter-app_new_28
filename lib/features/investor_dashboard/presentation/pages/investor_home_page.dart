@@ -22,6 +22,7 @@ import '../../../../core/widgets/app_section_header.dart';
 import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
+import '../../../../core/widgets/dashboard_recommendations_section.dart';
 import '../../../startup_ideas/domain/entities/startup.dart';
 
 class InvestorHomePage extends StatefulWidget {
@@ -463,24 +464,8 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
                 onTap: () => context.push(Routes.meetings),
                 width: width,
               ),
-              DashboardActionButton(
-                text: 'Explore Investors',
-                subtitle: 'Angel networks & syndicate leads',
-                tag: 'Syndicate',
-                icon: Icons.monetization_on_rounded,
-                color: const Color(0xFFEC4899),
-                onTap: () => context.push(Routes.investorInvestors),
-                width: width,
-              ),
-              DashboardActionButton(
-                text: 'Wallet & Capital',
-                subtitle: 'Escrow deposits & transaction logs',
-                tag: 'Capital',
-                icon: Icons.account_balance_rounded,
-                color: const Color(0xFF06B6D4),
-                onTap: () => context.push(Routes.wallet),
-                width: width,
-              ),
+            
+             
             ],
           );
         },
@@ -495,106 +480,58 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
   }
 
   Future<void> _loadRecommendations() async {
-    final api = sl<ApiClientHelper>();
-    final res = await api.getEnvelope<Map<String, dynamic>>(
-      ApiEndpoints.discoveryRecommendations,
-      parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
-    );
-    if (!mounted) return;
-    final items = (res.valueOrNull ?? const {})['recommendedItems'];
-    if (items is Map) {
-      _recommendedItems = items.map(
-        (key, value) => MapEntry(
-          key.toString(),
-          (value as List? ?? const [])
-              .map((e) => Map<String, dynamic>.from(e as Map))
-              .toList(),
-        ),
+    try {
+      final api = sl<ApiClientHelper>();
+      final res = await api.getEnvelope<Map<String, dynamic>>(
+        ApiEndpoints.discoveryRecommendations,
+        parser: (e) => Map<String, dynamic>.from((e.data as Map?) ?? const {}),
       );
-    }
-    setState(() => _recommendationsLoading = false);
+      if (!mounted) return;
+      final items = (res.valueOrNull ?? const {})['recommendedItems'];
+      if (items is Map) {
+        _recommendedItems = items.map(
+          (key, value) => MapEntry(
+            key.toString(),
+            (value as List? ?? const [])
+                .map((e) => Map<String, dynamic>.from(e as Map))
+                .toList(),
+          ),
+        );
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _recommendationsLoading = false);
   }
 
   Widget _buildRecommendationTabs(BuildContext context) {
-    return AppSegmentedTabs(
-      tabs: {
-        'Startups': _buildRecommendationList('startups', Icons.rocket_launch_outlined, const Color(0xFF2563EB)),
-        'Founders': _buildRecommendationList('founders', Icons.person_outline, const Color(0xFF0F766E)),
-        'Freelancers': _buildRecommendationList('freelancers', Icons.engineering_outlined, const Color(0xFF7C3AED)),
-      },
+    return DashboardRecommendationsSection(
+      title: 'Top Matches For You',
+      subtitle: 'Verified startups, founders and specialized talent',
+      isLoading: _recommendationsLoading,
+      items: _recommendedItems,
+      onRefresh: _loadRecommendations,
+      tabs: const [
+        RecommendationTabConfig(
+          key: 'startups',
+          label: 'Startups',
+          icon: Icons.rocket_launch_rounded,
+          accent: Color(0xFF3B82F6),
+          viewAllRoute: Routes.investorStartups,
+        ),
+        RecommendationTabConfig(
+          key: 'founders',
+          label: 'Founders',
+          icon: Icons.person_rounded,
+          accent: Color(0xFF10B981),
+          viewAllRoute: Routes.investorStartups,
+        ),
+        RecommendationTabConfig(
+          key: 'freelancers',
+          label: 'Freelancers',
+          icon: Icons.code_rounded,
+          accent: Color(0xFF8B5CF6),
+          viewAllRoute: Routes.clientFreelancers,
+        ),
+      ],
     );
   }
-
-  Widget _buildRecommendationList(String key, IconData icon, Color accent) {
-    final items = _recommendedItems[key] ?? const [];
-    if (_recommendationsLoading) {
-      return const Padding(
-        padding: EdgeInsets.all(20),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (items.isEmpty) return _buildRecommendationEmpty('No recommendations yet.');
-    return Container(
-      width: double.infinity,
-      child: Column(
-        children: [
-          for (final item in items.take(5)) ...[
-            _buildRecommendationItemTile(item, icon, accent),
-            const SizedBox(height: 10),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationItemTile(Map<String, dynamic> item, IconData icon, Color accent) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(icon, color: accent),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['title']?.toString() ?? 'Recommendation', style: const TextStyle(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 4),
-                Text(item['subtitle']?.toString() ?? '', style: TextStyle(color: accent, fontSize: 12, fontWeight: FontWeight.w700)),
-                if ((item['description']?.toString() ?? '').isNotEmpty) ...[
-                  const SizedBox(height: 6),
-                  Text(item['description']!.toString(), style: TextStyle(color: AppColors.projectSecondaryText, fontSize: 13)),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecommendationEmpty(String text) => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(18),
-      border: Border.all(color: AppColors.border),
-    ),
-    child: Text(text, style: TextStyle(color: AppColors.projectSecondaryText)),
-  );
-
-  
 }
