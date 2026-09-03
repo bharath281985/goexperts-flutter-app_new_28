@@ -215,7 +215,10 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
     );
     if (!ok || !mounted) return;
     setState(() => _busy = true);
-    final res = await sl<ProposalRepository>().acceptOffer(p.id);
+    final targetId = (p.contractId != null && p.contractId!.isNotEmpty)
+        ? p.contractId!
+        : p.id;
+    final res = await sl<ProposalRepository>().acceptOffer(targetId);
     if (!mounted) return;
     setState(() => _busy = false);
     res.fold(
@@ -258,6 +261,8 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                   child: AppSecondaryButton(
                     label: withdrawn ? 'Withdrawn' : 'Withdraw',
                     icon: Icons.undo_rounded,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    fontSize: 13.5,
                     onPressed: withdrawn ? null : () => _withdraw(p),
                   ),
                 ),
@@ -266,6 +271,8 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                   child: AppSecondaryButton(
                     label: 'Message Client',
                     icon: Icons.chat_bubble_outline_rounded,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    fontSize: 13.5,
                     onPressed: () => _messageClient(p),
                   ),
                 ),
@@ -290,10 +297,32 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
         ),
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: Text(p.projectTitle, style: context.text.headlineSmall),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.projectTitle,
+                      style: context.text.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if ((p.projectDescription ?? '').trim().isNotEmpty) ...[
+                      AppSizes.vGapSm,
+                      Text(
+                        p.projectDescription!.trim(),
+                        style: context.text.bodyMedium?.copyWith(
+                          color: AppColors.projectBodyText,
+                          height: 1.45,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
+              AppSizes.hGapSm,
               AppStatusChip.status(p.status, dense: true),
             ],
           ),

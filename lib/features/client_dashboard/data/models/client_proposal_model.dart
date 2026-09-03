@@ -16,6 +16,9 @@ class ClientProposalModel {
           json['projectTitle'] as String? ??
           project?['title'] as String? ??
           'Project',
+      projectDescription:
+          json['projectDescription'] as String? ??
+          project?['description'] as String?,
       clientId: json['clientId']?.toString() ?? project?['client']?.toString(),
       clientName: json['clientName'] as String?,
       freelancerId:
