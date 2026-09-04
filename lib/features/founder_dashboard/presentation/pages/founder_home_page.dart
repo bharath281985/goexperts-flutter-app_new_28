@@ -60,7 +60,8 @@ class _FounderHomePageState extends State<FounderHomePage> {
   Widget build(BuildContext context) {
     return BlocConsumer<DashboardCubit, DashboardState>(
       listenWhen: (prev, curr) =>
-          curr.status == ViewStatus.success && prev.status != ViewStatus.success,
+          curr.status == ViewStatus.success &&
+          prev.status != ViewStatus.success,
       listener: (context, state) => _maybeShowFreePlanPopup(context, state),
       builder: (context, state) {
         final loading =
@@ -126,13 +127,13 @@ class _FounderHomePageState extends State<FounderHomePage> {
     final Color badgeBgColor = isVerified
         ? AppColors.success.withValues(alpha: 0.12)
         : (isPending
-            ? AppColors.warning.withValues(alpha: 0.14)
-            : AppColors.primary.withValues(alpha: 0.12));
+              ? AppColors.warning.withValues(alpha: 0.14)
+              : AppColors.primary.withValues(alpha: 0.12));
     final Color badgeBorderColor = isVerified
         ? AppColors.success.withValues(alpha: 0.3)
         : (isPending
-            ? AppColors.warning.withValues(alpha: 0.35)
-            : AppColors.primary.withValues(alpha: 0.3));
+              ? AppColors.warning.withValues(alpha: 0.35)
+              : AppColors.primary.withValues(alpha: 0.3));
     final Color badgeTextColor = isVerified
         ? AppColors.success
         : (isPending ? AppColors.warning : AppColors.primary);
@@ -142,10 +143,10 @@ class _FounderHomePageState extends State<FounderHomePage> {
     final String badgeLabel = isVerified
         ? 'Verified Founder'
         : (isPending
-            ? 'KYC In Review'
-            : (missingCount > 0
-                ? '$missingCount Docs Missing'
-                : 'Verify Identity'));
+              ? 'KYC In Review'
+              : (missingCount > 0
+                    ? '$missingCount Docs Missing'
+                    : 'Verify Identity'));
 
     final walletBalance = state.founderWalletBalance;
     final referralsCount = state.founderReferralsCount;
@@ -441,7 +442,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
   Widget _buildRecommendationTabs(BuildContext context) {
     return DashboardRecommendationsSection(
       title: 'Top Matches For You',
-      subtitle: 'Active investors, elite freelancers and enterprise clients',
+      subtitle: 'Active investors, elite freelancers and top startups',
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
@@ -461,18 +462,15 @@ class _FounderHomePageState extends State<FounderHomePage> {
           viewAllRoute: Routes.founderFreelancers,
         ),
         RecommendationTabConfig(
-          key: 'clients',
-          label: 'Clients',
-          icon: Icons.groups_rounded,
+          key: 'startups',
+          label: 'Startups',
+          icon: Icons.rocket_launch_rounded,
           accent: Color(0xFF8B5CF6),
-          viewAllRoute: Routes.founderStartup,
+          viewAllRoute: Routes.founderStartups,
         ),
       ],
     );
   }
-
- 
-  
 
   Widget _buildActionButtons(BuildContext context) {
     return Padding(
@@ -493,7 +491,6 @@ class _FounderHomePageState extends State<FounderHomePage> {
             spacing: spacing,
             runSpacing: spacing,
             children: [
-             
               DashboardActionButton(
                 text: 'My Startup',
                 subtitle: 'Profile, traction & visibility',
@@ -530,14 +527,10 @@ class _FounderHomePageState extends State<FounderHomePage> {
                 onTap: () => context.push(Routes.founderInvestors),
                 width: width,
               ),
-            
             ],
           );
         },
       ),
     );
   }
-
- 
- 
 }

@@ -256,6 +256,7 @@ class AppDrawer extends StatelessWidget {
       ]),
       DrawerSection('Invitations', [
         DrawerEntry('Invitations', Icons.send_outlined),
+        DrawerEntry('Connections', Icons.people_outline),
       ]),
       DrawerSection('Explore More', [
         if (effectiveRole != UserRole.client) ...[
