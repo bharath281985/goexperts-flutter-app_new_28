@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/constants/app_colors.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/auth/token_role_helper.dart';
@@ -195,6 +196,19 @@ class _ProjectsListViewState extends State<ProjectsListView> {
       emptyIcon: Icons.work_outline_rounded,
       sortOptions: _projectSortOptions,
       filterSections: _filterSections,
+      floatingActionButton: Builder(
+        builder: (fabContext) => FloatingActionButton.extended(
+          onPressed: () async {
+            await fabContext.push<bool>(Routes.clientCreateProject);
+            if (!fabContext.mounted) return;
+            fabContext.read<ListBloc<Project>>().add(const ListRefreshed());
+          },
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Post Project'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
+      ),
       itemBuilder: (context, project, _) => AppProjectCard(
         project: project,
         onTap: () => _openProjectDetails(context, project.id),

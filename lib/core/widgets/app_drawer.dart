@@ -6,8 +6,9 @@ import '../../app/constants/app_assets.dart';
 import '../../app/constants/app_colors.dart';
 import '../../app/constants/app_sizes.dart';
 import '../../app/router/route_names.dart';
-import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/domain/entities/app_user.dart';
+import '../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../dashboard/dashboard_cubit.dart';
 import '../extensions/context_extensions.dart';
 import '../utils/enums.dart';
 import 'app_avatar.dart';
@@ -74,13 +75,60 @@ class AppDrawer extends StatelessWidget {
     caseSensitive: false,
   );
 
-  static String _planLabel(String? plan) {
-    final value = plan?.trim();
-    if (value == null || value.isEmpty || _uuidPattern.hasMatch(value)) {
-      return 'Starter plan';
+  static (String, Color) _resolveKycBadge(dynamic user, Map<String, dynamic> data) {
+    final rawKyc = (data['kycStatus'] ?? data['verificationStatus'] ?? '').toString().toUpperCase();
+    final missingCount = data['verificationMissingCount'] ?? data['missingCount'] ?? (data['missing'] is List ? (data['missing'] as List).length : null);
+    final missing = missingCount is num ? missingCount.toInt() : (int.tryParse(missingCount?.toString() ?? '') ?? 0);
+    final isApproved = (rawKyc == 'APPROVED' || rawKyc == 'VERIFIED');
+
+    // Only mark as Verified if approved AND no documents are missing
+    if (isApproved && missing == 0) {
+      return ('Verified', const Color(0xFF10B981));
     }
-    final lower = value.toLowerCase();
-    return lower.endsWith(' plan') ? value : '$value plan';
+    if (data['accountVerified'] == true && missing == 0 && rawKyc != 'MISSING' && rawKyc != 'NOT_SUBMITTED' && rawKyc.isNotEmpty) {
+      return ('Verified', const Color(0xFF10B981));
+    }
+    if (rawKyc == 'PENDING' || rawKyc == 'UNDER_REVIEW' || rawKyc == 'IN_REVIEW') {
+      return ('Pending', const Color(0xFFF59E0B));
+    }
+    if (rawKyc == 'REJECTED' || rawKyc == 'ACTION_REQUIRED') {
+      return ('Action Req', const Color(0xFFEF4444));
+    }
+    return ('Not Verified', const Color(0xFFEF4444));
+  }
+
+  static (String, Color) _resolvePlanBadge(dynamic user, Map<String, dynamic> data) {
+    String planName = (data['subscription']?['planName'] ??
+        data['planName'] ??
+        user?.subscriptionPlan ??
+        '').toString().trim();
+
+    if (planName.isEmpty || _uuidPattern.hasMatch(planName) || planName.toLowerCase() == 'null' || planName.toLowerCase() == 'none') {
+      final isSubscribed = user?.serverHasSubscription == true ||
+          (user?.subscriptionStatus?.toString().toLowerCase() == 'active');
+      if (!isSubscribed) {
+        return ('Not Verified', const Color(0xFFEF4444)); // Not Verified red badge when subscription is null
+      }
+      planName = 'Pro';
+    }
+
+    final clean = planName.toLowerCase();
+    if (clean.contains('gold') || clean.contains('vip') || clean.contains('enterprise') || clean.contains('diamond')) {
+      final label = planName.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
+      return (label.isEmpty ? 'Gold' : label, const Color(0xFFD97706)); // Gold
+    }
+    if (clean.contains('pro') || clean.contains('premium') || clean.contains('paid') || clean.contains('plus') || clean.contains('growth')) {
+      final label = planName.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
+      return (label.isEmpty ? 'Pro' : label, const Color(0xFF8B5CF6)); // Pro purple
+    }
+    if (clean.contains('starter') || clean.contains('basic')) {
+      final label = planName.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
+      return (label.isEmpty ? 'Starter' : label, const Color(0xFF3B82F6)); // Blue
+    }
+    if (clean.contains('free')) {
+      return ('Free', const Color(0xFFEAB308)); // Yellow Free badge
+    }
+    return ('Not Verified', const Color(0xFFEF4444));
   }
 
   @override
@@ -88,10 +136,22 @@ class AppDrawer extends StatelessWidget {
     final pathFromUri = GoRouterState.of(context).uri.path;
     final currentPath = _lastSelectedRoute ?? activeRoute ?? pathFromUri;
     final user = context.select((AuthBloc b) => b.state.user);
+    Map<String, dynamic> dashboardData = const {};
+    try {
+      final cubit = context.read<DashboardCubit?>();
+      if (cubit != null) {
+        dashboardData = {
+          ...cubit.state.dashboardData,
+          'kycStatus': cubit.state.kycStatus,
+          'verificationMissingCount': cubit.state.verificationMissingCount,
+          'accountVerified': cubit.state.accountVerified,
+        };
+      }
+    } catch (_) {}
 
     return _FounderDrawer(
       user: user,
-      sections: _sections(role),
+      sections: _sections(role, user: user, dashboardData: dashboardData),
       currentPath: currentPath,
       onTabSelected: onTabSelected,
       workspaceLabel: switch (role) {
@@ -105,8 +165,15 @@ class AppDrawer extends StatelessWidget {
   }
 
   /// Consolidated master drawer sections list without role duplication.
-  List<DrawerSection> _sections([UserRole? userRole]) {
+  List<DrawerSection> _sections(
+    UserRole? userRole, {
+    dynamic user,
+    Map<String, dynamic> dashboardData = const {},
+  }) {
     final effectiveRole = userRole ?? role;
+    final (kycText, kycColor) = _resolveKycBadge(user, dashboardData);
+    final (planText, planColor) = _resolvePlanBadge(user, dashboardData);
+
     return [
       DrawerSection('Overview', [
         DrawerEntry(
@@ -119,16 +186,6 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderDashboard,
           },
         ),
-        // DrawerEntry(
-        //   'Analytics',
-        //   Icons.insights_outlined,
-        //   route: switch (effectiveRole) {
-        //     UserRole.freelancer => Routes.freelancerAnalytics,
-        //     UserRole.client => Routes.clientAnalytics,
-        //     UserRole.investor => Routes.investorAnalytics,
-        //     UserRole.founder => Routes.founderAnalytics,
-        //   },
-        // ),
       ]),
       DrawerSection('Profile Management', [
         DrawerEntry(
@@ -140,6 +197,8 @@ class AppDrawer extends StatelessWidget {
           'KYC/Verification',
           Icons.verified_user_outlined,
           route: Routes.verification,
+          badgeText: kycText,
+          badgeColor: kycColor,
         ),
         DrawerEntry(
           'My Watchlist',
@@ -155,6 +214,8 @@ class AppDrawer extends StatelessWidget {
           'My Subscriptions',
           Icons.workspace_premium_outlined,
           route: Routes.subscriptionsManage,
+          badgeText: planText,
+          badgeColor: planColor,
         ),
 
         if (effectiveRole == UserRole.freelancer) ...[
@@ -1526,18 +1587,28 @@ class _DrawerMenuTile extends StatelessWidget {
         ),
       );
     } else if (entry.badgeText != null) {
+      final badgeColor = entry.badgeColor ?? colors.secondary;
+      final isLightBadge = badgeColor.computeLuminance() > 0.55;
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
         decoration: BoxDecoration(
-          color: entry.badgeColor ?? colors.secondary,
-          borderRadius: BorderRadius.circular(4),
+          color: badgeColor,
+          borderRadius: BorderRadius.circular(5),
+          boxShadow: [
+            BoxShadow(
+              color: badgeColor.withValues(alpha: 0.25),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+          ],
         ),
         child: Text(
           entry.badgeText!,
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: isLightBadge ? const Color(0xFF1E293B) : Colors.white,
             fontSize: 10,
-            fontWeight: FontWeight.bold,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.2,
           ),
         ),
       );

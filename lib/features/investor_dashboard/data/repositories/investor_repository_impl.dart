@@ -10,6 +10,26 @@ import '../../../../core/utils/enums.dart';
 import '../../domain/entities/investor.dart';
 import '../../domain/repositories/investor_repository.dart';
 
+String _cleanStageString(dynamic val) {
+  if (val == null) return 'MVP';
+  if (val is Map) {
+    return val['name']?.toString() ??
+        val['label']?.toString() ??
+        val['value']?.toString() ??
+        val['id']?.toString() ??
+        'MVP';
+  }
+  final str = val.toString().trim();
+  if (str.startsWith('{') && str.endsWith('}')) {
+    final match = RegExp(r'name:\s*([^,}]+)|label:\s*([^,}]+)|id:\s*([^,}]+)').firstMatch(str);
+    if (match != null) {
+      final res = (match.group(1) ?? match.group(2) ?? match.group(3) ?? str).trim();
+      if (res.isNotEmpty && !res.startsWith('{')) return res;
+    }
+  }
+  return str.isEmpty ? 'MVP' : str;
+}
+
 class InvestorRepositoryImpl implements InvestorRepository {
   InvestorRepositoryImpl([this._api, this._tokenRoleHelper]);
   final ApiClientHelper? _api;
@@ -260,10 +280,12 @@ class InvestorRepositoryImpl implements InvestorRepository {
           ideaDetails?['founder']?.toString() ??
           raw['founderName']?.toString() ??
           'Founder',
-      stage:
-          ideaDetails?['stage']?.toString() ??
-          raw['stage']?.toString() ??
-          'MVP',
+      stage: _cleanStageString(
+        ideaDetails?['stage'] ??
+            raw['stage'] ??
+            ideaDetails?['stageName'] ??
+            'MVP',
+      ),
       amount:
           (raw['offer'] as num?)?.toDouble() ??
           (raw['amount'] as num?)?.toDouble() ??

@@ -106,8 +106,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
                     //   const SizedBox(height: 16),
                     // ],
                     _buildHeroBanner(context, state),
-                   
-                    _buildActionButtons(context), 
+                    _buildActionButtons(context),
                     _buildRecommendationTabs(context),
                     const SizedBox(height: 100),
                   ],

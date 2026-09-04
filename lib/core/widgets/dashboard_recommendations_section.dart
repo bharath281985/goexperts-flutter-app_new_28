@@ -301,34 +301,65 @@ class _DashboardRecommendationsSectionState
     RecommendationTabConfig tab,
     Map<String, dynamic> item,
   ) {
-    final title = (item['title']?.toString() ?? 'Recommendation').trim();
+    var title = (item['title']?.toString() ?? '').trim();
     final rawSubtitle = (item['subtitle']?.toString() ?? '').trim();
     final rawDescription = (item['description']?.toString() ?? '').trim();
     final subtitle = _sanitizeTag(rawSubtitle, _fallbackRole(tab.key));
     final description = _sanitizeDescription(rawDescription);
 
+    if (title.isEmpty ||
+        title.toLowerCase() == 'untitled' ||
+        title.toLowerCase() == 'untitled project' ||
+        title.toLowerCase() == 'project' ||
+        title.toLowerCase() == 'startup idea') {
+      if (tab.key == 'projects') {
+        title = subtitle.isNotEmpty && subtitle != 'Project'
+            ? '$subtitle Platform'
+            : 'Web & Mobile App Project';
+      } else if (tab.key == 'startups') {
+        title = subtitle.isNotEmpty && subtitle != 'Startup'
+            ? '$subtitle Venture'
+            : 'Emerging Tech Startup';
+      } else {
+        title = _fallbackRole(tab.key);
+      }
+    }
+
     final initial = title.isNotEmpty ? title[0].toUpperCase() : 'G';
+    final isDark = context.isDark;
+
+    // Optional metric pill (Budget or Funding)
+    final budget = item['budget'];
+    final funding = item['funding'];
+    String? metricText;
+    if (budget != null && budget is num && budget > 0) {
+      metricText = '₹${budget >= 100000 ? (budget / 100000).toStringAsFixed(1) + 'L' : budget >= 1000 ? (budget / 1000).toStringAsFixed(0) + 'k' : budget.toString()}';
+    } else if (funding != null && funding is num && funding > 0) {
+      metricText = '₹${funding >= 10000000 ? (funding / 10000000).toStringAsFixed(1) + 'Cr' : funding >= 100000 ? (funding / 100000).toStringAsFixed(1) + 'L' : funding.toString()}';
+    }
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _handleItemTap(context, tab.key, item),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           decoration: BoxDecoration(
-            color: context.isDark ? AppColors.darkCard : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            color: isDark ? const Color(0xFF1E2430) : Colors.white,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: context.isDark ? AppColors.darkBorder : AppColors.border,
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : AppColors.border.withValues(alpha: 0.7),
             ),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(
-                  alpha: context.isDark ? 0.25 : 0.03,
+                  alpha: isDark ? 0.25 : 0.03,
                 ),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
@@ -337,20 +368,20 @@ class _DashboardRecommendationsSectionState
             children: [
               // Left: Rounded Gradient Avatar with Icon or Monogram
               Container(
-                width: 44,
-                height: 44,
+                width: 42,
+                height: 42,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     colors: [
                       tab.accent.withValues(alpha: 0.18),
-                      tab.accent.withValues(alpha: 0.06),
+                      tab.accent.withValues(alpha: 0.05),
                     ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
-                  borderRadius: BorderRadius.circular(13),
+                  borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: tab.accent.withValues(alpha: 0.2),
+                    color: tab.accent.withValues(alpha: 0.25),
                     width: 1,
                   ),
                 ),
@@ -365,9 +396,9 @@ class _DashboardRecommendationsSectionState
                   ),
                 ),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 12),
 
-              // Middle: Name, Verified Tag, Subtitle & Details
+              // Middle: Title, Badges & Secondary info
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,8 +414,8 @@ class _DashboardRecommendationsSectionState
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: context.isDark
+                              fontWeight: FontWeight.w700,
+                              color: isDark
                                   ? Colors.white
                                   : AppColors.darkText,
                             ),
@@ -393,68 +424,74 @@ class _DashboardRecommendationsSectionState
                         const SizedBox(width: 4),
                         const Icon(
                           Icons.verified_rounded,
-                          size: 14,
+                          size: 13,
                           color: AppColors.primary,
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
 
-                    // Subtitle Tag Pill + Location/Description
+                    // Subtitle Tag Pill + Optional Metric + Description
                     Row(
                       children: [
                         if (subtitle.isNotEmpty) ...[
-                          Flexible(
-                            flex: 0,
-                            child: Container(
-                              constraints: const BoxConstraints(maxWidth: 130),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 1.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: tab.accent.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                subtitle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 10.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: tab.accent,
-                                ),
+                          Container(
+                            constraints: const BoxConstraints(maxWidth: 110),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: tab.accent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: tab.accent,
                               ),
                             ),
                           ),
-                          if (description.isNotEmpty)
-                            const SizedBox(width: 6),
+                          const SizedBox(width: 6),
+                        ],
+                        if (metricText != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.grey.shade100,
+                              borderRadius: BorderRadius.circular(5),
+                            ),
+                            child: Text(
+                              metricText,
+                              style: TextStyle(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white70 : AppColors.darkText,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 6),
                         ],
                         if (description.isNotEmpty)
                           Expanded(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(
-                                  Icons.location_on_outlined,
-                                  size: 11,
-                                  color: AppColors.mutedText,
-                                ),
-                                const SizedBox(width: 2),
-                                Expanded(
-                                  child: Text(
-                                    description,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppColors.mutedText,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
+                            child: Text(
+                              description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppColors.mutedText,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                       ],
@@ -462,17 +499,17 @@ class _DashboardRecommendationsSectionState
                   ],
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 8),
 
-              // Right: Action Pill Button with arrow
+              // Right: Compact Action Pill Button
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
                   color: tab.accent.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: tab.accent.withValues(alpha: 0.18),
+                    color: tab.accent.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -489,7 +526,7 @@ class _DashboardRecommendationsSectionState
                     const SizedBox(width: 3),
                     Icon(
                       Icons.arrow_forward_rounded,
-                      size: 12,
+                      size: 11,
                       color: tab.accent,
                     ),
                   ],
@@ -501,6 +538,7 @@ class _DashboardRecommendationsSectionState
       ),
     );
   }
+
 
   static String _fallbackRole(String key) {
     switch (key) {

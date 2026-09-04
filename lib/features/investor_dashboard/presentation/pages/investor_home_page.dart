@@ -459,12 +459,12 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
                 width: width,
               ),
               DashboardActionButton(
-                text: 'Pitch Meetings',
-                subtitle: '1-on-1 calls with verified founders',
-                tag: '1-on-1',
-                icon: Icons.video_call_rounded,
+                text: 'Team Members',
+                subtitle: 'Invite partners, associates & managers',
+                tag: 'Collab',
+                icon: Icons.groups_rounded,
                 color: const Color(0xFFF59E0B),
-                onTap: () => context.push(Routes.meetings),
+                onTap: () => context.push(Routes.investorTeams),
                 width: width,
               ),
             

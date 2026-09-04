@@ -9,6 +9,7 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../founder_dashboard/presentation/widgets/edit_idea_bottom_sheet.dart';
 import '../../../master_data/domain/entities/master_option.dart';
 import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
@@ -142,57 +143,56 @@ class _StartupsListViewState extends State<StartupsListView> {
       emptyIcon: Icons.rocket_launch_outlined,
       sortOptions: _startupSortOptions,
       filterSections: _filterSections,
-      floatingActionButton: null,
-      /*
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () async {
-          final data = await showModalBottomSheet<Map<String, dynamic>>(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (ctx) => const EditIdeaBottomSheet(
-              startup: Startup(
-                id: '',
-                name: '',
-                tagline: '',
-                industry: 'General',
-                stage: 'MVP',
-                founderName: '',
-                fundingRequired: 500000,
-                equityOffered: 10,
-                location: 'Remote',
+      floatingActionButton: Builder(
+        builder: (fabContext) => FloatingActionButton.extended(
+          onPressed: () async {
+            final data = await showModalBottomSheet<Map<String, dynamic>>(
+              context: fabContext,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => const EditIdeaBottomSheet(
+                startup: Startup(
+                  id: '',
+                  name: '',
+                  tagline: '',
+                  industry: 'General',
+                  stage: 'MVP',
+                  founderName: '',
+                  fundingRequired: 500000,
+                  equityOffered: 10,
+                  location: 'Remote',
+                ),
               ),
-            ),
-          );
-
-          if (data == null) return;
-          if (!context.mounted) return;
-
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (_) => const Center(child: CircularProgressIndicator()),
-          );
-
-          final res = await repo.createIdea(data);
-          if (context.mounted) Navigator.pop(context);
-
-          if (context.mounted) {
-            res.fold(
-              (f) => context.showTopSnack(f.message, isError: true),
-              (created) {
-                context.showTopSnack('Startup Idea published successfully!');
-                context.read<ListBloc<Startup>>().add(const ListStarted());
-              },
             );
-          }
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Post Startup'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+
+            if (data == null) return;
+            if (!fabContext.mounted) return;
+
+            showDialog(
+              context: fabContext,
+              barrierDismissible: false,
+              builder: (_) => const Center(child: CircularProgressIndicator()),
+            );
+
+            final res = await repo.createIdea(data);
+            if (fabContext.mounted) Navigator.pop(fabContext);
+
+            if (fabContext.mounted) {
+              res.fold(
+                (f) => fabContext.showTopSnack(f.message, isError: true),
+                (created) {
+                  fabContext.showTopSnack('Startup Idea published successfully!');
+                  fabContext.read<ListBloc<Startup>>().add(const ListRefreshed());
+                },
+              );
+            }
+          },
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Post Startup'),
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+        ),
       ),
-      */
       itemBuilder: (context, s, _) {
         final bloc = context.read<ListBloc<Startup>>();
         return AppStartupCard(

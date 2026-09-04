@@ -2138,26 +2138,39 @@ class _HeaderCard extends StatelessWidget {
                 ),
               ),
               AppSizes.hGapSm,
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: accountVerified
-                      ? AppColors.success.withValues(alpha: 0.1)
-                      : AppColors.warning.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  accountVerified ? 'Verified Account' : 'Unverified',
-                  style: context.text.labelSmall?.copyWith(
-                    color: accountVerified
-                        ? AppColors.success
-                        : AppColors.warning,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+              Builder(
+                builder: (context) {
+                  final isFullyVerified = accountVerified && missingCount == 0;
+                  final isPending = !isFullyVerified && pendingCount > 0 && missingCount == 0;
+                  final badgeText = isFullyVerified
+                      ? 'Verified Account'
+                      : (isPending ? 'Pending' : 'Not Verified');
+                  final badgeColor = isFullyVerified
+                      ? AppColors.success
+                      : (isPending ? AppColors.warning : AppColors.danger);
+
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: badgeColor.withValues(alpha: 0.3),
+                        width: 0.8,
+                      ),
+                    ),
+                    child: Text(
+                      badgeText,
+                      style: context.text.labelSmall?.copyWith(
+                        color: badgeColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

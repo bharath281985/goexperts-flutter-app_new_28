@@ -461,7 +461,17 @@ class MessageRepositoryImpl implements MessageRepository {
       isPinned: false,
       isMuted: false,
       isTyping: json['typing'] as bool? ?? false,
-      role: json['role']?.toString() ?? '',
+      role: json['role']?.toString() ??
+          json['userRole']?.toString() ??
+          json['participantRole']?.toString() ??
+          json['otherUserRole']?.toString() ??
+          (json['participant'] is Map
+              ? (json['participant'] as Map)['role']?.toString()
+              : null) ??
+          (json['otherUser'] is Map
+              ? (json['otherUser'] as Map)['role']?.toString()
+              : null) ??
+          '',
       participantId:
           json['participantId']?.toString() ??
           json['participant_id']?.toString() ??

@@ -9,13 +9,19 @@ class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
     this.controller,
+    this.focusNode,
     this.label,
     this.hint,
     this.prefixIcon,
+    this.prefixWidget,
+    this.prefixText,
     this.suffixIcon,
+    this.suffixText,
+    this.helperText,
     this.obscure = false,
     this.keyboardType,
     this.validator,
+    this.autovalidateMode = AutovalidateMode.onUserInteraction,
     this.onChanged,
     this.maxLines = 1,
     this.maxLength,
@@ -29,13 +35,19 @@ class AppTextField extends StatefulWidget {
   });
 
   final TextEditingController? controller;
+  final FocusNode? focusNode;
   final String? label;
   final String? hint;
   final IconData? prefixIcon;
+  final Widget? prefixWidget;
+  final String? prefixText;
   final Widget? suffixIcon;
+  final String? suffixText;
+  final String? helperText;
   final bool obscure;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
+  final AutovalidateMode autovalidateMode;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final int maxLines;
@@ -72,10 +84,12 @@ class _AppTextFieldState extends State<AppTextField> {
         ],
         TextFormField(
           controller: widget.controller,
+          focusNode: widget.focusNode,
           initialValue: widget.initialValue,
           obscureText: _obscured,
           keyboardType: widget.keyboardType,
           validator: widget.validator,
+          autovalidateMode: widget.autovalidateMode,
           onChanged: widget.onChanged,
           onFieldSubmitted: widget.onSubmitted,
           maxLines: widget.obscure ? 1 : widget.maxLines,
@@ -89,9 +103,15 @@ class _AppTextFieldState extends State<AppTextField> {
             hintText: widget.hint == null
                 ? context.tr(generatedHint ?? "")
                 : context.tr(widget.hint!),
-            prefixIcon: widget.prefixIcon != null
-                ? Icon(widget.prefixIcon, size: AppSizes.iconMd)
-                : null,
+            prefixText: widget.prefixText,
+            prefixStyle: const TextStyle(fontWeight: FontWeight.w600),
+            prefixIcon: widget.prefixWidget ??
+                (widget.prefixIcon != null
+                    ? Icon(widget.prefixIcon, size: AppSizes.iconMd)
+                    : null),
+            suffixText: widget.suffixText,
+            suffixStyle: const TextStyle(fontWeight: FontWeight.w600),
+            helperText: widget.helperText,
             suffixIcon: widget.obscure
                 ? IconButton(
                     icon: Icon(
@@ -109,3 +129,4 @@ class _AppTextFieldState extends State<AppTextField> {
     );
   }
 }
+

@@ -79,6 +79,8 @@ class ApiEndpoints {
   static const publicInvestmentsOffer = '/public/investments/offer';
   static const publicInvestments = '/public/investments';
   static const publicInvestorRequests = '/public/investor-requests';
+  static const publicSavedProjects = '/public/projects/saved';
+  static const publicSavedFreelancers = '/public/freelancers/saved';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';
   static String publicFreelancerSave(String id) =>

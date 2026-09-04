@@ -59,16 +59,18 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
 
   Future<void> _loadDropdownOptions() async {
     final masters = sl<MasterDataRepository>();
-    final roles = _isClient
-        ? await masters.getDesignations()
-        : await masters.getStartupRoles();
-    final departments = _isClient
-        ? await masters.getMasters('department')
-        : null;
+    final roles = await masters.getDesignations();
+    final departments = await masters.getMasters('department');
     if (!mounted) return;
     setState(() {
-      _roleOptions = roles.valueOrNull ?? const [];
-      _departmentOptions = departments?.valueOrNull ?? const [];
+      final fetchedRoles = roles.valueOrNull ?? const [];
+      if (fetchedRoles.isNotEmpty) {
+        _roleOptions = fetchedRoles;
+      }
+      final fetchedDepts = departments.valueOrNull ?? const [];
+      if (fetchedDepts.isNotEmpty) {
+        _departmentOptions = fetchedDepts;
+      }
     });
   }
 
@@ -148,45 +150,16 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                   _SuggestionField(
                     controller: _roleController,
                     label: 'Role',
-                    hint: _isClient ? 'Developer' : 'Co-Founder',
-                    options: _roleOptions.isNotEmpty
-                        ? _roleOptions
-                        : _isClient
-                        ? const [
-                            'Project Manager',
-                            'Developer',
-                            'Designer',
-                            'Quality Analyst',
-                            'Finance',
-                            'Operations',
-                          ]
-                        : const [
-                            'Co-Founder',
-                            'CEO',
-                            'CTO',
-                            'COO',
-                            'CMO',
-                            'Advisor',
-                          ],
+                    hint: _isClient ? 'e.g. Developer' : 'e.g. Co-Founder',
+                    options: _roleOptions,
                   ),
                   if (_isClient && member == null) ...[
                     AppSizes.vGapMd,
                     _SuggestionField(
                       controller: _departmentController,
                       label: 'Department',
-                      hint: 'Engineering',
-                      options: _departmentOptions.isNotEmpty
-                          ? _departmentOptions
-                          : const [
-                              'Engineering',
-                              'Product',
-                              'Design',
-                              'Marketing',
-                              'Sales',
-                              'Finance',
-                              'Operations',
-                              'Human Resources',
-                            ],
+                      hint: 'e.g. Engineering',
+                      options: _departmentOptions,
                     ),
                   ],
                   if (!_isClient && member != null) ...[
@@ -454,6 +427,14 @@ class _SuggestionField extends StatelessWidget {
       requestFocusOnTap: true,
       label: Text(label),
       hintText: hint,
+      initialSelection: controller.text.isNotEmpty && options.contains(controller.text)
+          ? controller.text
+          : null,
+      onSelected: (val) {
+        if (val != null) {
+          controller.text = val;
+        }
+      },
       dropdownMenuEntries: options
           .map((option) => DropdownMenuEntry(value: option, label: option))
           .toList(),

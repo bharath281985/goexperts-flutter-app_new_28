@@ -31,21 +31,17 @@ class ScheduleMeetingSheet extends StatefulWidget {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(
           top: Radius.circular(AppSizes.radiusXl),
         ),
       ),
-      builder: (_) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-        ),
-        child: ScheduleMeetingSheet(
-          targetId: targetId,
-          targetName: targetName,
-          targetAvatar: targetAvatar,
-        ),
+      builder: (ctx) => ScheduleMeetingSheet(
+        targetId: targetId,
+        targetName: targetName,
+        targetAvatar: targetAvatar,
       ),
     );
   }
@@ -62,6 +58,14 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
   TimeOfDay? _selectedTime;
   final int _durationMinutes = 30;
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _meetingUrlCtrl.dispose();
+    _agendaCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickDate() async {
     final date = await showDatePicker(
@@ -137,14 +141,6 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
   }
 
   @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _meetingUrlCtrl.dispose();
-    _agendaCtrl.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
@@ -158,33 +154,17 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Schedule Meeting',
-                        style: context.text.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        'with ${widget.targetName}',
-                        style: context.text.bodyMedium?.copyWith(
-                          color: AppColors.subtleText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
+            Text(
+              'Schedule Meeting',
+              style: context.text.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              'with ${widget.targetName}',
+              style: context.text.bodyMedium?.copyWith(
+                color: AppColors.subtleText,
+              ),
             ),
             AppSizes.vGapXl,
             AppTextField(

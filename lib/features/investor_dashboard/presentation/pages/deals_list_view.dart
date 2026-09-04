@@ -33,6 +33,23 @@ class DealsListView extends StatelessWidget {
   }
 }
 
+String _formatStage(String raw) {
+  if (raw.isEmpty) return 'MVP';
+  if (raw.contains('name:')) {
+    final match = RegExp(r'name:\s*([^,}]+)').firstMatch(raw);
+    if (match != null) return match.group(1)!.trim();
+  }
+  if (raw.contains('label:')) {
+    final match = RegExp(r'label:\s*([^,}]+)').firstMatch(raw);
+    if (match != null) return match.group(1)!.trim();
+  }
+  if (raw.contains('id:')) {
+    final match = RegExp(r'id:\s*([^,}]+)').firstMatch(raw);
+    if (match != null) return match.group(1)!.trim();
+  }
+  return raw.replaceAll(RegExp(r'[{}]'), '').trim();
+}
+
 class _DealCard extends StatelessWidget {
   const _DealCard({required this.deal});
   final Deal deal;
@@ -108,7 +125,7 @@ class _DealCard extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  deal.stage,
+                                  _formatStage(deal.stage),
                                   style: context.text.labelSmall?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),

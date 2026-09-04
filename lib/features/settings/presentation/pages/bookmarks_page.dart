@@ -41,13 +41,53 @@ class BookmarksPage extends StatelessWidget {
   final bool embedded;
 
   Future<Result<Paginated<Project>>> _fetchProjects(QueryParams params) async {
+    final client = sl<ApiClientHelper>();
+    final query = params.toApiQuery();
+
+    // 1. Fetch directly from backend saved projects endpoint
+    final apiRes = await client.getEnvelope<Paginated<Project>>(
+      ApiEndpoints.publicSavedProjects,
+      query: query,
+      parser: (env) {
+        final list = env.data as List? ?? [];
+        final items = list
+            .map(
+              (e) => Project.fromApiJson(
+                Map<String, dynamic>.from(e as Map),
+              ).copyWith(isSaved: true),
+            )
+            .toList();
+
+        for (final p in items) {
+          BookmarkManager.instance.syncItem(
+            BookmarkManager.categoryProjects,
+            p.id,
+            true,
+          );
+        }
+
+        return Paginated(
+          items: items,
+          page: params.page,
+          totalPages: 1,
+          totalItems: list.length,
+        );
+      },
+    );
+
+    if (apiRes.isSuccess && (apiRes.valueOrNull?.items.isNotEmpty ?? false)) {
+      return apiRes;
+    }
+
+    // 2. Fallback to local bookmark repository if backend returned empty
     final res = await sl<ProjectRepository>().getProjects(params);
-    return res.fold((f) => Err(f), (paginated) {
+    return res.fold((f) => apiRes.isSuccess ? apiRes : Err(f), (paginated) {
       final savedIds = BookmarkManager.instance.getIds(
         BookmarkManager.categoryProjects,
       );
       final filtered = paginated.items
           .where((x) => savedIds.contains(x.id))
+          .map((x) => x.copyWith(isSaved: true))
           .toList();
       return Success(
         Paginated(
@@ -63,8 +103,72 @@ class BookmarksPage extends StatelessWidget {
   Future<Result<Paginated<Freelancer>>> _fetchFreelancers(
     QueryParams params,
   ) async {
+    final client = sl<ApiClientHelper>();
+    final query = params.toApiQuery();
+
+    // 1. Fetch directly from authenticated saved freelancers endpoint
+    final apiRes = await client.getEnvelope<Paginated<Freelancer>>(
+      ApiEndpoints.clientFreelancersSaved,
+      query: query,
+      parser: (env) {
+        final list = env.data as List? ?? [];
+        final items = list
+            .map((e) {
+              final map = Map<String, dynamic>.from(e as Map);
+              final fId = map['freelancerId'] ?? map['id'] ?? '';
+              return Freelancer(
+                id: fId.toString(),
+                name: map['name'] ?? map['fullName'] ?? 'Freelancer',
+                headline: map['headline'] ?? map['titleHeadline'] ?? '',
+                category: map['category'] ?? 'General',
+                skills:
+                    (map['skills'] as List?)?.map((e) => e.toString()).toList() ??
+                    const [],
+                hourlyRate:
+                    double.tryParse(
+                      (map['rate'] ?? map['hourlyRate'] ?? 0).toString(),
+                    ) ??
+                    0.0,
+                rating:
+                    double.tryParse((map['rating'] ?? 5).toString()) ?? 5.0,
+                reviewsCount:
+                    int.tryParse((map['reviewsCount'] ?? 0).toString()) ?? 0,
+                location:
+                    map['location'] ??
+                    (map['city'] != null
+                        ? '${map['city']}, ${map['country'] ?? ''}'
+                        : ''),
+                avatarUrl: map['avatar'] ?? map['avatarUrl'] ?? '',
+                bio: map['bio'] ?? '',
+                isSaved: true,
+              );
+            })
+            .toList();
+
+        for (final f in items) {
+          BookmarkManager.instance.syncItem(
+            BookmarkManager.categoryFreelancers,
+            f.id,
+            true,
+          );
+        }
+
+        return Paginated(
+          items: items,
+          page: params.page,
+          totalPages: 1,
+          totalItems: list.length,
+        );
+      },
+    );
+
+    if (apiRes.isSuccess && (apiRes.valueOrNull?.items.isNotEmpty ?? false)) {
+      return apiRes;
+    }
+
+    // 2. Fallback to local bookmark repository if backend returned empty
     final res = await sl<FreelancerRepository>().getFreelancers(params);
-    return res.fold((f) => Err(f), (paginated) {
+    return res.fold((f) => apiRes.isSuccess ? apiRes : Err(f), (paginated) {
       final savedIds = BookmarkManager.instance.getIds(
         BookmarkManager.categoryFreelancers,
       );
@@ -442,9 +546,14 @@ class BookmarksPage extends StatelessWidget {
                   color: AppColors.primary,
                 ),
                 onPressed: () async {
-                final result = await sl<ApiClientHelper>().deleteAction(
-                  ApiEndpoints.investorWatchlistItem(i.id),
-                );
+                  final result = await sl<ApiClientHelper>().postAction(
+                    '${ApiEndpoints.favorites}/toggle',
+                    body: {'entityType': 'investor', 'entityId': i.id},
+                  );
+                  // Also trigger watchlist deletion as fallback
+                  sl<ApiClientHelper>().deleteAction(
+                    ApiEndpoints.investorWatchlistItem(i.id),
+                  );
                   if (!context.mounted) return;
                   result.fold(
                     (failure) =>
@@ -699,67 +808,49 @@ class BookmarksPage extends StatelessWidget {
       case UserRole.freelancer:
         tabs = const [
           Tab(text: 'Projects'),
-          Tab(text: 'Technologies'),
-          Tab(text: 'Categories'),
-          Tab(text: 'Searches & Filters'),
-          Tab(text: 'Collections & Folders'),
-          Tab(text: 'Resources & Blogs'),
+          Tab(text: 'Startups'),
+          Tab(text: 'Investors'),
         ];
         tabViews = [
           _projectsView(context),
-
-          _technologiesView(context),
-          _categoriesView(context),
-          _buildSearchesAndFilters(context),
-          _buildCollectionsAndFolders(context),
-          _buildResourcesAndBlogs(context),
+          _startupsView(context),
+          _investorsView(context),
         ];
         break;
       case UserRole.client:
         tabs = const [
           Tab(text: 'Freelancers'),
           Tab(text: 'Projects'),
-          Tab(text: 'Searches & Filters'),
-          Tab(text: 'Collections & Folders'),
-          Tab(text: 'Resources & Blogs'),
+          Tab(text: 'Startups'),
         ];
         tabViews = [
           _freelancersView(context),
           _projectsView(context),
-          _buildSearchesAndFilters(context),
-          _buildCollectionsAndFolders(context),
-          _buildResourcesAndBlogs(context),
-        ];
-        break;
-      case UserRole.investor:
-        tabs = const [
-          Tab(text: 'Startups'),
-          Tab(text: 'Founders'),
-          // Tab(text: 'Searches & Filters'),
-          // Tab(text: 'Collections & Folders'),
-          // Tab(text: 'Resources & Blogs'),
-        ];
-        tabViews = [
           _startupsView(context),
-          _foundersView(context),
-          // _buildSearchesAndFilters(context),
-          // _buildCollectionsAndFolders(context),
-          // _buildResourcesAndBlogs(context),
         ];
         break;
       case UserRole.founder:
         tabs = const [
           Tab(text: 'Investors'),
-
-          // Tab(text: 'Searches & Filters'),
-          // Tab(text: 'Collections & Folders'),
-          // Tab(text: 'Resources & Blogs'),
+          Tab(text: 'Freelancers'),
+          Tab(text: 'Projects'),
         ];
         tabViews = [
           _investorsView(context),
-          // _buildSearchesAndFilters(context),
-          // _buildCollectionsAndFolders(context),
-          // _buildResourcesAndBlogs(context),
+          _freelancersView(context),
+          _projectsView(context),
+        ];
+        break;
+      case UserRole.investor:
+        tabs = const [
+          Tab(text: 'Startups'),
+          Tab(text: 'Freelancers'),
+          Tab(text: 'Projects'),
+        ];
+        tabViews = [
+          _startupsView(context),
+          _freelancersView(context),
+          _projectsView(context),
         ];
         break;
     }

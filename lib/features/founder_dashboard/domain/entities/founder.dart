@@ -55,25 +55,44 @@ class Founder extends Equatable {
     followers: followers,
   );
 
-  factory Founder.fromApiJson(Map<String, dynamic> json) => Founder(
-    id: json['id']?.toString() ?? json['founderId']?.toString() ?? '',
-    name: json['name']?.toString() ?? json['fullName']?.toString() ?? 'Founder',
-    founderType: json['founderType'] as String? ?? 'Founder',
-    location: json['location'] as String? ?? 'N/A',
-    avatarUrl: json['avatarUrl'] as String?,
-    coverUrl: json['coverUrl'] as String?,
-    bio: json['bio'] as String? ?? '',
-    experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
-    skills:
-        (json['skills'] as List?)?.map((e) => e.toString()).toList() ??
-        const [],
-    linkedIn: json['linkedIn'] as String?,
-    startupName: json['startupName'] as String? ?? '',
-    isVerified: json['isVerified'] as bool? ?? false,
-    isFollowing: json['isFollowing'] as bool? ?? false,
-    isSaved: json['isSaved'] as bool? ?? false,
-    followers: (json['followers'] as num?)?.toInt() ?? 0,
-  );
+  factory Founder.fromApiJson(Map<String, dynamic> json) {
+    String parseVal(dynamic field, [String fallback = '']) {
+      if (field is Map) {
+        final n = field['name'] ?? field['label'] ?? field['value'] ?? field['title'];
+        if (n != null && n.toString().trim().isNotEmpty) return n.toString().trim();
+      }
+      if (field is String && field.trim().isNotEmpty) {
+        return field.trim();
+      }
+      return fallback;
+    }
+
+    final fType = parseVal(json['founderType'], 'Founder');
+    final sName = parseVal(json['startupName'] ?? json['startup'] ?? json['company'], '');
+    final loc = parseVal(json['location'], 'N/A');
+
+    return Founder(
+      id: json['id']?.toString() ?? json['founderId']?.toString() ?? '',
+      name: json['name']?.toString() ?? json['fullName']?.toString() ?? 'Founder',
+      founderType: fType.isNotEmpty ? fType : 'Founder',
+      location: loc.isNotEmpty ? loc : 'N/A',
+      avatarUrl: json['avatarUrl']?.toString(),
+      coverUrl: json['coverUrl']?.toString(),
+      bio: json['bio']?.toString() ?? '',
+      experienceYears: (json['experienceYears'] as num?)?.toInt() ?? 0,
+      skills: (json['skills'] as List?)
+              ?.map((e) => parseVal(e))
+              .where((e) => e.isNotEmpty)
+              .toList() ??
+          const [],
+      linkedIn: json['linkedIn']?.toString(),
+      startupName: sName,
+      isVerified: json['isVerified'] == true,
+      isFollowing: json['isFollowing'] == true,
+      isSaved: json['isSaved'] == true,
+      followers: (json['followers'] as num?)?.toInt() ?? 0,
+    );
+  }
 
   @override
   List<Object?> get props => [id, isFollowing, isSaved];

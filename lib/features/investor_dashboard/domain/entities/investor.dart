@@ -173,27 +173,33 @@ class Investor extends Equatable {
           .toList();
     }
 
-    final role = json['role']?.toString() ?? '';
-    final investorType =
-        profile['investorTypeName']?.toString() ??
-        json['investorTypeName']?.toString() ??
-        profile['investorType']?.toString() ??
-        (focusAreasStr.trim().isNotEmpty ? focusAreasStr : 'Angel Investor');
+    String parseVal(dynamic field, [String fallback = '']) {
+      if (field is Map) {
+        final n = field['name'] ?? field['label'] ?? field['value'] ?? field['title'];
+        if (n != null && n.toString().trim().isNotEmpty) return n.toString().trim();
+      }
+      if (field is String && field.trim().isNotEmpty) {
+        return field.trim();
+      }
+      return fallback;
+    }
+
+    final role = parseVal(json['role']);
+    final rawType = parseVal(
+      profile['investorTypeName'] ??
+          json['investorTypeName'] ??
+          profile['investorType'] ??
+          json['investorType'],
+    );
+    final investorType = rawType.isNotEmpty
+        ? rawType
+        : (focusAreasStr.trim().isNotEmpty ? focusAreasStr : 'Angel Investor');
 
     final preferredStagesRaw =
-        profile['PreferredStage'] ?? json['PreferredStage'];
+        profile['PreferredStage'] ?? json['PreferredStage'] ?? profile['preferredStages'] ?? json['preferredStages'];
     final stagePreferences = preferredStagesRaw is List
         ? preferredStagesRaw
-              .map((item) {
-                if (item is Map) {
-                  return (item['preferredStageName'] ??
-                              item['preferredStageId'])
-                          ?.toString()
-                          .trim() ??
-                      '';
-                }
-                return item.toString().trim();
-              })
+              .map((item) => parseVal(item))
               .where((value) => value.isNotEmpty)
               .toList()
         : const <String>[];
