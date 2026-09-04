@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
-import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/auth/token_role_helper.dart';
@@ -63,6 +62,9 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     if (!mounted) return;
     setState(() {
       _role = role;
+      if (role == UserRole.client) {
+        _selectedTab = 1;
+      }
       _categories = categoriesResult.valueOrNull ?? const [];
       _loading = false;
     });
@@ -164,6 +166,9 @@ class _ProjectsListViewState extends State<ProjectsListView> {
   }
 
   Widget _buildTopTabs(BuildContext context) {
+    if (_role == UserRole.client) {
+      return const SizedBox.shrink();
+    }
     final isClient = _role == UserRole.client;
     final myTabLabel = isClient ? 'My Posted' : 'My Projects';
 
@@ -226,8 +231,8 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     }
 
     final repo = sl<ProjectRepository>();
-    final isExplore = _selectedTab == 0;
     final isClient = _role == UserRole.client;
+    final isExplore = !isClient && _selectedTab == 0;
 
     return Column(
       children: [

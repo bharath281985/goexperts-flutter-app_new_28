@@ -287,7 +287,15 @@ class _StartupsListViewState extends State<StartupsListView> {
             itemBuilder: (context, s, _) {
               return AppStartupCard(
                 startup: s,
-                onTap: () => context.push('${Routes.startupDetails}/${s.id}'),
+                onTap: () async {
+                  await context.push('${Routes.startupDetails}/${s.id}');
+                  if (context.mounted) {
+                    try {
+                      context.read<ListBloc<Startup>>().add(const ListRefreshed());
+                    } catch (_) {}
+                    setState(() => _refreshKey++);
+                  }
+                },
                 onSave: () async {
                   final res = await repo.toggleSave(s.id);
                   res.fold(
@@ -350,7 +358,13 @@ class _StartupsListViewState extends State<StartupsListView> {
                     if (submitted == true) {
                       setState(() => _refreshKey++);
                       if (context.mounted) {
-                        context.push('${Routes.startupDetails}/${s.id}');
+                        await context.push('${Routes.startupDetails}/${s.id}');
+                        if (context.mounted) {
+                          try {
+                            context.read<ListBloc<Startup>>().add(const ListRefreshed());
+                          } catch (_) {}
+                          setState(() => _refreshKey++);
+                        }
                       }
                     }
                   }

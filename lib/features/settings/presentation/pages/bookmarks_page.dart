@@ -209,38 +209,35 @@ class BookmarksPage extends StatelessWidget {
       query: params.toApiQuery(),
       parser: (env) {
         final list = env.data as List? ?? [];
-        final items = list
-            .map((e) {
-              final map = Map<String, dynamic>.from(e as Map);
-              final fId = map['freelancerId'] ?? map['id'] ?? '';
-              return Freelancer(
-                id: fId.toString(),
-                name: map['name'] ?? map['fullName'] ?? 'Freelancer',
-                headline: map['headline'] ?? map['titleHeadline'] ?? '',
-                category: map['category'] ?? 'General',
-                skills:
-                    (map['skills'] as List?)?.map((e) => e.toString()).toList() ??
-                    const [],
-                hourlyRate:
-                    double.tryParse(
-                      (map['rate'] ?? map['hourlyRate'] ?? 0).toString(),
-                    ) ??
-                    0.0,
-                rating:
-                    double.tryParse((map['rating'] ?? 5).toString()) ?? 5.0,
-                reviewsCount:
-                    int.tryParse((map['reviewsCount'] ?? 0).toString()) ?? 0,
-                location:
-                    map['location'] ??
-                    (map['city'] != null
-                        ? '${map['city']}, ${map['country'] ?? ''}'
-                        : ''),
-                avatarUrl: map['avatar'] ?? map['avatarUrl'] ?? '',
-                bio: map['bio'] ?? '',
-                isSaved: true,
-              );
-            })
-            .toList();
+        final items = list.map((e) {
+          final map = Map<String, dynamic>.from(e as Map);
+          final fId = map['freelancerId'] ?? map['id'] ?? '';
+          return Freelancer(
+            id: fId.toString(),
+            name: map['name'] ?? map['fullName'] ?? 'Freelancer',
+            headline: map['headline'] ?? map['titleHeadline'] ?? '',
+            category: map['category'] ?? 'General',
+            skills:
+                (map['skills'] as List?)?.map((e) => e.toString()).toList() ??
+                const [],
+            hourlyRate:
+                double.tryParse(
+                  (map['rate'] ?? map['hourlyRate'] ?? 0).toString(),
+                ) ??
+                0.0,
+            rating: double.tryParse((map['rating'] ?? 5).toString()) ?? 5.0,
+            reviewsCount:
+                int.tryParse((map['reviewsCount'] ?? 0).toString()) ?? 0,
+            location:
+                map['location'] ??
+                (map['city'] != null
+                    ? '${map['city']}, ${map['country'] ?? ''}'
+                    : ''),
+            avatarUrl: map['avatar'] ?? map['avatarUrl'] ?? '',
+            bio: map['bio'] ?? '',
+            isSaved: true,
+          );
+        }).toList();
 
         for (final f in items) {
           BookmarkManager.instance.syncItem(
