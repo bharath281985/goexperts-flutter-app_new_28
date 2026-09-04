@@ -81,6 +81,9 @@ class ApiEndpoints {
   static const publicInvestorRequests = '/public/investor-requests';
   static const publicSavedProjects = '/public/projects/saved';
   static const publicSavedFreelancers = '/public/freelancers/saved';
+  static const publicSavedStartups = '/public/startups/saved';
+  static const publicSavedInvestors = '/public/investors/saved';
+  static const publicSavedFounders = '/public/founders/saved';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';
   static String publicFreelancerPortfolio(String freelancerId) =>
@@ -516,6 +519,14 @@ class ApiEndpoints {
 
   static String roleFreelancers(dynamic role) =>
       '/${rolePath(role)}/freelancers';
+  static String roleSavedFreelancers(dynamic role) =>
+      '/${rolePath(role)}/freelancers/saved';
+  static String roleSavedProjects(dynamic role) =>
+      '/${rolePath(role)}/projects/saved';
+  static String roleSavedStartups(dynamic role) =>
+      '/${rolePath(role)}/startups/saved';
+  static String roleWatchlist(dynamic role) =>
+      '/${rolePath(role)}/watchlist';
   static String roleTeams(dynamic role) => '/${rolePath(role)}/teams';
   static String roleReports(dynamic role) => '/${rolePath(role)}/reports';
   static String roleAnalytics(dynamic role) => '/${rolePath(role)}/analytics';

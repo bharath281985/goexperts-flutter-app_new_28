@@ -430,32 +430,23 @@ class _ClientHomePageState extends State<ClientHomePage> {
           runSpacing: spacing,
           children: [
             DashboardActionButton(
-<<<<<<< Updated upstream
               text: 'My Projects',
               subtitle: 'Live sprint boards & task tracking',
               tag: 'Tracking',
               icon: Icons.view_kanban_rounded,
               color: const Color(0xFF8B5CF6),
               onTap: () => context.push(Routes.clientMyProjects),
-=======
+              width: width,
+            ),
+            DashboardActionButton(
               text: 'Post Project',
               subtitle: 'Scope deliverables & budget terms',
               tag: 'Create',
               icon: Icons.add_task_rounded,
               color: AppColors.success,
               onTap: () => context.push(Routes.clientCreateProject),
->>>>>>> Stashed changes
               width: width,
             ),
-            // DashboardActionButton(
-            //   text: 'Post Project',
-            //   subtitle: 'Scope deliverables & budget terms',
-            //   tag: 'Create',
-            //   icon: Icons.add_task_rounded,
-            //   color: const Color(0xFF3B82F6),
-            //   onTap: () => context.push(Routes.clientProjects),
-            //   width: width,
-            // ),
             DashboardActionButton(
               text: 'Hire Freelancers',
               subtitle: 'Vetted developers & domain experts',
