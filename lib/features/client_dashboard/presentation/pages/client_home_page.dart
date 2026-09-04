@@ -430,6 +430,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
           runSpacing: spacing,
           children: [
             DashboardActionButton(
+<<<<<<< HEAD
               text: 'My Projects',
               subtitle: 'Live sprint boards & task tracking',
               tag: 'Tracking',
@@ -439,6 +440,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
               width: width,
             ),
             DashboardActionButton(
+=======
+>>>>>>> 96745f0f364af81077ff8609b0869bd5bf174dd4
               text: 'Post Project',
               subtitle: 'Scope deliverables & budget terms',
               tag: 'Create',
