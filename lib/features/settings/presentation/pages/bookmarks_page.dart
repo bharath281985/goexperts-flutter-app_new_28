@@ -182,115 +182,8 @@ class BookmarksPage extends StatelessWidget {
     final client = sl<ApiClientHelper>();
     final query = params.toApiQuery();
 
-<<<<<<< HEAD
     return client.getEnvelope<Paginated<Investor>>(
       ApiEndpoints.publicSavedInvestors,
-=======
-    final favRes = await client.getEnvelope<Paginated<Investor>>(
-      ApiEndpoints.favorites,
-      query: query,
-      parser: (env) {
-        final list = env.data as List? ?? [];
-        final items = list
-            .map(
-              (e) => Investor.fromApiJson(
-                Map<String, dynamic>.from(e as Map),
-              ).copyWith(isSaved: true),
-            )
-            .toList();
-        for (final i in items) {
-          BookmarkManager.instance.syncItem(
-            BookmarkManager.categoryInvestors,
-            i.id,
-            true,
-          );
-        }
-        return Paginated(
-          items: items,
-          page: params.page,
-          totalPages: 1,
-          totalItems: list.length,
-        );
-      },
-    );
-
-    if (favRes.isSuccess && (favRes.valueOrNull?.items.isNotEmpty ?? false)) {
-      return favRes;
-    }
-
-    final res = await sl<InvestorRepository>().getInvestors(params);
-    return res.fold((f) => favRes.isSuccess ? favRes : Err(f), (paginated) {
-      final savedIds = BookmarkManager.instance.getIds(
-        BookmarkManager.categoryInvestors,
-      );
-      final filtered = paginated.items
-          .where((x) => savedIds.contains(x.id))
-          .map((x) => x.copyWith(isSaved: true))
-          .toList();
-      return Success(
-        Paginated(
-          items: filtered,
-          page: paginated.page,
-          totalPages: 1,
-          totalItems: filtered.length,
-        ),
-      );
-    });
-  }
-
-  Future<Result<Paginated<Technology>>> _fetchTechnologies(
-    QueryParams params,
-  ) async {
-    final res = await sl<CatalogRepository>().getTechnologies(params);
-    return res.fold((f) => Err(f), (paginated) {
-      final savedIds = BookmarkManager.instance.getIds(
-        BookmarkManager.categoryTechnologies,
-      );
-      final filtered = paginated.items
-          .where((x) => savedIds.contains(x.id))
-          .toList();
-      return Success(
-        Paginated(
-          items: filtered,
-          page: paginated.page,
-          totalPages: 1,
-          totalItems: filtered.length,
-        ),
-      );
-    });
-  }
-
-  Future<Result<Paginated<CategoryItem>>> _fetchCategories(
-    QueryParams params,
-  ) async {
-    final res = await sl<CatalogRepository>().getCategories(params);
-    return res.fold((f) => Err(f), (paginated) {
-      final savedIds = BookmarkManager.instance.getIds(
-        BookmarkManager.categoryCategories,
-      );
-      final filtered = paginated.items
-          .where((x) => savedIds.contains(x.id))
-          .toList();
-      return Success(
-        Paginated(
-          items: filtered,
-          page: paginated.page,
-          totalPages: 1,
-          totalItems: filtered.length,
-        ),
-      );
-    });
-  }
-
-  Future<Result<Paginated<Founder>>> _fetchFounders(QueryParams params) async {
-    final client = sl<ApiClientHelper>();
-    final query = params.toApiQuery();
-    query['entityType'] = 'founder';
-
-    // 1. Try unified favorites endpoint first
-    final favRes = await client.getEnvelope<Paginated<Founder>>(
-      ApiEndpoints.favorites,
->>>>>>> 70e4186 (feat: render AppInvestorCard in client wishlist investor tab)
       query: query,
       parser: (env) {
         final list = env.data as List? ?? [];
@@ -320,6 +213,8 @@ class BookmarksPage extends StatelessWidget {
     );
   }
 
+  
+ 
   /// Fetch saved founders based on auth token
   Future<Result<Paginated<Founder>>> _fetchFounders(QueryParams params) async {
     final client = sl<ApiClientHelper>();
