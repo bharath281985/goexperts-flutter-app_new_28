@@ -9,6 +9,8 @@ import '../../../../core/widgets/app_action_sheet.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_section_header.dart';
+import '../../../freelancer_dashboard/presentation/pages/freelancer_subpages.dart';
+import '../../../investor_dashboard/presentation/pages/portfolio_list_view.dart';
 import '../../domain/entities/review.dart';
 
 enum PublicProfileType { freelancer, company, investor, founder }
@@ -16,6 +18,7 @@ enum PublicProfileType { freelancer, company, investor, founder }
 /// View-model that adapts any role entity into a public profile layout.
 class ProfileViewData {
   const ProfileViewData({
+    this.id,
     required this.name,
     required this.headline,
     required this.location,
@@ -49,6 +52,7 @@ class ProfileViewData {
     this.hourlyRate,
   });
 
+  final String? id;
   final String name;
   final String headline;
   final String location;
@@ -419,7 +423,9 @@ class ProfileView extends StatelessWidget {
                 ],
                 () {
                   final links = <Widget>[];
-                  if (data.portfolioUrl.trim().isNotEmpty) {
+                  final freelancerId = data.id;
+                  if ((freelancerId != null && freelancerId.isNotEmpty) ||
+                      data.portfolioUrl.trim().isNotEmpty) {
                     links.add(
                       _linkCard(
                         context,
@@ -427,6 +433,18 @@ class ProfileView extends StatelessWidget {
                         'View Portfolio',
                         Icons.folder_special_outlined,
                         data.portfolioUrl.trim(),
+                        onTap: freelancerId != null && freelancerId.isNotEmpty
+                            ? () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => FreelancerPortfolioPage(
+                                      freelancerId: freelancerId,
+                                      isReadOnly: true,
+                                    ),
+                                  ),
+                                );
+                              }
+                            : null,
                       ),
                     );
                   }
@@ -545,6 +563,10 @@ class ProfileView extends StatelessWidget {
                 if (data.stats.isNotEmpty) ...[
                   AppSizes.vGapLg,
                   _statsCard(context),
+                ],
+                if (data.id != null && data.id!.isNotEmpty) ...[
+                  AppSizes.vGapLg,
+                  _investorPortfolioCard(context),
                 ],
                 AppSizes.vGapLg,
                 _investorThesis(context),
@@ -1843,14 +1865,75 @@ class ProfileView extends StatelessWidget {
     ),
   );
 
+  Widget _investorPortfolioCard(BuildContext context) => AppCard(
+    onTap: () {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => PublicInvestorPortfolioPage(
+            investorId: data.id!,
+            investorName: data.name,
+          ),
+        ),
+      );
+    },
+    padding: const EdgeInsets.all(AppSizes.md),
+    child: Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.pie_chart_outline_rounded,
+            color: AppColors.primary,
+            size: 22,
+          ),
+        ),
+        AppSizes.hGapMd,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Portfolio & Investments',
+                style: context.text.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'View verified portfolio holdings & backed ventures',
+                style: context.text.bodySmall?.copyWith(
+                  color: AppColors.mutedText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const Icon(
+          Icons.arrow_forward_ios_rounded,
+          size: 16,
+          color: AppColors.mutedText,
+        ),
+      ],
+    ),
+  );
+
   Widget _linkCard(
     BuildContext context,
     String title,
     String subtitle,
     IconData icon,
-    String url,
-  ) => InkWell(
+    String url, {
+    VoidCallback? onTap,
+  }) => InkWell(
     onTap: () async {
+      if (onTap != null) {
+        onTap();
+        return;
+      }
       if (url.trim().isEmpty) return;
       var cleanUrl = url.trim();
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {

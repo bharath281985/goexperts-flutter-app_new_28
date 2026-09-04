@@ -24,13 +24,36 @@ class AppDatePicker extends StatelessWidget {
 
   Future<void> _pick(BuildContext context) async {
     final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: value ?? now,
-      firstDate: firstDate ?? DateTime(now.year - 5),
-      lastDate: lastDate ?? DateTime(now.year + 5),
-    );
-    if (picked != null) onChanged(picked);
+    final today = DateTime(now.year, now.month, now.day);
+    final effectiveFirst = firstDate != null
+        ? DateTime(firstDate!.year, firstDate!.month, firstDate!.day)
+        : DateTime(now.year - 10);
+    final effectiveLast = lastDate != null
+        ? DateTime(lastDate!.year, lastDate!.month, lastDate!.day)
+        : DateTime(now.year + 10);
+
+    DateTime initial = value != null
+        ? DateTime(value!.year, value!.month, value!.day)
+        : today;
+
+    if (initial.isBefore(effectiveFirst)) {
+      initial = effectiveFirst;
+    }
+    if (initial.isAfter(effectiveLast)) {
+      initial = effectiveLast;
+    }
+
+    try {
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: initial,
+        firstDate: effectiveFirst,
+        lastDate: effectiveLast,
+      );
+      if (picked != null) onChanged(picked);
+    } catch (e) {
+      debugPrint('AppDatePicker error: $e');
+    }
   }
 
   @override
@@ -42,23 +65,25 @@ class AppDatePicker extends StatelessWidget {
           Text(label!, style: context.text.titleSmall),
           AppSizes.vGapSm,
         ],
-        InkWell(
-          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () => _pick(context),
-          child: InputDecorator(
-            decoration: const InputDecoration(
-              prefixIcon: Icon(
-                Icons.calendar_today_rounded,
-                size: AppSizes.iconSm,
+          child: AbsorbPointer(
+            child: InputDecorator(
+              decoration: const InputDecoration(
+                prefixIcon: Icon(
+                  Icons.calendar_today_rounded,
+                  size: AppSizes.iconSm,
+                ),
               ),
-            ),
-            child: Text(
-              value != null ? Formatters.date(value!) : hint,
-              style: value != null
-                  ? context.text.bodyMedium
-                  : context.text.bodyMedium?.copyWith(
-                      color: context.text.bodySmall?.color,
-                    ),
+              child: Text(
+                value != null ? Formatters.date(value!) : hint,
+                style: value != null
+                    ? context.text.bodyMedium
+                    : context.text.bodyMedium?.copyWith(
+                        color: context.text.bodySmall?.color,
+                      ),
+              ),
             ),
           ),
         ),

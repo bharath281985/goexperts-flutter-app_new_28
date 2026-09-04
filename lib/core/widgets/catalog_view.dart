@@ -203,6 +203,12 @@ class _CatalogBodyState<T> extends State<_CatalogBody<T>> {
                 emptyTitle: widget.emptyTitle,
                 emptyMessage: widget.emptyMessage,
                 emptyIcon: widget.emptyIcon,
+                padding: EdgeInsets.fromLTRB(
+                  AppSizes.screenPadding,
+                  AppSizes.screenPadding,
+                  AppSizes.screenPadding,
+                  widget.floatingActionButton != null ? 88.0 : AppSizes.screenPadding,
+                ),
                 header: widget.header,
                 gridColumns: widget.gridColumns,
                 skeletonHeight: widget.skeletonHeight,

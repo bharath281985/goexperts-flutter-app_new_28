@@ -157,10 +157,6 @@ class _ProjectsListViewState extends State<ProjectsListView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     final repo = sl<ProjectRepository>();
 
     return CatalogView<Project>(

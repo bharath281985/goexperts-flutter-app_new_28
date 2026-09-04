@@ -395,8 +395,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     if (_endDate == null) {
       _endDateError = 'End date is required';
       valid = false;
-    } else if (_startDate != null && _endDate!.isBefore(_startDate!)) {
-      _endDateError = 'End date cannot be before start date';
+    } else if (_startDate != null &&
+        (_endDate!.isBefore(_startDate!) ||
+            _endDate!.isAtSameMomentAs(_startDate!))) {
+      _endDateError = 'End date must be after start date';
       valid = false;
     } else {
       _endDateError = null;
@@ -812,7 +814,7 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
     return Scaffold(
       appBar: AppBar(
         leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-        title: Text(_isEdit ? 'Edit Project' : 'Post a Project'),
+        title: Text(_isEdit ? 'Edit Project/Task' : 'Post a Project/Task'),
       ),
       body: _loadingMasterData || _loadingExisting
           ? const Center(child: CircularProgressIndicator())
@@ -883,10 +885,10 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
         children: [
           AppTextField(
             controller: _title,
-            label: 'Project Title',
+            label: 'Project/Task Title',
             hint: 'Enter your project title',
             validator: (v) =>
-                Validators.minLength(v, 5, field: 'Project title'),
+                Validators.minLength(v, 5, field: 'Project/Task title'),
           ),
           AppSizes.vGapLg,
           AppTextField(
@@ -1141,10 +1143,16 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           AppDatePicker(
             label: 'Start Date',
             value: _startDate,
-            firstDate: DateTime.now().subtract(const Duration(days: 365)),
+            firstDate: _isEdit
+                ? DateTime(2020)
+                : DateTime.now().subtract(const Duration(hours: 12)),
             onChanged: (d) => setState(() {
               _startDate = d;
               _startDateError = null;
+              if (_endDate != null &&
+                  (_endDate!.isBefore(d) || _endDate!.isAtSameMomentAs(d))) {
+                _endDate = null;
+              }
             }),
           ),
           if (_startDateError != null) ...[
@@ -1160,7 +1168,9 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
           AppDatePicker(
             label: 'End Date',
             value: _endDate,
-            firstDate: _startDate ?? DateTime.now(),
+            firstDate: _startDate != null
+                ? _startDate!.add(const Duration(days: 1))
+                : DateTime.now().add(const Duration(days: 1)),
             onChanged: (d) => setState(() {
               _endDate = d;
               _endDateError = null;

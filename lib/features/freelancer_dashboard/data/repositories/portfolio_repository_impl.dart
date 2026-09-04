@@ -13,19 +13,29 @@ class PortfolioRepositoryImpl implements PortfolioRepository {
 
   @override
   Future<Result<Paginated<PortfolioItem>>> getPortfolio(
-    QueryParams params,
-  ) async {
+    QueryParams params, {
+    String? freelancerId,
+  }) async {
+    final endpoint = freelancerId != null && freelancerId.isNotEmpty
+        ? ApiEndpoints.publicFreelancerPortfolio(freelancerId)
+        : ApiEndpoints.freelancerPortfolio;
     return _api.getEnvelope<Paginated<PortfolioItem>>(
-      ApiEndpoints.freelancerPortfolio,
+      endpoint,
       query: params.toApiQuery(),
       parser: (envelope) => _pageFromEnvelope(envelope, params),
     );
   }
 
   @override
-  Future<Result<PortfolioItem>> getPortfolioItem(String id) {
+  Future<Result<PortfolioItem>> getPortfolioItem(
+    String id, {
+    String? freelancerId,
+  }) {
+    final endpoint = freelancerId != null && freelancerId.isNotEmpty
+        ? ApiEndpoints.publicFreelancerPortfolioItem(freelancerId, id)
+        : ApiEndpoints.freelancerPortfolioItem(id);
     return _api.getEnvelope<PortfolioItem>(
-      ApiEndpoints.freelancerPortfolioItem(id),
+      endpoint,
       parser: (envelope) => _itemFromEnvelope(envelope, fallback: {'id': id}),
     );
   }

@@ -542,14 +542,14 @@ class _ClientHomePageState extends State<ClientHomePage> {
           label: 'Startups',
           icon: Icons.rocket_launch_rounded,
           accent: Color(0xFF10B981),
-          viewAllRoute: Routes.clientProjects,
+          viewAllRoute: Routes.clientStartups,
         ),
         RecommendationTabConfig(
           key: 'investors',
           label: 'Investors',
           icon: Icons.account_balance_rounded,
           accent: Color(0xFF8B5CF6),
-          viewAllRoute: Routes.clientProjects,
+          viewAllRoute: Routes.clientInvestors,
         ),
       ],
     );

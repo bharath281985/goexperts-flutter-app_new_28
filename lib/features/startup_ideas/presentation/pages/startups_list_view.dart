@@ -108,10 +108,6 @@ class _StartupsListViewState extends State<StartupsListView> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     final repo = sl<StartupRepository>();
 
     return CatalogView<Startup>(

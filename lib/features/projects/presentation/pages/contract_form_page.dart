@@ -246,7 +246,14 @@ class _ContractFormPageState extends State<ContractFormPage> {
                         child: AppDatePicker(
                           label: 'Start Date',
                           value: _startDate,
-                          onChanged: (d) => setState(() => _startDate = d),
+                          firstDate: DateTime.now().subtract(const Duration(hours: 12)),
+                          onChanged: (d) => setState(() {
+                            _startDate = d;
+                            if (_endDate != null &&
+                                (_endDate!.isBefore(d) || _endDate!.isAtSameMomentAs(d))) {
+                              _endDate = null;
+                            }
+                          }),
                         ),
                       ),
                       AppSizes.hGapMd,
@@ -254,6 +261,9 @@ class _ContractFormPageState extends State<ContractFormPage> {
                         child: AppDatePicker(
                           label: 'End Date',
                           value: _endDate,
+                          firstDate: _startDate != null
+                              ? _startDate!.add(const Duration(days: 1))
+                              : DateTime.now().add(const Duration(days: 1)),
                           onChanged: (d) => setState(() => _endDate = d),
                         ),
                       ),

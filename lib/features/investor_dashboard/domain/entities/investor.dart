@@ -274,6 +274,72 @@ class Deal extends Equatable {
 
   @override
   List<Object?> get props => [id, status, founderId];
+
+  factory Deal.fromApiJson(Map<String, dynamic> json) {
+    final startup = json['startup'] is Map ? json['startup'] as Map : {};
+    final founder = json['founder'] is Map
+        ? json['founder'] as Map
+        : (json['founderDetails'] is Map
+            ? json['founderDetails'] as Map
+            : {});
+    final startupName = json['startupName']?.toString() ??
+        startup['name']?.toString() ??
+        startup['startup']?.toString() ??
+        'Startup';
+    final founderName = json['founderName']?.toString() ??
+        founder['fullName']?.toString() ??
+        founder['name']?.toString() ??
+        'Founder';
+    final amount = (json['offer'] ??
+                json['amount'] ??
+                json['investmentAmount'] ??
+                startup['funding']) is num
+        ? ((json['offer'] ??
+                json['amount'] ??
+                json['investmentAmount'] ??
+                startup['funding']) as num)
+            .toDouble()
+        : 0.0;
+    final equity = (json['equity'] ??
+                json['equityOffered'] ??
+                startup['equity']) is num
+        ? ((json['equity'] ??
+                json['equityOffered'] ??
+                startup['equity']) as num)
+            .toDouble()
+        : 0.0;
+    final stage =
+        json['stage']?.toString() ?? startup['stage']?.toString() ?? 'MVP';
+    final statusStr = json['status']?.toString() ?? 'pending';
+    final dateStr = json['updatedAt'] ?? json['createdAt'];
+    DateTime updatedAt = DateTime.now();
+    if (dateStr != null) {
+      try {
+        updatedAt = DateTime.parse(dateStr.toString());
+      } catch (_) {}
+    }
+    return Deal(
+      id: json['id']?.toString() ?? '',
+      startupId:
+          json['startupId']?.toString() ?? startup['id']?.toString() ?? '',
+      startupName: startupName,
+      founderName: founderName,
+      stage: stage,
+      amount: amount,
+      equity: equity,
+      status: EntityStatus.fromString(statusStr),
+      updatedAt: updatedAt,
+      startupLogo: json['startupLogo']?.toString() ??
+          startup['logo']?.toString() ??
+          startup['logoUrl']?.toString(),
+      hasNda: json['hasNda'] == true || json['nda'] == true,
+      documentsCount: (json['documentsCount'] as num?)?.toInt() ?? 0,
+      documents: json['documents'] is Map
+          ? Map<String, dynamic>.from(json['documents'] as Map)
+          : const {},
+      founderId: json['founderId']?.toString() ?? founder['id']?.toString(),
+    );
+  }
 }
 
 /// A holding in the investor's portfolio.
@@ -285,6 +351,10 @@ class PortfolioItem extends Equatable {
     required this.currentValue,
     required this.equity,
     required this.investedAt,
+    this.status = 'Ongoing',
+    this.industry = 'General',
+    this.stage = 'Seed',
+    this.projectUrl,
     this.logoUrl,
   });
 
@@ -294,6 +364,10 @@ class PortfolioItem extends Equatable {
   final double currentValue;
   final double equity;
   final DateTime investedAt;
+  final String status;
+  final String industry;
+  final String stage;
+  final String? projectUrl;
   final String? logoUrl;
 
   double get roi => investedAmount == 0
@@ -301,5 +375,84 @@ class PortfolioItem extends Equatable {
       : ((currentValue - investedAmount) / investedAmount) * 100;
 
   @override
-  List<Object?> get props => [id, currentValue];
+  List<Object?> get props => [id, currentValue, status, industry, stage, projectUrl];
+
+  factory PortfolioItem.fromApiJson(Map<String, dynamic> json) {
+    final startup = json['startup'] is Map ? json['startup'] as Map : {};
+    final startupName = json['startupName']?.toString() ??
+        json['company']?.toString() ??
+        json['companyName']?.toString() ??
+        startup['name']?.toString() ??
+        startup['startup']?.toString() ??
+        'Company';
+    final investedAmount = (json['investedAmount'] ??
+                json['investmentAmount'] ??
+                json['amount']) is num
+        ? ((json['investedAmount'] ??
+                json['investmentAmount'] ??
+                json['amount']) as num)
+            .toDouble()
+        : 0.0;
+    final currentValue = (json['currentValue'] ??
+                json['valuation'] ??
+                json['currentValuation'] ??
+                investedAmount) is num
+        ? ((json['currentValue'] ??
+                json['valuation'] ??
+                json['currentValuation'] ??
+                investedAmount) as num)
+            .toDouble()
+        : investedAmount;
+    final equity = (json['equity'] ?? json['equityPercentage']) is num
+        ? ((json['equity'] ?? json['equityPercentage']) as num).toDouble()
+        : 0.0;
+    final dateStr = json['investedAt'] ??
+        json['investmentDate'] ??
+        json['createdAt'];
+    DateTime investedAt = DateTime.now();
+    if (dateStr != null) {
+      try {
+        investedAt = DateTime.parse(dateStr.toString());
+      } catch (_) {}
+    }
+    final rawStatus = json['status']?.toString() ??
+        json['investmentStatus']?.toString() ??
+        'Ongoing';
+    // Normalize status strings
+    final status = switch (rawStatus.toLowerCase()) {
+      'completed' || 'closed' => 'Completed',
+      'exited' => 'Exited',
+      'pending' || 'under review' => 'Pending',
+      'written off' || 'written_off' || 'failed' => 'Written Off',
+      _ => 'Ongoing',
+    };
+    final industry = json['industry']?.toString() ??
+        startup['industry']?.toString() ??
+        'General';
+    final stage = json['stage']?.toString() ??
+        startup['stage']?.toString() ??
+        'Seed';
+    final projectUrl = json['projectUrl']?.toString() ??
+        json['websiteUrl']?.toString() ??
+        json['website']?.toString() ??
+        json['url']?.toString() ??
+        startup['website']?.toString() ??
+        startup['url']?.toString();
+
+    return PortfolioItem(
+      id: json['id']?.toString() ?? '',
+      startupName: startupName,
+      investedAmount: investedAmount,
+      currentValue: currentValue,
+      equity: equity,
+      investedAt: investedAt,
+      status: status,
+      industry: industry,
+      stage: stage,
+      projectUrl: projectUrl,
+      logoUrl: json['logoUrl']?.toString() ??
+          json['logo']?.toString() ??
+          startup['logo']?.toString(),
+    );
+  }
 }

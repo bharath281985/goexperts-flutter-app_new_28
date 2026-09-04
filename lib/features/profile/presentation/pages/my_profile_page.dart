@@ -743,6 +743,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           icon: Icons.workspace_premium_outlined,
                           title: 'My Subscription',
                           subtitle: 'Plan details, limits and invoices',
+                          trailing: _buildSubscriptionBadge(user),
                           onTap: () => _navigateAndRefresh(
                             () => context.push(Routes.subscriptionsManage),
                           ),
@@ -1014,6 +1015,108 @@ class _MyProfilePageState extends State<MyProfilePage> {
           const SizedBox(width: 4),
           Text(
             context.tr(badgeText),
+            style: TextStyle(
+              color: badgeColor,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(
+            Icons.chevron_right_rounded,
+            size: 16,
+            color: AppColors.mutedText,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionBadge(dynamic user) {
+    final rawPlan = (user?.subscriptionPlan ?? '').toString().trim();
+    final isSubscribed = user?.serverHasSubscription == true ||
+        (user?.subscriptionStatus?.toString().toLowerCase() == 'active');
+
+    if (!isSubscribed ||
+        rawPlan.isEmpty ||
+        rawPlan.toLowerCase() == 'null' ||
+        rawPlan.toLowerCase() == 'none') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.danger.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: AppColors.danger.withValues(alpha: 0.25),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 12,
+              color: AppColors.danger,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              context.tr('Not Verified'),
+              style: const TextStyle(
+                color: AppColors.danger,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.chevron_right_rounded,
+              size: 16,
+              color: AppColors.mutedText,
+            ),
+          ],
+        ),
+      );
+    }
+
+    final clean = rawPlan.toLowerCase();
+    Color badgeColor = const Color(0xFF8B5CF6);
+    if (clean.contains('gold') ||
+        clean.contains('vip') ||
+        clean.contains('enterprise') ||
+        clean.contains('diamond')) {
+      badgeColor = const Color(0xFFD97706);
+    } else if (clean.contains('pro') ||
+        clean.contains('premium') ||
+        clean.contains('plus') ||
+        clean.contains('growth')) {
+      badgeColor = const Color(0xFF8B5CF6);
+    } else if (clean.contains('starter') || clean.contains('basic')) {
+      badgeColor = const Color(0xFF3B82F6);
+    } else if (clean.contains('free')) {
+      badgeColor = const Color(0xFFEAB308);
+    }
+
+    final label =
+        rawPlan.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: badgeColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: badgeColor.withValues(alpha: 0.25),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.workspace_premium_rounded, size: 12, color: badgeColor),
+          const SizedBox(width: 4),
+          Text(
+            label.isEmpty ? 'Pro' : label,
             style: TextStyle(
               color: badgeColor,
               fontSize: 11.5,

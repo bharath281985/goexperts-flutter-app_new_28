@@ -83,10 +83,21 @@ class ApiEndpoints {
   static const publicSavedFreelancers = '/public/freelancers/saved';
 
   static String publicFreelancer(String id) => '/public/freelancers/$id';
+  static String publicFreelancerPortfolio(String freelancerId) =>
+      '/public/freelancers/$freelancerId/portfolio';
+  static String publicFreelancerPortfolioItem(
+          String freelancerId, String itemId) =>
+      '/public/freelancers/$freelancerId/portfolio/$itemId';
   static String publicFreelancerSave(String id) =>
       '/public/freelancers/$id/save';
   static String publicClient(String id) => '/public/clients/$id';
   static String publicInvestor(String id) => '/public/investors/$id';
+  static String publicInvestorPortfolio(String investorId) =>
+      '/public/investors/$investorId/portfolio';
+  static String publicInvestorPortfolioItem(
+          String investorId, String itemId) =>
+      '/public/investors/$investorId/portfolio/$itemId';
+  static String publicInvestorSave(String id) => '/public/investors/$id/save';
   static String publicStartup(String id) => '/public/startups/$id';
   static String publicStartupSave(String id) => '/public/startups/$id/save';
   static String publicFounder(String id) => '/public/founders/$id';
@@ -138,7 +149,6 @@ class ApiEndpoints {
   static const appMaintenance = '/app/maintenance';
   static const appFeatureFlags = '/app/feature-flags';
   static const appDeviceToken = '/app-config/device-token';
-
 
   // ── Payments ──────────────────────────────────────────────────────────────
   static const paymentsGateways = '/payments/gateways';

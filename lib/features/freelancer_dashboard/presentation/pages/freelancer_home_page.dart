@@ -539,18 +539,18 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
           viewAllRoute: Routes.freelancerProjects,
         ),
         RecommendationTabConfig(
-          key: 'clients',
-          label: 'Clients',
+          key: 'investors',
+          label: 'Investors',
           icon: Icons.business_rounded,
           accent: Color(0xFF10B981),
-          viewAllRoute: Routes.freelancerProjects,
+          viewAllRoute: Routes.freelancerInvestors,
         ),
         RecommendationTabConfig(
           key: 'startups',
           label: 'Startups',
           icon: Icons.rocket_launch_rounded,
           accent: Color(0xFF8B5CF6),
-          viewAllRoute: Routes.freelancerProjects,
+          viewAllRoute: Routes.freelancerStartups,
         ),
       ],
     );

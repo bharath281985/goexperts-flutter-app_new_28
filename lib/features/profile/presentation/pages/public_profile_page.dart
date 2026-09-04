@@ -225,7 +225,11 @@ String _cleanCityString(String rawCity) {
   /// Builds a ProfileViewData from the raw API data map.
   ProfileViewData? _parse(Map<String, dynamic> raw) {
     final reg = _safeMap(raw['registrationData']);
-    final id = raw['id']?.toString() ?? widget.id;
+    final id = raw['id']?.toString() ??
+        raw['freelancerId']?.toString() ??
+        raw['userId']?.toString() ??
+        raw['investorId']?.toString() ??
+        widget.id;
     final fullName =
         raw['fullName']?.toString() ??
         reg['fullName']?.toString() ??
@@ -416,6 +420,7 @@ String _cleanCityString(String rawCity) {
           };
 
           return ProfileViewData(
+            id: id,
             name: fullName,
             headline: headline,
             location: location,
@@ -449,6 +454,7 @@ String _cleanCityString(String rawCity) {
           final company = cp['company']?.toString() ?? fullName;
           final industry = cp['industry']?.toString() ?? '';
           return ProfileViewData(
+            id: id,
             name: company,
             headline: industry.isNotEmpty ? industry : 'Client',
             location: location,
@@ -522,6 +528,7 @@ String _cleanCityString(String rawCity) {
               : <String>[];
           final deals = _safeInt(ip['deals'] ?? ip['investmentsCount']);
           return ProfileViewData(
+            id: id,
             name: fullName,
             headline: [
               ip['investorTypeName']?.toString() ??
@@ -631,6 +638,7 @@ String _cleanCityString(String rawCity) {
               '';
 
           return ProfileViewData(
+            id: id,
             name: founderName.isNotEmpty && founderName != 'User'
                 ? founderName
                 : startupName,

@@ -30,10 +30,6 @@ class _SplashPageState extends State<SplashPage>
   late final AnimationController _animController;
   late final Animation<double> _logoScale;
   late final Animation<double> _logoFade;
-  late final Animation<Offset> _textSlide;
-  late final Animation<double> _textFade;
-  late final Animation<Offset> _taglineSlide;
-  late final Animation<double> _taglineFade;
   late final Animation<double> _progressFade;
 
   @override
@@ -42,54 +38,26 @@ class _SplashPageState extends State<SplashPage>
 
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1000),
     );
 
     _logoScale = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
       ),
     );
     _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
-      ),
-    );
-
-    _textSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _animController,
-            curve: const Interval(0.3, 0.7, curve: Curves.easeOutCubic),
-          ),
-        );
-    _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.3, 0.7, curve: Curves.easeIn),
-      ),
-    );
-
-    _taglineSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(
-          CurvedAnimation(
-            parent: _animController,
-            curve: const Interval(0.5, 0.9, curve: Curves.easeOutCubic),
-          ),
-        );
-    _taglineFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: const Interval(0.5, 0.9, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.6, curve: Curves.easeIn),
       ),
     );
 
     _progressFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.6, 1.0, curve: Curves.easeIn),
+        curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
       ),
     );
 
@@ -104,8 +72,8 @@ class _SplashPageState extends State<SplashPage>
       _initializeVideo();
     } else {
       _animController.forward();
-      // Start boot slightly faster if we aren't waiting for a video
-      _bootTimer = Timer(const Duration(milliseconds: 1500), _boot);
+      // Fast boot on non-first launch
+      _bootTimer = Timer(const Duration(milliseconds: 600), _boot);
     }
   }
 
@@ -115,15 +83,13 @@ class _SplashPageState extends State<SplashPage>
       if (!mounted) return;
       setState(() => _isVideoReady = true);
       await _videoController?.play();
-      _startBootTimer(
-        dur: const Duration(seconds: 10),
-      ); // Time for video to finish
+      _startBootTimer(dur: const Duration(seconds: 3));
     } catch (_) {
       _startBootTimer();
     }
   }
 
-  void _startBootTimer({Duration dur = const Duration(seconds: 3)}) {
+  void _startBootTimer({Duration dur = const Duration(seconds: 2)}) {
     _bootTimer ??= Timer(dur, _boot);
   }
 
@@ -131,9 +97,14 @@ class _SplashPageState extends State<SplashPage>
     if (_bootRequested) return;
     _bootRequested = true;
 
-    // Fire the background configuration APIs safely while the splash screen is visible.
-    try {
-      await Future.wait([
+    // Immediately trigger authentication check so navigation is instant
+    if (mounted) {
+      context.read<AuthBloc>().add(const AuthCheckRequested());
+    }
+
+    // Run background configuration & update checks asynchronously without blocking the user
+    unawaited(
+      Future.wait([
         sl<AppRuntimeConfigService>().load(),
         const LocationService().requestPermission().catchError((_) {}),
         sl<AppUpdateService>().check().then((update) async {
@@ -160,11 +131,8 @@ class _SplashPageState extends State<SplashPage>
               break;
           }
         }),
-      ]).timeout(const Duration(seconds: 5));
-    } catch (_) {}
-
-    if (!mounted) return;
-    context.read<AuthBloc>().add(const AuthCheckRequested());
+      ]).catchError((_) => []),
+    );
   }
 
   @override

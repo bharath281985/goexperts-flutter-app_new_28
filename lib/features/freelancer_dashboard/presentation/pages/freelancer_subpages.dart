@@ -3306,7 +3306,14 @@ class _EducationDraft {
 }
 
 class FreelancerPortfolioPage extends StatefulWidget {
-  const FreelancerPortfolioPage({super.key});
+  const FreelancerPortfolioPage({
+    super.key,
+    this.freelancerId,
+    this.isReadOnly = false,
+  });
+
+  final String? freelancerId;
+  final bool isReadOnly;
 
   @override
   State<FreelancerPortfolioPage> createState() =>
@@ -3320,25 +3327,43 @@ class _FreelancerPortfolioPageState extends State<FreelancerPortfolioPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isReadOnly =
+        widget.isReadOnly ||
+        (widget.freelancerId != null && widget.freelancerId!.isNotEmpty);
+
     return _ListScaffold(
-      title: 'Portfolio',
+      title: isReadOnly ? 'Freelancer Portfolio' : 'Portfolio',
       child: CatalogView<PortfolioItem>(
         key: ValueKey(_listKey),
-        fetcher: (q) => sl<PortfolioRepository>().getPortfolio(q),
+        fetcher: (q) => sl<PortfolioRepository>().getPortfolio(
+          q,
+          freelancerId: widget.freelancerId,
+        ),
         searchHint: 'Search portfolio',
         emptyTitle: 'No portfolio items yet',
-        emptyMessage: 'Add your best work so clients can see what you deliver.',
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => _openAdd(context),
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Add Portfolio'),
-        ),
+        emptyMessage: isReadOnly
+            ? 'This freelancer has not added any portfolio items yet.'
+            : 'Add your best work so clients can see what you deliver.',
+        floatingActionButton: isReadOnly
+            ? null
+            : FloatingActionButton.extended(
+                onPressed: () => _openAdd(context),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Add Portfolio'),
+              ),
         itemBuilder: (context, item, __) => _PortfolioCard(
           item: item,
-          onTap: () =>
-              context.push('${Routes.freelancerPortfolioDetails}/${item.id}'),
-          onEdit: () => _openEdit(context, item.id),
-          onDelete: () => _deletePortfolio(context, item),
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => FreelancerPortfolioDetailsPage(
+                id: item.id,
+                freelancerId: widget.freelancerId,
+                isReadOnly: isReadOnly,
+              ),
+            ),
+          ),
+          onEdit: isReadOnly ? null : () => _openEdit(context, item.id),
+          onDelete: isReadOnly ? null : () => _deletePortfolio(context, item),
         ),
       ),
     );
@@ -3404,9 +3429,16 @@ class _FreelancerPortfolioPageState extends State<FreelancerPortfolioPage> {
 }
 
 class FreelancerPortfolioDetailsPage extends StatefulWidget {
-  const FreelancerPortfolioDetailsPage({super.key, required this.id});
+  const FreelancerPortfolioDetailsPage({
+    super.key,
+    required this.id,
+    this.freelancerId,
+    this.isReadOnly = false,
+  });
 
   final String id;
+  final String? freelancerId;
+  final bool isReadOnly;
 
   @override
   State<FreelancerPortfolioDetailsPage> createState() =>
@@ -3420,12 +3452,18 @@ class _FreelancerPortfolioDetailsPageState
   @override
   void initState() {
     super.initState();
-    _future = sl<PortfolioRepository>().getPortfolioItem(widget.id);
+    _future = sl<PortfolioRepository>().getPortfolioItem(
+      widget.id,
+      freelancerId: widget.freelancerId,
+    );
   }
 
   void _refresh() {
     setState(() {
-      _future = sl<PortfolioRepository>().getPortfolioItem(widget.id);
+      _future = sl<PortfolioRepository>().getPortfolioItem(
+        widget.id,
+        freelancerId: widget.freelancerId,
+      );
     });
   }
 
@@ -3473,18 +3511,19 @@ class _FreelancerPortfolioDetailsPageState
                               style: context.text.titleLarge,
                             ),
                           ),
-                          IconButton(
-                            tooltip: 'Edit',
-                            onPressed: () async {
-                              final changed = await context.push<bool>(
-                                Routes.freelancerPortfolioForm,
-                                extra: item,
-                              );
-                              if (!context.mounted || changed != true) return;
-                              _refresh();
-                            },
-                            icon: const Icon(Icons.edit_outlined),
-                          ),
+                          if (!widget.isReadOnly)
+                            IconButton(
+                              tooltip: 'Edit',
+                              onPressed: () async {
+                                final changed = await context.push<bool>(
+                                  Routes.freelancerPortfolioForm,
+                                  extra: item,
+                                );
+                                if (!context.mounted || changed != true) return;
+                                _refresh();
+                              },
+                              icon: const Icon(Icons.edit_outlined),
+                            ),
                         ],
                       ),
                       if (item.status.isNotEmpty) ...[
@@ -3866,8 +3905,15 @@ class _FreelancerPortfolioFormPageState
     });
   }
 
+  final _scrollCtrl = ScrollController();
+  final _titleFocus = FocusNode();
+  final _liveUrlFocus = FocusNode();
+
   @override
   void dispose() {
+    _scrollCtrl.dispose();
+    _titleFocus.dispose();
+    _liveUrlFocus.dispose();
     _title.dispose();
     _description.dispose();
     _client.dispose();
@@ -3883,6 +3929,16 @@ class _FreelancerPortfolioFormPageState
     super.dispose();
   }
 
+  void _scrollTo(double offset) {
+    if (_scrollCtrl.hasClients) {
+      _scrollCtrl.animateTo(
+        offset,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
@@ -3892,7 +3948,9 @@ class _FreelancerPortfolioFormPageState
       ),
       body: Form(
         key: _formKey,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         child: ListView(
+          controller: _scrollCtrl,
           padding: const EdgeInsets.all(AppSizes.screenPadding),
           children: [
             AppCard(
@@ -3900,7 +3958,8 @@ class _FreelancerPortfolioFormPageState
                 children: [
                   AppTextField(
                     controller: _title,
-                    label: 'Title',
+                    focusNode: _titleFocus,
+                    label: 'Title *',
                     hint: 'LMS Platform Development',
                     validator: (value) => value == null || value.trim().isEmpty
                         ? 'Title is required'
@@ -3909,13 +3968,16 @@ class _FreelancerPortfolioFormPageState
                   AppSizes.vGapMd,
                   AppTextField(
                     controller: _description,
-                    label: 'Description',
+                    label: 'Description *',
                     hint: 'Short project description',
                     maxLines: 3,
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'Description is required'
+                        : null,
                   ),
                   AppSizes.vGapMd,
                   AppDropdown<String>(
-                    label: 'Status',
+                    label: 'Status *',
                     hint: 'Select status',
                     value: _status,
                     items: _statuses,
@@ -3938,7 +4000,7 @@ class _FreelancerPortfolioFormPageState
                     const LinearProgressIndicator(minHeight: 2)
                   else
                     AppDropdown<_PortfolioOption>(
-                      label: 'Industry',
+                      label: 'Industry *',
                       hint: 'Select industry',
                       value: _industryOptions.contains(_selectedIndustry)
                           ? _selectedIndustry
@@ -3952,7 +4014,7 @@ class _FreelancerPortfolioFormPageState
                     const LinearProgressIndicator(minHeight: 2)
                   else
                     AppDropdown<_PortfolioOption>(
-                      label: 'Category',
+                      label: 'Category *',
                       hint: _selectedIndustry == null
                           ? 'Select industry first'
                           : 'Select category',
@@ -3979,15 +4041,25 @@ class _FreelancerPortfolioFormPageState
             AppCard(
               child: Column(
                 children: [
-                  AppTextField(controller: _client, label: 'Client'),
+                  AppTextField(
+                    controller: _client,
+                    label: 'Client *',
+                    hint: 'e.g. Acme Corp / Self-Initiated',
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Client name is required' : null,
+                  ),
                   AppSizes.vGapMd,
-                  AppTextField(controller: _duration, label: 'Duration'),
+                  AppTextField(
+                    controller: _duration,
+                    label: 'Duration *',
+                    hint: 'e.g. 3 Months / Jan 2024 - Apr 2024',
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Duration is required' : null,
+                  ),
                   AppSizes.vGapMd,
                   if (_loadingTeamSizes)
                     const LinearProgressIndicator(minHeight: 2)
                   else
                     AppDropdown<_PortfolioOption>(
-                      label: 'Team Size',
+                      label: 'Team Size *',
                       hint: 'Select team size',
                       value: _teamSizeOptions.contains(_selectedTeamSize)
                           ? _selectedTeamSize
@@ -4000,12 +4072,19 @@ class _FreelancerPortfolioFormPageState
                                 setState(() => _selectedTeamSize = value),
                     ),
                   AppSizes.vGapMd,
-                  AppTextField(controller: _role, label: 'Role'),
+                  AppTextField(
+                    controller: _role,
+                    label: 'Role *',
+                    hint: 'e.g. Lead Mobile Developer',
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Role is required' : null,
+                  ),
                   AppSizes.vGapMd,
                   AppTextField(
                     controller: _overview,
-                    label: 'Overview',
+                    label: 'Overview *',
+                    hint: 'Detailed overview of goals, architecture, and tech stack',
                     maxLines: 4,
+                    validator: (v) => v == null || v.trim().isEmpty ? 'Overview is required' : null,
                   ),
                 ],
               ),
@@ -4015,7 +4094,7 @@ class _FreelancerPortfolioFormPageState
               child: Column(
                 children: [
                   _PortfolioUploadTile(
-                    label: 'Cover Image',
+                    label: 'Cover Image *',
                     hint: 'Upload JPG, PNG, or WebP',
                     source: _coverMedia.text,
                     fileName: _coverFileName ?? _fileLabel(_coverMedia.text),
@@ -4100,14 +4179,25 @@ class _FreelancerPortfolioFormPageState
                   ),
                   AppSizes.vGapLg,
                   AppTextField(
-                    controller: _githubUrl,
-                    label: 'GitHub URL',
+                    controller: _liveUrl,
+                    focusNode: _liveUrlFocus,
+                    label: 'Live URL / Project Link *',
+                    hint: 'https://myproject.com',
                     keyboardType: TextInputType.url,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Live URL is required';
+                      final uri = Uri.tryParse(v.trim());
+                      if (uri == null || (!v.trim().startsWith('http://') && !v.trim().startsWith('https://'))) {
+                        return 'Enter a valid URL (starting with http:// or https://)';
+                      }
+                      return null;
+                    },
                   ),
                   AppSizes.vGapMd,
                   AppTextField(
-                    controller: _liveUrl,
-                    label: 'Live URL',
+                    controller: _githubUrl,
+                    label: 'GitHub URL',
+                    hint: 'https://github.com/username/repo',
                     keyboardType: TextInputType.url,
                   ),
                 ],
@@ -4126,7 +4216,117 @@ class _FreelancerPortfolioFormPageState
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    // 1. Title
+    if (_title.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(0);
+      _titleFocus.requestFocus();
+      context.showSnack('Please enter a Title *', isError: true);
+      return;
+    }
+
+    // 2. Description
+    if (_description.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(0);
+      context.showSnack('Please enter a Description *', isError: true);
+      return;
+    }
+
+    // 3. Industry
+    if (_selectedIndustry == null || _selectedIndustry!.id.isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(150);
+      context.showSnack('Please select an Industry *', isError: true);
+      return;
+    }
+
+    // 4. Category
+    if (_selectedCategory == null || _selectedCategory!.id.isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(220);
+      context.showSnack('Please select a Category *', isError: true);
+      return;
+    }
+
+    // 5. Skills
+    if (_selectedSkillsById.isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(300);
+      context.showSnack('Please select at least one Skill *', isError: true);
+      return;
+    }
+
+    // 6. Client
+    if (_client.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(380);
+      context.showSnack('Please enter a Client *', isError: true);
+      return;
+    }
+
+    // 7. Duration
+    if (_duration.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(450);
+      context.showSnack('Please enter Duration *', isError: true);
+      return;
+    }
+
+    // 8. Team Size
+    if (_selectedTeamSize == null || _selectedTeamSize!.id.isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(500);
+      context.showSnack('Please select a Team Size *', isError: true);
+      return;
+    }
+
+    // 9. Role
+    if (_role.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(550);
+      context.showSnack('Please enter a Role *', isError: true);
+      return;
+    }
+
+    // 10. Overview
+    if (_overview.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(600);
+      context.showSnack('Please enter an Overview *', isError: true);
+      return;
+    }
+
+    // 11. Cover Media
+    if (_coverMedia.text.trim().isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(700);
+      context.showSnack('Please upload a Cover Image *', isError: true);
+      return;
+    }
+
+    // 12. Live URL
+    final liveUrl = _liveUrl.text.trim();
+    if (liveUrl.isEmpty) {
+      _formKey.currentState?.validate();
+      _scrollTo(900);
+      _liveUrlFocus.requestFocus();
+      context.showSnack('Please enter a Live URL / Project Link *', isError: true);
+      return;
+    }
+    if (!liveUrl.startsWith('http://') && !liveUrl.startsWith('https://')) {
+      _formKey.currentState?.validate();
+      _scrollTo(900);
+      _liveUrlFocus.requestFocus();
+      context.showSnack('Live URL must start with http:// or https://', isError: true);
+      return;
+    }
+
+    if (!_formKey.currentState!.validate()) {
+      _scrollTo(0);
+      return;
+    }
+
     setState(() => _saving = true);
     final payload = _payload();
     final repo = sl<PortfolioRepository>();
@@ -4162,6 +4362,7 @@ class _FreelancerPortfolioFormPageState
     'role': _role.text.trim(),
     'githubUrl': _githubUrl.text.trim(),
     'liveUrl': _liveUrl.text.trim(),
+    'projectUrl': _liveUrl.text.trim(),
     'overview': _overview.text.trim(),
     'coverMedia': _coverMedia.text.trim(),
     'videoDemo': _videoDemo.text.trim(),
@@ -4174,14 +4375,14 @@ class _PortfolioCard extends StatelessWidget {
   const _PortfolioCard({
     required this.item,
     required this.onTap,
-    required this.onEdit,
-    required this.onDelete,
+    this.onEdit,
+    this.onDelete,
   });
 
   final PortfolioItem item;
   final VoidCallback onTap;
-  final VoidCallback onEdit;
-  final VoidCallback onDelete;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -4240,18 +4441,23 @@ class _PortfolioCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: AppSizes.xs),
-                          _PortfolioActionButton(
-                            tooltip: 'Edit',
-                            icon: Icons.edit_outlined,
-                            onPressed: onEdit,
-                          ),
-                          _PortfolioActionButton(
-                            tooltip: 'Delete',
-                            icon: Icons.delete_outline_rounded,
-                            color: AppColors.danger,
-                            onPressed: onDelete,
-                          ),
+                          if (onEdit != null) ...[
+                            const SizedBox(width: AppSizes.xs),
+                            _PortfolioActionButton(
+                              tooltip: 'Edit',
+                              icon: Icons.edit_outlined,
+                              onPressed: onEdit!,
+                            ),
+                          ],
+                          if (onDelete != null) ...[
+                            const SizedBox(width: AppSizes.xs),
+                            _PortfolioActionButton(
+                              tooltip: 'Delete',
+                              icon: Icons.delete_outline_rounded,
+                              color: AppColors.danger,
+                              onPressed: onDelete!,
+                            ),
+                          ],
                         ],
                       ),
                       if (item.displayDescription.isNotEmpty) ...[
@@ -5619,6 +5825,13 @@ class _LegacyFreelancerPortfolioPageState
                             if ((payload['description'] as String).isEmpty) {
                               setSheetState(() {
                                 errorMessage = 'Description is required';
+                              });
+                              return;
+                            }
+                            final pUrl = (payload['projectUrl'] as String?)?.trim() ?? (payload['liveUrl'] as String?)?.trim() ?? '';
+                            if (pUrl.isEmpty) {
+                              setSheetState(() {
+                                errorMessage = 'Project URL is required';
                               });
                               return;
                             }

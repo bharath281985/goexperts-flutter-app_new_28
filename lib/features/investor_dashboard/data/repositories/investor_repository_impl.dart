@@ -1,146 +1,32 @@
-import 'dart:convert';
 import '../../../../core/auth/token_role_helper.dart';
-import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
-import '../../../../core/utils/enums.dart';
 import '../../domain/entities/investor.dart';
 import '../../domain/repositories/investor_repository.dart';
 
-String _cleanStageString(dynamic val) {
-  if (val == null) return 'MVP';
-  if (val is Map) {
-    return val['name']?.toString() ??
-        val['label']?.toString() ??
-        val['value']?.toString() ??
-        val['id']?.toString() ??
-        'MVP';
-  }
-  final str = val.toString().trim();
-  if (str.startsWith('{') && str.endsWith('}')) {
-    final match = RegExp(r'name:\s*([^,}]+)|label:\s*([^,}]+)|id:\s*([^,}]+)').firstMatch(str);
-    if (match != null) {
-      final res = (match.group(1) ?? match.group(2) ?? match.group(3) ?? str).trim();
-      if (res.isNotEmpty && !res.startsWith('{')) return res;
-    }
-  }
-  return str.isEmpty ? 'MVP' : str;
-}
-
 class InvestorRepositoryImpl implements InvestorRepository {
-  InvestorRepositoryImpl([this._api, this._tokenRoleHelper]);
-  final ApiClientHelper? _api;
-  final TokenRoleHelper? _tokenRoleHelper;
+  InvestorRepositoryImpl(this._api, [this._tokenRoleHelper]);
 
-  Future<UserRole?> _role() async => await _tokenRoleHelper?.resolve();
+  final ApiClientHelper _api;
+  final TokenRoleHelper? _tokenRoleHelper;
 
   @override
   Future<Result<Paginated<Investor>>> getInvestors(QueryParams params) async {
-    if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role == UserRole.founder
-        ? ApiEndpoints.founderInvestors
-        : ApiEndpoints.publicInvestors;
     return _api.getEnvelope<Paginated<Investor>>(
-      path,
+      ApiEndpoints.publicInvestors,
       query: params.toApiQuery(),
-      parser: (env) => ApiResponse.parsePaginated(
-        env.data,
-        env.meta,
-        _investorFromJson,
-        fallbackPage: params.page,
-      ),
-    );
-  }
-
-  @override
-  Future<Result<Investor>> getInvestor(String id) async {
-    if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role == UserRole.founder
-        ? ApiEndpoints.founderInvestor(id)
-        : ApiEndpoints.publicInvestor(id);
-    return _api.get<Investor>(
-      path,
-      parser: (raw) => _investorFromJson(Map<String, dynamic>.from(raw as Map)),
-    );
-  }
-
-  @override
-  Future<Result<Paginated<Deal>>> getDeals(QueryParams params) async {
-    if (_api == null) return _apiNotConfigured();
-    final role = await _role();
-    final path = role == UserRole.founder
-        ? ApiEndpoints.founderInvestorRequests
-        : ApiEndpoints.investorInvestments;
-
-    var res = await _api.getEnvelope<Paginated<Deal>>(
-      path,
-      query: params.toApiQuery(),
-      parser: (env) {
-        return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
-          final raw = Map<String, dynamic>.from(rawRaw as Map);
-          return _dealFromJson(raw);
-        }, fallbackPage: params.page);
-      },
-    );
-
-    if (res.isFailure && path != ApiEndpoints.founderInvestorRequests) {
-      final fallback = await _api.getEnvelope<Paginated<Deal>>(
-        ApiEndpoints.founderInvestorRequests,
-        query: params.toApiQuery(),
-        parser: (env) {
-          return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
-            final raw = Map<String, dynamic>.from(rawRaw as Map);
-            return _dealFromJson(raw);
-          }, fallbackPage: params.page);
-        },
-      );
-      if (fallback.isSuccess) res = fallback;
-    }
-
-    if (res.isFailure && path != ApiEndpoints.publicInvestments) {
-      final publicFallback = await _api.getEnvelope<Paginated<Deal>>(
-        ApiEndpoints.publicInvestments,
-        query: params.toApiQuery(),
-        parser: (env) {
-          return ApiResponse.parsePaginated(env.data, env.meta, (rawRaw) {
-            final raw = Map<String, dynamic>.from(rawRaw as Map);
-            return _dealFromJson(raw);
-          }, fallbackPage: params.page);
-        },
-      );
-      if (publicFallback.isSuccess) res = publicFallback;
-    }
-
-    return res;
-  }
-
-  @override
-  Future<Result<Paginated<PortfolioItem>>> getPortfolio(
-    QueryParams params,
-  ) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.getEnvelope<Paginated<PortfolioItem>>(
-      ApiEndpoints.investorPortfolio,
-      query: params.toApiQuery(),
-      parser: (env) {
-        final rawData = env.data;
-        dynamic listRaw = rawData;
-        if (rawData is Map) {
-          listRaw =
-              rawData['investments'] ??
-              rawData['items'] ??
-              rawData['data'] ??
-              rawData;
-        }
+      parser: (envelope) {
+        final raw = envelope.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['rows'] ?? const []) : const []);
         return ApiResponse.parsePaginated(
-          listRaw,
-          env.meta,
-          _portfolioFromJson,
+          list as List,
+          envelope.meta,
+          (item) => Investor.fromApiJson(item as Map<String, dynamic>),
           fallbackPage: params.page,
         );
       },
@@ -148,262 +34,199 @@ class InvestorRepositoryImpl implements InvestorRepository {
   }
 
   @override
-  Future<Result<bool>> toggleFollow(String id) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.postAction(
-      '${ApiEndpoints.favorites}/toggle',
-      body: {'entityType': 'investor', 'entityId': id},
+  Future<Result<Investor>> getInvestor(String id) async {
+    return _api.getEnvelope<Investor>(
+      ApiEndpoints.publicInvestor(id),
+      parser: (envelope) =>
+          Investor.fromApiJson(envelope.data as Map<String, dynamic>),
     );
   }
 
   @override
-  Future<Result<bool>> toggleSave(String id) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.postAction(ApiEndpoints.publicStartupSave(id));
-  }
-
-  @override
-  Future<Result<bool>> expressInterest(Map<String, dynamic> data) async {
-    if (_api == null) return _apiNotConfigured();
-    final primary = await _api.postEnvelope<bool>(
-      ApiEndpoints.investorInvestmentsExpressInterest,
-      body: data,
-      parser: (_) => true,
-    );
-    if (primary.isSuccess) return primary;
-    return submitOffer(data);
-  }
-
-  @override
-  Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
-    if (_api == null) return _apiNotConfigured();
-    final primary = await _api.postEnvelope<bool>(
-      ApiEndpoints.investorOffer,
-      body: data,
-      parser: (_) => true,
-    );
-    if (primary.isSuccess) return primary;
-    return _api.postEnvelope<bool>(
-      ApiEndpoints.publicInvestmentsOffer,
-      body: data,
-      parser: (_) => true,
-    );
-  }
-
-  @override
-  Future<Result<Deal>> getInvestment(String id) async {
-    if (_api == null) return _apiNotConfigured();
-    final primary = await _api.get<Deal>(
-      ApiEndpoints.investorInvestment(id),
-      parser: (raw) => _dealFromJson(Map<String, dynamic>.from(raw as Map)),
-    );
-    if (primary.isSuccess) return primary;
-    return _api.get<Deal>(
-      '${ApiEndpoints.publicInvestments}/$id',
-      parser: (raw) => _dealFromJson(Map<String, dynamic>.from(raw as Map)),
-    );
-  }
-
-  @override
-  Future<Result<bool>> cancelInvestment(String id) async {
-    if (_api == null) return _apiNotConfigured();
-    final primary = await _api.patchAction(
-      ApiEndpoints.investorCancelInvestment(id),
-    );
-    if (primary.isSuccess) return primary;
-    return _api.patchAction('${ApiEndpoints.publicInvestments}/$id/cancel');
-  }
-
-  @override
-  Future<Result<bool>> updateInvestment(
-    String id,
-    Map<String, dynamic> data,
-  ) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.putEnvelope<bool>(
-      ApiEndpoints.investorInvestment(id),
-      body: data,
-      parser: (_) => true,
-    );
-  }
-
-  @override
-  Future<Result<bool>> updateInvestmentStatus(String id, String status) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.putEnvelope<bool>(
-      ApiEndpoints.investorInvestmentStatus(id),
-      body: {'status': status},
-      parser: (_) => true,
-    );
-  }
-
-  Deal _dealFromJson(Map<String, dynamic> raw) {
-    final ideaDetails =
-        raw['startupDetails'] as Map? ?? raw['ideaDetails'] as Map?;
-    final userDetails = ideaDetails?['user'] as Map?;
-    final startupId =
-        raw['startup']?.toString() ??
-        ideaDetails?['id']?.toString() ??
-        raw['startupId']?.toString() ??
-        '';
-
-    int parsedDocsCount = (raw['documentsCount'] as num?)?.toInt() ?? 0;
-    Map<String, dynamic> actualDocs = {};
-    if (raw['docs'] is String && (raw['docs'] as String).isNotEmpty) {
-      try {
-        final Map<String, dynamic> docsMap = jsonDecode(
-          raw['docs'] as String,
+  Future<Result<Paginated<Deal>>> getDeals(QueryParams params) async {
+    return _api.getEnvelope<Paginated<Deal>>(
+      '/investor/deals',
+      query: params.toApiQuery(),
+      parser: (envelope) {
+        final raw = envelope.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['deals'] ?? const []) : const []);
+        return ApiResponse.parsePaginated(
+          list as List,
+          envelope.meta,
+          (item) => Deal.fromApiJson(item as Map<String, dynamic>),
+          fallbackPage: params.page,
         );
-        actualDocs = docsMap;
-        parsedDocsCount = docsMap.values
-            .where((v) => v != null && v.toString().trim().isNotEmpty)
-            .length;
-      } catch (_) {}
-    } else if (raw['docs'] is Map) {
-      final docsMap = raw['docs'] as Map;
-      actualDocs = Map<String, dynamic>.from(docsMap);
-      parsedDocsCount = docsMap.values
-          .where((v) => v != null && v.toString().trim().isNotEmpty)
-          .length;
-    }
-
-    return Deal(
-      id: raw['id']?.toString() ?? '',
-      startupId: startupId,
-      startupName:
-          ideaDetails?['startup']?.toString() ??
-          raw['startupName']?.toString() ??
-          raw['name']?.toString() ??
-          'Startup',
-      founderName:
-          userDetails?['fullName']?.toString() ??
-          ideaDetails?['founder']?.toString() ??
-          raw['founderName']?.toString() ??
-          'Founder',
-      stage: _cleanStageString(
-        ideaDetails?['stage'] ??
-            raw['stage'] ??
-            ideaDetails?['stageName'] ??
-            'MVP',
-      ),
-      amount:
-          (raw['offer'] as num?)?.toDouble() ??
-          (raw['amount'] as num?)?.toDouble() ??
-          0.0,
-      equity: (raw['equity'] as num?)?.toDouble() ?? 0.0,
-      status: EntityStatus.fromString(
-        raw['status']?.toString() ?? 'pending',
-      ),
-      updatedAt:
-          DateTime.tryParse(raw['updatedAt']?.toString() ?? '') ??
-          DateTime.now(),
-      startupLogo:
-          ideaDetails?['logo']?.toString() ??
-          raw['startupLogo']?.toString() ??
-          raw['logoUrl']?.toString(),
-      hasNda: raw['hasNda'] as bool? ?? false,
-      documentsCount: parsedDocsCount,
-      documents: actualDocs,
-      founderId:
-          userDetails?['id']?.toString() ??
-          ideaDetails?['userId']?.toString() ??
-          ideaDetails?['founderId']?.toString() ??
-          raw['founderId']?.toString() ??
-          raw['userId']?.toString() ??
-          startupId,
-    );
-  }
-
-  Investor _investorFromJson(Map<String, dynamic> json) =>
-      Investor.fromApiJson(json);
-
-  PortfolioItem _portfolioFromJson(Map<String, dynamic> json) {
-    final startup = json['startup'] as Map?;
-    final startupProfile = json['startupProfile'] as Map?;
-    final startupName =
-        json['startupName'] as String? ??
-        startup?['name'] as String? ??
-        startupProfile?['startupName'] as String? ??
-        json['name'] as String? ??
-        'Startup';
-
-    final investedAmount =
-        (json['investedAmount'] as num?)?.toDouble() ??
-        (json['amount'] as num?)?.toDouble() ??
-        0.0;
-
-    final currentValue =
-        (json['currentValue'] as num?)?.toDouble() ??
-        (json['value'] as num?)?.toDouble() ??
-        (json['currentAmount'] as num?)?.toDouble() ??
-        investedAmount;
-
-    return PortfolioItem(
-      id: json['id']?.toString() ?? '',
-      startupName: startupName,
-      investedAmount: investedAmount,
-      currentValue: currentValue,
-      equity: (json['equity'] as num?)?.toDouble() ?? 0,
-      investedAt:
-          DateTime.tryParse(
-            json['investedAt']?.toString() ??
-                json['createdAt']?.toString() ??
-                '',
-          ) ??
-          DateTime.now(),
-      logoUrl:
-          json['logoUrl'] as String? ??
-          json['logo'] as String? ??
-          startup?['logoUrl'] as String?,
-    );
-  }
-
-  @override
-  Future<Result<Map<String, dynamic>>> getVerificationDetails() async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.getEnvelope<Map<String, dynamic>>(
-      ApiEndpoints.investorVerification,
-      parser: (env) {
-        final data = env.data;
-        if (data is Map) return Map<String, dynamic>.from(data);
-        return <String, dynamic>{};
       },
     );
   }
 
   @override
-  Future<Result<String?>> updateVerificationDetail({
-    required String key,
-    String? value,
-    String? status,
-    String? documentUrl,
-  }) async {
-    if (_api == null) return _apiNotConfigured();
-    final body = <String, dynamic>{
-      'key': key,
-      'value': value ?? '',
-      'status': 'pending',
-      'documentUrl': documentUrl,
-    };
-    return _api.patchEnvelope<String?>(
-      ApiEndpoints.investorVerification,
-      body: body,
-      parser: (env) => env.message,
+  Future<Result<Deal>> getDeal(String id) async {
+    return _api.getEnvelope<Deal>(
+      '/investor/deals/$id',
+      parser: (envelope) =>
+          Deal.fromApiJson(envelope.data as Map<String, dynamic>),
     );
   }
 
   @override
-  Future<Result<String?>> deleteVerificationDetail({
-    required String key,
+  Future<Result<Paginated<PortfolioItem>>> getPortfolio(
+    QueryParams params, {
+    String? investorId,
   }) async {
-    if (_api == null) return _apiNotConfigured();
-    return _api.deleteEnvelope<String?>(
-      ApiEndpoints.investorVerification,
-      body: {'key': key},
-      parser: (env) => env.message,
+    final endpoint = investorId != null && investorId.isNotEmpty
+        ? ApiEndpoints.publicInvestorPortfolio(investorId)
+        : '/investor/portfolio';
+    return _api.getEnvelope<Paginated<PortfolioItem>>(
+      endpoint,
+      query: params.toApiQuery(),
+      parser: (envelope) {
+        final raw = envelope.data;
+        final list = raw is List
+            ? raw
+            : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['portfolio'] ?? const []) : const []);
+        return ApiResponse.parsePaginated(
+          list as List,
+          envelope.meta,
+          (item) => PortfolioItem.fromApiJson(item as Map<String, dynamic>),
+          fallbackPage: params.page,
+        );
+      },
     );
   }
 
-  Future<Result<T>> _apiNotConfigured<T>() async =>
-      const Err(ServerFailure('Live API client is not configured.'));
+  @override
+  Future<Result<PortfolioItem>> addPortfolioItem(Map<String, dynamic> data) async {
+    return _api.postEnvelope<PortfolioItem>(
+      '/investor/portfolio',
+      body: data,
+      parser: (envelope) =>
+          PortfolioItem.fromApiJson(envelope.data as Map<String, dynamic>),
+    );
+  }
+
+  @override
+  Future<Result<PortfolioItem>> updatePortfolioItem(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    return _api.putEnvelope<PortfolioItem>(
+      '/investor/portfolio/$id',
+      body: data,
+      parser: (envelope) =>
+          PortfolioItem.fromApiJson(envelope.data as Map<String, dynamic>),
+    );
+  }
+
+  @override
+  Future<Result<String>> deletePortfolioItem(String id) async {
+    return _api.deleteEnvelope<String>(
+      '/investor/portfolio/$id',
+      parser: (envelope) => envelope.message ?? 'Portfolio holding deleted',
+    );
+  }
+
+  @override
+  Future<Result<void>> expressInterest(Map<String, dynamic> data) async {
+    return _api.postEnvelope<void>(
+      ApiEndpoints.publicInvestmentsOffer,
+      body: data,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<void>> updateInvestment(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    return _api.putEnvelope<void>(
+      '/investor/deals/$id',
+      body: data,
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<void>> updateInvestmentStatus(String id, String status) async {
+    return _api.putEnvelope<void>(
+      '/investor/deals/$id/status',
+      body: {'status': status},
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<void>> followInvestor(String id) async {
+    return _api.postEnvelope<void>(
+      '/public/investors/$id/follow',
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<void>> unfollowInvestor(String id) async {
+    return _api.deleteEnvelope<void>(
+      '/public/investors/$id/follow',
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<void>> saveInvestor(String id) async {
+    return _api.postEnvelope<void>(
+      ApiEndpoints.publicInvestorSave(id),
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<void>> unsaveInvestor(String id) async {
+    return _api.deleteEnvelope<void>(
+      ApiEndpoints.publicInvestorSave(id),
+      parser: (_) {},
+    );
+  }
+
+  @override
+  Future<Result<Map<String, dynamic>>> getVerificationDetails() async {
+    return _api.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.publicVerification,
+      parser: (envelope) {
+        final raw = envelope.data;
+        if (raw is Map) return Map<String, dynamic>.from(raw);
+        return const <String, dynamic>{};
+      },
+    );
+  }
+
+  @override
+  Future<Result<String>> updateVerificationDetail({
+    required String key,
+    required String value,
+    required String status,
+    String? documentUrl,
+  }) async {
+    return _api.postEnvelope<String>(
+      ApiEndpoints.publicVerification,
+      body: {
+        'key': key,
+        'value': value,
+        'status': status,
+        if (documentUrl != null && documentUrl.isNotEmpty)
+          'documentUrl': documentUrl,
+      },
+      parser: (envelope) => envelope.message ?? 'Verification detail updated',
+    );
+  }
+
+  @override
+  Future<Result<String>> deleteVerificationDetail({required String key}) async {
+    return _api.deleteEnvelope<String>(
+      '${ApiEndpoints.publicVerification}/$key',
+      parser: (envelope) => envelope.message ?? 'Verification detail deleted',
+    );
+  }
 }
