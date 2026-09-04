@@ -955,11 +955,10 @@ String _cleanCityString(String rawCity) {
                       );
                       final res = isSaved
                           ? await api.deleteAction(
-                              ApiEndpoints.investorWatchlistItem(widget.id),
+                              ApiEndpoints.publicInvestorSave(widget.id),
                             )
                           : await api.postAction(
-                              ApiEndpoints.investorWatchlist,
-                              body: {'startupId': widget.id},
+                              ApiEndpoints.publicInvestorSave(widget.id),
                             );
                       if (!context.mounted) return;
                       res.fold(
@@ -974,8 +973,8 @@ String _cleanCityString(String rawCity) {
                           );
                           context.showSnack(
                             isSaved
-                                ? 'Removed from watchlist'
-                                : 'Added to watchlist',
+                                ? 'Investor removed from saved'
+                                : 'Investor saved',
                           );
                           setState(() {
                             _future = _loadAll();

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -15,12 +16,14 @@ class AppInvestorCard extends StatelessWidget {
     this.onTap,
     this.onFollow,
     this.onConnect,
+    this.onSave,
   });
 
   final Investor investor;
   final VoidCallback? onTap;
   final VoidCallback? onFollow;
   final VoidCallback? onConnect;
+  final VoidCallback? onSave;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +77,29 @@ class AppInvestorCard extends StatelessWidget {
                   ],
                 ),
               ),
+              if (onSave != null)
+                ListenableBuilder(
+                  listenable: BookmarkManager.instance,
+                  builder: (context, _) {
+                    final isSaved = BookmarkManager.instance.isBookmarked(
+                          BookmarkManager.categoryInvestors,
+                          investor.id,
+                        ) ||
+                        investor.isSaved;
+                    return IconButton(
+                      onPressed: onSave,
+                      visualDensity: VisualDensity.compact,
+                      icon: Icon(
+                        isSaved
+                            ? Icons.bookmark_rounded
+                            : Icons.bookmark_outline_rounded,
+                        color: isSaved
+                            ? AppColors.primary
+                            : AppColors.subtleText,
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
           AppSizes.vGapMd,

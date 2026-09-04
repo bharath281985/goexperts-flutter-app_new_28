@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../../../core/utils/bookmark_manager.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/image_url.dart';
 
@@ -207,7 +208,28 @@ class Investor extends Equatable {
     final isVerified =
         json['isVerified'] as bool? ?? json['verified'] as bool? ?? false;
     final isFollowing = json['isFollowing'] as bool? ?? false;
-    final isSaved = json['isSaved'] as bool? ?? false;
+    final rawSaved = json['isSaved'] ??
+        json['is_saved'] ??
+        profile['isSaved'] ??
+        profile['is_saved'] ??
+        json['savedData'] ??
+        profile['savedData'];
+    bool parsedSaved = false;
+    if (rawSaved is bool) {
+      parsedSaved = rawSaved;
+    } else if (rawSaved is num) {
+      parsedSaved = rawSaved != 0;
+    } else if (rawSaved is String) {
+      final s = rawSaved.trim().toLowerCase();
+      parsedSaved = s == 'true' || s == '1' || s == 'yes';
+    }
+    final isSaved = parsedSaved ||
+        BookmarkManager.instance
+            .isBookmarked(BookmarkManager.categoryInvestors, id);
+    if (parsedSaved && id.isNotEmpty) {
+      BookmarkManager.instance
+          .syncItem(BookmarkManager.categoryInvestors, id, true);
+    }
 
     return Investor(
       id: id,

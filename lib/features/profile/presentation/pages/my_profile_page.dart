@@ -10,6 +10,7 @@ import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_list_tile.dart';
+import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -388,14 +389,25 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        context.tr('My Profile'),
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: context.isDark ? Colors.white : AppColors.darkText,
-                          letterSpacing: -0.4,
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (context.canPop() || Navigator.of(context).canPop()) ...[
+                            IconTapWidget(
+                              onTap: () => Navigator.of(context).maybePop(),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
+                          Text(
+                            context.tr('My Profile'),
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: context.isDark ? Colors.white : AppColors.darkText,
+                              letterSpacing: -0.4,
+                            ),
+                          ),
+                        ],
                       ),
                       IconButton(
                         onPressed: () => _navigateAndRefresh(

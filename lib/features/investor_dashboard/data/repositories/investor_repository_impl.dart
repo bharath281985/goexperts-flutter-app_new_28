@@ -1,4 +1,5 @@
 import '../../../../core/auth/token_role_helper.dart';
+import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
@@ -202,18 +203,14 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<void>> saveInvestor(String id) async {
-    return _api.postEnvelope<void>(
-      ApiEndpoints.publicInvestorSave(id),
-      parser: (_) {},
-    );
+    final res = await _api.postAction(ApiEndpoints.publicInvestorSave(id));
+    return res.fold((f) => Err(f), (_) => const Success(null));
   }
 
   @override
   Future<Result<void>> unsaveInvestor(String id) async {
-    return _api.deleteEnvelope<void>(
-      ApiEndpoints.publicInvestorSave(id),
-      parser: (_) {},
-    );
+    final res = await _api.deleteAction(ApiEndpoints.publicInvestorSave(id));
+    return res.fold((f) => Err(f), (_) => const Success(null));
   }
 
   @override

@@ -1006,7 +1006,11 @@ class _FounderDrawer extends StatelessWidget {
               onRefresh: () => _refresh(context),
               onProfileTap: () {
                 Navigator.of(context).pop();
-                context.push(Routes.profile);
+                if (onTabSelected != null) {
+                  onTabSelected!(4);
+                } else {
+                  context.push(Routes.profile);
+                }
               },
             ),
             Expanded(

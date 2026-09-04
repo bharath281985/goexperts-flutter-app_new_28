@@ -550,9 +550,9 @@ class BookmarksPage extends StatelessWidget {
                     '${ApiEndpoints.favorites}/toggle',
                     body: {'entityType': 'investor', 'entityId': i.id},
                   );
-                  // Also trigger watchlist deletion as fallback
+                  // Also trigger save deletion
                   sl<ApiClientHelper>().deleteAction(
-                    ApiEndpoints.investorWatchlistItem(i.id),
+                    ApiEndpoints.publicInvestorSave(i.id),
                   );
                   if (!context.mounted) return;
                   result.fold(
