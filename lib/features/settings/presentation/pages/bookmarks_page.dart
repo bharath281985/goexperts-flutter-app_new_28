@@ -24,6 +24,8 @@ import '../../../freelancer_dashboard/domain/entities/freelancer.dart';
 import '../../../freelancer_dashboard/domain/repositories/freelancer_repository.dart';
 import '../../../freelancer_dashboard/presentation/widgets/freelancer_card.dart';
 import '../../../investor_dashboard/domain/entities/investor.dart';
+import '../../../investor_dashboard/domain/repositories/investor_repository.dart';
+import '../../../investor_dashboard/presentation/widgets/investor_card.dart';
 import '../../../projects/domain/entities/project.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
@@ -180,8 +182,115 @@ class BookmarksPage extends StatelessWidget {
     final client = sl<ApiClientHelper>();
     final query = params.toApiQuery();
 
+<<<<<<< HEAD
     return client.getEnvelope<Paginated<Investor>>(
       ApiEndpoints.publicSavedInvestors,
+=======
+    final favRes = await client.getEnvelope<Paginated<Investor>>(
+      ApiEndpoints.favorites,
+      query: query,
+      parser: (env) {
+        final list = env.data as List? ?? [];
+        final items = list
+            .map(
+              (e) => Investor.fromApiJson(
+                Map<String, dynamic>.from(e as Map),
+              ).copyWith(isSaved: true),
+            )
+            .toList();
+        for (final i in items) {
+          BookmarkManager.instance.syncItem(
+            BookmarkManager.categoryInvestors,
+            i.id,
+            true,
+          );
+        }
+        return Paginated(
+          items: items,
+          page: params.page,
+          totalPages: 1,
+          totalItems: list.length,
+        );
+      },
+    );
+
+    if (favRes.isSuccess && (favRes.valueOrNull?.items.isNotEmpty ?? false)) {
+      return favRes;
+    }
+
+    final res = await sl<InvestorRepository>().getInvestors(params);
+    return res.fold((f) => favRes.isSuccess ? favRes : Err(f), (paginated) {
+      final savedIds = BookmarkManager.instance.getIds(
+        BookmarkManager.categoryInvestors,
+      );
+      final filtered = paginated.items
+          .where((x) => savedIds.contains(x.id))
+          .map((x) => x.copyWith(isSaved: true))
+          .toList();
+      return Success(
+        Paginated(
+          items: filtered,
+          page: paginated.page,
+          totalPages: 1,
+          totalItems: filtered.length,
+        ),
+      );
+    });
+  }
+
+  Future<Result<Paginated<Technology>>> _fetchTechnologies(
+    QueryParams params,
+  ) async {
+    final res = await sl<CatalogRepository>().getTechnologies(params);
+    return res.fold((f) => Err(f), (paginated) {
+      final savedIds = BookmarkManager.instance.getIds(
+        BookmarkManager.categoryTechnologies,
+      );
+      final filtered = paginated.items
+          .where((x) => savedIds.contains(x.id))
+          .toList();
+      return Success(
+        Paginated(
+          items: filtered,
+          page: paginated.page,
+          totalPages: 1,
+          totalItems: filtered.length,
+        ),
+      );
+    });
+  }
+
+  Future<Result<Paginated<CategoryItem>>> _fetchCategories(
+    QueryParams params,
+  ) async {
+    final res = await sl<CatalogRepository>().getCategories(params);
+    return res.fold((f) => Err(f), (paginated) {
+      final savedIds = BookmarkManager.instance.getIds(
+        BookmarkManager.categoryCategories,
+      );
+      final filtered = paginated.items
+          .where((x) => savedIds.contains(x.id))
+          .toList();
+      return Success(
+        Paginated(
+          items: filtered,
+          page: paginated.page,
+          totalPages: 1,
+          totalItems: filtered.length,
+        ),
+      );
+    });
+  }
+
+  Future<Result<Paginated<Founder>>> _fetchFounders(QueryParams params) async {
+    final client = sl<ApiClientHelper>();
+    final query = params.toApiQuery();
+    query['entityType'] = 'founder';
+
+    // 1. Try unified favorites endpoint first
+    final favRes = await client.getEnvelope<Paginated<Founder>>(
+      ApiEndpoints.favorites,
+>>>>>>> 70e4186 (feat: render AppInvestorCard in client wishlist investor tab)
       query: query,
       parser: (env) {
         final list = env.data as List? ?? [];
@@ -443,56 +552,61 @@ class BookmarksPage extends StatelessWidget {
       emptyIcon: Icons.bookmark_outline_rounded,
       itemBuilder: (context, i, _) {
         final bloc = context.read<ListBloc<Investor>>();
-        return AppCard(
-          onTap: () => context.push('${Routes.publicInvestor}/${i.id}'),
-          child: Row(
-            children: [
-              AppAvatar(name: i.name, imageUrl: i.avatarUrl, size: 48),
-              AppSizes.hGapMd,
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(i.name, style: context.text.titleSmall),
-                    Text(
-                      '${i.investorType} · ${i.company}',
-                      style: context.text.labelSmall,
+        return AppInvestorCard(
+          investor: i.copyWith(isSaved: true),
+          onTap: () async {
+            await context.push('${Routes.publicInvestor}/${i.id}');
+            if (context.mounted) {
+              bloc.add(const ListRefreshed());
+            }
+          },
+          onSave: () async {
+            final api = sl<ApiClientHelper>();
+            final isSaved = BookmarkManager.instance.isBookmarked(
+                  BookmarkManager.categoryInvestors,
+                  i.id,
+                ) ||
+                i.isSaved;
+
+            final result = isSaved
+                ? await api.deleteAction(ApiEndpoints.publicInvestorSave(i.id))
+                : await api.postAction(ApiEndpoints.publicInvestorSave(i.id));
+
+            // Also toggle in favorites API
+            api.postAction(
+              '${ApiEndpoints.favorites}/toggle',
+              body: {'entityType': 'investor', 'entityId': i.id},
+            );
+
+            if (!context.mounted) return;
+
+            result.fold(
+              (failure) => context.showSnack(
+                failure.message.isNotEmpty
+                    ? failure.message
+                    : 'Failed to update saved status',
+                isError: true,
+              ),
+              (_) {
+                final newSaved = !isSaved;
+                BookmarkManager.instance.syncItem(
+                  BookmarkManager.categoryInvestors,
+                  i.id,
+                  newSaved,
+                );
+                if (!newSaved) {
+                  bloc.add(
+                    ListItemRemoved(
+                      (item) => (item as Investor).id == i.id,
                     ),
-                  ],
-                ),
-              ),
-              IconButton(
-                icon: const Icon(
-                  Icons.bookmark_rounded,
-                  color: AppColors.primary,
-                ),
-                onPressed: () async {
-                  final result = await sl<ApiClientHelper>().postAction(
-                    '${ApiEndpoints.favorites}/toggle',
-                    body: {'entityType': 'investor', 'entityId': i.id},
                   );
-                  if (!context.mounted) return;
-                  result.fold(
-                    (failure) =>
-                        context.showSnack(failure.message, isError: true),
-                    (_) {
-                      BookmarkManager.instance.syncItem(
-                        BookmarkManager.categoryInvestors,
-                        i.id,
-                        false,
-                      );
-                      bloc.add(
-                        ListItemRemoved(
-                          (item) => (item as Investor).id == i.id,
-                        ),
-                      );
-                      context.showSnack('Removed from saved');
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
+                }
+                context.showSnack(
+                  newSaved ? 'Investor saved' : 'Removed from saved',
+                );
+              },
+            );
+          },
         );
       },
     );
@@ -598,12 +712,12 @@ class BookmarksPage extends StatelessWidget {
       case UserRole.client:
         tabs = const [
           Tab(text: 'Freelancers'),
-          Tab(text: 'Projects'),
+          Tab(text: 'Investors'),
           Tab(text: 'Startups'),
         ];
         tabViews = [
           _freelancersView(context),
-          _projectsView(context),
+          _investorsView(context),
           _startupsView(context),
         ];
         break;
