@@ -328,6 +328,9 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           ),
           AppSizes.vGapLg,
           AppCard(
+            onTap: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
+                ? () => context.push('${Routes.publicFreelancer}/${p.freelancerId}')
+                : null,
             child: Row(
               children: [
                 AppAvatar(
@@ -340,7 +343,17 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(p.freelancerName, style: context.text.titleSmall),
+                      Text(
+                        p.freelancerName,
+                        style: context.text.titleSmall?.copyWith(
+                          decoration: (p.freelancerId != null &&
+                                  p.freelancerId!.isNotEmpty)
+                              ? TextDecoration.underline
+                              : null,
+                          decorationColor: context.text.titleSmall?.color
+                              ?.withValues(alpha: 0.4),
+                        ),
+                      ),
                       Row(
                         children: [
                           const Icon(
@@ -357,6 +370,12 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                     ],
                   ),
                 ),
+                if (p.freelancerId != null && p.freelancerId!.isNotEmpty)
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.mutedText,
+                  ),
               ],
             ),
           ),

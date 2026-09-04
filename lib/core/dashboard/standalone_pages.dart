@@ -30,14 +30,14 @@ class ProjectsStandalonePage extends StatelessWidget {
   const ProjectsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'Explore Projects', const ProjectsListView());
+      _wrap(context, 'Projects', const ProjectsListView(initialTabIndex: 0));
 }
 
 class MyProjectsStandalonePage extends StatelessWidget {
   const MyProjectsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'My Projects', const MyProjectsListView());
+      _wrap(context, 'My Projects', const ProjectsListView(initialTabIndex: 1));
 }
 
 class ProposalsStandalonePage extends StatelessWidget {

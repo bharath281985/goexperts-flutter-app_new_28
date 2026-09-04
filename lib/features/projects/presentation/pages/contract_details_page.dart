@@ -285,6 +285,9 @@ class ContractDetailsPage extends StatelessWidget {
           const AppSectionHeader(title: 'Freelancer Details'),
           AppSizes.vGapSm,
           AppCard(
+            onTap: (c.freelancerId != null && c.freelancerId!.isNotEmpty)
+                ? () => context.push('${Routes.publicFreelancer}/${c.freelancerId}')
+                : null,
             child: Row(
               children: [
                 AppAvatar(
@@ -301,6 +304,12 @@ class ContractDetailsPage extends StatelessWidget {
                         c.freelancerName,
                         style: context.text.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                          decoration: (c.freelancerId != null &&
+                                  c.freelancerId!.isNotEmpty)
+                              ? TextDecoration.underline
+                              : null,
+                          decorationColor: context.text.titleSmall?.color
+                              ?.withValues(alpha: 0.4),
                         ),
                       ),
                       if (c.freelancerTitle != null &&
@@ -343,6 +352,12 @@ class ContractDetailsPage extends StatelessWidget {
                       size: 20,
                     ),
                     onPressed: () => _openChat(context, c, role),
+                  )
+                else if (c.freelancerId != null && c.freelancerId!.isNotEmpty)
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.mutedText,
                   ),
               ],
             ),
@@ -354,6 +369,9 @@ class ContractDetailsPage extends StatelessWidget {
             const AppSectionHeader(title: 'Client Details'),
             AppSizes.vGapSm,
             AppCard(
+              onTap: (c.clientId != null && c.clientId!.isNotEmpty)
+                  ? () => context.push('${Routes.publicCompany}/${c.clientId}')
+                  : null,
               child: Row(
                 children: [
                   AppAvatar(
@@ -370,6 +388,12 @@ class ContractDetailsPage extends StatelessWidget {
                           c.clientName!,
                           style: context.text.titleSmall?.copyWith(
                             fontWeight: FontWeight.w600,
+                            decoration: (c.clientId != null &&
+                                    c.clientId!.isNotEmpty)
+                                ? TextDecoration.underline
+                                : null,
+                            decorationColor: context.text.titleSmall?.color
+                                ?.withValues(alpha: 0.4),
                           ),
                         ),
                         Text(
@@ -381,6 +405,12 @@ class ContractDetailsPage extends StatelessWidget {
                       ],
                     ),
                   ),
+                  if (c.clientId != null && c.clientId!.isNotEmpty)
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 14,
+                      color: AppColors.mutedText,
+                    ),
                 ],
               ),
             ),

@@ -40,6 +40,7 @@ class StartupRepositoryImpl implements StartupRepository {
       ],
       _ => [
         ApiEndpoints.founderIdeas,
+        '/founder/startups/my-startups',
         ApiEndpoints.publicMyStartups,
       ],
     };

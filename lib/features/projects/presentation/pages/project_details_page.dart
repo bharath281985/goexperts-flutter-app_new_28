@@ -521,6 +521,9 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         ),
         AppSizes.vGapLg,
         AppCard(
+          onTap: (p.clientId != null && p.clientId!.isNotEmpty)
+              ? () => context.push('${Routes.publicCompany}/${p.clientId}')
+              : null,
           child: Row(
             children: [
               AppAvatar(name: p.clientName, imageUrl: p.clientAvatar, size: 44),
@@ -534,7 +537,13 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                         Flexible(
                           child: Text(
                             p.clientName,
-                            style: context.text.titleSmall,
+                            style: context.text.titleSmall?.copyWith(
+                              decoration: (p.clientId != null && p.clientId!.isNotEmpty)
+                                  ? TextDecoration.underline
+                                  : null,
+                              decorationColor: context.text.titleSmall?.color
+                                  ?.withValues(alpha: 0.4),
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -558,6 +567,12 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                   ],
                 ),
               ),
+              if (p.clientId != null && p.clientId!.isNotEmpty)
+                const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  size: 14,
+                  color: AppColors.mutedText,
+                ),
             ],
           ),
         ),
@@ -722,25 +737,48 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                   children: [
                     Row(
                       children: [
-                        AppAvatar(
-                          name: proposal.freelancerName,
-                          imageUrl: proposal.freelancerAvatar,
-                          size: 40,
+                        InkWell(
+                          onTap: (proposal.freelancerId != null &&
+                                  proposal.freelancerId!.isNotEmpty)
+                              ? () => context.push(
+                                  '${Routes.publicFreelancer}/${proposal.freelancerId}')
+                              : null,
+                          borderRadius: BorderRadius.circular(20),
+                          child: AppAvatar(
+                            name: proposal.freelancerName,
+                            imageUrl: proposal.freelancerAvatar,
+                            size: 40,
+                          ),
                         ),
                         AppSizes.hGapMd,
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                proposal.freelancerName,
-                                style: context.text.titleSmall,
-                              ),
-                              Text(
-                                Formatters.currency(proposal.bidAmount),
-                                style: context.text.labelSmall,
-                              ),
-                            ],
+                          child: InkWell(
+                            onTap: (proposal.freelancerId != null &&
+                                    proposal.freelancerId!.isNotEmpty)
+                                ? () => context.push(
+                                    '${Routes.publicFreelancer}/${proposal.freelancerId}')
+                                : null,
+                            borderRadius: BorderRadius.circular(4),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  proposal.freelancerName,
+                                  style: context.text.titleSmall?.copyWith(
+                                    decoration: (proposal.freelancerId != null &&
+                                            proposal.freelancerId!.isNotEmpty)
+                                        ? TextDecoration.underline
+                                        : null,
+                                    decorationColor: context.text.titleSmall?.color
+                                        ?.withValues(alpha: 0.4),
+                                  ),
+                                ),
+                                Text(
+                                  Formatters.currency(proposal.bidAmount),
+                                  style: context.text.labelSmall,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         AppStatusChip.status(proposal.status, dense: true),

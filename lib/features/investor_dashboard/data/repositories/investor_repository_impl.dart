@@ -44,31 +44,57 @@ class InvestorRepositoryImpl implements InvestorRepository {
 
   @override
   Future<Result<Paginated<Deal>>> getDeals(QueryParams params) async {
-    return _api.getEnvelope<Paginated<Deal>>(
+    final paths = [
       '/investor/deals',
-      query: params.toApiQuery(),
-      parser: (envelope) {
-        final raw = envelope.data;
-        final list = raw is List
-            ? raw
-            : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['deals'] ?? const []) : const []);
-        return ApiResponse.parsePaginated(
-          list as List,
-          envelope.meta,
-          (item) => Deal.fromApiJson(item as Map<String, dynamic>),
-          fallbackPage: params.page,
-        );
-      },
-    );
+      '/investor/investments',
+      ApiEndpoints.publicInvestments,
+      '/founder/deals',
+      '/client/deals',
+    ];
+    Result<Paginated<Deal>> lastResult = const Err(ServerFailure('No deals found'));
+    for (final path in paths) {
+      final res = await _api.getEnvelope<Paginated<Deal>>(
+        path,
+        query: params.toApiQuery(),
+        parser: (envelope) {
+          final raw = envelope.data;
+          final list = raw is List
+              ? raw
+              : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['deals'] ?? const []) : const []);
+          return ApiResponse.parsePaginated(
+            list as List,
+            envelope.meta,
+            (item) => Deal.fromApiJson(item as Map<String, dynamic>),
+            fallbackPage: params.page,
+          );
+        },
+      );
+      if (res.isSuccess) return res;
+      lastResult = res;
+    }
+    return lastResult;
   }
 
   @override
   Future<Result<Deal>> getDeal(String id) async {
-    return _api.getEnvelope<Deal>(
+    final paths = [
       '/investor/deals/$id',
-      parser: (envelope) =>
-          Deal.fromApiJson(envelope.data as Map<String, dynamic>),
-    );
+      '/investor/investments/$id',
+      '${ApiEndpoints.publicInvestments}/$id',
+      '/founder/deals/$id',
+      '/client/deals/$id',
+    ];
+    Result<Deal> lastResult = const Err(ServerFailure('Deal not found'));
+    for (final path in paths) {
+      final res = await _api.getEnvelope<Deal>(
+        path,
+        parser: (envelope) =>
+            Deal.fromApiJson(envelope.data as Map<String, dynamic>),
+      );
+      if (res.isSuccess) return res;
+      lastResult = res;
+    }
+    return lastResult;
   }
 
   @override

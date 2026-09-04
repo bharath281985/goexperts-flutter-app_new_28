@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/bookmark_button.dart';
@@ -20,25 +22,38 @@ class ProjectHeader extends StatelessWidget {
   final VoidCallback? onSave;
   final VoidCallback? onEdit;
 
+  void _openPublicProfile(BuildContext context) {
+    if (project.clientId != null && project.clientId!.isNotEmpty) {
+      context.push('${Routes.publicCompany}/${project.clientId}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasClientProfile =
+        project.clientId != null && project.clientId!.isNotEmpty;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 60,
-          height: 60,
-          padding: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: AppColors.projectAvatarRing, width: 3),
-          ),
-          child: AppAvatar(
-            name: project.clientName,
-            imageUrl: project.clientAvatar,
-            size: 55,
-            showOnline: true,
-            isOnline: project.status == EntityStatus.open,
+        InkWell(
+          onTap: hasClientProfile ? () => _openPublicProfile(context) : null,
+          borderRadius: BorderRadius.circular(30),
+          child: Container(
+            width: 60,
+            height: 60,
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.projectAvatarRing, width: 3),
+            ),
+            child: AppAvatar(
+              name: project.clientName,
+              imageUrl: project.clientAvatar,
+              size: 55,
+              showOnline: true,
+              isOnline: project.status == EntityStatus.open,
+            ),
           ),
         ),
         AppSizes.hGapMd,
@@ -59,27 +74,39 @@ class ProjectHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                 ),
                 AppSizes.vGapSm,
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        project.clientName,
-                        style: context.text.bodySmall?.copyWith(
-                          color: AppColors.projectSecondaryText,
-                          fontWeight: FontWeight.w500,
+                InkWell(
+                  onTap:
+                      hasClientProfile ? () => _openPublicProfile(context) : null,
+                  borderRadius: BorderRadius.circular(4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          project.clientName,
+                          style: context.text.bodySmall?.copyWith(
+                            color: AppColors.projectSecondaryText,
+                            fontWeight: FontWeight.w500,
+                            decoration:
+                                hasClientProfile
+                                    ? TextDecoration.underline
+                                    : null,
+                            decorationColor: AppColors.projectSecondaryText
+                                .withValues(alpha: 0.4),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    if (project.clientVerified) ...[
-                      const SizedBox(width: 8),
-                      const VerifiedBadge(
-                        size: 20,
-                        color: AppColors.projectVerified,
-                      ),
+                      if (project.clientVerified) ...[
+                        const SizedBox(width: 8),
+                        const VerifiedBadge(
+                          size: 20,
+                          color: AppColors.projectVerified,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
                 if (project.category.isNotEmpty) ...[
                   AppSizes.vGapXs,

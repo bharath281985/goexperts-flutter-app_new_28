@@ -36,13 +36,33 @@ Widget _proposalCard(BuildContext context, Proposal p) => AppCard(
   onTap: () => context.push('${Routes.proposalDetails}/${p.id}'),
   child: Row(
     children: [
-      AppAvatar(name: p.freelancerName, imageUrl: p.freelancerAvatar, size: 44),
+      InkWell(
+        onTap: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
+            ? () => context.push('${Routes.publicFreelancer}/${p.freelancerId}')
+            : null,
+        borderRadius: BorderRadius.circular(22),
+        child: AppAvatar(name: p.freelancerName, imageUrl: p.freelancerAvatar, size: 44),
+      ),
       AppSizes.hGapMd,
       Expanded(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(p.freelancerName, style: context.text.titleSmall),
+            InkWell(
+              onTap: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
+                  ? () => context.push('${Routes.publicFreelancer}/${p.freelancerId}')
+                  : null,
+              borderRadius: BorderRadius.circular(4),
+              child: Text(
+                p.freelancerName,
+                style: context.text.titleSmall?.copyWith(
+                  decoration: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
+                      ? TextDecoration.underline
+                      : null,
+                  decorationColor: context.text.titleSmall?.color?.withValues(alpha: 0.4),
+                ),
+              ),
+            ),
             Text(
               p.projectTitle,
               style: context.text.labelSmall,

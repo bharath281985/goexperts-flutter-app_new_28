@@ -5,30 +5,128 @@ import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_status_chip.dart';
 import '../../../../core/widgets/catalog_view.dart';
+import '../../../projects/domain/entities/project.dart';
+import '../../../projects/domain/repositories/project_repository.dart';
 import '../../domain/entities/investor.dart';
 import '../../domain/repositories/investor_repository.dart';
 import '../widgets/investment_edit_sheet.dart';
 import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 
-/// Embeddable deal-room catalog.
-class DealsListView extends StatelessWidget {
-  const DealsListView({super.key});
+/// Embeddable deal-room & contracts catalog with 2 top tabs.
+class DealsListView extends StatefulWidget {
+  const DealsListView({super.key, this.initialTabIndex = 0});
+
+  final int initialTabIndex;
+
+  @override
+  State<DealsListView> createState() => _DealsListViewState();
+}
+
+class _DealsListViewState extends State<DealsListView> {
+  late int _selectedTab;
+  int _refreshKey = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedTab = widget.initialTabIndex;
+  }
+
+  Widget _buildTopTabs(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkCard : const Color(0xFFF1F3F9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.isDark
+              ? AppColors.darkBorder
+              : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _TabButton(
+              label: 'Project Contracts',
+              icon: Icons.description_outlined,
+              activeIcon: Icons.description_rounded,
+              isSelected: _selectedTab == 0,
+              onTap: () {
+                if (_selectedTab != 0) {
+                  setState(() {
+                    _selectedTab = 0;
+                    _refreshKey++;
+                  });
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _TabButton(
+              label: 'Investment Deals',
+              icon: Icons.handshake_outlined,
+              activeIcon: Icons.handshake_rounded,
+              isSelected: _selectedTab == 1,
+              onTap: () {
+                if (_selectedTab != 1) {
+                  setState(() {
+                    _selectedTab = 1;
+                    _refreshKey++;
+                  });
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final repo = sl<InvestorRepository>();
-    return CatalogView<Deal>(
-      fetcher: repo.getDeals,
-      searchHint: 'Search deals…',
-      emptyTitle: 'No active deals',
-      emptyIcon: Icons.handshake_outlined,
-      skeletonHeight: 100,
-      itemBuilder: (context, deal, _) => _DealCard(deal: deal),
+    final isContracts = _selectedTab == 0;
+    final projectRepo = sl<ProjectRepository>();
+    final investorRepo = sl<InvestorRepository>();
+
+    return Column(
+      children: [
+        _buildTopTabs(context),
+        Expanded(
+          child: isContracts
+              ? CatalogView<Contract>(
+                  key: ValueKey('contracts-tab-$_selectedTab-$_refreshKey'),
+                  fetcher: projectRepo.getContracts,
+                  searchHint: 'Search contracts…',
+                  emptyTitle: 'No project contracts yet',
+                  emptyMessage:
+                      'Accepted proposals and active project contracts will appear here.',
+                  emptyIcon: Icons.description_outlined,
+                  skeletonHeight: 120,
+                  itemBuilder: (context, contract, _) =>
+                      _ContractCard(contract: contract),
+                )
+              : CatalogView<Deal>(
+                  key: ValueKey('deals-tab-$_selectedTab-$_refreshKey'),
+                  fetcher: investorRepo.getDeals,
+                  searchHint: 'Search deals…',
+                  emptyTitle: 'No active investment deals',
+                  emptyMessage:
+                      'Startup investment offers and deal room opportunities will appear here.',
+                  emptyIcon: Icons.handshake_outlined,
+                  skeletonHeight: 120,
+                  itemBuilder: (context, deal, _) => _DealCard(deal: deal),
+                ),
+        ),
+      ],
     );
   }
 }
@@ -428,3 +526,273 @@ class _DealCard extends StatelessWidget {
     );
   }
 }
+
+class _ContractCard extends StatelessWidget {
+  const _ContractCard({required this.contract});
+  final Contract contract;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasMilestones = contract.milestones.isNotEmpty;
+    final counterparty = contract.counterpartyName.isNotEmpty
+        ? contract.counterpartyName
+        : (contract.freelancerName.isNotEmpty
+            ? contract.freelancerName
+            : (contract.clientName ?? 'Contract'));
+
+    final avatarUrl = contract.counterpartyAvatar ??
+        contract.freelancerAvatar ??
+        contract.clientAvatar;
+
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        onTap: () => context.push('${Routes.contractDetails}/${contract.id}'),
+        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSizes.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppAvatar(
+                    name: counterparty,
+                    imageUrl: avatarUrl,
+                    size: 48,
+                  ),
+                  AppSizes.hGapMd,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          contract.projectTitle,
+                          style: context.text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.person_outline_rounded,
+                              size: 14,
+                              color: AppColors.mutedText,
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                counterparty,
+                                style: context.text.bodySmall?.copyWith(
+                                  color: context.isDark
+                                      ? AppColors.darkMutedText
+                                      : const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  AppStatusChip.status(contract.status, dense: true),
+                ],
+              ),
+              AppSizes.vGapMd,
+              Container(
+                padding: const EdgeInsets.all(AppSizes.md),
+                decoration: BoxDecoration(
+                  color: context.isDark
+                      ? AppColors.darkCard
+                      : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                  border: Border.all(
+                    color: context.isDark
+                        ? AppColors.darkBorder
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Contract Value',
+                            style: context.text.labelSmall?.copyWith(
+                              color: AppColors.mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            Formatters.compactCurrency(contract.amount),
+                            style: context.text.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (hasMilestones) ...[
+                      Container(
+                        height: 28,
+                        width: 1,
+                        color: context.isDark
+                            ? AppColors.darkBorder
+                            : const Color(0xFFE2E8F0),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Milestones',
+                              style: context.text.labelSmall?.copyWith(
+                                color: AppColors.mutedText,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${contract.milestones.where((m) => m.status == EntityStatus.completed).length}/${contract.milestones.length} Completed',
+                              style: context.text.labelMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              AppSizes.vGapMd,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Progress',
+                    style: context.text.labelSmall?.copyWith(
+                      color: AppColors.mutedText,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    '${(contract.progress * 100).toInt()}%',
+                    style: context.text.labelSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.success,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: LinearProgressIndicator(
+                  value: contract.progress.clamp(0.0, 1.0),
+                  minHeight: 6,
+                  backgroundColor: context.isDark
+                      ? AppColors.darkBorder
+                      : const Color(0xFFE2E8F0),
+                  valueColor:
+                      const AlwaysStoppedAnimation(AppColors.success),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.28),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 18,
+                  color: isSelected
+                      ? Colors.white
+                      : (context.isDark
+                          ? AppColors.darkText
+                          : const Color(0xFF64748B)),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: context.text.labelLarge?.copyWith(
+                      color: isSelected
+                          ? Colors.white
+                          : (context.isDark
+                              ? AppColors.darkText
+                              : const Color(0xFF475569)),
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

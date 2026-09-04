@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_badge.dart';
@@ -205,7 +207,7 @@ class _LeftPanelSmall extends StatelessWidget {
         ),
 
         // Logo
-        Positioned(top: 16, right: 16, child: _buildLogoBox()),
+        Positioned(top: 16, right: 16, child: _buildLogoBox(context)),
 
         // Title, Bio, Save Button (over Swoop)
         Positioned(
@@ -286,41 +288,47 @@ class _LeftPanelSmall extends StatelessWidget {
     );
   }
 
-  Widget _buildLogoBox() {
-    return Container(
-      width: 56,
-      height: 56,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Center(
-        child: ClipRRect(
+  Widget _buildLogoBox(BuildContext context) {
+    return InkWell(
+      onTap: (startup.founderId != null && startup.founderId!.isNotEmpty)
+          ? () => context.push('${Routes.publicFounder}/${startup.founderId}')
+          : onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          child: (startup.logoUrl != null && startup.logoUrl!.isNotEmpty)
-              ? CachedNetworkImage(
-                  imageUrl: startup.logoUrl!,
-                  width: 76,
-                  height: 76,
-                  fit: BoxFit.cover,
-                  errorWidget: (context, _, __) => const Icon(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Center(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: (startup.logoUrl != null && startup.logoUrl!.isNotEmpty)
+                ? CachedNetworkImage(
+                    imageUrl: startup.logoUrl!,
+                    width: 76,
+                    height: 76,
+                    fit: BoxFit.cover,
+                    errorWidget: (context, _, __) => const Icon(
+                      Icons.business_rounded,
+                      color: Color(0xFFFF3B30),
+                      size: 36,
+                    ),
+                  )
+                : const Icon(
                     Icons.business_rounded,
                     color: Color(0xFFFF3B30),
                     size: 36,
                   ),
-                )
-              : const Icon(
-                  Icons.business_rounded,
-                  color: Color(0xFFFF3B30),
-                  size: 36,
-                ),
+          ),
         ),
       ),
     );
@@ -375,6 +383,24 @@ class _RightPanelSmall extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
+                if (startup.founderName.isNotEmpty) ...[
+                  InkWell(
+                    onTap: (startup.founderId != null &&
+                            startup.founderId!.isNotEmpty)
+                        ? () => context.push(
+                            '${Routes.publicFounder}/${startup.founderId}')
+                        : null,
+                    borderRadius: BorderRadius.circular(6),
+                    child: _InfoChipSmall(
+                      icon: Icons.person_outline_rounded,
+                      label: startup.founderName,
+                      color: const Color(0xFF5E5CE6),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('|', style: TextStyle(color: Colors.grey.shade300)),
+                  const SizedBox(width: 8),
+                ],
                 _InfoChipSmall(
                   icon: Icons.business_center_outlined,
                   label: startup.industry,

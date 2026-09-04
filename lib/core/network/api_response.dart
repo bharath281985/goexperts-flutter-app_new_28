@@ -47,6 +47,22 @@ class ApiResponse<T> {
     dynamic raw,
     T Function(Map<String, dynamic> json) itemParser,
   ) {
+    if (raw == null) return [];
+    if (raw is Map) {
+      for (final key in ['items', 'rows', 'data', 'ideas', 'startups', 'projects', 'results']) {
+        if (raw[key] is List) {
+          return parseList(raw[key], itemParser);
+        }
+      }
+      if (raw.containsKey('id') || raw.containsKey('name') || raw.containsKey('title')) {
+        try {
+          return [itemParser(Map<String, dynamic>.from(raw))];
+        } catch (_) {
+          return [];
+        }
+      }
+      return [];
+    }
     if (raw is! List) return [];
     return raw
         .whereType<Map>()

@@ -71,26 +71,44 @@ class _ProposalCard extends StatelessWidget {
             ],
           ),
           AppSizes.vGapSm,
-          Row(
-            children: [
-              AppAvatar(
-                name: proposal.freelancerName,
-                imageUrl: proposal.freelancerAvatar,
-                size: 24,
-              ),
-              AppSizes.hGapSm,
-              Text(proposal.freelancerName, style: context.text.bodySmall),
-              const Spacer(),
-              const Icon(
-                Icons.star_rounded,
-                size: 14,
-                color: AppColors.warning,
-              ),
-              Text(
-                ' ${proposal.freelancerRating}',
-                style: context.text.labelMedium,
-              ),
-            ],
+          InkWell(
+            onTap: (proposal.freelancerId != null &&
+                    proposal.freelancerId!.isNotEmpty)
+                ? () => context.push(
+                    '${Routes.publicFreelancer}/${proposal.freelancerId}')
+                : null,
+            borderRadius: BorderRadius.circular(4),
+            child: Row(
+              children: [
+                AppAvatar(
+                  name: proposal.freelancerName,
+                  imageUrl: proposal.freelancerAvatar,
+                  size: 24,
+                ),
+                AppSizes.hGapSm,
+                Text(
+                  proposal.freelancerName,
+                  style: context.text.bodySmall?.copyWith(
+                    decoration: (proposal.freelancerId != null &&
+                            proposal.freelancerId!.isNotEmpty)
+                        ? TextDecoration.underline
+                        : null,
+                    decorationColor:
+                        context.text.bodySmall?.color?.withValues(alpha: 0.4),
+                  ),
+                ),
+                const Spacer(),
+                const Icon(
+                  Icons.star_rounded,
+                  size: 14,
+                  color: AppColors.warning,
+                ),
+                Text(
+                  ' ${proposal.freelancerRating}',
+                  style: context.text.labelMedium,
+                ),
+              ],
+            ),
           ),
           AppSizes.vGapMd,
           Text(

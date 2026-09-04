@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/constants/app_colors.dart';
+import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
+import '../../../../core/auth/token_role_helper.dart';
 import '../../../../core/bloc/list_bloc.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../core/widgets/app_filter_bottom_sheet.dart';
 import '../../../../core/widgets/catalog_view.dart';
@@ -34,9 +37,11 @@ const _startupSortApiValues = {
   'Most viewed': 'views',
 };
 
-/// Embeddable startup discovery catalog.
+/// Embeddable startup discovery catalog with Role-Wise Top Tabs.
 class StartupsListView extends StatefulWidget {
-  const StartupsListView({super.key});
+  const StartupsListView({super.key, this.initialTabIndex = 0});
+
+  final int initialTabIndex;
 
   @override
   State<StartupsListView> createState() => _StartupsListViewState();
@@ -46,16 +51,21 @@ class _StartupsListViewState extends State<StartupsListView> {
   List<SkillCategory> _categories = const [];
   List<SkillCategory> _industries = const [];
   List<MasterOption> _stages = const [];
+  UserRole? _role;
   bool _loading = true;
+  late int _selectedTab;
+  int _refreshKey = 0;
 
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTabIndex;
     _bootstrap();
   }
 
   Future<void> _bootstrap() async {
     final masterRepo = sl<MasterDataRepository>();
+    final role = await sl<TokenRoleHelper>().resolve();
     final results = await Future.wait([
       masterRepo.getSkillCategories(page: 1, pageSize: 200),
       masterRepo.getIndustries(),
@@ -68,6 +78,7 @@ class _StartupsListViewState extends State<StartupsListView> {
 
     if (!mounted) return;
     setState(() {
+      _role = role;
       _categories = categoriesResult.valueOrNull ?? const [];
       _industries = industriesResult.valueOrNull ?? const [];
       _stages = stagesResult.valueOrNull ?? const [];
@@ -106,178 +117,331 @@ class _StartupsListViewState extends State<StartupsListView> {
       ),
   ];
 
-  @override
-  Widget build(BuildContext context) {
-    final repo = sl<StartupRepository>();
+  Widget _buildTopTabs(BuildContext context) {
+    final isFounder = _role == UserRole.founder;
+    final myTabLabel = isFounder ? 'My Startup' : 'My Startups';
 
-    return CatalogView<Startup>(
-      fetcher: (params) {
-        final sortLabel = params.sortBy;
-        final apiSort = sortLabel == null
-            ? null
-            : (_startupSortApiValues[sortLabel] ?? sortLabel);
-        return repo.getStartups(
-          params.copyWith(
-            sortBy: apiSort,
-            filters: {
-              for (final entry in params.filters.entries)
-                if (entry.key == 'categoryId')
-                  'categoryId': entry.value
-                else if (entry.key == 'industry')
-                  'industry': entry.value
-                else if (entry.key == 'stage')
-                  'stage': entry.value
-                else
-                  entry.key: entry.value,
-            },
-          ),
-        );
-      },
-      searchHint: 'Search startups, industries…',
-      emptyTitle: 'No startups found',
-      emptyMessage: 'Try adjusting your search or filters.',
-      emptyIcon: Icons.rocket_launch_outlined,
-      sortOptions: _startupSortOptions,
-      filterSections: _filterSections,
-      floatingActionButton: Builder(
-        builder: (fabContext) => FloatingActionButton.extended(
-          onPressed: () async {
-            final data = await showModalBottomSheet<Map<String, dynamic>>(
-              context: fabContext,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (ctx) => const EditIdeaBottomSheet(
-                startup: Startup(
-                  id: '',
-                  name: '',
-                  tagline: '',
-                  industry: 'General',
-                  stage: 'MVP',
-                  founderName: '',
-                  fundingRequired: 500000,
-                  equityOffered: 10,
-                  location: 'Remote',
-                ),
-              ),
-            );
-
-            if (data == null) return;
-            if (!fabContext.mounted) return;
-
-            showDialog(
-              context: fabContext,
-              barrierDismissible: false,
-              builder: (_) => const Center(child: CircularProgressIndicator()),
-            );
-
-            final res = await repo.createIdea(data);
-            if (fabContext.mounted) Navigator.pop(fabContext);
-
-            if (fabContext.mounted) {
-              res.fold(
-                (f) => fabContext.showTopSnack(f.message, isError: true),
-                (created) {
-                  fabContext.showTopSnack('Startup Idea published successfully!');
-                  fabContext.read<ListBloc<Startup>>().add(const ListRefreshed());
-                },
-              );
-            }
-          },
-          icon: const Icon(Icons.add_rounded),
-          label: const Text('Post Startup'),
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: context.isDark ? AppColors.darkCard : const Color(0xFFF1F3F9),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: context.isDark
+              ? AppColors.darkBorder
+              : const Color(0xFFE2E8F0),
         ),
       ),
-      itemBuilder: (context, s, _) {
-        final bloc = context.read<ListBloc<Startup>>();
-        return AppStartupCard(
-          startup: s,
-          onTap: () => context.push('${Routes.startupDetails}/${s.id}'),
-          onSave: () async {
-            final res = await repo.toggleSave(s.id);
-            res.fold((f) => context.showTopSnack(f.message, isError: true), (
-              success,
-            ) {
-              if (success) {
-                final updated = s.copyWith(isSaved: !s.isSaved);
-                bloc.add(
-                  ListItemUpdated(
-                    updated,
-                    (existing, newItem) => existing.id == newItem.id,
-                  ),
-                );
-                context.showTopSnack(
-                  updated.isSaved ? 'Saved startup' : 'Removed from saved',
-                );
-              }
-            });
-          },
-          onInterest: () async {
-            if (s.hasInvested) {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Withdraw Interest'),
-                  content: const Text(
-                    'Are you sure you want to withdraw your interest in this startup?',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: const Text(
-                        'Withdraw',
-                        style: TextStyle(color: AppColors.danger),
+      child: Row(
+        children: [
+          Expanded(
+            child: _TabButton(
+              label: 'Explore Startups',
+              icon: Icons.rocket_launch_outlined,
+              activeIcon: Icons.rocket_launch_rounded,
+              isSelected: _selectedTab == 0,
+              onTap: () {
+                if (_selectedTab != 0) {
+                  setState(() {
+                    _selectedTab = 0;
+                    _refreshKey++;
+                  });
+                }
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _TabButton(
+              label: myTabLabel,
+              icon: Icons.lightbulb_outline_rounded,
+              activeIcon: Icons.lightbulb_rounded,
+              isSelected: _selectedTab == 1,
+              onTap: () {
+                if (_selectedTab != 1) {
+                  setState(() {
+                    _selectedTab = 1;
+                    _refreshKey++;
+                  });
+                }
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final repo = sl<StartupRepository>();
+    final isExplore = _selectedTab == 0;
+    final isFounder = _role == UserRole.founder;
+
+    return Column(
+      children: [
+        _buildTopTabs(context),
+        Expanded(
+          child: CatalogView<Startup>(
+            key: ValueKey('startups-tab-$_selectedTab-$_refreshKey'),
+            fetcher: (params) {
+              final sortLabel = params.sortBy;
+              final apiSort = sortLabel == null
+                  ? null
+                  : (_startupSortApiValues[sortLabel] ?? sortLabel);
+              final qp = params.copyWith(
+                sortBy: apiSort,
+                filters: {
+                  for (final entry in params.filters.entries)
+                    if (entry.key == 'categoryId')
+                      'categoryId': entry.value
+                    else if (entry.key == 'industry')
+                      'industry': entry.value
+                    else if (entry.key == 'stage')
+                      'stage': entry.value
+                    else
+                      entry.key: entry.value,
+                },
+              );
+
+              return isExplore
+                  ? repo.getStartups(qp)
+                  : repo.getMyStartups(qp);
+            },
+            searchHint: isExplore
+                ? 'Search startups, industries…'
+                : 'Search my startups…',
+            emptyTitle: isExplore
+                ? 'No startups found'
+                : (isFounder
+                    ? 'No startups created yet'
+                    : 'No startup investments yet'),
+            emptyMessage: isExplore
+                ? 'Try adjusting your search or filters.'
+                : (isFounder
+                    ? 'Publish your startup idea to connect with top investors and raise funds.'
+                    : 'Explore and invest in startups to see your active investments here.'),
+            emptyIcon: isExplore
+                ? Icons.rocket_launch_outlined
+                : Icons.lightbulb_outline_rounded,
+            sortOptions: _startupSortOptions,
+            filterSections: _filterSections,
+            floatingActionButton: Builder(
+              builder: (fabContext) => FloatingActionButton.extended(
+                onPressed: () async {
+                  final data =
+                      await showModalBottomSheet<Map<String, dynamic>>(
+                    context: fabContext,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (ctx) => const EditIdeaBottomSheet(
+                      startup: Startup(
+                        id: '',
+                        name: '',
+                        tagline: '',
+                        industry: 'General',
+                        stage: 'MVP',
+                        founderName: '',
+                        fundingRequired: 500000,
+                        equityOffered: 10,
+                        location: 'Remote',
                       ),
                     ),
-                  ],
-                ),
-              );
-              if (confirm != true) return;
-
-              final res = await repo.withdrawInterest(s.id);
-              res.fold((f) => context.showTopSnack(f.message, isError: true), (
-                success,
-              ) {
-                if (success) {
-                  final updated = s.copyWith(hasInvested: false);
-                  bloc.add(
-                    ListItemUpdated(
-                      updated,
-                      (existing, newItem) => existing.id == newItem.id,
-                    ),
                   );
-                  context.showTopSnack('Withdrew interest successfully');
-                }
-              });
-            } else {
-              final submitted = await showInvestmentOfferSheet(
-                context,
-                startupId: s.id,
-                startupName: s.name,
+
+                  if (data == null) return;
+                  if (!fabContext.mounted) return;
+
+                  showDialog(
+                    context: fabContext,
+                    barrierDismissible: false,
+                    builder: (_) =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+
+                  final res = await repo.createIdea(data);
+                  if (fabContext.mounted) Navigator.pop(fabContext);
+
+                  if (fabContext.mounted) {
+                    res.fold(
+                      (f) => fabContext.showTopSnack(f.message, isError: true),
+                      (created) {
+                        fabContext.showTopSnack(
+                            'Startup Idea published successfully!');
+                        setState(() => _refreshKey++);
+                      },
+                    );
+                  }
+                },
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('Post Startup'),
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+            ),
+            itemBuilder: (context, s, _) {
+              return AppStartupCard(
+                startup: s,
+                onTap: () => context.push('${Routes.startupDetails}/${s.id}'),
+                onSave: () async {
+                  final res = await repo.toggleSave(s.id);
+                  res.fold(
+                    (f) => context.showTopSnack(f.message, isError: true),
+                    (success) {
+                      if (success) {
+                        setState(() => _refreshKey++);
+                        context.showTopSnack(
+                          !s.isSaved
+                              ? 'Saved startup'
+                              : 'Removed from saved',
+                        );
+                      }
+                    },
+                  );
+                },
+                onInterest: () async {
+                  if (s.hasInvested) {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Withdraw Interest'),
+                        content: const Text(
+                          'Are you sure you want to withdraw your interest in this startup?',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Cancel'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text(
+                              'Withdraw',
+                              style: TextStyle(color: AppColors.danger),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm != true) return;
+
+                    final res = await repo.withdrawInterest(s.id);
+                    res.fold(
+                      (f) => context.showTopSnack(f.message, isError: true),
+                      (success) {
+                        if (success) {
+                          setState(() => _refreshKey++);
+                          context.showTopSnack(
+                              'Withdrew interest successfully');
+                        }
+                      },
+                    );
+                  } else {
+                    final submitted = await showInvestmentOfferSheet(
+                      context,
+                      startupId: s.id,
+                      startupName: s.name,
+                    );
+                    if (submitted == true) {
+                      setState(() => _refreshKey++);
+                      if (context.mounted) {
+                        context.push('${Routes.startupDetails}/${s.id}');
+                      }
+                    }
+                  }
+                },
+                onEdit: null,
+                onDelete: null,
               );
-              if (submitted == true) {
-                final updated = s.copyWith(hasInvested: true);
-                bloc.add(
-                  ListItemUpdated(
-                    updated,
-                    (existing, newItem) => existing.id == newItem.id,
-                  ),
-                );
-                if (context.mounted) {
-                  context.push('${Routes.startupDetails}/${s.id}');
-                }
-              }
-            }
-          },
-          onEdit: null,
-          onDelete: null,
-        );
-      },
+            },
+          ),
+        ),
+      ],
     );
   }
 }
+
+class _TabButton extends StatelessWidget {
+  const _TabButton({
+    required this.label,
+    required this.icon,
+    required this.activeIcon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final IconData activeIcon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeInOut,
+      decoration: BoxDecoration(
+        color: isSelected ? AppColors.primary : Colors.transparent,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.28),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ]
+            : null,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isSelected ? activeIcon : icon,
+                  size: 18,
+                  color: isSelected
+                      ? Colors.white
+                      : (context.isDark
+                          ? AppColors.darkBorder
+                          : const Color(0xFF64748B)),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: context.text.labelLarge?.copyWith(
+                      color: isSelected
+                          ? Colors.white
+                          : (context.isDark
+                              ? AppColors.darkText
+                              : const Color(0xFF475569)),
+                      fontWeight:
+                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
