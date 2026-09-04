@@ -211,19 +211,33 @@ class ProjectRepositoryImpl implements ProjectRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
-    final path = role != null
-        ? ApiEndpoints.roleContracts(role)
-        : ApiEndpoints.contracts;
-    return _api.getEnvelope<Paginated<Contract>>(
-      path,
-      query: params.toApiQuery(),
-      parser: (envelope) => ApiResponse.parsePaginated(
-        envelope.data,
-        envelope.meta,
-        _contractFromJson,
-        fallbackPage: params.page,
-      ),
-    );
+    final paths = [
+      if (role != null) ApiEndpoints.roleContracts(role),
+      ApiEndpoints.contracts,
+      '/public/contracts',
+      '/client/contracts',
+      '/freelancer/contracts',
+      '/investor/contracts',
+      '/founder/contracts',
+    ];
+
+    Result<Paginated<Contract>> lastResult =
+        const Err(ServerFailure('No contracts found'));
+    for (final path in paths) {
+      final res = await _api.getEnvelope<Paginated<Contract>>(
+        path,
+        query: params.toApiQuery(),
+        parser: (envelope) => ApiResponse.parsePaginated(
+          envelope.data,
+          envelope.meta,
+          _contractFromJson,
+          fallbackPage: params.page,
+        ),
+      );
+      if (res.isSuccess) return res;
+      lastResult = res;
+    }
+    return lastResult;
   }
 
   @override
@@ -394,8 +408,17 @@ class ProjectRepositoryImpl implements ProjectRepository {
       proposalDeliveryTime: proposalDelivery,
       proposalCoverLetter: proposalCover,
       proposalStatus: proposalStatus,
-      counterpartyName: freelancerName,
-      counterpartyAvatar: freelancerAvatar,
+      counterpartyName: (json['counterpartyName'] as String?) ??
+          ((freelancerName != null &&
+                  freelancerName.isNotEmpty &&
+                  freelancerName != 'Freelancer')
+              ? freelancerName
+              : ((clientName != null && clientName.isNotEmpty)
+                  ? clientName
+                  : 'Partner')),
+      counterpartyAvatar: json['counterpartyAvatar'] as String? ??
+          freelancerAvatar ??
+          clientAvatar,
       amount: amount,
       status: EntityStatus.fromString(json['status'] as String? ?? 'pending'),
       startDate:

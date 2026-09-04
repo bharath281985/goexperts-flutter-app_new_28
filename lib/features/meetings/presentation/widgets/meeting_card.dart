@@ -131,7 +131,8 @@ class AppMeetingCard extends StatelessWidget {
                 FilledButton.icon(
                   onPressed: onJoin ?? onTap,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.success,
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSizes.md,
                       vertical: 0,

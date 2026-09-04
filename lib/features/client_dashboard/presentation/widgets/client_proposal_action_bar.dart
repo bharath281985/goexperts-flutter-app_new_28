@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
@@ -158,6 +159,8 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                         child: AppPrimaryButton(
                           label: 'Accept',
                           icon: Icons.check_circle_outline_rounded,
+                          backgroundColor: AppColors.success,
+                          gradient: false,
                           isLoading: state.isActionLoading(
                             ClientProposalAction.accept,
                             proposal.id,

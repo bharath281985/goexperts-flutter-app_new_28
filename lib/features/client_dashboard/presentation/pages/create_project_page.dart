@@ -849,6 +849,13 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
                             label: _step == _steps.length - 1
                                 ? (_isEdit ? 'Save Changes' : 'Publish Project')
                                 : 'Continue',
+                            icon: _step == _steps.length - 1
+                                ? Icons.rocket_launch_rounded
+                                : Icons.arrow_forward_rounded,
+                            backgroundColor: _step == _steps.length - 1
+                                ? AppColors.success
+                                : null,
+                            gradient: _step != _steps.length - 1,
                             isLoading: _publishing,
                             onPressed: _next,
                           ),

@@ -289,8 +289,11 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                   setState(() => _refreshKey++);
                 },
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('Post Project'),
-                backgroundColor: AppColors.primary,
+                label: const Text(
+                  'Post Project',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                backgroundColor: AppColors.success,
                 foregroundColor: Colors.white,
               ),
             ),

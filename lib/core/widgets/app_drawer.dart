@@ -323,16 +323,7 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderMyProjects,
           },
         ),
-          DrawerEntry(
-          'Projects Tracking',
-          Icons.view_kanban_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerTasks,
-            UserRole.client => Routes.clientTasks,
-            UserRole.investor => Routes.investorTasks,
-            UserRole.founder => Routes.founderTasks,
-          },
-        ),
+       
         DrawerEntry(
           'Contracts',
           Icons.assignment_outlined,
@@ -413,16 +404,7 @@ class AppDrawer extends StatelessWidget {
         ),
         ],
         
-        DrawerEntry(
-          'Funding',
-          Icons.savings_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerFunding,
-            UserRole.client => Routes.clientFunding,
-            UserRole.investor => Routes.investorFunding,
-            UserRole.founder => Routes.founderFunding,
-          },
-        ),
+        
         ]
       
       ]

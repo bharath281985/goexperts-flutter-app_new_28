@@ -493,15 +493,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
             spacing: spacing,
             runSpacing: spacing,
             children: [
-              DashboardActionButton(
-                text: 'Pitch Deck & Raise',
-                subtitle: 'Decks, traction & deck views',
-                tag: 'Raise',
-                icon: Icons.auto_graph_rounded,
-                color: const Color(0xFF3B82F6),
-                onTap: () => context.push(Routes.founderPitchDeck),
-                width: width,
-              ),
+             
               DashboardActionButton(
                 text: 'My Startup',
                 subtitle: 'Profile, traction & visibility',
@@ -538,15 +530,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
                 onTap: () => context.push(Routes.founderInvestors),
                 width: width,
               ),
-              DashboardActionButton(
-                text: 'Pitch Meetings',
-                subtitle: 'Scheduled investor discussions',
-                tag: '1-on-1',
-                icon: Icons.calendar_month_rounded,
-                color: const Color(0xFF3B82F6),
-                onTap: () => context.push(Routes.meetings),
-                width: width,
-              ),
+            
             ],
           );
         },

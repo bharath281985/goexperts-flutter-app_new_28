@@ -52,7 +52,8 @@ class InvestorRepositoryImpl implements InvestorRepository {
       '/founder/deals',
       '/client/deals',
     ];
-    Result<Paginated<Deal>> lastResult = const Err(ServerFailure('No deals found'));
+    Result<Paginated<Deal>> lastResult =
+        const Err(ServerFailure('No deals found'));
     for (final path in paths) {
       final res = await _api.getEnvelope<Paginated<Deal>>(
         path,

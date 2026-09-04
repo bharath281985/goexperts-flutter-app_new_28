@@ -298,40 +298,125 @@ class Deal extends Equatable {
   List<Object?> get props => [id, status, founderId];
 
   factory Deal.fromApiJson(Map<String, dynamic> json) {
-    final startup = json['startup'] is Map ? json['startup'] as Map : {};
+    final startup = json['startup'] is Map
+        ? json['startup'] as Map
+        : (json['startupDetails'] is Map
+            ? json['startupDetails'] as Map
+            : (json['startup_details'] is Map
+                ? json['startup_details'] as Map
+                : (json['startupIdea'] is Map
+                    ? json['startupIdea'] as Map
+                    : const {})));
     final founder = json['founder'] is Map
         ? json['founder'] as Map
         : (json['founderDetails'] is Map
             ? json['founderDetails'] as Map
-            : {});
-    final startupName = json['startupName']?.toString() ??
-        startup['name']?.toString() ??
-        startup['startup']?.toString() ??
-        'Startup';
-    final founderName = json['founderName']?.toString() ??
-        founder['fullName']?.toString() ??
-        founder['name']?.toString() ??
-        'Founder';
-    final amount = (json['offer'] ??
-                json['amount'] ??
-                json['investmentAmount'] ??
-                startup['funding']) is num
-        ? ((json['offer'] ??
-                json['amount'] ??
-                json['investmentAmount'] ??
-                startup['funding']) as num)
-            .toDouble()
-        : 0.0;
-    final equity = (json['equity'] ??
-                json['equityOffered'] ??
-                startup['equity']) is num
-        ? ((json['equity'] ??
-                json['equityOffered'] ??
-                startup['equity']) as num)
-            .toDouble()
-        : 0.0;
-    final stage =
-        json['stage']?.toString() ?? startup['stage']?.toString() ?? 'MVP';
+            : (json['founder_details'] is Map
+                ? json['founder_details'] as Map
+                : (startup['user'] is Map
+                    ? startup['user'] as Map
+                    : (json['user'] is Map ? json['user'] as Map : const {}))));
+
+    String? parseName(dynamic val) {
+      if (val == null) return null;
+      if (val is Map) {
+        final n = val['name'] ?? val['startup'] ?? val['label'] ?? val['title'] ?? val['fullName'];
+        if (n != null && n.toString().trim().isNotEmpty) return n.toString().trim();
+      }
+      final s = val.toString().trim();
+      if (s.isEmpty || s == 'null' || s == 'undefined') return null;
+      return s;
+    }
+
+    final rawNameCandidates = [
+      parseName(json['startupName']),
+      parseName(json['startup_name']),
+      parseName(startup['startup']),
+      parseName(startup['name']),
+      parseName(startup['title']),
+      parseName(startup['companyName']),
+      parseName(startup['company']),
+      parseName(json['company']),
+      if (json['startup'] is String &&
+          !(json['startup'] as String).contains('-') &&
+          (json['startup'] as String).length < 50)
+        (json['startup'] as String).trim(),
+    ];
+    final validStartupName = rawNameCandidates.firstWhere(
+      (n) => n != null && n.isNotEmpty && n != 'Startup',
+      orElse: () => rawNameCandidates.firstWhere(
+        (n) => n != null && n.isNotEmpty,
+        orElse: () => 'Startup',
+      ),
+    )!;
+
+    final rawFounderCandidates = [
+      parseName(json['founderName']),
+      parseName(json['founder_name']),
+      parseName(founder['fullName']),
+      parseName(founder['name']),
+      parseName(founder['userName']),
+      if (startup['user'] is Map) parseName((startup['user'] as Map)['fullName']),
+    ];
+    final validFounderName = rawFounderCandidates.firstWhere(
+      (n) => n != null && n.isNotEmpty && n != 'Founder',
+      orElse: () => rawFounderCandidates.firstWhere(
+        (n) => n != null && n.isNotEmpty,
+        orElse: () => 'Founder',
+      ),
+    )!;
+
+    double parseNum(dynamic val) {
+      if (val is num) return val.toDouble();
+      if (val is String) {
+        final d = double.tryParse(val.replaceAll(RegExp(r'[^0-9.]'), ''));
+        if (d != null) return d;
+      }
+      return 0.0;
+    }
+
+    final amount = parseNum(
+      json['offer'] ??
+          json['amount'] ??
+          json['investmentAmount'] ??
+          startup['funding'] ??
+          (startup['metrics'] is Map ? (startup['metrics'] as Map)['fundingGoal'] : null),
+    );
+    final equity = parseNum(
+      json['equity'] ??
+          json['equityOffered'] ??
+          startup['equity'] ??
+          (startup['metrics'] is Map ? (startup['metrics'] as Map)['equityOffered'] : null),
+    );
+
+    String resolveStage() {
+      final candidates = [
+        json['stageName'],
+        json['stage_name'],
+        startup['stageName'],
+        startup['stage_name'],
+        json['stage'],
+        startup['stage'],
+      ];
+      for (final c in candidates) {
+        if (c is Map) {
+          final name = c['name'] ?? c['label'] ?? c['title'] ?? c['value'];
+          if (name != null && name.toString().trim().isNotEmpty) {
+            return name.toString().trim();
+          }
+        } else if (c is String && c.trim().isNotEmpty) {
+          final s = c.trim();
+          if (s.startsWith('{') && s.endsWith('}')) {
+            final match = RegExp(r'(?:name|label):\s*([^,}]+)').firstMatch(s);
+            if (match != null) return match.group(1)!.trim();
+          }
+          if (s != 'null' && s != 'undefined') return s;
+        }
+      }
+      return 'MVP';
+    }
+
+    final stage = resolveStage();
     final statusStr = json['status']?.toString() ?? 'pending';
     final dateStr = json['updatedAt'] ?? json['createdAt'];
     DateTime updatedAt = DateTime.now();
@@ -340,26 +425,50 @@ class Deal extends Equatable {
         updatedAt = DateTime.parse(dateStr.toString());
       } catch (_) {}
     }
+
+    final logoCandidates = [
+      parseName(json['startupLogo']),
+      parseName(json['startup_logo']),
+      parseName(startup['logo']),
+      parseName(startup['logoUrl']),
+      parseName(startup['avatarUrl']),
+      parseName(startup['coverUrl']),
+      parseName(founder['avatarUrl']),
+    ];
+    final startupLogo = logoCandidates.firstWhere(
+      (l) => l != null && l.isNotEmpty && l.startsWith('http'),
+      orElse: () => logoCandidates.firstWhere(
+        (l) => l != null && l.isNotEmpty,
+        orElse: () => null,
+      ),
+    );
+
     return Deal(
       id: json['id']?.toString() ?? '',
       startupId:
-          json['startupId']?.toString() ?? startup['id']?.toString() ?? '',
-      startupName: startupName,
-      founderName: founderName,
+          json['startupId']?.toString() ??
+          json['startup_id']?.toString() ??
+          startup['id']?.toString() ??
+          (json['startup'] is String ? json['startup'] as String : ''),
+      startupName: validStartupName,
+      founderName: validFounderName,
       stage: stage,
       amount: amount,
       equity: equity,
       status: EntityStatus.fromString(statusStr),
       updatedAt: updatedAt,
-      startupLogo: json['startupLogo']?.toString() ??
-          startup['logo']?.toString() ??
-          startup['logoUrl']?.toString(),
+      startupLogo: startupLogo,
       hasNda: json['hasNda'] == true || json['nda'] == true,
-      documentsCount: (json['documentsCount'] as num?)?.toInt() ?? 0,
+      documentsCount: (json['documentsCount'] as num?)?.toInt() ??
+          (json['documents_count'] as num?)?.toInt() ??
+          0,
       documents: json['documents'] is Map
           ? Map<String, dynamic>.from(json['documents'] as Map)
           : const {},
-      founderId: json['founderId']?.toString() ?? founder['id']?.toString(),
+      founderId: json['founderId']?.toString() ??
+          json['founder_id']?.toString() ??
+          founder['id']?.toString() ??
+          (startup['user'] is Map ? (startup['user'] as Map)['id']?.toString() : null),
     );
   }
 }

@@ -335,6 +335,8 @@ class _FounderProposalDetailsPageState
                     child: AppPrimaryButton(
                       label: 'Accept',
                       icon: Icons.check_circle_outline_rounded,
+                      backgroundColor: AppColors.success,
+                      gradient: false,
                       onPressed: () => _respond('accept'),
                     ),
                   ),

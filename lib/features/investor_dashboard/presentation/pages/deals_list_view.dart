@@ -55,9 +55,9 @@ class _DealsListViewState extends State<DealsListView> {
         children: [
           Expanded(
             child: _TabButton(
-              label: 'Project Contracts',
-              icon: Icons.description_outlined,
-              activeIcon: Icons.description_rounded,
+              label: 'Investment Deals',
+              icon: Icons.handshake_outlined,
+              activeIcon: Icons.handshake_rounded,
               isSelected: _selectedTab == 0,
               onTap: () {
                 if (_selectedTab != 0) {
@@ -72,9 +72,9 @@ class _DealsListViewState extends State<DealsListView> {
           const SizedBox(width: 4),
           Expanded(
             child: _TabButton(
-              label: 'Investment Deals',
-              icon: Icons.handshake_outlined,
-              activeIcon: Icons.handshake_rounded,
+              label: 'Project Contracts',
+              icon: Icons.description_outlined,
+              activeIcon: Icons.description_rounded,
               isSelected: _selectedTab == 1,
               onTap: () {
                 if (_selectedTab != 1) {
@@ -93,7 +93,7 @@ class _DealsListViewState extends State<DealsListView> {
 
   @override
   Widget build(BuildContext context) {
-    final isContracts = _selectedTab == 0;
+    final isDeals = _selectedTab == 0;
     final projectRepo = sl<ProjectRepository>();
     final investorRepo = sl<InvestorRepository>();
 
@@ -101,8 +101,19 @@ class _DealsListViewState extends State<DealsListView> {
       children: [
         _buildTopTabs(context),
         Expanded(
-          child: isContracts
-              ? CatalogView<Contract>(
+          child: isDeals
+              ? CatalogView<Deal>(
+                  key: ValueKey('deals-tab-$_selectedTab-$_refreshKey'),
+                  fetcher: investorRepo.getDeals,
+                  searchHint: 'Search deals…',
+                  emptyTitle: 'No active investment deals',
+                  emptyMessage:
+                      'Startup investment offers and deal room opportunities will appear here.',
+                  emptyIcon: Icons.handshake_outlined,
+                  skeletonHeight: 120,
+                  itemBuilder: (context, deal, _) => _DealCard(deal: deal),
+                )
+              : CatalogView<Contract>(
                   key: ValueKey('contracts-tab-$_selectedTab-$_refreshKey'),
                   fetcher: projectRepo.getContracts,
                   searchHint: 'Search contracts…',
@@ -113,17 +124,6 @@ class _DealsListViewState extends State<DealsListView> {
                   skeletonHeight: 120,
                   itemBuilder: (context, contract, _) =>
                       _ContractCard(contract: contract),
-                )
-              : CatalogView<Deal>(
-                  key: ValueKey('deals-tab-$_selectedTab-$_refreshKey'),
-                  fetcher: investorRepo.getDeals,
-                  searchHint: 'Search deals…',
-                  emptyTitle: 'No active investment deals',
-                  emptyMessage:
-                      'Startup investment offers and deal room opportunities will appear here.',
-                  emptyIcon: Icons.handshake_outlined,
-                  skeletonHeight: 120,
-                  itemBuilder: (context, deal, _) => _DealCard(deal: deal),
                 ),
         ),
       ],
@@ -421,8 +421,13 @@ class _DealCard extends StatelessWidget {
                 Expanded(
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.success,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 0),
                       minimumSize: const Size(0, 42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                     ),
                     icon: const Icon(Icons.event_rounded, size: 16),
                     label: const Text('Schedule'),
@@ -590,7 +595,7 @@ class _ContractCard extends StatelessWidget {
                                 counterparty,
                                 style: context.text.bodySmall?.copyWith(
                                   color: context.isDark
-                                      ? AppColors.darkMutedText
+                                      ? AppColors.mutedText
                                       : const Color(0xFF64748B),
                                   fontWeight: FontWeight.w500,
                                 ),
