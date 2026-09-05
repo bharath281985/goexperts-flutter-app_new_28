@@ -60,7 +60,6 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
     return _api.postAction(ApiEndpoints.publicFreelancerSave(id));
   }
 
-
   @override
   Future<Result<bool>> toggleFollow(String id) async {
     if (_api == null) return _apiNotConfigured();
@@ -81,10 +80,7 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
     if (projectId != null && projectId.isNotEmpty) {
       return _api.postAction(
         ApiEndpoints.clientProjectInvite(projectId),
-        body: {
-          'freelancerId': id,
-          'message': message ?? '',
-        },
+        body: {'freelancerId': id, 'message': message ?? ''},
       );
     }
 
@@ -103,23 +99,28 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
     final rawSkills = json['Skills'] ?? json['skills'];
     final skills = rawSkills is List
         ? rawSkills
-            .map((e) => e is Map
-                ? (e['skillName'] ?? e['name'] ?? e['skill'] ?? '')?.toString() ?? ''
-                : e.toString())
-            .where((s) => s.trim().isNotEmpty)
-            .toList()
+              .map(
+                (e) => e is Map
+                    ? (e['skillName'] ?? e['name'] ?? e['skill'] ?? '')
+                              ?.toString() ??
+                          ''
+                    : e.toString(),
+              )
+              .where((s) => s.trim().isNotEmpty)
+              .toList()
         : (rawSkills is String
-            ? rawSkills
-                .split(',')
-                .map((s) => s.trim())
-                .where((s) => s.isNotEmpty)
-                .toList()
-            : const <String>[]);
+              ? rawSkills
+                    .split(',')
+                    .map((s) => s.trim())
+                    .where((s) => s.isNotEmpty)
+                    .toList()
+              : const <String>[]);
 
     final industryMap = json['Industry'] is Map
         ? json['Industry'] as Map
         : (json['industry'] is Map ? json['industry'] as Map : null);
-    final category = industryMap?['name']?.toString() ??
+    final category =
+        industryMap?['name']?.toString() ??
         industryMap?['industryName']?.toString() ??
         json['industryName'] as String? ??
         json['category'] as String? ??

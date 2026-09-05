@@ -1143,7 +1143,10 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(title: const Text('Pitch Deck')),
+    appBar: AppBar(
+      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+      title: const Text('Pitch Deck'),
+    ),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
         : ListView(
@@ -1231,7 +1234,10 @@ class _FounderBusinessPlanLivePageState
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(title: const Text('Business Plan')),
+    appBar: AppBar(
+      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+      title: const Text('Business Plan'),
+    ),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
         : ListView(

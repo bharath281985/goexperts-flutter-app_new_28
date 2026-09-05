@@ -87,38 +87,35 @@ class BookmarksPage extends StatelessWidget {
       query: query,
       parser: (env) {
         final list = env.data as List? ?? [];
-        final items = list
-            .map((e) {
-              final map = Map<String, dynamic>.from(e as Map);
-              final fId = map['freelancerId'] ?? map['id'] ?? map['entityId'] ?? '';
-              return Freelancer(
-                id: fId.toString(),
-                name: map['name'] ?? map['fullName'] ?? 'Freelancer',
-                headline: map['headline'] ?? map['titleHeadline'] ?? '',
-                category: map['category'] ?? 'General',
-                skills:
-                    (map['skills'] as List?)?.map((e) => e.toString()).toList() ??
-                    const [],
-                hourlyRate:
-                    double.tryParse(
-                      (map['rate'] ?? map['hourlyRate'] ?? 0).toString(),
-                    ) ??
-                    0.0,
-                rating:
-                    double.tryParse((map['rating'] ?? 5).toString()) ?? 5.0,
-                reviewsCount:
-                    int.tryParse((map['reviewsCount'] ?? 0).toString()) ?? 0,
-                location:
-                    map['location'] ??
-                    (map['city'] != null
-                        ? '${map['city']}, ${map['country'] ?? ''}'
-                        : ''),
-                avatarUrl: map['avatar'] ?? map['avatarUrl'] ?? '',
-                bio: map['bio'] ?? '',
-                isSaved: true,
-              );
-            })
-            .toList();
+        final items = list.map((e) {
+          final map = Map<String, dynamic>.from(e as Map);
+          final fId = map['freelancerId'] ?? map['id'] ?? map['entityId'] ?? '';
+          return Freelancer(
+            id: fId.toString(),
+            name: map['name'] ?? map['fullName'] ?? 'Freelancer',
+            headline: map['headline'] ?? map['titleHeadline'] ?? '',
+            category: map['category'] ?? 'General',
+            skills:
+                (map['skills'] as List?)?.map((e) => e.toString()).toList() ??
+                const [],
+            hourlyRate:
+                double.tryParse(
+                  (map['rate'] ?? map['hourlyRate'] ?? 0).toString(),
+                ) ??
+                0.0,
+            rating: double.tryParse((map['rating'] ?? 5).toString()) ?? 5.0,
+            reviewsCount:
+                int.tryParse((map['reviewsCount'] ?? 0).toString()) ?? 0,
+            location:
+                map['location'] ??
+                (map['city'] != null
+                    ? '${map['city']}, ${map['country'] ?? ''}'
+                    : ''),
+            avatarUrl: map['avatar'] ?? map['avatarUrl'] ?? '',
+            bio: map['bio'] ?? '',
+            isSaved: true,
+          );
+        }).toList();
 
         for (final f in items) {
           BookmarkManager.instance.syncItem(
@@ -136,7 +133,6 @@ class BookmarksPage extends StatelessWidget {
         );
       },
     );
-
   }
 
   /// Fetch saved startups based on auth token
@@ -213,8 +209,6 @@ class BookmarksPage extends StatelessWidget {
     );
   }
 
-  
- 
   /// Fetch saved founders based on auth token
   Future<Result<Paginated<Founder>>> _fetchFounders(QueryParams params) async {
     final client = sl<ApiClientHelper>();
@@ -457,7 +451,8 @@ class BookmarksPage extends StatelessWidget {
           },
           onSave: () async {
             final api = sl<ApiClientHelper>();
-            final isSaved = BookmarkManager.instance.isBookmarked(
+            final isSaved =
+                BookmarkManager.instance.isBookmarked(
                   BookmarkManager.categoryInvestors,
                   i.id,
                 ) ||
@@ -491,9 +486,7 @@ class BookmarksPage extends StatelessWidget {
                 );
                 if (!newSaved) {
                   bloc.add(
-                    ListItemRemoved(
-                      (item) => (item as Investor).id == i.id,
-                    ),
+                    ListItemRemoved((item) => (item as Investor).id == i.id),
                   );
                 }
                 context.showSnack(

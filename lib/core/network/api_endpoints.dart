@@ -89,16 +89,16 @@ class ApiEndpoints {
   static String publicFreelancerPortfolio(String freelancerId) =>
       '/public/freelancers/$freelancerId/portfolio';
   static String publicFreelancerPortfolioItem(
-          String freelancerId, String itemId) =>
-      '/public/freelancers/$freelancerId/portfolio/$itemId';
+    String freelancerId,
+    String itemId,
+  ) => '/public/freelancers/$freelancerId/portfolio/$itemId';
   static String publicFreelancerSave(String id) =>
       '/public/freelancers/$id/save';
   static String publicClient(String id) => '/public/clients/$id';
   static String publicInvestor(String id) => '/public/investors/$id';
   static String publicInvestorPortfolio(String investorId) =>
       '/public/investors/$investorId/portfolio';
-  static String publicInvestorPortfolioItem(
-          String investorId, String itemId) =>
+  static String publicInvestorPortfolioItem(String investorId, String itemId) =>
       '/public/investors/$investorId/portfolio/$itemId';
   static String publicInvestorSave(String id) => '/public/investors/$id/save';
   static String publicStartup(String id) => '/public/startups/$id';
@@ -525,8 +525,7 @@ class ApiEndpoints {
       '/${rolePath(role)}/projects/saved';
   static String roleSavedStartups(dynamic role) =>
       '/${rolePath(role)}/startups/saved';
-  static String roleWatchlist(dynamic role) =>
-      '/${rolePath(role)}/watchlist';
+  static String roleWatchlist(dynamic role) => '/${rolePath(role)}/watchlist';
   static String roleTeams(dynamic role) => '/${rolePath(role)}/teams';
   static String roleReports(dynamic role) => '/${rolePath(role)}/reports';
   static String roleAnalytics(dynamic role) => '/${rolePath(role)}/analytics';

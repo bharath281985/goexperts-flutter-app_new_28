@@ -176,8 +176,10 @@ class Investor extends Equatable {
 
     String parseVal(dynamic field, [String fallback = '']) {
       if (field is Map) {
-        final n = field['name'] ?? field['label'] ?? field['value'] ?? field['title'];
-        if (n != null && n.toString().trim().isNotEmpty) return n.toString().trim();
+        final n =
+            field['name'] ?? field['label'] ?? field['value'] ?? field['title'];
+        if (n != null && n.toString().trim().isNotEmpty)
+          return n.toString().trim();
       }
       if (field is String && field.trim().isNotEmpty) {
         return field.trim();
@@ -197,7 +199,10 @@ class Investor extends Equatable {
         : (focusAreasStr.trim().isNotEmpty ? focusAreasStr : 'Angel Investor');
 
     final preferredStagesRaw =
-        profile['PreferredStage'] ?? json['PreferredStage'] ?? profile['preferredStages'] ?? json['preferredStages'];
+        profile['PreferredStage'] ??
+        json['PreferredStage'] ??
+        profile['preferredStages'] ??
+        json['preferredStages'];
     final stagePreferences = preferredStagesRaw is List
         ? preferredStagesRaw
               .map((item) => parseVal(item))
@@ -208,7 +213,8 @@ class Investor extends Equatable {
     final isVerified =
         json['isVerified'] as bool? ?? json['verified'] as bool? ?? false;
     final isFollowing = json['isFollowing'] as bool? ?? false;
-    final rawSaved = json['isSaved'] ??
+    final rawSaved =
+        json['isSaved'] ??
         json['is_saved'] ??
         profile['isSaved'] ??
         profile['is_saved'] ??
@@ -223,12 +229,18 @@ class Investor extends Equatable {
       final s = rawSaved.trim().toLowerCase();
       parsedSaved = s == 'true' || s == '1' || s == 'yes';
     }
-    final isSaved = parsedSaved ||
-        BookmarkManager.instance
-            .isBookmarked(BookmarkManager.categoryInvestors, id);
+    final isSaved =
+        parsedSaved ||
+        BookmarkManager.instance.isBookmarked(
+          BookmarkManager.categoryInvestors,
+          id,
+        );
     if (parsedSaved && id.isNotEmpty) {
-      BookmarkManager.instance
-          .syncItem(BookmarkManager.categoryInvestors, id, true);
+      BookmarkManager.instance.syncItem(
+        BookmarkManager.categoryInvestors,
+        id,
+        true,
+      );
     }
 
     return Investor(
@@ -301,27 +313,35 @@ class Deal extends Equatable {
     final startup = json['startup'] is Map
         ? json['startup'] as Map
         : (json['startupDetails'] is Map
-            ? json['startupDetails'] as Map
-            : (json['startup_details'] is Map
-                ? json['startup_details'] as Map
-                : (json['startupIdea'] is Map
-                    ? json['startupIdea'] as Map
-                    : const {})));
+              ? json['startupDetails'] as Map
+              : (json['startup_details'] is Map
+                    ? json['startup_details'] as Map
+                    : (json['startupIdea'] is Map
+                          ? json['startupIdea'] as Map
+                          : const {})));
     final founder = json['founder'] is Map
         ? json['founder'] as Map
         : (json['founderDetails'] is Map
-            ? json['founderDetails'] as Map
-            : (json['founder_details'] is Map
-                ? json['founder_details'] as Map
-                : (startup['user'] is Map
-                    ? startup['user'] as Map
-                    : (json['user'] is Map ? json['user'] as Map : const {}))));
+              ? json['founderDetails'] as Map
+              : (json['founder_details'] is Map
+                    ? json['founder_details'] as Map
+                    : (startup['user'] is Map
+                          ? startup['user'] as Map
+                          : (json['user'] is Map
+                                ? json['user'] as Map
+                                : const {}))));
 
     String? parseName(dynamic val) {
       if (val == null) return null;
       if (val is Map) {
-        final n = val['name'] ?? val['startup'] ?? val['label'] ?? val['title'] ?? val['fullName'];
-        if (n != null && n.toString().trim().isNotEmpty) return n.toString().trim();
+        final n =
+            val['name'] ??
+            val['startup'] ??
+            val['label'] ??
+            val['title'] ??
+            val['fullName'];
+        if (n != null && n.toString().trim().isNotEmpty)
+          return n.toString().trim();
       }
       final s = val.toString().trim();
       if (s.isEmpty || s == 'null' || s == 'undefined') return null;
@@ -356,7 +376,8 @@ class Deal extends Equatable {
       parseName(founder['fullName']),
       parseName(founder['name']),
       parseName(founder['userName']),
-      if (startup['user'] is Map) parseName((startup['user'] as Map)['fullName']),
+      if (startup['user'] is Map)
+        parseName((startup['user'] as Map)['fullName']),
     ];
     final validFounderName = rawFounderCandidates.firstWhere(
       (n) => n != null && n.isNotEmpty && n != 'Founder',
@@ -380,13 +401,17 @@ class Deal extends Equatable {
           json['amount'] ??
           json['investmentAmount'] ??
           startup['funding'] ??
-          (startup['metrics'] is Map ? (startup['metrics'] as Map)['fundingGoal'] : null),
+          (startup['metrics'] is Map
+              ? (startup['metrics'] as Map)['fundingGoal']
+              : null),
     );
     final equity = parseNum(
       json['equity'] ??
           json['equityOffered'] ??
           startup['equity'] ??
-          (startup['metrics'] is Map ? (startup['metrics'] as Map)['equityOffered'] : null),
+          (startup['metrics'] is Map
+              ? (startup['metrics'] as Map)['equityOffered']
+              : null),
     );
 
     String resolveStage() {
@@ -459,16 +484,20 @@ class Deal extends Equatable {
       updatedAt: updatedAt,
       startupLogo: startupLogo,
       hasNda: json['hasNda'] == true || json['nda'] == true,
-      documentsCount: (json['documentsCount'] as num?)?.toInt() ??
+      documentsCount:
+          (json['documentsCount'] as num?)?.toInt() ??
           (json['documents_count'] as num?)?.toInt() ??
           0,
       documents: json['documents'] is Map
           ? Map<String, dynamic>.from(json['documents'] as Map)
           : const {},
-      founderId: json['founderId']?.toString() ??
+      founderId:
+          json['founderId']?.toString() ??
           json['founder_id']?.toString() ??
           founder['id']?.toString() ??
-          (startup['user'] is Map ? (startup['user'] as Map)['id']?.toString() : null),
+          (startup['user'] is Map
+              ? (startup['user'] as Map)['id']?.toString()
+              : null),
     );
   }
 }
@@ -506,47 +535,59 @@ class PortfolioItem extends Equatable {
       : ((currentValue - investedAmount) / investedAmount) * 100;
 
   @override
-  List<Object?> get props => [id, currentValue, status, industry, stage, projectUrl];
+  List<Object?> get props => [
+    id,
+    currentValue,
+    status,
+    industry,
+    stage,
+    projectUrl,
+  ];
 
   factory PortfolioItem.fromApiJson(Map<String, dynamic> json) {
     final startup = json['startup'] is Map ? json['startup'] as Map : {};
-    final startupName = json['startupName']?.toString() ??
+    final startupName =
+        json['startupName']?.toString() ??
         json['company']?.toString() ??
         json['companyName']?.toString() ??
         startup['name']?.toString() ??
         startup['startup']?.toString() ??
         'Company';
-    final investedAmount = (json['investedAmount'] ??
-                json['investmentAmount'] ??
-                json['amount']) is num
+    final investedAmount =
+        (json['investedAmount'] ?? json['investmentAmount'] ?? json['amount'])
+            is num
         ? ((json['investedAmount'] ??
-                json['investmentAmount'] ??
-                json['amount']) as num)
-            .toDouble()
+                      json['investmentAmount'] ??
+                      json['amount'])
+                  as num)
+              .toDouble()
         : 0.0;
-    final currentValue = (json['currentValue'] ??
+    final currentValue =
+        (json['currentValue'] ??
                 json['valuation'] ??
                 json['currentValuation'] ??
-                investedAmount) is num
+                investedAmount)
+            is num
         ? ((json['currentValue'] ??
-                json['valuation'] ??
-                json['currentValuation'] ??
-                investedAmount) as num)
-            .toDouble()
+                      json['valuation'] ??
+                      json['currentValuation'] ??
+                      investedAmount)
+                  as num)
+              .toDouble()
         : investedAmount;
     final equity = (json['equity'] ?? json['equityPercentage']) is num
         ? ((json['equity'] ?? json['equityPercentage']) as num).toDouble()
         : 0.0;
-    final dateStr = json['investedAt'] ??
-        json['investmentDate'] ??
-        json['createdAt'];
+    final dateStr =
+        json['investedAt'] ?? json['investmentDate'] ?? json['createdAt'];
     DateTime investedAt = DateTime.now();
     if (dateStr != null) {
       try {
         investedAt = DateTime.parse(dateStr.toString());
       } catch (_) {}
     }
-    final rawStatus = json['status']?.toString() ??
+    final rawStatus =
+        json['status']?.toString() ??
         json['investmentStatus']?.toString() ??
         'Ongoing';
     // Normalize status strings
@@ -557,13 +598,14 @@ class PortfolioItem extends Equatable {
       'written off' || 'written_off' || 'failed' => 'Written Off',
       _ => 'Ongoing',
     };
-    final industry = json['industry']?.toString() ??
+    final industry =
+        json['industry']?.toString() ??
         startup['industry']?.toString() ??
         'General';
-    final stage = json['stage']?.toString() ??
-        startup['stage']?.toString() ??
-        'Seed';
-    final projectUrl = json['projectUrl']?.toString() ??
+    final stage =
+        json['stage']?.toString() ?? startup['stage']?.toString() ?? 'Seed';
+    final projectUrl =
+        json['projectUrl']?.toString() ??
         json['websiteUrl']?.toString() ??
         json['website']?.toString() ??
         json['url']?.toString() ??
@@ -581,7 +623,8 @@ class PortfolioItem extends Equatable {
       industry: industry,
       stage: stage,
       projectUrl: projectUrl,
-      logoUrl: json['logoUrl']?.toString() ??
+      logoUrl:
+          json['logoUrl']?.toString() ??
           json['logo']?.toString() ??
           startup['logo']?.toString(),
     );

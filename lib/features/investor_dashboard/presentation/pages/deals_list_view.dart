@@ -542,10 +542,11 @@ class _ContractCard extends StatelessWidget {
     final counterparty = contract.counterpartyName.isNotEmpty
         ? contract.counterpartyName
         : (contract.freelancerName.isNotEmpty
-            ? contract.freelancerName
-            : (contract.clientName ?? 'Contract'));
+              ? contract.freelancerName
+              : (contract.clientName ?? 'Contract'));
 
-    final avatarUrl = contract.counterpartyAvatar ??
+    final avatarUrl =
+        contract.counterpartyAvatar ??
         contract.freelancerAvatar ??
         contract.clientAvatar;
 
@@ -562,11 +563,7 @@ class _ContractCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  AppAvatar(
-                    name: counterparty,
-                    imageUrl: avatarUrl,
-                    size: 48,
-                  ),
+                  AppAvatar(name: counterparty, imageUrl: avatarUrl, size: 48),
                   AppSizes.hGapMd,
                   Expanded(
                     child: Column(
@@ -710,8 +707,7 @@ class _ContractCard extends StatelessWidget {
                   backgroundColor: context.isDark
                       ? AppColors.darkBorder
                       : const Color(0xFFE2E8F0),
-                  valueColor:
-                      const AlwaysStoppedAnimation(AppColors.success),
+                  valueColor: const AlwaysStoppedAnimation(AppColors.success),
                 ),
               ),
             ],
@@ -771,8 +767,8 @@ class _TabButton extends StatelessWidget {
                   color: isSelected
                       ? Colors.white
                       : (context.isDark
-                          ? AppColors.darkText
-                          : const Color(0xFF64748B)),
+                            ? AppColors.darkText
+                            : const Color(0xFF64748B)),
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -782,10 +778,11 @@ class _TabButton extends StatelessWidget {
                       color: isSelected
                           ? Colors.white
                           : (context.isDark
-                              ? AppColors.darkText
-                              : const Color(0xFF475569)),
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                                ? AppColors.darkText
+                                : const Color(0xFF475569)),
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                       fontSize: 13,
                     ),
                     maxLines: 1,
@@ -800,4 +797,3 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
-

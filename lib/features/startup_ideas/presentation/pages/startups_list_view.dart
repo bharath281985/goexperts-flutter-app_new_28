@@ -209,9 +209,7 @@ class _StartupsListViewState extends State<StartupsListView> {
                 },
               );
 
-              return isExplore
-                  ? repo.getStartups(qp)
-                  : repo.getMyStartups(qp);
+              return isExplore ? repo.getStartups(qp) : repo.getMyStartups(qp);
             },
             searchHint: isExplore
                 ? 'Search startups, industries…'
@@ -219,13 +217,13 @@ class _StartupsListViewState extends State<StartupsListView> {
             emptyTitle: isExplore
                 ? 'No startups found'
                 : (isFounder
-                    ? 'No startups created yet'
-                    : 'No startup investments yet'),
+                      ? 'No startups created yet'
+                      : 'No startup investments yet'),
             emptyMessage: isExplore
                 ? 'Try adjusting your search or filters.'
                 : (isFounder
-                    ? 'Publish your startup idea to connect with top investors and raise funds.'
-                    : 'Explore and invest in startups to see your active investments here.'),
+                      ? 'Publish your startup idea to connect with top investors and raise funds.'
+                      : 'Explore and invest in startups to see your active investments here.'),
             emptyIcon: isExplore
                 ? Icons.rocket_launch_outlined
                 : Icons.lightbulb_outline_rounded,
@@ -234,8 +232,7 @@ class _StartupsListViewState extends State<StartupsListView> {
             floatingActionButton: Builder(
               builder: (fabContext) => FloatingActionButton.extended(
                 onPressed: () async {
-                  final data =
-                      await showModalBottomSheet<Map<String, dynamic>>(
+                  final data = await showModalBottomSheet<Map<String, dynamic>>(
                     context: fabContext,
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
@@ -272,7 +269,8 @@ class _StartupsListViewState extends State<StartupsListView> {
                       (f) => fabContext.showTopSnack(f.message, isError: true),
                       (created) {
                         fabContext.showTopSnack(
-                            'Startup Idea published successfully!');
+                          'Startup Idea published successfully!',
+                        );
                         setState(() => _refreshKey++);
                       },
                     );
@@ -291,7 +289,9 @@ class _StartupsListViewState extends State<StartupsListView> {
                   await context.push('${Routes.startupDetails}/${s.id}');
                   if (context.mounted) {
                     try {
-                      context.read<ListBloc<Startup>>().add(const ListRefreshed());
+                      context.read<ListBloc<Startup>>().add(
+                        const ListRefreshed(),
+                      );
                     } catch (_) {}
                     setState(() => _refreshKey++);
                   }
@@ -304,9 +304,7 @@ class _StartupsListViewState extends State<StartupsListView> {
                       if (success) {
                         setState(() => _refreshKey++);
                         context.showTopSnack(
-                          !s.isSaved
-                              ? 'Saved startup'
-                              : 'Removed from saved',
+                          !s.isSaved ? 'Saved startup' : 'Removed from saved',
                         );
                       }
                     },
@@ -345,7 +343,8 @@ class _StartupsListViewState extends State<StartupsListView> {
                         if (success) {
                           setState(() => _refreshKey++);
                           context.showTopSnack(
-                              'Withdrew interest successfully');
+                            'Withdrew interest successfully',
+                          );
                         }
                       },
                     );
@@ -361,7 +360,9 @@ class _StartupsListViewState extends State<StartupsListView> {
                         await context.push('${Routes.startupDetails}/${s.id}');
                         if (context.mounted) {
                           try {
-                            context.read<ListBloc<Startup>>().add(const ListRefreshed());
+                            context.read<ListBloc<Startup>>().add(
+                              const ListRefreshed(),
+                            );
                           } catch (_) {}
                           setState(() => _refreshKey++);
                         }
@@ -429,8 +430,8 @@ class _TabButton extends StatelessWidget {
                   color: isSelected
                       ? Colors.white
                       : (context.isDark
-                          ? AppColors.darkBorder
-                          : const Color(0xFF64748B)),
+                            ? AppColors.darkBorder
+                            : const Color(0xFF64748B)),
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -440,10 +441,11 @@ class _TabButton extends StatelessWidget {
                       color: isSelected
                           ? Colors.white
                           : (context.isDark
-                              ? AppColors.darkText
-                              : const Color(0xFF475569)),
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                                ? AppColors.darkText
+                                : const Color(0xFF475569)),
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                       fontSize: 13,
                     ),
                     maxLines: 1,
@@ -458,4 +460,3 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
-

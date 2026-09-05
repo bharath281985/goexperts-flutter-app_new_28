@@ -41,7 +41,11 @@ Widget _proposalCard(BuildContext context, Proposal p) => AppCard(
             ? () => context.push('${Routes.publicFreelancer}/${p.freelancerId}')
             : null,
         borderRadius: BorderRadius.circular(22),
-        child: AppAvatar(name: p.freelancerName, imageUrl: p.freelancerAvatar, size: 44),
+        child: AppAvatar(
+          name: p.freelancerName,
+          imageUrl: p.freelancerAvatar,
+          size: 44,
+        ),
       ),
       AppSizes.hGapMd,
       Expanded(
@@ -50,16 +54,21 @@ Widget _proposalCard(BuildContext context, Proposal p) => AppCard(
           children: [
             InkWell(
               onTap: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
-                  ? () => context.push('${Routes.publicFreelancer}/${p.freelancerId}')
+                  ? () => context.push(
+                      '${Routes.publicFreelancer}/${p.freelancerId}',
+                    )
                   : null,
               borderRadius: BorderRadius.circular(4),
               child: Text(
                 p.freelancerName,
                 style: context.text.titleSmall?.copyWith(
-                  decoration: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
+                  decoration:
+                      (p.freelancerId != null && p.freelancerId!.isNotEmpty)
                       ? TextDecoration.underline
                       : null,
-                  decorationColor: context.text.titleSmall?.color?.withValues(alpha: 0.4),
+                  decorationColor: context.text.titleSmall?.color?.withValues(
+                    alpha: 0.4,
+                  ),
                 ),
               ),
             ),
@@ -600,7 +609,6 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           controller: _titleController,
                           label: 'Title *',
                           hint: 'Task title',
-                          
                         ),
                       ),
                       _fieldBox(
@@ -613,7 +621,6 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           readOnly: true,
                           onTap: _pickProject,
                           suffixIcon: const Icon(Icons.expand_more_rounded),
-                       
                         ),
                       ),
                       _fieldBox(
@@ -625,7 +632,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           hint: 'Select priority',
                           items: _priorities,
                           itemLabel: (v) => v,
-                        
+
                           onChanged: (v) => setState(() => _priority = v),
                         ),
                       ),
@@ -638,7 +645,7 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           hint: 'Select status',
                           items: _statuses,
                           itemLabel: (v) => v,
-                       
+
                           onChanged: (v) => setState(() => _status = v),
                         ),
                       ),
@@ -650,7 +657,6 @@ class _ClientAddTaskPageState extends State<ClientAddTaskPage> {
                           label: 'Progress',
                           hint: '0',
                           keyboardType: TextInputType.number,
-                         
                         ),
                       ),
                       _fieldBox(

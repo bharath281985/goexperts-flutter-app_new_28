@@ -33,7 +33,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
   // Dynamic Profile Completeness & Document Verification
   int _profileCompletion = 0;
   bool _isVerified = false;
-  String _verificationStatus = 'unverified'; // 'verified', 'under_review', 'action_required', 'unverified'
+  String _verificationStatus =
+      'unverified'; // 'verified', 'under_review', 'action_required', 'unverified'
   int _verifiedDocsCount = 0;
   int _missingDocsCount = 0;
 
@@ -125,10 +126,13 @@ class _MyProfilePageState extends State<MyProfilePage> {
           .trim();
 
       // Dynamic Profile Completion calculation
-      final rawComp = data['profileCompletion'] ??
+      final rawComp =
+          data['profileCompletion'] ??
           data['profile_completion'] ??
           data['completionPercentage'] ??
-          (data['user'] is Map ? (data['user'] as Map)['profileCompletion'] : null);
+          (data['user'] is Map
+              ? (data['user'] as Map)['profileCompletion']
+              : null);
 
       int computedPercent = (user.profileCompletion ?? 0);
       if (rawComp != null) {
@@ -140,9 +144,18 @@ class _MyProfilePageState extends State<MyProfilePage> {
         if ((avatarStr ?? user.avatarUrl ?? '').isNotEmpty) filled++;
         if ((user.email).isNotEmpty) filled++;
         if ((user.headline ?? '').isNotEmpty) filled++;
-        if (data['bio'] != null || data['description'] != null || data['about'] != null) filled++;
-        if (data['skills'] != null || data['category'] != null || data['industry'] != null) filled++;
-        if (data['hourlyRate'] != null || data['location'] != null || data['experience'] != null) filled++;
+        if (data['bio'] != null ||
+            data['description'] != null ||
+            data['about'] != null)
+          filled++;
+        if (data['skills'] != null ||
+            data['category'] != null ||
+            data['industry'] != null)
+          filled++;
+        if (data['hourlyRate'] != null ||
+            data['location'] != null ||
+            data['experience'] != null)
+          filled++;
         computedPercent = ((filled / totalFields) * 100).round().clamp(0, 100);
       }
 
@@ -196,35 +209,38 @@ class _MyProfilePageState extends State<MyProfilePage> {
           ? Map<String, dynamic>.from(data['data'] as Map)
           : data;
 
-      final rawKycStatus = (payload['kycStatus'] ??
-              payload['kyc_status'] ??
-              payload['status'] ??
-              payload['verificationStatus'] ??
-              '')
-          .toString()
-          .trim()
-          .toUpperCase();
+      final rawKycStatus =
+          (payload['kycStatus'] ??
+                  payload['kyc_status'] ??
+                  payload['status'] ??
+                  payload['verificationStatus'] ??
+                  '')
+              .toString()
+              .trim()
+              .toUpperCase();
 
-      final missingCount = (payload['missingCount'] ??
-              payload['missing_count'] as num?)
-          ?.toInt() ??
+      final missingCount =
+          (payload['missingCount'] ?? payload['missing_count'] as num?)
+              ?.toInt() ??
           0;
-      final pendingCount = (payload['pendingCount'] ??
-              payload['pending_count'] as num?)
-          ?.toInt() ??
+      final pendingCount =
+          (payload['pendingCount'] ?? payload['pending_count'] as num?)
+              ?.toInt() ??
           0;
-      final verifiedCount = (payload['verifiedCount'] ??
-              payload['verified_count'] as num?)
-          ?.toInt() ??
+      final verifiedCount =
+          (payload['verifiedCount'] ?? payload['verified_count'] as num?)
+              ?.toInt() ??
           0;
 
-      final isAccVerified = (rawKycStatus == 'APPROVED' ||
+      final isAccVerified =
+          (rawKycStatus == 'APPROVED' ||
               rawKycStatus == 'VERIFIED' ||
               payload['accountVerified'] == true) &&
           missingCount == 0;
 
       String statusKey = 'unverified';
-      if (isAccVerified || (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
+      if (isAccVerified ||
+          (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
         statusKey = 'verified';
       } else if (rawKycStatus == 'PENDING' ||
           rawKycStatus == 'UNDER_REVIEW' ||
@@ -298,7 +314,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
 
     final activeCompletion = _profileCompletion > 0
         ? _profileCompletion
-        : (user?.profileCompletion ?? dashState?.dashboardProfileCompletion ?? 0);
+        : (user?.profileCompletion ??
+              dashState?.dashboardProfileCompletion ??
+              0);
 
     // Role-specific metrics
     String metric1Val = '0';
@@ -351,7 +369,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
     final topInset = MediaQuery.viewPaddingOf(context).top;
 
     return Scaffold(
-      backgroundColor: context.isDark ? AppColors.darkBackground : AppColors.background,
+      backgroundColor: context.isDark
+          ? AppColors.darkBackground
+          : AppColors.background,
       body: RefreshIndicator(
         color: AppColors.primary,
         backgroundColor: Colors.white,
@@ -392,7 +412,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          if (context.canPop() || Navigator.of(context).canPop()) ...[
+                          if (context.canPop() ||
+                              Navigator.of(context).canPop()) ...[
                             IconTapWidget(
                               onTap: () => Navigator.of(context).maybePop(),
                             ),
@@ -403,7 +424,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             style: TextStyle(
                               fontSize: 22,
                               fontWeight: FontWeight.w700,
-                              color: context.isDark ? Colors.white : AppColors.darkText,
+                              color: context.isDark
+                                  ? Colors.white
+                                  : AppColors.darkText,
                               letterSpacing: -0.4,
                             ),
                           ),
@@ -415,7 +438,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         ),
                         icon: Icon(
                           Icons.settings_outlined,
-                          color: context.isDark ? Colors.white70 : AppColors.mutedText,
+                          color: context.isDark
+                              ? Colors.white70
+                              : AppColors.mutedText,
                           size: 22,
                         ),
                         tooltip: 'Account Settings',
@@ -445,7 +470,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       blurRadius: 4,
                                     ),
                                   ],
@@ -469,7 +496,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
-                                color: context.isDark ? Colors.white : AppColors.darkText,
+                                color: context.isDark
+                                    ? Colors.white
+                                    : AppColors.darkText,
                                 letterSpacing: -0.2,
                               ),
                               overflow: TextOverflow.ellipsis,
@@ -531,16 +560,23 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 children: [
                   // ─── CLEAN METRICS STRIP ─────────────────────────────────────
                   AppCard(
-                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 14,
+                      horizontal: 8,
+                    ),
                     child: Row(
                       children: [
                         Expanded(
                           child: _cleanMetric(
                             icon: Icons.star_rounded,
                             iconColor: const Color(0xFFF59E0B),
-                            value: _loadingAverage ? '…' : _rating.toStringAsFixed(1),
+                            value: _loadingAverage
+                                ? '…'
+                                : _rating.toStringAsFixed(1),
                             label: 'Rating',
-                            caption: _loadingAverage ? '—' : '$_reviewsCount reviews',
+                            caption: _loadingAverage
+                                ? '—'
+                                : '$_reviewsCount reviews',
                           ),
                         ),
                         _cleanDivider(),
@@ -591,10 +627,16 @@ class _MyProfilePageState extends State<MyProfilePage> {
                       child: Container(
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: context.isDark ? AppColors.darkCard : Colors.white,
-                          borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                          color: context.isDark
+                              ? AppColors.darkCard
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusLg,
+                          ),
                           border: Border.all(
-                            color: context.isDark ? AppColors.darkBorder : AppColors.border,
+                            color: context.isDark
+                                ? AppColors.darkBorder
+                                : AppColors.border,
                             width: 1,
                           ),
                         ),
@@ -617,7 +659,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w700,
-                                        color: context.isDark ? Colors.white : AppColors.darkText,
+                                        color: context.isDark
+                                            ? Colors.white
+                                            : AppColors.darkText,
                                       ),
                                     ),
                                   ],
@@ -636,7 +680,10 @@ class _MyProfilePageState extends State<MyProfilePage> {
                             ClipRRect(
                               borderRadius: BorderRadius.circular(4),
                               child: LinearProgressIndicator(
-                                value: (activeCompletion / 100.0).clamp(0.0, 1.0),
+                                value: (activeCompletion / 100.0).clamp(
+                                  0.0,
+                                  1.0,
+                                ),
                                 minHeight: 6,
                                 backgroundColor: context.isDark
                                     ? Colors.white.withValues(alpha: 0.1)
@@ -688,7 +735,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                   await context.push(Routes.clientProfile);
                                   break;
                                 case UserRole.freelancer:
-                                  await context.push(Routes.freelancerEditProfile);
+                                  await context.push(
+                                    Routes.freelancerEditProfile,
+                                  );
                                   break;
                               }
                             });
@@ -709,7 +758,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                         ),
 
                         // Portfolio
-                        if (role == UserRole.freelancer || role == UserRole.investor) ...[
+                        if (role == UserRole.freelancer ||
+                            role == UserRole.investor) ...[
                           _tileDivider(context),
                           _profileTile(
                             context,
@@ -721,7 +771,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                 if (role == UserRole.investor) {
                                   await context.push(Routes.investorPortfolio);
                                 } else {
-                                  await context.push(Routes.freelancerPortfolioPage);
+                                  await context.push(
+                                    Routes.freelancerPortfolioPage,
+                                  );
                                 }
                               });
                             },
@@ -795,7 +847,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           context,
                           icon: Icons.help_outline_rounded,
                           title: 'Help & Support',
-                          subtitle: 'Frequently asked questions and support desk',
+                          subtitle:
+                              'Frequently asked questions and support desk',
                           onTap: () => _navigateAndRefresh(
                             () => context.push(Routes.support),
                           ),
@@ -880,17 +933,11 @@ class _MyProfilePageState extends State<MyProfilePage> {
         const SizedBox(height: 2),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
         Text(
           caption,
-          style: const TextStyle(
-            fontSize: 11,
-            color: AppColors.mutedText,
-          ),
+          style: const TextStyle(fontSize: 11, color: AppColors.mutedText),
         ),
       ],
     );
@@ -999,7 +1046,9 @@ class _MyProfilePageState extends State<MyProfilePage> {
         break;
       case 'missing':
         badgeColor = AppColors.warning;
-        badgeText = _missingDocsCount > 0 ? '$_missingDocsCount Missing' : 'Missing Docs';
+        badgeText = _missingDocsCount > 0
+            ? '$_missingDocsCount Missing'
+            : 'Missing Docs';
         badgeIcon = Icons.pending_actions_rounded;
         break;
       case 'unverified':
@@ -1015,10 +1064,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       decoration: BoxDecoration(
         color: badgeColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: badgeColor.withValues(alpha: 0.25),
-          width: 1,
-        ),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.25), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1046,7 +1092,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
 
   Widget _buildSubscriptionBadge(dynamic user) {
     final rawPlan = (user?.subscriptionPlan ?? '').toString().trim();
-    final isSubscribed = user?.serverHasSubscription == true ||
+    final isSubscribed =
+        user?.serverHasSubscription == true ||
         (user?.subscriptionStatus?.toString().toLowerCase() == 'active');
 
     if (!isSubscribed ||
@@ -1109,18 +1156,16 @@ class _MyProfilePageState extends State<MyProfilePage> {
       badgeColor = const Color(0xFFEAB308);
     }
 
-    final label =
-        rawPlan.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
+    final label = rawPlan
+        .replaceAll(RegExp(r'\s+plan', caseSensitive: false), '')
+        .trim();
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: badgeColor.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-          color: badgeColor.withValues(alpha: 0.25),
-          width: 1,
-        ),
+        border: Border.all(color: badgeColor.withValues(alpha: 0.25), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1192,10 +1237,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
           canPop: false,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24,
-                vertical: 20,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),

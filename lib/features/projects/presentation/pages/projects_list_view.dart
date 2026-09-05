@@ -78,16 +78,16 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     setState(() => _refreshKey++);
   }
 
-  Future<void> _openProjectDetails(BuildContext context, String projectId) async {
+  Future<void> _openProjectDetails(
+    BuildContext context,
+    String projectId,
+  ) async {
     await context.push<bool>('${Routes.projectDetails}/$projectId');
     if (!mounted) return;
     setState(() => _refreshKey++);
   }
 
-  Future<void> _toggleSaveProject(
-    BuildContext context,
-    Project project,
-  ) async {
+  Future<void> _toggleSaveProject(BuildContext context, Project project) async {
     final res = await sl<ProjectRepository>().toggleSave(project.id);
     if (!context.mounted) return;
     res.fold(
@@ -274,13 +274,13 @@ class _ProjectsListViewState extends State<ProjectsListView> {
             emptyTitle: isExplore
                 ? 'No projects found'
                 : (isClient
-                    ? 'No posted projects yet'
-                    : 'No project assignments yet'),
+                      ? 'No posted projects yet'
+                      : 'No project assignments yet'),
             emptyMessage: isExplore
                 ? 'Try adjusting your search or filters.'
                 : (isClient
-                    ? 'Post a new project to find top talent and receive proposals.'
-                    : 'Explore and apply to projects to see your active assignments here.'),
+                      ? 'Post a new project to find top talent and receive proposals.'
+                      : 'Explore and apply to projects to see your active assignments here.'),
             emptyIcon: isExplore
                 ? Icons.work_outline_rounded
                 : Icons.folder_open_rounded,
@@ -375,8 +375,8 @@ class _TabButton extends StatelessWidget {
                   color: isSelected
                       ? Colors.white
                       : (context.isDark
-                          ? AppColors.darkText
-                          : const Color(0xFF64748B)),
+                            ? AppColors.darkText
+                            : const Color(0xFF64748B)),
                 ),
                 const SizedBox(width: 6),
                 Flexible(
@@ -386,10 +386,11 @@ class _TabButton extends StatelessWidget {
                       color: isSelected
                           ? Colors.white
                           : (context.isDark
-                              ? AppColors.darkText
-                              : const Color(0xFF475569)),
-                      fontWeight:
-                          isSelected ? FontWeight.w700 : FontWeight.w600,
+                                ? AppColors.darkText
+                                : const Color(0xFF475569)),
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w600,
                       fontSize: 13,
                     ),
                     maxLines: 1,
@@ -404,4 +405,3 @@ class _TabButton extends StatelessWidget {
     );
   }
 }
-

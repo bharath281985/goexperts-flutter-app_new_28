@@ -127,7 +127,9 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    member == null ? 'Invite team member' : 'Update team member',
+                    member == null
+                        ? 'Invite team member'
+                        : 'Update team member',
                     style: context.text.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -172,7 +174,10 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                           value: 'invited',
                           child: Text('Invited'),
                         ),
-                        DropdownMenuItem(value: 'active', child: Text('Active')),
+                        DropdownMenuItem(
+                          value: 'active',
+                          child: Text('Active'),
+                        ),
                         DropdownMenuItem(
                           value: 'inactive',
                           child: Text('Inactive'),
@@ -197,7 +202,9 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusMd,
+                          ),
                         ),
                       ),
                       onPressed: submitting
@@ -427,7 +434,8 @@ class _SuggestionField extends StatelessWidget {
       requestFocusOnTap: true,
       label: Text(label),
       hintText: hint,
-      initialSelection: controller.text.isNotEmpty && options.contains(controller.text)
+      initialSelection:
+          controller.text.isNotEmpty && options.contains(controller.text)
           ? controller.text
           : null,
       onSelected: (val) {

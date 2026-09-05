@@ -81,7 +81,8 @@ class AppInvestorCard extends StatelessWidget {
                 ListenableBuilder(
                   listenable: BookmarkManager.instance,
                   builder: (context, _) {
-                    final isSaved = BookmarkManager.instance.isBookmarked(
+                    final isSaved =
+                        BookmarkManager.instance.isBookmarked(
                           BookmarkManager.categoryInvestors,
                           investor.id,
                         ) ||

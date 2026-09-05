@@ -329,7 +329,9 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           AppSizes.vGapLg,
           AppCard(
             onTap: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
-                ? () => context.push('${Routes.publicFreelancer}/${p.freelancerId}')
+                ? () => context.push(
+                    '${Routes.publicFreelancer}/${p.freelancerId}',
+                  )
                 : null,
             child: Row(
               children: [
@@ -346,7 +348,8 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                       Text(
                         p.freelancerName,
                         style: context.text.titleSmall?.copyWith(
-                          decoration: (p.freelancerId != null &&
+                          decoration:
+                              (p.freelancerId != null &&
                                   p.freelancerId!.isNotEmpty)
                               ? TextDecoration.underline
                               : null,

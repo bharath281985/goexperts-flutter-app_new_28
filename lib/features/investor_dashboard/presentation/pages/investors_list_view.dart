@@ -20,7 +20,8 @@ class InvestorsListView extends StatelessWidget {
 
   Future<void> _toggleSave(BuildContext context, Investor i) async {
     final api = sl<ApiClientHelper>();
-    final isSaved = BookmarkManager.instance.isBookmarked(
+    final isSaved =
+        BookmarkManager.instance.isBookmarked(
           BookmarkManager.categoryInvestors,
           i.id,
         ) ||
@@ -48,12 +49,12 @@ class InvestorsListView extends StatelessWidget {
         );
         try {
           context.read<ListBloc<Investor>>().add(
-                ListItemUpdated(
-                  i.copyWith(isSaved: newSaved),
-                  (existing, updated) =>
-                      (existing as Investor).id == (updated as Investor).id,
-                ),
-              );
+            ListItemUpdated(
+              i.copyWith(isSaved: newSaved),
+              (existing, updated) =>
+                  (existing as Investor).id == (updated as Investor).id,
+            ),
+          );
         } catch (_) {}
         context.showSnack(
           newSaved ? 'Investor saved' : 'Investor removed from saved',

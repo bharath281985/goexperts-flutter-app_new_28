@@ -58,7 +58,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Scaffold(
                 appBar: AppBar(
-                  leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+                  leading: IconTapWidget(
+                    onTap: () => Navigator.of(context).maybePop(),
+                  ),
                   title: const Text('Startup Details'),
                 ),
                 body: const AppLoadingShimmer(itemCount: 4, height: 120),
@@ -68,7 +70,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
             if (s == null) {
               return Scaffold(
                 appBar: AppBar(
-                  leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+                  leading: IconTapWidget(
+                    onTap: () => Navigator.of(context).maybePop(),
+                  ),
                   title: const Text('Startup Details'),
                 ),
                 body: const AppErrorState(),
@@ -81,7 +85,9 @@ class _StartupDetailsPageState extends State<StartupDetailsPage> {
             return Scaffold(
               backgroundColor: AppColors.background,
               appBar: AppBar(
-                leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+                leading: IconTapWidget(
+                  onTap: () => Navigator.of(context).maybePop(),
+                ),
                 title: const Text('Startup Details'),
                 actions: [
                   IconButton(

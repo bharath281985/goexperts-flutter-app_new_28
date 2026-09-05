@@ -246,19 +246,13 @@ class ProposalRepositoryImpl implements ProposalRepository {
     } catch (_) {}
 
     // 3. Fallback to POST on proposal endpoints (strictly POST, never PATCH)
-    res = await _api.postAction(
-      ApiEndpoints.freelancerProposalAcceptOffer(id),
-    );
+    res = await _api.postAction(ApiEndpoints.freelancerProposalAcceptOffer(id));
     if (res.isSuccess) return res;
 
-    res = await _api.postAction(
-      '/freelancer/proposals/$id/accept',
-    );
+    res = await _api.postAction('/freelancer/proposals/$id/accept');
     if (res.isSuccess) return res;
 
-    return _api.postAction(
-      '/client/proposals/$id/accept',
-    );
+    return _api.postAction('/client/proposals/$id/accept');
   }
 
   @override
@@ -287,7 +281,8 @@ class ProposalRepositoryImpl implements ProposalRepository {
     var res = await _api.patchAction(path);
     if (res.isFailure) {
       final fallbackPath = switch (normalized) {
-        'shortlisted' || 'shortlist' => ApiEndpoints.clientProposalShortlist(id),
+        'shortlisted' ||
+        'shortlist' => ApiEndpoints.clientProposalShortlist(id),
         'rejected' || 'reject' => ApiEndpoints.clientProposalReject(id),
         'interview' => ApiEndpoints.clientProposalInterview(id),
         'accepted' || 'accept' => ApiEndpoints.clientProposalAccept(id),
@@ -324,15 +319,17 @@ class ProposalRepositoryImpl implements ProposalRepository {
     final project = json['project'] is Map<String, dynamic>
         ? json['project'] as Map<String, dynamic>
         : (json['project'] is Map
-            ? Map<String, dynamic>.from(json['project'] as Map)
-            : null);
+              ? Map<String, dynamic>.from(json['project'] as Map)
+              : null);
 
-    final projectTitle = json['projectTitle'] as String? ??
+    final projectTitle =
+        json['projectTitle'] as String? ??
         json['project_title'] as String? ??
         project?['title'] as String? ??
         'Project';
 
-    final projectDescription = json['projectDescription'] as String? ??
+    final projectDescription =
+        json['projectDescription'] as String? ??
         json['project_description'] as String? ??
         project?['description'] as String?;
 

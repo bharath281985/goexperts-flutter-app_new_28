@@ -58,7 +58,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget build(BuildContext context) {
     return BlocConsumer<DashboardCubit, DashboardState>(
       listenWhen: (prev, curr) =>
-          curr.status == ViewStatus.success && prev.status != ViewStatus.success,
+          curr.status == ViewStatus.success &&
+          prev.status != ViewStatus.success,
       listener: (context, state) => _maybeShowFreePlanPopup(context, state),
       builder: (context, state) {
         final loading =
@@ -94,7 +95,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               //         ],
               // Hero Banner
               _buildHeroBanner(context, state),
-              
+
               if (loading)
                 const Padding(
                   padding: EdgeInsets.all(AppSizes.screenPadding),
@@ -107,9 +108,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildQuickActions(context),
-                    ],
+                    children: [_buildQuickActions(context)],
                   ),
                 ),
                 _buildRecommendationTabs(context),
@@ -132,13 +131,13 @@ class _ClientHomePageState extends State<ClientHomePage> {
     final Color badgeBgColor = isVerified
         ? AppColors.success.withValues(alpha: 0.12)
         : (isPending
-            ? AppColors.warning.withValues(alpha: 0.14)
-            : AppColors.primary.withValues(alpha: 0.12));
+              ? AppColors.warning.withValues(alpha: 0.14)
+              : AppColors.primary.withValues(alpha: 0.12));
     final Color badgeBorderColor = isVerified
         ? AppColors.success.withValues(alpha: 0.3)
         : (isPending
-            ? AppColors.warning.withValues(alpha: 0.35)
-            : AppColors.primary.withValues(alpha: 0.3));
+              ? AppColors.warning.withValues(alpha: 0.35)
+              : AppColors.primary.withValues(alpha: 0.3));
     final Color badgeTextColor = isVerified
         ? AppColors.success
         : (isPending ? AppColors.warning : AppColors.primary);
@@ -148,10 +147,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
     final String badgeLabel = isVerified
         ? 'Verified Client'
         : (isPending
-            ? 'KYC In Review'
-            : (missingCount > 0
-                ? '$missingCount Docs Missing'
-                : 'Verify Identity'));
+              ? 'KYC In Review'
+              : (missingCount > 0
+                    ? '$missingCount Docs Missing'
+                    : 'Verify Identity'));
 
     final walletBalance = state.effectiveWalletBalance;
     final referralsCount = state.referralsCount;
@@ -418,9 +417,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget _buildQuickActions(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final int columns = context.isDesktop
-            ? 3
-            : (context.isTablet ? 3 : 2);
+        final int columns = context.isDesktop ? 3 : (context.isTablet ? 3 : 2);
         const double spacing = 12.0;
         final double width =
             (constraints.maxWidth - (columns - 1) * spacing) / columns;
@@ -489,10 +486,6 @@ class _ClientHomePageState extends State<ClientHomePage> {
     );
   }
 
-  
- 
-
-
   @override
   void initState() {
     super.initState();
@@ -525,7 +518,8 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget _buildRecommendationTabs(BuildContext context) {
     return DashboardRecommendationsSection(
       title: 'Top Matches For You',
-      subtitle: 'Verified freelance experts, high-growth startups and strategic investors',
+      subtitle:
+          'Verified freelance experts, high-growth startups and strategic investors',
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,

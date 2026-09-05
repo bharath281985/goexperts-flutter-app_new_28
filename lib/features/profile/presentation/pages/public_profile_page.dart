@@ -91,141 +91,153 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     }
   }
 
-List<String> _extractList(dynamic val) {
-  if (val == null) return [];
-  if (val is Map) {
-    final str = (val['skillName'] ??
-            val['name'] ??
-            val['industryName'] ??
-            val['workModeName'] ??
-            val['experienceLevelName'] ??
-            val['label'] ??
-            val['title'] ??
-            val['value'])
-        ?.toString()
-        .trim();
-    if (str != null && str.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(str)) {
-      return [str];
+  List<String> _extractList(dynamic val) {
+    if (val == null) return [];
+    if (val is Map) {
+      final str =
+          (val['skillName'] ??
+                  val['name'] ??
+                  val['industryName'] ??
+                  val['workModeName'] ??
+                  val['experienceLevelName'] ??
+                  val['label'] ??
+                  val['title'] ??
+                  val['value'])
+              ?.toString()
+              .trim();
+      if (str != null &&
+          str.isNotEmpty &&
+          !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(str)) {
+        return [str];
+      }
+      return [];
+    }
+    if (val is List) {
+      return val
+          .map((item) {
+            if (item is Map) {
+              return (item['skillName'] ??
+                          item['name'] ??
+                          item['industryName'] ??
+                          item['workModeName'] ??
+                          item['experienceLevelName'] ??
+                          item['label'] ??
+                          item['title'] ??
+                          item['value'] ??
+                          item['id'])
+                      ?.toString()
+                      .trim() ??
+                  '';
+            }
+            return item.toString().trim();
+          })
+          .where(
+            (s) => s.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s),
+          )
+          .toList();
+    }
+    if (val is String && val.trim().isNotEmpty) {
+      return val
+          .split(',')
+          .map((s) => s.trim())
+          .where(
+            (s) => s.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s),
+          )
+          .toList();
     }
     return [];
   }
-  if (val is List) {
-    return val
-        .map((item) {
-          if (item is Map) {
-            return (item['skillName'] ??
-                    item['name'] ??
-                    item['industryName'] ??
-                    item['workModeName'] ??
-                    item['experienceLevelName'] ??
-                    item['label'] ??
-                    item['title'] ??
-                    item['value'] ??
-                    item['id'])
-                ?.toString()
-                .trim() ??
-                '';
-          }
-          return item.toString().trim();
-        })
-        .where((s) => s.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s))
-        .toList();
-  }
-  if (val is String && val.trim().isNotEmpty) {
-    return val
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s))
-        .toList();
-  }
-  return [];
-}
 
-String _formatLabel(dynamic val) {
-  if (val == null) return '';
-  if (val is Map) {
-    return (val['experienceLevelName'] ??
-            val['workModeName'] ??
-            val['industryName'] ??
-            val['skillName'] ??
-            val['name'] ??
-            val['label'] ??
-            val['title'] ??
-            val['value'])
-            ?.toString()
-            .trim() ??
-        '';
-  }
-  final s = val.toString().trim();
-  if (s.isEmpty) return '';
-
-  String cleaned = s;
-  if (cleaned.startsWith('mo_experience_level_')) {
-    cleaned = cleaned.replaceFirst('mo_experience_level_', '');
-  } else if (cleaned.startsWith('mo_work_mode_')) {
-    cleaned = cleaned.replaceFirst('mo_work_mode_', '');
-  } else if (cleaned.startsWith('mo_industry_')) {
-    cleaned = cleaned.replaceFirst('mo_industry_', '');
-  }
-
-  final isUuid = RegExp(
-    r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-  ).hasMatch(cleaned);
-  if (isUuid) {
-    return '';
-  }
-
-  cleaned = cleaned.replaceAll('_', ' ').replaceAll('-', ' ');
-  return cleaned
-      .split(' ')
-      .where((w) => w.isNotEmpty)
-      .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
-      .join(' ');
-}
-
-Map<String, dynamic> _safeMap(dynamic val) {
-  if (val == null) return const {};
-  if (val is Map<String, dynamic>) return val;
-  if (val is Map) return Map<String, dynamic>.from(val);
-  if (val is String && val.trim().isNotEmpty) {
-    final trimmed = val.trim();
-    if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
-      try {
-        final decoded = jsonDecode(trimmed);
-        if (decoded is Map) return Map<String, dynamic>.from(decoded);
-      } catch (_) {}
+  String _formatLabel(dynamic val) {
+    if (val == null) return '';
+    if (val is Map) {
+      return (val['experienceLevelName'] ??
+                  val['workModeName'] ??
+                  val['industryName'] ??
+                  val['skillName'] ??
+                  val['name'] ??
+                  val['label'] ??
+                  val['title'] ??
+                  val['value'])
+              ?.toString()
+              .trim() ??
+          '';
     }
-  }
-  return const {};
-}
+    final s = val.toString().trim();
+    if (s.isEmpty) return '';
 
-double _safeDouble(dynamic val, [double fallback = 0.0]) {
-  if (val == null) return fallback;
-  if (val is num) return val.toDouble();
-  if (val is String) {
-    return double.tryParse(val.replaceAll(RegExp(r'[^0-9.]'), '')) ?? fallback;
-  }
-  return fallback;
-}
+    String cleaned = s;
+    if (cleaned.startsWith('mo_experience_level_')) {
+      cleaned = cleaned.replaceFirst('mo_experience_level_', '');
+    } else if (cleaned.startsWith('mo_work_mode_')) {
+      cleaned = cleaned.replaceFirst('mo_work_mode_', '');
+    } else if (cleaned.startsWith('mo_industry_')) {
+      cleaned = cleaned.replaceFirst('mo_industry_', '');
+    }
 
-int _safeInt(dynamic val, [int fallback = 0]) {
-  if (val == null) return fallback;
-  if (val is num) return val.toInt();
-  if (val is String) {
-    return int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ?? fallback;
-  }
-  return fallback;
-}
+    final isUuid = RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    ).hasMatch(cleaned);
+    if (isUuid) {
+      return '';
+    }
 
-String _cleanCityString(String rawCity) {
-  if (rawCity.isEmpty) return '';
-  return rawCity.replaceAll(RegExp(r'\{.*?\}'), '').replaceAll(RegExp(r',\s*,+'), ',').trim();
-}
+    cleaned = cleaned.replaceAll('_', ' ').replaceAll('-', ' ');
+    return cleaned
+        .split(' ')
+        .where((w) => w.isNotEmpty)
+        .map((w) => w[0].toUpperCase() + w.substring(1).toLowerCase())
+        .join(' ');
+  }
+
+  Map<String, dynamic> _safeMap(dynamic val) {
+    if (val == null) return const {};
+    if (val is Map<String, dynamic>) return val;
+    if (val is Map) return Map<String, dynamic>.from(val);
+    if (val is String && val.trim().isNotEmpty) {
+      final trimmed = val.trim();
+      if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+        try {
+          final decoded = jsonDecode(trimmed);
+          if (decoded is Map) return Map<String, dynamic>.from(decoded);
+        } catch (_) {}
+      }
+    }
+    return const {};
+  }
+
+  double _safeDouble(dynamic val, [double fallback = 0.0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toDouble();
+    if (val is String) {
+      return double.tryParse(val.replaceAll(RegExp(r'[^0-9.]'), '')) ??
+          fallback;
+    }
+    return fallback;
+  }
+
+  int _safeInt(dynamic val, [int fallback = 0]) {
+    if (val == null) return fallback;
+    if (val is num) return val.toInt();
+    if (val is String) {
+      return int.tryParse(val.replaceAll(RegExp(r'[^0-9]'), '')) ?? fallback;
+    }
+    return fallback;
+  }
+
+  String _cleanCityString(String rawCity) {
+    if (rawCity.isEmpty) return '';
+    return rawCity
+        .replaceAll(RegExp(r'\{.*?\}'), '')
+        .replaceAll(RegExp(r',\s*,+'), ',')
+        .trim();
+  }
 
   /// Builds a ProfileViewData from the raw API data map.
   ProfileViewData? _parse(Map<String, dynamic> raw) {
     final reg = _safeMap(raw['registrationData']);
-    final id = raw['id']?.toString() ??
+    final id =
+        raw['id']?.toString() ??
         raw['freelancerId']?.toString() ??
         raw['userId']?.toString() ??
         raw['investorId']?.toString() ??
@@ -242,18 +254,22 @@ String _cleanCityString(String rawCity) {
     final avatarUrl = rawAvatarUrl == null || rawAvatarUrl.isEmpty
         ? null
         : normalizeImageUrl(rawAvatarUrl);
-    final rawCity = _cleanCityString(raw['city']?.toString() ?? reg['city']?.toString() ?? '');
-    final locationParts = [
-      rawCity,
-      raw['state']?.toString() ?? reg['state']?.toString() ?? '',
-      raw['country']?.toString() ?? reg['country']?.toString() ?? '',
-    ]
-        .where((e) => e.trim().isNotEmpty)
-        .where((e) => !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(e.trim()))
-        .toSet()
-        .toList();
+    final rawCity = _cleanCityString(
+      raw['city']?.toString() ?? reg['city']?.toString() ?? '',
+    );
+    final locationParts =
+        [
+              rawCity,
+              raw['state']?.toString() ?? reg['state']?.toString() ?? '',
+              raw['country']?.toString() ?? reg['country']?.toString() ?? '',
+            ]
+            .where((e) => e.trim().isNotEmpty)
+            .where((e) => !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(e.trim()))
+            .toSet()
+            .toList();
     final location = locationParts.join(', ');
-    final bio = raw['bio']?.toString() ??
+    final bio =
+        raw['bio']?.toString() ??
         reg['bio']?.toString() ??
         raw['about']?.toString() ??
         '';
@@ -292,7 +308,9 @@ String _cleanCityString(String rawCity) {
       case PublicProfileType.freelancer:
         {
           final fp = _safeMap(
-            raw['freelancerProfile'] ?? raw['profile'] ?? (reg.isNotEmpty ? reg : raw),
+            raw['freelancerProfile'] ??
+                raw['profile'] ??
+                (reg.isNotEmpty ? reg : raw),
           );
 
           // 1. Skills / Skills
@@ -305,11 +323,15 @@ String _cleanCityString(String rawCity) {
                 reg['skills'],
           );
           if (skills.isEmpty) {
-            skills = _extractList(raw['skills'] ?? fp['skills'] ?? reg['skills']);
+            skills = _extractList(
+              raw['skills'] ?? fp['skills'] ?? reg['skills'],
+            );
           }
 
           // 2. Industry / industry / industries / industryName
-          var industries = _extractList(raw['industryName'] ?? raw['IndustryName']);
+          var industries = _extractList(
+            raw['industryName'] ?? raw['IndustryName'],
+          );
           if (industries.isEmpty) {
             industries = _extractList(
               raw['Industry'] ??
@@ -328,7 +350,9 @@ String _cleanCityString(String rawCity) {
           }
 
           // 3. WorkMode / workMode / workModes / workModeName
-          var workModes = _extractList(raw['workModeName'] ?? raw['WorkModeName']);
+          var workModes = _extractList(
+            raw['workModeName'] ?? raw['WorkModeName'],
+          );
           if (workModes.isEmpty) {
             workModes = _extractList(
               raw['workMode'] ??
@@ -349,7 +373,8 @@ String _cleanCityString(String rawCity) {
           );
 
           // 4. Experience Level
-          final rawExp = raw['experienceLevelName'] ??
+          final rawExp =
+              raw['experienceLevelName'] ??
               raw['ExperienceLevelName'] ??
               raw['experienceLevel'] ??
               raw['ExperienceLevel'] ??
@@ -364,7 +389,8 @@ String _cleanCityString(String rawCity) {
               reg['experience'];
           final expLevel = _formatLabel(rawExp);
 
-          final titleHeadline = raw['titleHeadline']?.toString() ??
+          final titleHeadline =
+              raw['titleHeadline']?.toString() ??
               raw['professionalTitle']?.toString() ??
               raw['title']?.toString() ??
               fp['titleHeadline']?.toString() ??
@@ -372,21 +398,25 @@ String _cleanCityString(String rawCity) {
               raw['headline']?.toString() ??
               '';
 
-          final portfolioUrl = fp['portfolioUrl']?.toString() ??
+          final portfolioUrl =
+              fp['portfolioUrl']?.toString() ??
               reg['portfolioUrl']?.toString() ??
               raw['portfolioUrl']?.toString() ??
               '';
-          final linkedInUrl = fp['linkedInUrl']?.toString() ??
+          final linkedInUrl =
+              fp['linkedInUrl']?.toString() ??
               fp['linkedinUrl']?.toString() ??
               fp['linkedin']?.toString() ??
               reg['linkedInUrl']?.toString() ??
               raw['linkedInUrl']?.toString() ??
               '';
-          final githubUrl = fp['githubUrl']?.toString() ??
+          final githubUrl =
+              fp['githubUrl']?.toString() ??
               reg['githubUrl']?.toString() ??
               raw['githubUrl']?.toString() ??
               '';
-          final websiteUrl = fp['websiteUrl']?.toString() ??
+          final websiteUrl =
+              fp['websiteUrl']?.toString() ??
               fp['website']?.toString() ??
               reg['websiteUrl']?.toString() ??
               raw['websiteUrl']?.toString() ??
@@ -404,13 +434,16 @@ String _cleanCityString(String rawCity) {
           final double? rating = ratingRaw is num
               ? ratingRaw.toDouble()
               : double.tryParse(ratingRaw?.toString() ?? '');
-          final reviewsCountRaw = raw['reviewsCount'] ?? fp['reviewsCount'] ?? reg['reviewsCount'];
+          final reviewsCountRaw =
+              raw['reviewsCount'] ?? fp['reviewsCount'] ?? reg['reviewsCount'];
           final int reviewsCount = reviewsCountRaw is num
               ? reviewsCountRaw.toInt()
               : int.tryParse(reviewsCountRaw?.toString() ?? '') ?? 0;
 
           final ratingStr = rating != null && rating > 0
-              ? (rating % 1 == 0 ? '${rating.toInt()}.0' : rating.toStringAsFixed(1))
+              ? (rating % 1 == 0
+                    ? '${rating.toInt()}.0'
+                    : rating.toStringAsFixed(1))
               : '5.0';
 
           final stats = <String, String>{
@@ -605,7 +638,9 @@ String _cleanCityString(String rawCity) {
               ? startupTeamSize.toInt().toString()
               : startupTeamSize?.toString() ?? '';
           final raised = _safeDouble(
-            fp['raised'] ?? startupMap['fundingRaised'] ?? startupMap['funding'],
+            fp['raised'] ??
+                startupMap['fundingRaised'] ??
+                startupMap['funding'],
           );
 
           final primaryGoals = fp['PrimaryGoal'];
@@ -884,12 +919,12 @@ String _cleanCityString(String rawCity) {
                   widget.type == PublicProfileType.freelancer
                       ? 'Freelancer details'
                       : widget.type == PublicProfileType.investor
-                          ? 'Investor details'
-                          : widget.type == PublicProfileType.company
-                              ? 'Company details'
-                              : widget.type == PublicProfileType.founder
-                                  ? 'Founder details'
-                                  : (profile?.name ?? 'Profile'),
+                      ? 'Investor details'
+                      : widget.type == PublicProfileType.company
+                      ? 'Company details'
+                      : widget.type == PublicProfileType.founder
+                      ? 'Founder details'
+                      : (profile?.name ?? 'Profile'),
                   overflow: TextOverflow.ellipsis,
                 ),
                 actions: [
@@ -1015,11 +1050,15 @@ String _cleanCityString(String rawCity) {
                         _bookmarkCategory,
                         widget.id,
                       );
-                      final res = await sl<FreelancerRepository>().toggleSave(widget.id);
+                      final res = await sl<FreelancerRepository>().toggleSave(
+                        widget.id,
+                      );
                       if (!context.mounted) return;
                       res.fold(
                         (f) => context.showSnack(
-                          f.message.isNotEmpty ? f.message : 'Failed to update saved status',
+                          f.message.isNotEmpty
+                              ? f.message
+                              : 'Failed to update saved status',
                           isError: true,
                         ),
                         (_) {
@@ -1054,7 +1093,9 @@ String _cleanCityString(String rawCity) {
                       if (!context.mounted) return;
                       res.fold(
                         (f) => context.showSnack(
-                          f.message.isNotEmpty ? f.message : 'Failed to update saved status',
+                          f.message.isNotEmpty
+                              ? f.message
+                              : 'Failed to update saved status',
                           isError: true,
                         ),
                         (_) {
@@ -1067,7 +1108,6 @@ String _cleanCityString(String rawCity) {
                       );
                     }
                   },
-
                 );
               }(),
             );

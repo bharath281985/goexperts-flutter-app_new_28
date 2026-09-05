@@ -23,7 +23,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
         final raw = envelope.data;
         final list = raw is List
             ? raw
-            : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['rows'] ?? const []) : const []);
+            : (raw is Map
+                  ? (raw['items'] ?? raw['data'] ?? raw['rows'] ?? const [])
+                  : const []);
         return ApiResponse.parsePaginated(
           list as List,
           envelope.meta,
@@ -52,8 +54,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
       '/founder/deals',
       '/client/deals',
     ];
-    Result<Paginated<Deal>> lastResult =
-        const Err(ServerFailure('No deals found'));
+    Result<Paginated<Deal>> lastResult = const Err(
+      ServerFailure('No deals found'),
+    );
     for (final path in paths) {
       final res = await _api.getEnvelope<Paginated<Deal>>(
         path,
@@ -62,7 +65,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
           final raw = envelope.data;
           final list = raw is List
               ? raw
-              : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['deals'] ?? const []) : const []);
+              : (raw is Map
+                    ? (raw['items'] ?? raw['data'] ?? raw['deals'] ?? const [])
+                    : const []);
           return ApiResponse.parsePaginated(
             list as List,
             envelope.meta,
@@ -114,7 +119,12 @@ class InvestorRepositoryImpl implements InvestorRepository {
         final raw = envelope.data;
         final list = raw is List
             ? raw
-            : (raw is Map ? (raw['items'] ?? raw['data'] ?? raw['portfolio'] ?? const []) : const []);
+            : (raw is Map
+                  ? (raw['items'] ??
+                        raw['data'] ??
+                        raw['portfolio'] ??
+                        const [])
+                  : const []);
         return ApiResponse.parsePaginated(
           list as List,
           envelope.meta,
@@ -126,7 +136,9 @@ class InvestorRepositoryImpl implements InvestorRepository {
   }
 
   @override
-  Future<Result<PortfolioItem>> addPortfolioItem(Map<String, dynamic> data) async {
+  Future<Result<PortfolioItem>> addPortfolioItem(
+    Map<String, dynamic> data,
+  ) async {
     return _api.postEnvelope<PortfolioItem>(
       '/investor/portfolio',
       body: data,

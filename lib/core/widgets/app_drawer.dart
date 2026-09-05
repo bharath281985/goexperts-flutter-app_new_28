@@ -75,20 +75,36 @@ class AppDrawer extends StatelessWidget {
     caseSensitive: false,
   );
 
-  static (String, Color) _resolveKycBadge(dynamic user, Map<String, dynamic> data) {
-    final rawKyc = (data['kycStatus'] ?? data['verificationStatus'] ?? '').toString().toUpperCase();
-    final missingCount = data['verificationMissingCount'] ?? data['missingCount'] ?? (data['missing'] is List ? (data['missing'] as List).length : null);
-    final missing = missingCount is num ? missingCount.toInt() : (int.tryParse(missingCount?.toString() ?? '') ?? 0);
+  static (String, Color) _resolveKycBadge(
+    dynamic user,
+    Map<String, dynamic> data,
+  ) {
+    final rawKyc = (data['kycStatus'] ?? data['verificationStatus'] ?? '')
+        .toString()
+        .toUpperCase();
+    final missingCount =
+        data['verificationMissingCount'] ??
+        data['missingCount'] ??
+        (data['missing'] is List ? (data['missing'] as List).length : null);
+    final missing = missingCount is num
+        ? missingCount.toInt()
+        : (int.tryParse(missingCount?.toString() ?? '') ?? 0);
     final isApproved = (rawKyc == 'APPROVED' || rawKyc == 'VERIFIED');
 
     // Only mark as Verified if approved AND no documents are missing
     if (isApproved && missing == 0) {
       return ('Verified', const Color(0xFF10B981));
     }
-    if (data['accountVerified'] == true && missing == 0 && rawKyc != 'MISSING' && rawKyc != 'NOT_SUBMITTED' && rawKyc.isNotEmpty) {
+    if (data['accountVerified'] == true &&
+        missing == 0 &&
+        rawKyc != 'MISSING' &&
+        rawKyc != 'NOT_SUBMITTED' &&
+        rawKyc.isNotEmpty) {
       return ('Verified', const Color(0xFF10B981));
     }
-    if (rawKyc == 'PENDING' || rawKyc == 'UNDER_REVIEW' || rawKyc == 'IN_REVIEW') {
+    if (rawKyc == 'PENDING' ||
+        rawKyc == 'UNDER_REVIEW' ||
+        rawKyc == 'IN_REVIEW') {
       return ('Pending', const Color(0xFFF59E0B));
     }
     if (rawKyc == 'REJECTED' || rawKyc == 'ACTION_REQUIRED') {
@@ -97,33 +113,65 @@ class AppDrawer extends StatelessWidget {
     return ('Not Verified', const Color(0xFFEF4444));
   }
 
-  static (String, Color) _resolvePlanBadge(dynamic user, Map<String, dynamic> data) {
-    String planName = (data['subscription']?['planName'] ??
-        data['planName'] ??
-        user?.subscriptionPlan ??
-        '').toString().trim();
+  static (String, Color) _resolvePlanBadge(
+    dynamic user,
+    Map<String, dynamic> data,
+  ) {
+    String planName =
+        (data['subscription']?['planName'] ??
+                data['planName'] ??
+                user?.subscriptionPlan ??
+                '')
+            .toString()
+            .trim();
 
-    if (planName.isEmpty || _uuidPattern.hasMatch(planName) || planName.toLowerCase() == 'null' || planName.toLowerCase() == 'none') {
-      final isSubscribed = user?.serverHasSubscription == true ||
+    if (planName.isEmpty ||
+        _uuidPattern.hasMatch(planName) ||
+        planName.toLowerCase() == 'null' ||
+        planName.toLowerCase() == 'none') {
+      final isSubscribed =
+          user?.serverHasSubscription == true ||
           (user?.subscriptionStatus?.toString().toLowerCase() == 'active');
       if (!isSubscribed) {
-        return ('Not Verified', const Color(0xFFEF4444)); // Not Verified red badge when subscription is null
+        return (
+          'Not Verified',
+          const Color(0xFFEF4444),
+        ); // Not Verified red badge when subscription is null
       }
       planName = 'Pro';
     }
 
     final clean = planName.toLowerCase();
-    if (clean.contains('gold') || clean.contains('vip') || clean.contains('enterprise') || clean.contains('diamond')) {
-      final label = planName.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
+    if (clean.contains('gold') ||
+        clean.contains('vip') ||
+        clean.contains('enterprise') ||
+        clean.contains('diamond')) {
+      final label = planName
+          .replaceAll(RegExp(r'\s+plan', caseSensitive: false), '')
+          .trim();
       return (label.isEmpty ? 'Gold' : label, const Color(0xFFD97706)); // Gold
     }
-    if (clean.contains('pro') || clean.contains('premium') || clean.contains('paid') || clean.contains('plus') || clean.contains('growth')) {
-      final label = planName.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
-      return (label.isEmpty ? 'Pro' : label, const Color(0xFF8B5CF6)); // Pro purple
+    if (clean.contains('pro') ||
+        clean.contains('premium') ||
+        clean.contains('paid') ||
+        clean.contains('plus') ||
+        clean.contains('growth')) {
+      final label = planName
+          .replaceAll(RegExp(r'\s+plan', caseSensitive: false), '')
+          .trim();
+      return (
+        label.isEmpty ? 'Pro' : label,
+        const Color(0xFF8B5CF6),
+      ); // Pro purple
     }
     if (clean.contains('starter') || clean.contains('basic')) {
-      final label = planName.replaceAll(RegExp(r'\s+plan', caseSensitive: false), '').trim();
-      return (label.isEmpty ? 'Starter' : label, const Color(0xFF3B82F6)); // Blue
+      final label = planName
+          .replaceAll(RegExp(r'\s+plan', caseSensitive: false), '')
+          .trim();
+      return (
+        label.isEmpty ? 'Starter' : label,
+        const Color(0xFF3B82F6),
+      ); // Blue
     }
     if (clean.contains('free')) {
       return ('Free', const Color(0xFFEAB308)); // Yellow Free badge
@@ -247,12 +295,7 @@ class AppDrawer extends StatelessWidget {
             UserRole.founder => Routes.founderTeams,
           },
         ),
-        DrawerEntry(
-          'Team Access',
-          Icons.people_outline_rounded,
-         
-          
-        ),
+        DrawerEntry('Team Access', Icons.people_outline_rounded),
       ]),
       DrawerSection('Invitations', [
         DrawerEntry('Invitations', Icons.send_outlined),
@@ -261,7 +304,7 @@ class AppDrawer extends StatelessWidget {
       DrawerSection('Explore More', [
         if (effectiveRole != UserRole.client) ...[
           DrawerEntry(
-            'Explore Businesses', 
+            'Explore Businesses',
             Icons.work_outline_rounded,
             route: switch (effectiveRole) {
               UserRole.freelancer => Routes.freelancerProjects,
@@ -309,34 +352,32 @@ class AppDrawer extends StatelessWidget {
         ],
       ]),
       DrawerSection('My Stuff', [
+        if (effectiveRole == UserRole.client ||
+            effectiveRole == UserRole.freelancer) ...[
+          if (effectiveRole != UserRole.freelancer)
+            DrawerEntry(
+              'My Projects/Tasks',
+              Icons.folder_special_outlined,
+              route: switch (effectiveRole) {
+                UserRole.freelancer => Routes.freelancerMyProjects,
+                UserRole.client => Routes.clientMyProjects,
+                UserRole.investor => Routes.investorMyProjects,
+                UserRole.founder => Routes.founderMyProjects,
+              },
+            ),
 
-       
-        if (effectiveRole == UserRole.client||effectiveRole == UserRole.freelancer) ...[
-
-        if(effectiveRole != UserRole.freelancer)
-        DrawerEntry(
-          'My Projects/Tasks',
-          Icons.folder_special_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerMyProjects,
-            UserRole.client => Routes.clientMyProjects,
-            UserRole.investor => Routes.investorMyProjects,
-            UserRole.founder => Routes.founderMyProjects,
-          },
-        ),
-       
-        DrawerEntry(
-          'Contracts',
-          Icons.assignment_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerContracts,
-            UserRole.client => Routes.clientContracts,
-            UserRole.investor => Routes.investorContracts,
-            UserRole.founder => Routes.founderContracts,
-          },
-        ),
+          DrawerEntry(
+            'Contracts',
+            Icons.assignment_outlined,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerContracts,
+              UserRole.client => Routes.clientContracts,
+              UserRole.investor => Routes.investorContracts,
+              UserRole.founder => Routes.founderContracts,
+            },
+          ),
         ],
-        
+
         if (role == UserRole.freelancer || role == UserRole.investor)
           DrawerEntry(
             'My Portfolio',
@@ -348,69 +389,64 @@ class AppDrawer extends StatelessWidget {
               UserRole.founder => Routes.founderPortfolioPage,
             },
           ),
-          if (effectiveRole == UserRole.founder||effectiveRole == UserRole.investor) ...[
-           if(effectiveRole != UserRole.investor)DrawerEntry(
-          'My Startup',
-          Icons.rocket_launch_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerCreateStartup,
-            UserRole.client => Routes.clientCreateStartup,
-            UserRole.investor => Routes.investorCreateStartup,
-            UserRole.founder => Routes.founderStartup,
-          },
-        ),
-        DrawerEntry(
-          'My Proposals',
-          Icons.send_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerProposals,
-            UserRole.client => Routes.clientProposals,
-           UserRole.investor => Routes.investorDeals,
-            UserRole.founder => Routes.founderDeals,
-          },
-        ),
-      
-        
+        if (effectiveRole == UserRole.founder ||
+            effectiveRole == UserRole.investor) ...[
+          if (effectiveRole != UserRole.investor)
+            DrawerEntry(
+              'My Startup',
+              Icons.rocket_launch_outlined,
+              route: switch (effectiveRole) {
+                UserRole.freelancer => Routes.freelancerCreateStartup,
+                UserRole.client => Routes.clientCreateStartup,
+                UserRole.investor => Routes.investorCreateStartup,
+                UserRole.founder => Routes.founderStartup,
+              },
+            ),
+          DrawerEntry(
+            'My Proposals',
+            Icons.send_outlined,
+            route: switch (effectiveRole) {
+              UserRole.freelancer => Routes.freelancerProposals,
+              UserRole.client => Routes.clientProposals,
+              UserRole.investor => Routes.investorDeals,
+              UserRole.founder => Routes.founderDeals,
+            },
+          ),
 
-       
-        // DrawerEntry(
-        //   'Offers',
-        //   Icons.local_offer_outlined,
-        //   route: switch (effectiveRole) {
-        //     UserRole.freelancer => Routes.freelancerOffers,
-        //     UserRole.client => Routes.clientOffers,
-        //     UserRole.investor => Routes.investorOffers,
-        //     UserRole.founder => Routes.founderOffers,
-        //   },
-        // ),
-        if(effectiveRole != UserRole.investor)...[ DrawerEntry(
-          'Pitch Deck',
-          Icons.slideshow_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerPitchDeck,
-            UserRole.client => Routes.clientPitchDeck,
-            UserRole.investor => Routes.investorPitchDeck,
-            UserRole.founder => Routes.founderPitchDeck,
-          },
-        ),
-        DrawerEntry(
-          'Business Plan',
-          Icons.description_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerBusinessPlan,
-            UserRole.client => Routes.clientBusinessPlan,
-            UserRole.investor => Routes.investorBusinessPlan,
-            UserRole.founder => Routes.founderBusinessPlan,
-          },
-        ),
+          // DrawerEntry(
+          //   'Offers',
+          //   Icons.local_offer_outlined,
+          //   route: switch (effectiveRole) {
+          //     UserRole.freelancer => Routes.freelancerOffers,
+          //     UserRole.client => Routes.clientOffers,
+          //     UserRole.investor => Routes.investorOffers,
+          //     UserRole.founder => Routes.founderOffers,
+          //   },
+          // ),
+          if (effectiveRole != UserRole.investor) ...[
+            DrawerEntry(
+              'Pitch Deck',
+              Icons.slideshow_outlined,
+              route: switch (effectiveRole) {
+                UserRole.freelancer => Routes.freelancerPitchDeck,
+                UserRole.client => Routes.clientPitchDeck,
+                UserRole.investor => Routes.investorPitchDeck,
+                UserRole.founder => Routes.founderPitchDeck,
+              },
+            ),
+            DrawerEntry(
+              'Business Plan',
+              Icons.description_outlined,
+              route: switch (effectiveRole) {
+                UserRole.freelancer => Routes.freelancerBusinessPlan,
+                UserRole.client => Routes.clientBusinessPlan,
+                UserRole.investor => Routes.investorBusinessPlan,
+                UserRole.founder => Routes.founderBusinessPlan,
+              },
+            ),
+          ],
         ],
-        
-        
-        ]
-      
-      ]
-      ),
-      
+      ]),
 
       DrawerSection('System', [
         DrawerEntry("My Social Links", Icons.public),

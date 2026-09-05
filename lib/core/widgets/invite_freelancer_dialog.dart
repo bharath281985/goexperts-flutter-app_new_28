@@ -185,16 +185,14 @@ class _InviteSheetState extends State<_InviteSheet> {
             ),
           ),
           const SizedBox(height: 8),
-          if (widget.projects.isEmpty)
-            _emptyProjects()
-          else
-            _projectPicker(),
+          if (widget.projects.isEmpty) _emptyProjects() else _projectPicker(),
           if (_projectError != null) ...[
             const SizedBox(height: 4),
             Text(
               _projectError!,
-              style: context.text.bodySmall
-                  ?.copyWith(color: context.colors.error),
+              style: context.text.bodySmall?.copyWith(
+                color: context.colors.error,
+              ),
             ),
           ],
           const SizedBox(height: 16),
@@ -214,23 +212,28 @@ class _InviteSheetState extends State<_InviteSheet> {
             style: context.text.bodyMedium,
             decoration: InputDecoration(
               hintText: 'Write your message…',
-              hintStyle:
-                  context.text.bodyMedium?.copyWith(color: AppColors.mutedText),
+              hintStyle: context.text.bodyMedium?.copyWith(
+                color: AppColors.mutedText,
+              ),
               contentPadding: const EdgeInsets.all(14),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                borderSide:
-                    BorderSide(color: context.colors.outline.withValues(alpha: 0.5)),
+                borderSide: BorderSide(
+                  color: context.colors.outline.withValues(alpha: 0.5),
+                ),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                borderSide:
-                    BorderSide(color: context.colors.outline.withValues(alpha: 0.5)),
+                borderSide: BorderSide(
+                  color: context.colors.outline.withValues(alpha: 0.5),
+                ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                borderSide:
-                    const BorderSide(color: AppColors.primary, width: 1.5),
+                borderSide: const BorderSide(
+                  color: AppColors.primary,
+                  width: 1.5,
+                ),
               ),
             ),
           ),
@@ -241,8 +244,9 @@ class _InviteSheetState extends State<_InviteSheet> {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               TextButton(
-                onPressed:
-                    _submitting ? null : () => Navigator.of(context).pop(),
+                onPressed: _submitting
+                    ? null
+                    : () => Navigator.of(context).pop(),
                 child: Text(
                   'Cancel',
                   style: context.text.labelLarge?.copyWith(
@@ -319,8 +323,9 @@ class _InviteSheetState extends State<_InviteSheet> {
           isExpanded: true,
           hint: Text(
             '-- Choose an open project --',
-            style: context.text.bodyMedium
-                ?.copyWith(color: AppColors.mutedText),
+            style: context.text.bodyMedium?.copyWith(
+              color: AppColors.mutedText,
+            ),
           ),
           items: widget.projects
               .map(
