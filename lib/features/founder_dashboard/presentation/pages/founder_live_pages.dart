@@ -1178,7 +1178,9 @@ class FounderBusinessPlanLivePage extends StatefulWidget {
 
 class _FounderBusinessPlanLivePageState
     extends State<FounderBusinessPlanLivePage> {
-  final _summary = TextEditingController();
+  final _startupName = TextEditingController();
+  String? _localDocPath;
+  String? _networkDocUrl;
   bool _loading = true;
   bool _saving = false;
 
@@ -1190,7 +1192,7 @@ class _FounderBusinessPlanLivePageState
 
   @override
   void dispose() {
-    _summary.dispose();
+    _startupName.dispose();
     super.dispose();
   }
 
@@ -1202,8 +1204,34 @@ class _FounderBusinessPlanLivePageState
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (!mounted) return;
-    _summary.text = res.valueOrNull?['summary']?.toString() ?? '';
+    final data = res.valueOrNull;
+    if (data != null) {
+      _startupName.text = data['startupName']?.toString() ??
+          data['businessName']?.toString() ??
+          '';
+      _networkDocUrl = data['docUrl']?.toString() ??
+          data['businessPlanUrl']?.toString() ??
+          data['documentUrl']?.toString();
+    }
     setState(() => _loading = false);
+  }
+
+  Future<void> _pickDocument() async {
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
+      );
+      if (picked != null && picked.files.single.path != null) {
+        setState(() {
+          _localDocPath = picked.files.single.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showSnack('Failed to pick document: $e', isError: true);
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -1211,15 +1239,36 @@ class _FounderBusinessPlanLivePageState
     final role = context.read<AuthBloc>().state.user?.role;
     final path = '/${ApiEndpoints.rolePath(role)}/business-plan';
     final api = sl<ApiClientHelper>();
+
+    String? docUrl = _networkDocUrl;
+    if (_localDocPath != null) {
+      final uploadRes = await sl<FileUploadHelper>().uploadUrl(
+        path: _localDocPath!,
+        endpoint: ApiEndpoints.filesUpload,
+        fields: {'category': 'startup_business_plan'},
+      );
+      uploadRes.fold(
+        (_) {},
+        (url) => docUrl = url,
+      );
+    }
+
+    final body = <String, dynamic>{
+      'startupName': _startupName.text.trim(),
+      'businessName': _startupName.text.trim(),
+      if (docUrl != null && docUrl!.isNotEmpty) 'docUrl': docUrl,
+      if (docUrl != null && docUrl!.isNotEmpty) 'businessPlanUrl': docUrl,
+    };
+
     var res = await api.put<Map<String, dynamic>>(
       path,
-      body: {'summary': _summary.text.trim()},
+      body: body,
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (res.isFailure) {
       res = await api.post<Map<String, dynamic>>(
         path,
-        body: {'summary': _summary.text.trim()},
+        body: body,
         parser: (raw) => Map<String, dynamic>.from(raw as Map),
         allowNullData: false,
       );
@@ -1227,37 +1276,140 @@ class _FounderBusinessPlanLivePageState
     if (!mounted) return;
     setState(() => _saving = false);
     res.fold(
-      (f) => context.showSnack(f.message),
+      (f) => context.showSnack(f.message, isError: true),
       (_) => context.showSnack('Business plan saved'),
+    );
+  }
+
+  Widget _buildDocPickerItem({
+    required String label,
+    required String? localPath,
+    required String? networkUrl,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+  }) {
+    final hasFile =
+        localPath != null || (networkUrl != null && networkUrl.isNotEmpty);
+    if (hasFile) {
+      final fileName = localPath != null
+          ? localPath.split('/').last
+          : networkUrl!.split('/').last;
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.theme.dividerColor),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          color: context.theme.cardColor,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.description_outlined,
+              color: AppColors.primary,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: context.text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    fileName,
+                    style: context.text.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: onPick,
+              tooltip: 'Change File',
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: AppColors.danger,
+              ),
+              onPressed: onRemove,
+              tooltip: 'Remove File',
+            ),
+          ],
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: onPick,
+      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.theme.dividerColor),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          color: context.theme.cardColor,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.upload_file_rounded, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Text(
+              'Attach $label',
+              style:
+                  context.text.titleSmall?.copyWith(color: AppColors.primary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(
-      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-      title: const Text('Business Plan'),
-    ),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView(
-            padding: const EdgeInsets.all(AppSizes.screenPadding),
-            children: [
-              AppTextField(
-                controller: _summary,
-                label: 'Plan Summary',
-                hint: 'Enter plan summary',
-                maxLines: 10,
+        appBar: AppBar(
+          leading:
+              IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Business Plan'),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                children: [
+                  AppTextField(
+                    controller: _startupName,
+                    label: 'Startup Name',
+                    hint: 'Enter startup name',
+                  ),
+                  AppSizes.vGapMd,
+                  _buildDocPickerItem(
+                    label: 'Business Plan Document',
+                    localPath: _localDocPath,
+                    networkUrl: _networkDocUrl,
+                    onPick: _pickDocument,
+                    onRemove: () => setState(() {
+                      _localDocPath = null;
+                      _networkDocUrl = null;
+                    }),
+                  ),
+                  AppSizes.vGapLg,
+                  AppPrimaryButton(
+                    label: 'Save',
+                    isLoading: _saving,
+                    onPressed: _save,
+                  ),
+                ],
               ),
-              AppSizes.vGapMd,
-              AppPrimaryButton(
-                label: 'Save',
-                isLoading: _saving,
-                onPressed: _save,
-              ),
-            ],
-          ),
-  );
+      );
 }
 
 class FounderTeamLivePage extends StatefulWidget {
