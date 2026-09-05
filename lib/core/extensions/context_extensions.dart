@@ -113,7 +113,9 @@ extension ContextX on BuildContext {
 
   void showTopSnack(String message, {bool isError = false}) {
     if (message.trim().isEmpty) return;
-    _activeTopSnack?.remove();
+    if (_activeTopSnack?.mounted ?? false) {
+      _activeTopSnack?.remove();
+    }
     _activeTopSnack = null;
 
     OverlayState? overlayState = Navigator.maybeOf(this)?.overlay;
@@ -127,13 +129,15 @@ extension ContextX on BuildContext {
 
     if (overlayState == null) return;
     late OverlayEntry overlayEntry;
+    bool isRemoved = false;
 
     overlayEntry = OverlayEntry(
       builder: (context) => _TopSnackWidget(
         message: message,
         isError: isError,
         onDismiss: () {
-          if (overlayEntry.mounted) {
+          if (!isRemoved && overlayEntry.mounted) {
+            isRemoved = true;
             overlayEntry.remove();
             if (_activeTopSnack == overlayEntry) {
               _activeTopSnack = null;
@@ -195,8 +199,11 @@ class _TopSnackWidgetState extends State<_TopSnackWidget>
     Future.delayed(const Duration(seconds: 3), _dismiss);
   }
 
+  bool _isDismissing = false;
+
   void _dismiss() {
-    if (mounted) {
+    if (mounted && !_isDismissing) {
+      _isDismissing = true;
       _controller.reverse().then((_) {
         widget.onDismiss();
       });
