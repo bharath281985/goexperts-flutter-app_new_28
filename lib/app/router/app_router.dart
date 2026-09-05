@@ -712,7 +712,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.freelancerTeams,
-        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.client),
+        builder: (_, __) => const TeamMembersPage(),
       ),
       GoRoute(
         path: Routes.freelancerStartups,
@@ -773,7 +773,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.clientTeams,
-        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.client),
+        builder: (_, __) => const TeamMembersPage(),
       ),
       GoRoute(
         path: Routes.clientReports,
@@ -859,7 +859,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.investorTeams,
-        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.client),
+        builder: (_, __) => const TeamMembersPage(),
       ),
       GoRoute(
         path: Routes.investorPortfolioPage,
@@ -956,7 +956,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.founderTeams,
-        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.founder),
+        builder: (_, __) => const TeamMembersPage(),
       ),
       GoRoute(
         path: Routes.founderPortfolioPage,
@@ -984,7 +984,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.founderTeam,
-        builder: (_, __) => const TeamMembersPage(owner: TeamOwner.founder),
+        builder: (_, __) => const TeamMembersPage(),
       ),
       GoRoute(
         path: Routes.founderHiring,
@@ -1117,3 +1117,4 @@ GoRouter createRouter(AuthBloc authBloc) {
     ],
   );
 }
+

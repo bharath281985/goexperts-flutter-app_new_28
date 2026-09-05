@@ -359,10 +359,6 @@ class ApiEndpoints {
   static const clientWalletTransactions = '/client/wallet/transactions';
   static const clientReviews = '/client/reviews';
   static const clientAnalytics = '/client/analytics';
-  static const clientTeam = '/client/team';
-  static const clientTeamInvite = '/client/team/invite';
-  static String clientTeamMember(String id) => '/client/team/$id';
-  static String clientTeamMemberRole(String id) => '/client/team/$id/role';
   static const clientSupportTickets = '/client/support/tickets';
   static const clientDocuments = '/client/documents';
 
@@ -445,8 +441,6 @@ class ApiEndpoints {
   static const founderInvestorsActive = '/founder/investors/active';
   static const founderPitchDeck = '/founder/pitch-deck';
   static const founderBusinessPlan = '/founder/business-plan';
-  static const founderTeam = '/founder/team';
-  static String founderTeamMember(String id) => '/founder/team/$id';
   static const founderDocuments = '/founder/documents';
   static const founderDocumentsUpload = '/founder/documents/upload';
   static const founderMeetings = '/founder/meetings';
@@ -550,4 +544,9 @@ class ApiEndpoints {
   static const reviews = '/reviews';
   static const support = '/support/tickets';
   static const analytics = '/analytics';
+  // Unified Mobile Endpoints
+  static const mobileTeam = '/v1/mobile/team';
+  static const mobileTeamInvite = '/v1/mobile/team/invite';
+  static String mobileTeamMember(String id) => '/v1/mobile/team/$id';
+  static String mobileTeamMemberPermissions(String id) => '/v1/mobile/team/$id/permissions';
 }

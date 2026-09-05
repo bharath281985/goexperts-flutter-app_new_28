@@ -17,9 +17,8 @@ import '../../data/team_repository.dart';
 import '../../domain/team_member.dart';
 
 class TeamMembersPage extends StatefulWidget {
-  const TeamMembersPage({super.key, required this.owner, this.repository});
+  const TeamMembersPage({super.key, this.repository});
 
-  final TeamOwner owner;
   final TeamRepository? repository;
 
   @override
@@ -28,7 +27,7 @@ class TeamMembersPage extends StatefulWidget {
 
 class _TeamMembersPageState extends State<TeamMembersPage> {
   late final TeamRepository _repository =
-      widget.repository ?? TeamRepository(sl<ApiClientHelper>(), widget.owner);
+      widget.repository ?? TeamRepository(sl<ApiClientHelper>());
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _roleController = TextEditingController();
@@ -38,8 +37,6 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
   String? _error;
   List<String> _roleOptions = const [];
   List<String> _departmentOptions = const [];
-
-  bool get _isClient => widget.owner == TeamOwner.client;
 
   @override
   void dispose() {
@@ -101,7 +98,21 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
     var status = member?.status.isNotEmpty == true ? member!.status : 'invited';
     var submitting = false;
     String? formError;
-
+    
+    // Map to hold selected permissions
+    final Map<String, List<String>> selectedPermissions = {};
+    if (member?.permissions != null) {
+      selectedPermissions.addAll(member!.permissions);
+    }
+    
+    final List<String> availableModules = [
+      'team_management',
+      'documents',
+      'billing',
+      'analytics',
+      'settings',
+      'projects'
+    ];
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
@@ -146,25 +157,23 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                     label: 'Email',
                     hint: 'name@example.com',
                     keyboardType: TextInputType.emailAddress,
-                    enabled: member == null || !_isClient,
+                    enabled: member == null,
                   ),
                   AppSizes.vGapMd,
                   _SuggestionField(
                     controller: _roleController,
                     label: 'Role',
-                    hint: _isClient ? 'e.g. Developer' : 'e.g. Co-Founder',
+                    hint: 'e.g. Developer',
                     options: _roleOptions,
                   ),
-                  if (_isClient && member == null) ...[
-                    AppSizes.vGapMd,
-                    _SuggestionField(
-                      controller: _departmentController,
-                      label: 'Department',
-                      hint: 'e.g. Engineering',
-                      options: _departmentOptions,
-                    ),
-                  ],
-                  if (!_isClient && member != null) ...[
+                  AppSizes.vGapMd,
+                  _SuggestionField(
+                    controller: _departmentController,
+                    label: 'Department',
+                    hint: 'e.g. Engineering',
+                    options: _departmentOptions,
+                  ),
+                  if (member != null) ...[
                     AppSizes.vGapMd,
                     DropdownButtonFormField<String>(
                       initialValue: status,
@@ -186,6 +195,36 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                       onChanged: (value) => status = value ?? status,
                     ),
                   ],
+                  AppSizes.vGapLg,
+                  Text(
+                    'Module Permissions',
+                    style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                  AppSizes.vGapSm,
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: context.colors.outlineVariant),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                    ),
+                    child: Column(
+                      children: availableModules.map((module) {
+                        final isSelected = selectedPermissions.containsKey(module);
+                        return CheckboxListTile(
+                          title: Text(module.replaceAll('_', ' ').toUpperCase()),
+                          value: isSelected,
+                          onChanged: (val) {
+                            setSheetState(() {
+                              if (val == true) {
+                                selectedPermissions[module] = ['read', 'write'];
+                              } else {
+                                selectedPermissions.remove(module);
+                              }
+                            });
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ),
                   if (formError != null) ...[
                     AppSizes.vGapMd,
                     Text(
@@ -232,8 +271,8 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                                       name: trimmedName,
                                       email: trimmedEmail,
                                       role: trimmedRole,
-                                      department: _departmentController.text
-                                          .trim(),
+                                      department: _departmentController.text.trim(),
+                                      permissions: selectedPermissions,
                                     )
                                   : await _repository.update(
                                       member,
@@ -241,6 +280,7 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
                                       email: trimmedEmail,
                                       role: trimmedRole,
                                       status: status,
+                                      permissions: selectedPermissions,
                                     );
                               if (!sheetContext.mounted) return;
                               if (result.isFailure) {

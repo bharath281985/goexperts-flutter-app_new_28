@@ -14,6 +14,7 @@ import '../utils/enums.dart';
 import 'app_avatar.dart';
 import 'app_confirm_dialog.dart';
 import 'gradient_icon.dart';
+import 'permission_gate.dart';
 
 /// A drawer menu entry.
 class DrawerEntry {
@@ -25,6 +26,8 @@ class DrawerEntry {
     this.badge,
     this.badgeText,
     this.badgeColor,
+    this.requiredDashboard,
+    this.requiredModule,
   });
   final String label;
   final IconData icon;
@@ -33,6 +36,8 @@ class DrawerEntry {
   final int? badge;
   final String? badgeText;
   final Color? badgeColor;
+  final String? requiredDashboard;
+  final String? requiredModule;
 }
 
 /// A grouped section of drawer entries.
@@ -294,8 +299,13 @@ class AppDrawer extends StatelessWidget {
             UserRole.investor => Routes.investorTeams,
             UserRole.founder => Routes.founderTeams,
           },
+          requiredModule: 'team_management',
         ),
-        DrawerEntry('Team Access', Icons.people_outline_rounded),
+        DrawerEntry(
+          'Team Access',
+          Icons.people_outline_rounded,
+          requiredModule: 'team_management',
+        ),
       ]),
       DrawerSection('Invitations', [
         DrawerEntry('Invitations', Icons.send_outlined),
@@ -1049,6 +1059,7 @@ class _FounderDrawer extends StatelessWidget {
                         section: section,
                         currentPath: currentPath,
                         role: role,
+                        user: user,
                         onTabSelected: onTabSelected,
                       ),
                     Padding(
@@ -1187,28 +1198,57 @@ class _FounderBrandHeader extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.2),
-                            width: 0.8,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.2),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              workspaceLabel,
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontSize: 9.5,
+                                letterSpacing: 1.1,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          workspaceLabel,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 9.5,
-                            letterSpacing: 1.1,
-                            fontWeight: FontWeight.w700,
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: user?.isOwner == true ? const Color(0xFF10B981).withValues(alpha: 0.1) : const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: user?.isOwner == true ? const Color(0xFF10B981).withValues(alpha: 0.3) : const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: Text(
+                              user?.accountType.toUpperCase() ?? 'OWNER',
+                              style: TextStyle(
+                                color: user?.isOwner == true ? const Color(0xFF047857) : const Color(0xFF5B21B6),
+                                fontSize: 8.5,
+                                letterSpacing: 1.1,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -1350,12 +1390,14 @@ class _FounderDrawerSection extends StatelessWidget {
     required this.section,
     required this.currentPath,
     required this.role,
+    this.user,
     this.onTabSelected,
   });
 
   final DrawerSection section;
   final String currentPath;
   final UserRole role;
+  final AppUser? user;
   final ValueChanged<int>? onTabSelected;
 
   int? _resolveTabIndex(String route) {
@@ -1403,38 +1445,50 @@ class _FounderDrawerSection extends StatelessWidget {
             ),
           ),
           for (final entry in section.entries)
-            _DrawerMenuTile(
-              entry: entry,
-              currentPath: currentPath,
-              founderStyle: true,
-              onTap: () async {
-                final route = entry.route;
-                final customTap = entry.onTap;
-                if (route != null) {
-                  AppDrawer._lastSelectedRoute = route;
-                }
-                final rootScaffold = Scaffold.maybeOf(context);
-                Navigator.of(context).pop();
-                if (customTap != null) {
-                  customTap();
-                } else if (route != null) {
-                  final tabIndex = _resolveTabIndex(route);
-                  if (tabIndex != null && onTabSelected != null) {
-                    onTabSelected!(tabIndex);
-                    return;
+            Builder(builder: (context) {
+              final tile = _DrawerMenuTile(
+                entry: entry,
+                currentPath: currentPath,
+                founderStyle: true,
+                onTap: () async {
+                  final route = entry.route;
+                  final customTap = entry.onTap;
+                  if (route != null) {
+                    AppDrawer._lastSelectedRoute = route;
                   }
-                  if (currentPath == route) return;
-                  await context.push(route);
-                  if (rootScaffold != null &&
-                      rootScaffold.mounted &&
-                      !rootScaffold.isDrawerOpen) {
-                    rootScaffold.openDrawer();
+                  final rootScaffold = Scaffold.maybeOf(context);
+                  Navigator.of(context).pop();
+                  if (customTap != null) {
+                    customTap();
+                  } else if (route != null) {
+                    final tabIndex = _resolveTabIndex(route);
+                    if (tabIndex != null && onTabSelected != null) {
+                      onTabSelected!(tabIndex);
+                      return;
+                    }
+                    if (currentPath == route) return;
+                    await context.push(route);
+                    if (rootScaffold != null &&
+                        rootScaffold.mounted &&
+                        !rootScaffold.isDrawerOpen) {
+                      rootScaffold.openDrawer();
+                    }
+                  } else {
+                    context.showSnack('Coming soon');
                   }
-                } else {
-                  context.showSnack('Coming soon');
-                }
-              },
-            ),
+                },
+              );
+
+              if (entry.requiredDashboard != null || entry.requiredModule != null) {
+                return PermissionGate(
+                  user: user,
+                  module: entry.requiredModule ?? '',
+                  requiredDashboard: entry.requiredDashboard,
+                  child: tile,
+                );
+              }
+              return tile;
+            }),
         ],
       ),
     );
@@ -1697,3 +1751,4 @@ void _showLogoutLoading(BuildContext context) {
     ),
   );
 }
+

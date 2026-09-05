@@ -85,7 +85,7 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
     }
 
     return _api.postAction(
-      '${ApiEndpoints.clientTeam}/invite',
+      ApiEndpoints.mobileTeamInvite,
       body: {
         'freelancerId': id,
         'role': 'member',

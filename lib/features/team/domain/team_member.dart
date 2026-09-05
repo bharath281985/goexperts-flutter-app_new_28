@@ -6,6 +6,7 @@ class TeamMember {
     required this.role,
     required this.department,
     required this.status,
+    required this.permissions,
     required this.createdAt,
     this.updatedAt,
   });
@@ -16,6 +17,7 @@ class TeamMember {
   final String role;
   final String department;
   final String status;
+  final Map<String, List<String>> permissions;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -23,6 +25,17 @@ class TeamMember {
     final json = value is Map
         ? Map<String, dynamic>.from(value)
         : <String, dynamic>{};
+    
+    Map<String, List<String>> parsedPermissions = {};
+    if (json['permissions'] is Map) {
+      final permsMap = json['permissions'] as Map;
+      permsMap.forEach((key, val) {
+        if (val is List) {
+          parsedPermissions[key.toString()] = val.map((e) => e.toString()).toList();
+        }
+      });
+    }
+
     return TeamMember(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? '',
@@ -30,6 +43,7 @@ class TeamMember {
       role: json['role']?.toString() ?? '',
       department: json['department']?.toString() ?? '',
       status: json['status']?.toString() ?? 'invited',
+      permissions: parsedPermissions,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
     );

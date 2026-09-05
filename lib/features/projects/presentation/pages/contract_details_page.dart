@@ -424,6 +424,16 @@ class ContractDetailsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (c.proposalId != null && c.proposalId!.isNotEmpty) ...[
+                  _Row(
+                    'Proposal ID',
+                    c.proposalId!,
+                    valueStyle: context.text.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const Divider(height: AppSizes.lg),
+                ],
                 _Row(
                   'Bid Amount',
                   Formatters.currency(c.proposalBidAmount ?? c.amount),
@@ -443,6 +453,15 @@ class ContractDetailsPage extends StatelessWidget {
                           : 'Accepted')
                       .toUpperCase(),
                 ),
+                if (c.proposalId != null && c.proposalId!.isNotEmpty) ...[
+                  const Divider(height: AppSizes.lg),
+                  AppSecondaryButton(
+                    label: 'View Proposal',
+                    icon: Icons.description_outlined,
+                    onPressed: () =>
+                        context.push('${Routes.proposalDetails}/${c.proposalId}'),
+                  ),
+                ],
                 if (c.proposalCoverLetter != null &&
                     c.proposalCoverLetter!.trim().isNotEmpty) ...[
                   const Divider(height: AppSizes.lg),
@@ -598,9 +617,10 @@ class ContractDetailsPage extends StatelessWidget {
 }
 
 class _Row extends StatelessWidget {
-  const _Row(this.label, this.value);
+  const _Row(this.label, this.value, {this.valueStyle});
   final String label;
   final String value;
+  final TextStyle? valueStyle;
 
   @override
   Widget build(BuildContext context) {
@@ -613,7 +633,9 @@ class _Row extends StatelessWidget {
         ),
         Text(
           value,
-          style: context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          style:
+              valueStyle ??
+              context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
       ],
     );

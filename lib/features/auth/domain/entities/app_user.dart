@@ -26,6 +26,12 @@ class AppUser extends Equatable {
     this.categoryId,
     this.industryId,
     this.skillIds = const [],
+
+    // Role Access Management
+    this.isOwner = true,
+    this.accountType = 'Owner',
+    this.permittedDashboards = const [],
+    this.modulePermissions = const {},
   });
 
   final String id;
@@ -55,6 +61,12 @@ class AppUser extends Equatable {
   final String? industryId;
   final List<String> skillIds;
 
+  // Role Access Management
+  final bool isOwner;
+  final String accountType;
+  final List<String> permittedDashboards;
+  final Map<String, dynamic> modulePermissions;
+
   AppUser copyWith({
     String? fullName,
     UserRole? role,
@@ -75,6 +87,11 @@ class AppUser extends Equatable {
     String? categoryId,
     String? industryId,
     List<String>? skillIds,
+
+    bool? isOwner,
+    String? accountType,
+    List<String>? permittedDashboards,
+    Map<String, dynamic>? modulePermissions,
   }) {
     return AppUser(
       id: id,
@@ -99,6 +116,11 @@ class AppUser extends Equatable {
       categoryId: categoryId ?? this.categoryId,
       industryId: industryId ?? this.industryId,
       skillIds: skillIds ?? this.skillIds,
+
+      isOwner: isOwner ?? this.isOwner,
+      accountType: accountType ?? this.accountType,
+      permittedDashboards: permittedDashboards ?? this.permittedDashboards,
+      modulePermissions: modulePermissions ?? this.modulePermissions,
     );
   }
 
@@ -178,6 +200,20 @@ class AppUser extends Equatable {
       );
     }
 
+    final rawDashboards = json['permittedDashboards'] ?? json['permitted_dashboards'];
+    final parsedDashboards = <String>[];
+    if (rawDashboards is List) {
+      parsedDashboards.addAll(rawDashboards.map((e) => e.toString()));
+    } else if (rawDashboards is String) {
+      parsedDashboards.addAll(rawDashboards.split(',').map((e) => e.trim()).where((e) => e.isNotEmpty));
+    }
+
+    final rawModules = json['modulePermissions'] ?? json['module_permissions'];
+    final parsedModules = <String, dynamic>{};
+    if (rawModules is Map) {
+      parsedModules.addAll(rawModules.cast<String, dynamic>());
+    }
+
     final avatar = str('avatarUrl', 'avatar_url') ??
         str('avatar', 'avatar') ??
         str('logoUrl', 'logo_url') ??
@@ -228,6 +264,11 @@ class AppUser extends Equatable {
       categoryId: str('categoryId', 'category_id'),
       industryId: str('industryId', 'industry_id'),
       skillIds: parsedSkills,
+
+      isOwner: flag('isOwner', 'is_owner'),
+      accountType: str('accountType', 'account_type') ?? (flag('isOwner', 'is_owner') ? 'Owner' : 'TeamMember'),
+      permittedDashboards: parsedDashboards,
+      modulePermissions: parsedModules,
     );
   }
 
@@ -248,6 +289,11 @@ class AppUser extends Equatable {
     'headline': headline,
     'location': location,
     'profile_completion': profileCompletion,
+
+    'is_owner': isOwner,
+    'account_type': accountType,
+    'permitted_dashboards': permittedDashboards,
+    'module_permissions': modulePermissions,
  
     if (serverHasSubscription != null)
       'has_subscription': serverHasSubscription,
