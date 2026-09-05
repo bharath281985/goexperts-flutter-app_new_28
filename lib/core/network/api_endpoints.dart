@@ -545,8 +545,8 @@ class ApiEndpoints {
   static const support = '/support/tickets';
   static const analytics = '/analytics';
   // Unified Mobile Endpoints
-  static const mobileTeam = '/v1/mobile/team';
-  static const mobileTeamInvite = '/v1/mobile/team/invite';
-  static String mobileTeamMember(String id) => '/v1/mobile/team/$id';
-  static String mobileTeamMemberPermissions(String id) => '/v1/mobile/team/$id/permissions';
+  static const mobileTeam = '/team';
+  static const mobileTeamInvite = '/team/invite';
+  static String mobileTeamMember(String id) => '/team/$id';
+  static String mobileTeamMemberPermissions(String id) => '/team/$id/permissions';
 }
