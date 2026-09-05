@@ -391,7 +391,9 @@ class _MyStartupViewState extends State<MyStartupView> {
     required String name,
   }) {
     return SliverAppBar(
-      automaticallyImplyLeading: false,
+      leading: IconTapWidget(
+        onTap: () => Navigator.of(context).maybePop(),
+      ),
       expandedHeight: 200,
       pinned: true,
       backgroundColor: AppColors.background,
