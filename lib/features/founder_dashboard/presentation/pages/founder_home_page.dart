@@ -21,6 +21,8 @@ import '../../../../core/widgets/dashboard_header.dart';
 import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../../core/widgets/dashboard_recommendations_section.dart';
+import '../../../../core/widgets/team_access_web_dialog.dart';
+
 import '../../../meetings/domain/entities/meeting.dart';
 
 class FounderHomePage extends StatefulWidget {
@@ -510,14 +512,15 @@ class _FounderHomePageState extends State<FounderHomePage> {
                 width: width,
               ),
               DashboardActionButton(
-                text: 'Team & Members',
+                text: 'Team Access',
                 subtitle: 'Co-founders, equity & access',
                 tag: 'Team',
                 icon: Icons.groups_rounded,
                 color: const Color(0xFF06B6D4),
-                onTap: () => context.push(Routes.founderTeams),
+                onTap: () => showTeamAccessWebDialog(context),
                 width: width,
               ),
+
               DashboardActionButton(
                 text: 'Explore Investors',
                 subtitle: 'Reach active angels & VCs',

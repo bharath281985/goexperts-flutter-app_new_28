@@ -12,6 +12,7 @@ class DashboardActionButton extends StatelessWidget {
     required this.color,
     required this.onTap,
     this.width,
+    this.height = 134.0,
   });
 
   final String text;
@@ -21,6 +22,7 @@ class DashboardActionButton extends StatelessWidget {
   final Color color;
   final VoidCallback onTap;
   final double? width;
+  final double? height;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,8 @@ class DashboardActionButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: width,
-        padding: const EdgeInsets.all(14),
+        height: height,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCard : Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -49,7 +52,6 @@ class DashboardActionButton extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             // Top Row: Icon container + Tag/Badge + Arrow
             Row(
@@ -95,37 +97,40 @@ class DashboardActionButton extends StatelessWidget {
                   ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 4),
             // Bottom Area: Title and Subtitle
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  text,
-                  style: TextStyle(
-                    color: isDark ? Colors.white : AppColors.darkText,
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
                   Text(
-                    subtitle!,
+                    text,
                     style: TextStyle(
-                      color: isDark ? AppColors.mutedText : AppColors.mutedText,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      height: 1.25,
+                      color: isDark ? Colors.white : AppColors.darkText,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.2,
                     ),
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle!,
+                      style: TextStyle(
+                        color: isDark ? AppColors.mutedText : AppColors.mutedText,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        height: 1.2,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ),
@@ -133,3 +138,4 @@ class DashboardActionButton extends StatelessWidget {
     );
   }
 }
+

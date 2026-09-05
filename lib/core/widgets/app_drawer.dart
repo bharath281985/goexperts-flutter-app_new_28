@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:go_router/go_router.dart';
 
 import '../../app/constants/app_assets.dart';
@@ -15,6 +18,8 @@ import 'app_avatar.dart';
 import 'app_confirm_dialog.dart';
 import 'gradient_icon.dart';
 import 'permission_gate.dart';
+import 'team_access_web_dialog.dart';
+
 import '../services/permission_service.dart';
 
 /// A drawer menu entry.
@@ -205,7 +210,7 @@ class AppDrawer extends StatelessWidget {
 
     return _FounderDrawer(
       user: user,
-      sections: _sections(role, user: user, dashboardData: dashboardData),
+      sections: _sections(context, role, user: user, dashboardData: dashboardData),
       currentPath: currentPath,
       onTabSelected: onTabSelected,
       workspaceLabel: switch (role) {
@@ -220,10 +225,12 @@ class AppDrawer extends StatelessWidget {
 
   /// Consolidated master drawer sections list without role duplication.
   List<DrawerSection> _sections(
+    BuildContext context,
     UserRole? userRole, {
     dynamic user,
     Map<String, dynamic> dashboardData = const {},
   }) {
+
     final effectiveRole = userRole ?? role;
     final (kycText, kycColor) = _resolveKycBadge(user, dashboardData);
     final (planText, planColor) = _resolvePlanBadge(user, dashboardData);
@@ -264,13 +271,15 @@ class AppDrawer extends StatelessWidget {
           Icons.card_giftcard_outlined,
           route: Routes.referrals,
         ),
-        DrawerEntry(
-          'My Subscriptions',
-          Icons.workspace_premium_outlined,
-          route: Routes.subscriptionsManage,
-          badgeText: planText,
-          badgeColor: planColor,
-        ),
+        if (!(!kIsWeb && Platform.isIOS))
+          DrawerEntry(
+            'My Subscriptions',
+            Icons.workspace_premium_outlined,
+            route: Routes.subscriptionsManage,
+            badgeText: planText,
+            badgeColor: planColor,
+          ),
+
 
         if (effectiveRole == UserRole.freelancer) ...[
           DrawerEntry(
@@ -290,30 +299,26 @@ class AppDrawer extends StatelessWidget {
           ),
         ],
       ]),
-      DrawerSection('My Teams & Team Access Management', [
-        DrawerEntry(
-          'Teams',
-          Icons.groups_outlined,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerTeams,
-            UserRole.client => Routes.clientTeams,
-            UserRole.investor => Routes.investorTeams,
-            UserRole.founder => Routes.founderTeams,
-          },
-          requiredModule: 'team_management',
-        ),
+      DrawerSection('Team Access', [
         DrawerEntry(
           'Team Access',
-          Icons.people_outline_rounded,
-          route: switch (effectiveRole) {
-            UserRole.freelancer => Routes.freelancerTeamAccess,
-            UserRole.client => Routes.clientTeamAccess,
-            UserRole.investor => Routes.investorTeamAccess,
-            UserRole.founder => Routes.founderTeamAccess,
-          },
+          Icons.groups_outlined,
+          onTap: () => showTeamAccessWebDialog(context),
           requiredModule: 'team_management',
         ),
+        // DrawerEntry(
+        //   'Team Access',
+        //   Icons.people_outline_rounded,
+        //   route: switch (effectiveRole) {
+        //     UserRole.freelancer => Routes.freelancerTeamAccess,
+        //     UserRole.client => Routes.clientTeamAccess,
+        //     UserRole.investor => Routes.investorTeamAccess,
+        //     UserRole.founder => Routes.founderTeamAccess,
+        //   },
+        //   requiredModule: 'team_management',
+        // ),
       ]),
+
       DrawerSection('Invitations', [
         DrawerEntry('Invitations', Icons.send_outlined),
         DrawerEntry('Connections', Icons.people_outline),

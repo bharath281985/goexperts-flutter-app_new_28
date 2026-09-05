@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../app/constants/app_colors.dart';
@@ -34,6 +36,9 @@ class FreePlanPromptDialog extends StatefulWidget {
     required int verificationMissingCount,
     required void Function({required bool navigateToProfile}) onComplete,
   }) {
+    if (!kIsWeb && Platform.isIOS) {
+      return Future.value();
+    }
     return showGeneralDialog(
       context: context,
       barrierDismissible: true,

@@ -34,3 +34,4 @@ export 'gradient_icon.dart';
 export 'paginated_list_view.dart';
 export 'responsive_wrapper.dart';
 export 'safe_bottom.dart';
+export 'team_access_web_dialog.dart';

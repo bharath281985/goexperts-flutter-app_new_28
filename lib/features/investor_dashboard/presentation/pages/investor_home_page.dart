@@ -23,6 +23,8 @@ import '../../../../core/widgets/custom_cached_image.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../../core/widgets/dashboard_recommendations_section.dart';
+import '../../../../core/widgets/team_access_web_dialog.dart';
+
 import '../../../startup_ideas/domain/entities/startup.dart';
 
 class InvestorHomePage extends StatefulWidget {
@@ -459,14 +461,15 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
                 width: width,
               ),
               DashboardActionButton(
-                text: 'Team Members',
+                text: 'Team Access',
                 subtitle: 'Invite partners, associates & managers',
                 tag: 'Collab',
                 icon: Icons.groups_rounded,
                 color: const Color(0xFFF59E0B),
-                onTap: () => context.push(Routes.investorTeams),
+                onTap: () => showTeamAccessWebDialog(context),
                 width: width,
               ),
+
             
              
             ],

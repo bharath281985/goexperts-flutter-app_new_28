@@ -20,6 +20,8 @@ import '../../../../core/widgets/app_segmented_tabs.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/verification_prompt_card.dart';
 import '../../../../core/widgets/dashboard_recommendations_section.dart';
+import '../../../../core/widgets/team_access_web_dialog.dart';
+
 
 class ClientHomePage extends StatefulWidget {
   const ClientHomePage({super.key});
@@ -477,9 +479,10 @@ class _ClientHomePageState extends State<ClientHomePage> {
               tag: 'Access',
               icon: Icons.groups_rounded,
               color: const Color(0xFFEC4899),
-              onTap: () => context.push(Routes.clientTeams),
+              onTap: () => showTeamAccessWebDialog(context),
               width: width,
             ),
+
           ],
         );
       },

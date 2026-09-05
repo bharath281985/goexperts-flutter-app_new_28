@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -14,7 +16,11 @@ class ProfileSaveSuccessDialog extends StatefulWidget {
   const ProfileSaveSuccessDialog({super.key});
 
   static Future<void> show(BuildContext context) {
+    if (!kIsWeb && Platform.isIOS) {
+      return Future.value();
+    }
     return showGeneralDialog<void>(
+
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Close success dialog',

@@ -1,5 +1,8 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -802,17 +805,20 @@ class _MyProfilePageState extends State<MyProfilePage> {
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Column(
                       children: [
-                        _profileTile(
-                          context,
-                          icon: Icons.workspace_premium_outlined,
-                          title: 'My Subscription',
-                          subtitle: 'Plan details, limits and invoices',
-                          trailing: _buildSubscriptionBadge(user),
-                          onTap: () => _navigateAndRefresh(
-                            () => context.push(Routes.subscriptionsManage),
+                        if (!(!kIsWeb && Platform.isIOS)) ...[
+                          _profileTile(
+                            context,
+                            icon: Icons.workspace_premium_outlined,
+                            title: 'My Subscription',
+                            subtitle: 'Plan details, limits and invoices',
+                            trailing: _buildSubscriptionBadge(user),
+                            onTap: () => _navigateAndRefresh(
+                              () => context.push(Routes.subscriptionsManage),
+                            ),
                           ),
-                        ),
-                        _tileDivider(context),
+                          _tileDivider(context),
+                        ],
+
                         _profileTile(
                           context,
                           icon: Icons.card_giftcard_outlined,

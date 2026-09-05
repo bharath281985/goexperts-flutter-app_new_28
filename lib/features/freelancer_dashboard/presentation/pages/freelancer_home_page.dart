@@ -22,6 +22,8 @@ import '../../../../core/widgets/dashboard_metric_card.dart';
 import '../../../../core/widgets/dashboard_action_button.dart';
 import '../../../../core/widgets/free_plan_prompt_dialog.dart';
 import '../../../../core/widgets/dashboard_recommendations_section.dart';
+import '../../../../core/widgets/team_access_web_dialog.dart';
+
 import '../../../meetings/presentation/widgets/meeting_card.dart';
 import '../../../projects/presentation/widgets/project_card.dart';
 
@@ -473,9 +475,10 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
               tag: 'Access',
               icon: Icons.groups_rounded,
               color: const Color(0xFFEC4899),
-              onTap: () => context.push(Routes.freelancerTeams),
+              onTap: () => showTeamAccessWebDialog(context),
               width: width,
             ),
+
           ],
         );
       },
