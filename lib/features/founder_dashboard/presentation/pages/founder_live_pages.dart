@@ -1091,6 +1091,7 @@ class _FounderFundingLivePageState extends State<FounderFundingLivePage> {
 }
 
 class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
+  final _businessName = TextEditingController();
   String? _localDeckPath;
   String? _networkDeckUrl;
   bool _loading = true;
@@ -1100,6 +1101,12 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _businessName.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -1112,6 +1119,9 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
     if (!mounted) return;
     final data = res.valueOrNull;
     if (data != null) {
+      _businessName.text = data['businessName']?.toString() ??
+          data['startupName']?.toString() ??
+          '';
       _networkDeckUrl = data['pitchDeckUrl']?.toString() ??
           data['docUrl']?.toString() ??
           data['documentUrl']?.toString();
@@ -1157,6 +1167,8 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
     }
 
     final body = <String, dynamic>{
+      'businessName': _businessName.text.trim(),
+      'startupName': _businessName.text.trim(),
       if (deckUrl != null && deckUrl!.isNotEmpty) 'pitchDeckUrl': deckUrl,
       if (deckUrl != null && deckUrl!.isNotEmpty) 'docUrl': deckUrl,
       if (deckUrl != null && deckUrl!.isNotEmpty) 'documentUrl': deckUrl,
@@ -1307,6 +1319,18 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
             : ListView(
                 padding: const EdgeInsets.all(AppSizes.screenPadding),
                 children: [
+                  AppTextField(
+                    controller: _businessName,
+                    label: 'Business Name',
+                    hint: 'Enter business name',
+                  ),
+                  AppSizes.vGapMd,
+                  Text(
+                    'Pitch Deck Attachment',
+                    style: context.text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
                   _buildDocPickerItem(
                     label: 'Pitch Deck Document',
                     localPath: _localDeckPath,
@@ -1576,6 +1600,12 @@ class _FounderBusinessPlanLivePageState
                     hint: 'Enter startup name',
                   ),
                   AppSizes.vGapMd,
+                  Text(
+                    'Business Plan Attachment',
+                    style: context.text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
                   _buildDocPickerItem(
                     label: 'Business Plan Document',
                     localPath: _localDocPath,
