@@ -467,24 +467,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
               onTap: () => context.push(Routes.freelancerPortfolioPage),
               width: width,
             ),
-            DashboardActionButton(
-              text: 'Earnings & Payout',
-              subtitle: 'Instant payouts & invoice history',
-              tag: 'Finance',
-              icon: Icons.account_balance_wallet_rounded,
-              color: const Color(0xFF06B6D4),
-              onTap: () => context.push(Routes.wallet),
-              width: width,
-            ),
-            DashboardActionButton(
-              text: 'Certificates & Tests',
-              subtitle: 'Verified skills & badge proofs',
-              tag: 'Boost',
-              icon: Icons.workspace_premium_rounded,
-              color: const Color(0xFFEC4899),
-              onTap: () => context.push(Routes.freelancerCertificates),
-              width: width,
-            ),
+          
           ],
         );
       },

@@ -15,6 +15,7 @@ import 'app_avatar.dart';
 import 'app_confirm_dialog.dart';
 import 'gradient_icon.dart';
 import 'permission_gate.dart';
+import '../services/permission_service.dart';
 
 /// A drawer menu entry.
 class DrawerEntry {
@@ -1020,6 +1021,20 @@ class _FounderDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.colors;
+    final permissionService = PermissionService(currentUser: user);
+
+    final filteredSections = sections.map((section) {
+      final permittedEntries = section.entries.where((entry) {
+        if (entry.requiredDashboard != null && !permissionService.hasDashboardAccess(entry.requiredDashboard!)) {
+          return false;
+        }
+        if (entry.requiredModule != null && !permissionService.canRead(entry.requiredModule!)) {
+          return false;
+        }
+        return true;
+      }).toList();
+      return DrawerSection(section.title, permittedEntries);
+    }).where((section) => section.entries.isNotEmpty).toList();
 
     return Drawer(
       width: 288,
@@ -1054,7 +1069,7 @@ class _FounderDrawer extends StatelessWidget {
                     AppSizes.md,
                   ),
                   children: [
-                    for (final section in sections)
+                    for (final section in filteredSections)
                       _FounderDrawerSection(
                         section: section,
                         currentPath: currentPath,

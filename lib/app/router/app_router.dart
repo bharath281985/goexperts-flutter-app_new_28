@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/dashboard/role_shell.dart';
 import '../../core/storage/local_storage.dart';
+import '../../core/services/permission_service.dart';
 import '../../app/dependency_injection/service_locator.dart';
 import '../../core/dashboard/standalone_pages.dart';
 import '../../core/utils/enums.dart';
@@ -201,6 +202,24 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       if (isAuthRoute || _onboardingRoutes.contains(loc)) {
         return dashboardPathFor(auth.user!.role!);
+      }
+
+      // Check module/dashboard access for team members
+      if (auth.user != null) {
+        final permissionService = PermissionService(currentUser: auth.user);
+        
+        if (loc.startsWith('/freelancer') && !permissionService.hasDashboardAccess('freelancer')) {
+          return dashboardPathFor(auth.user!.role!);
+        }
+        if (loc.startsWith('/client') && !permissionService.hasDashboardAccess('client')) {
+          return dashboardPathFor(auth.user!.role!);
+        }
+        if (loc.startsWith('/founder') && !permissionService.hasDashboardAccess('founder')) {
+          return dashboardPathFor(auth.user!.role!);
+        }
+        if (loc.startsWith('/investor') && !permissionService.hasDashboardAccess('investor')) {
+          return dashboardPathFor(auth.user!.role!);
+        }
       }
 
       return null;
