@@ -17,6 +17,7 @@ import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_dropdown.dart';
@@ -4328,7 +4329,12 @@ class _FreelancerPortfolioFormPageState
     }
 
     setState(() => _saving = true);
-    final payload = _payload();
+    final payload = await _payloadWithUploadedMedia();
+    if (!mounted) return;
+    if (payload == null) {
+      setState(() => _saving = false);
+      return;
+    }
     final repo = sl<PortfolioRepository>();
     final result = _isEdit
         ? await repo.updatePortfolio(widget.item!.id, payload)
@@ -4344,31 +4350,106 @@ class _FreelancerPortfolioFormPageState
     });
   }
 
-  Map<String, dynamic> _payload() => {
-    'title': _title.text.trim(),
-    'description': _description.text.trim(),
-    'industry': _selectedIndustry?.label ?? '',
-    'industryId': _selectedIndustry?.id ?? '',
-    'category': _selectedCategory?.label ?? '',
-    'categoryId': _selectedCategory?.id ?? '',
-    'skills': _selectedSkillsById.entries
-        .map((entry) => {'skillId': entry.key, 'skillName': entry.value})
-        .toList(),
-    'status': _status,
-    'client': _client.text.trim(),
-    'duration': _duration.text.trim(),
-    'teamSize': _selectedTeamSize?.label ?? '',
-    'teamSizeId': _selectedTeamSize?.id ?? '',
-    'role': _role.text.trim(),
-    'githubUrl': _githubUrl.text.trim(),
-    'liveUrl': _liveUrl.text.trim(),
-    'projectUrl': _liveUrl.text.trim(),
-    'overview': _overview.text.trim(),
-    'coverMedia': _coverMedia.text.trim(),
-    'videoDemo': _videoDemo.text.trim(),
-    'pdfCaseStudy': _pdfCaseStudy.text.trim(),
-    'extraScreenshot': _extraScreenshot.text.trim(),
-  };
+  Future<Map<String, dynamic>?> _payloadWithUploadedMedia() async {
+    final cover = await _uploadMediaIfNeeded(
+      _coverMedia,
+      category: 'portfolio_cover',
+      errorLabel: 'Cover Image',
+    );
+    if (cover == null) return null;
+
+    final video = await _uploadMediaIfNeeded(
+      _videoDemo,
+      category: 'portfolio_video',
+      errorLabel: 'Video Demo',
+    );
+    if (video == null) return null;
+
+    final caseStudy = await _uploadMediaIfNeeded(
+      _pdfCaseStudy,
+      category: 'portfolio_case_study',
+      errorLabel: 'PDF Case Study',
+    );
+    if (caseStudy == null) return null;
+
+    final screenshot = await _uploadMediaIfNeeded(
+      _extraScreenshot,
+      category: 'portfolio_screenshot',
+      errorLabel: 'Extra Screenshot',
+    );
+    if (screenshot == null) return null;
+
+    return {
+      'title': _title.text.trim(),
+      'description': _description.text.trim(),
+      'industry': _selectedIndustry?.label ?? '',
+      'industryId': _selectedIndustry?.id ?? '',
+      'category': _selectedCategory?.label ?? '',
+      'categoryId': _selectedCategory?.id ?? '',
+      'skills': _selectedSkillsById.entries
+          .map((entry) => {'skillId': entry.key, 'skillName': entry.value})
+          .toList(),
+      'status': _status,
+      'client': _client.text.trim(),
+      'duration': _duration.text.trim(),
+      'teamSize': _selectedTeamSize?.label ?? '',
+      'teamSizeId': _selectedTeamSize?.id ?? '',
+      'role': _role.text.trim(),
+      'githubUrl': _githubUrl.text.trim(),
+      'liveUrl': _liveUrl.text.trim(),
+      'projectUrl': _liveUrl.text.trim(),
+      'overview': _overview.text.trim(),
+      'coverMedia': cover,
+      'videoDemo': video,
+      'pdfCaseStudy': caseStudy,
+      'extraScreenshot': screenshot,
+    };
+  }
+
+  Future<String?> _uploadMediaIfNeeded(
+    TextEditingController controller, {
+    required String category,
+    required String errorLabel,
+  }) async {
+    final value = controller.text.trim();
+    if (value.isEmpty) {
+      if (errorLabel == 'Cover Image') {
+        context.showSnack('Please upload a Cover Image *', isError: true);
+      }
+      return '';
+    }
+    if (value.startsWith('http://') || value.startsWith('https://')) {
+      return value;
+    }
+    if (!File(value).existsSync()) {
+      context.showSnack(
+        '$errorLabel file not found on this device',
+        isError: true,
+      );
+      return null;
+    }
+    final upload = await sl<FileUploadHelper>().uploadUrl(
+      path: value,
+      endpoint: ApiEndpoints.filesUpload,
+      fields: {'category': category},
+    );
+    return upload.fold(
+      (failure) {
+        context.showSnack(
+          '$errorLabel upload failed: ${failure.message}',
+          isError: true,
+        );
+        return null;
+      },
+      (url) {
+        final normalized = url.trim();
+        if (normalized.isNotEmpty) {
+          controller.text = normalized;
+        }
+        return normalized;
+      },
+    );
+  }
 }
 
 class _PortfolioCard extends StatelessWidget {

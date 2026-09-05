@@ -136,14 +136,15 @@ class _AddEditMemberModalState extends State<AddEditMemberModal> {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 800),
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              shrinkWrap: true,
+      child: Container(
+        width: 600,
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.member == null ? 'Invite Team Member' : 'Edit Access',
@@ -242,11 +243,13 @@ class _AddEditMemberModalState extends State<AddEditMemberModal> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
+                      style: TextButton.styleFrom(minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancel'),
                     ),
                     const SizedBox(width: 16),
                     ElevatedButton(
+                      style: ElevatedButton.styleFrom(minimumSize: Size.zero, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
                       onPressed: _isLoading ? null : _submit,
                       child: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : Text(widget.member == null ? 'Send Invite' : 'Save Changes'),
                     ),

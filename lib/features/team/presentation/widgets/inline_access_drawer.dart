@@ -108,6 +108,7 @@ class _InlineAccessDrawerState extends State<InlineAccessDrawer> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -118,7 +119,7 @@ class _InlineAccessDrawerState extends State<InlineAccessDrawer> {
             ],
           ),
           const SizedBox(height: 24),
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -471,7 +471,11 @@ class AppDrawer extends StatelessWidget {
       ]),
 
       DrawerSection('System', [
-        DrawerEntry("My Social Links", Icons.public),
+        DrawerEntry(
+          "My Social Links",
+          Icons.public,
+          route: Routes.socialLinks,
+        ),
         DrawerEntry(
           'Support',
           Icons.support_agent_outlined,

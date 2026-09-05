@@ -113,10 +113,19 @@ extension ContextX on BuildContext {
 
   void showTopSnack(String message, {bool isError = false}) {
     if (message.trim().isEmpty) return;
+
+    // Prevent the exact same message from stacking/spamming (e.g. on session expiry).
+    if (_activeTopSnackMessage == message && (_activeTopSnack?.mounted ?? false)) {
+      return;
+    }
+
     if (_activeTopSnack?.mounted ?? false) {
-      _activeTopSnack?.remove();
+      try {
+        _activeTopSnack?.remove();
+      } catch (_) {}
     }
     _activeTopSnack = null;
+    _activeTopSnackMessage = message;
 
     OverlayState? overlayState = Navigator.maybeOf(this)?.overlay;
     if (overlayState == null &&
@@ -138,9 +147,12 @@ extension ContextX on BuildContext {
         onDismiss: () {
           if (!isRemoved && overlayEntry.mounted) {
             isRemoved = true;
-            overlayEntry.remove();
+            try {
+              overlayEntry.remove();
+            } catch (_) {}
             if (_activeTopSnack == overlayEntry) {
               _activeTopSnack = null;
+              _activeTopSnackMessage = null;
             }
           }
         },
@@ -153,6 +165,7 @@ extension ContextX on BuildContext {
 }
 
 OverlayEntry? _activeTopSnack;
+String? _activeTopSnackMessage;
 
 class _TopSnackWidget extends StatefulWidget {
   const _TopSnackWidget({

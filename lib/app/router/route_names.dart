@@ -89,6 +89,7 @@ class Routes {
   static const helpCenter = '/help-center';
   static const contactUs = '/contact-us';
   static const deleteAccount = '/delete-account';
+  static const socialLinks = '/social-links';
 
   // Detail routes (deep-link ready)
   static const chat = '/chat'; // /chat/:id

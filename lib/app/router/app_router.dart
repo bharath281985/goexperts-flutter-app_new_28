@@ -85,6 +85,7 @@ import '../../features/team/data/team_repository.dart';
 import '../../features/team/presentation/pages/team_members_page.dart';
 import '../../features/team/presentation/pages/team_access_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
+import '../../features/social/presentation/pages/social_links_page.dart';
 import '../../core/widgets/app_error_state.dart';
 import 'route_names.dart';
 
@@ -550,6 +551,10 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.referrals,
         builder: (_, __) => const ReferralProgramPage(),
+      ),
+      GoRoute(
+        path: Routes.socialLinks,
+        builder: (_, __) => const SocialLinksPage(),
       ),
 
       // Detail / deep-link routes

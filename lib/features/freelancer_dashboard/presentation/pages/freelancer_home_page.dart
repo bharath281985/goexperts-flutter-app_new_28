@@ -451,15 +451,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
               onTap: () => context.push(Routes.freelancerProposals),
               width: width,
             ),
-            DashboardActionButton(
-              text: 'My Contracts',
-              subtitle: 'Milestones, deliverables & tasks',
-              tag: 'Work',
-              icon: Icons.assignment_turned_in_rounded,
-              color: const Color(0xFF10B981),
-              onTap: () => context.push(Routes.freelancerContracts),
-              width: width,
-            ),
+         
             DashboardActionButton(
               text: 'My Portfolio',
               subtitle: 'Case studies & proof of work',
