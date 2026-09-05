@@ -1,7 +1,9 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_sizes.dart';
+import '../../../../app/router/route_names.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
@@ -1089,7 +1091,9 @@ class _FounderFundingLivePageState extends State<FounderFundingLivePage> {
 }
 
 class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
-  final _summary = TextEditingController();
+  final _businessName = TextEditingController();
+  String? _localDeckPath;
+  String? _networkDeckUrl;
   bool _loading = true;
   bool _saving = false;
 
@@ -1101,9 +1105,11 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
 
   @override
   void dispose() {
-    _summary.dispose();
+    _businessName.dispose();
     super.dispose();
-  }  Future<void> _load() async {
+  }
+
+  Future<void> _load() async {
     final role = context.read<AuthBloc>().state.user?.role;
     final path = '/${ApiEndpoints.rolePath(role)}/pitch-deck';
     final res = await sl<ApiClientHelper>().get<Map<String, dynamic>>(
@@ -1111,8 +1117,34 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (!mounted) return;
-    _summary.text = res.valueOrNull?['summary']?.toString() ?? '';
+    final data = res.valueOrNull;
+    if (data != null) {
+      _businessName.text = data['businessName']?.toString() ??
+          data['startupName']?.toString() ??
+          '';
+      _networkDeckUrl = data['pitchDeckUrl']?.toString() ??
+          data['docUrl']?.toString() ??
+          data['documentUrl']?.toString();
+    }
     setState(() => _loading = false);
+  }
+
+  Future<void> _pickDocument() async {
+    try {
+      final picked = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx'],
+      );
+      if (picked != null && picked.files.single.path != null) {
+        setState(() {
+          _localDeckPath = picked.files.single.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        context.showSnack('Failed to pick Pitch Deck: $e', isError: true);
+      }
+    }
   }
 
   Future<void> _save() async {
@@ -1120,15 +1152,37 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
     final role = context.read<AuthBloc>().state.user?.role;
     final path = '/${ApiEndpoints.rolePath(role)}/pitch-deck';
     final api = sl<ApiClientHelper>();
+
+    String? deckUrl = _networkDeckUrl;
+    if (_localDeckPath != null) {
+      final uploadRes = await sl<FileUploadHelper>().uploadUrl(
+        path: _localDeckPath!,
+        endpoint: ApiEndpoints.filesUpload,
+        fields: {'category': 'startup_pitch_deck'},
+      );
+      uploadRes.fold(
+        (_) {},
+        (url) => deckUrl = url,
+      );
+    }
+
+    final body = <String, dynamic>{
+      'businessName': _businessName.text.trim(),
+      'startupName': _businessName.text.trim(),
+      if (deckUrl != null && deckUrl!.isNotEmpty) 'pitchDeckUrl': deckUrl,
+      if (deckUrl != null && deckUrl!.isNotEmpty) 'docUrl': deckUrl,
+      if (deckUrl != null && deckUrl!.isNotEmpty) 'documentUrl': deckUrl,
+    };
+
     var res = await api.put<Map<String, dynamic>>(
       path,
-      body: {'summary': _summary.text.trim()},
+      body: body,
       parser: (raw) => Map<String, dynamic>.from(raw as Map),
     );
     if (res.isFailure) {
       res = await api.post<Map<String, dynamic>>(
         path,
-        body: {'summary': _summary.text.trim()},
+        body: body,
         parser: (raw) => Map<String, dynamic>.from(raw as Map),
         allowNullData: false,
       );
@@ -1136,37 +1190,171 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
     if (!mounted) return;
     setState(() => _saving = false);
     res.fold(
-      (f) => context.showSnack(f.message),
+      (f) => context.showSnack(f.message, isError: true),
       (_) => context.showSnack('Pitch deck saved'),
+    );
+  }
+
+  void _viewDocument(String? localPath, String? networkUrl, String name) {
+    final target = (localPath != null && localPath.isNotEmpty)
+        ? localPath
+        : networkUrl;
+    if (target == null || target.isEmpty) {
+      context.showSnack('No document available to view', isError: true);
+      return;
+    }
+    context.push(
+      '${Routes.documentViewer}?url=${Uri.encodeComponent(target)}&name=${Uri.encodeComponent(name)}&type=PDF',
+    );
+  }
+
+  Widget _buildDocPickerItem({
+    required String label,
+    required String? localPath,
+    required String? networkUrl,
+    required VoidCallback onPick,
+    required VoidCallback onRemove,
+    VoidCallback? onView,
+  }) {
+    final hasFile =
+        localPath != null || (networkUrl != null && networkUrl.isNotEmpty);
+    if (hasFile) {
+      final fileName = localPath != null
+          ? localPath.split('/').last
+          : networkUrl!.split('/').last;
+      return Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.theme.dividerColor),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          color: context.theme.cardColor,
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.description_outlined,
+              color: AppColors.primary,
+              size: 32,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: context.text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    fileName,
+                    style: context.text.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (onView != null)
+              IconButton(
+                icon: const Icon(Icons.visibility_outlined, size: 20),
+                onPressed: onView,
+                tooltip: 'View File',
+              ),
+            IconButton(
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: onPick,
+              tooltip: 'Change File',
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.delete_outline_rounded,
+                size: 20,
+                color: AppColors.danger,
+              ),
+              onPressed: onRemove,
+              tooltip: 'Remove File',
+            ),
+          ],
+        ),
+      );
+    }
+
+    return InkWell(
+      onTap: onPick,
+      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        decoration: BoxDecoration(
+          border: Border.all(color: context.theme.dividerColor),
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+          color: context.theme.cardColor,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.upload_file_rounded, color: AppColors.primary),
+            const SizedBox(width: 10),
+            Text(
+              'Attach $label',
+              style:
+                  context.text.titleSmall?.copyWith(color: AppColors.primary),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) => AppScaffold(
-    appBar: AppBar(
-      leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-      title: const Text('Pitch Deck'),
-    ),
-    body: _loading
-        ? const Center(child: CircularProgressIndicator())
-        : ListView(
-            padding: const EdgeInsets.all(AppSizes.screenPadding),
-            children: [
-              AppTextField(
-                controller: _summary,
-                label: 'Deck Summary',
-                hint: 'Enter deck summary',
-                maxLines: 10,
+        appBar: AppBar(
+          leading:
+              IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Pitch Deck'),
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                children: [
+                  AppTextField(
+                    controller: _businessName,
+                    label: 'Business Name',
+                    hint: 'Enter business name',
+                  ),
+                  AppSizes.vGapMd,
+                  Text(
+                    'Pitch Deck Attachment',
+                    style: context.text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDocPickerItem(
+                    label: 'Pitch Deck Document',
+                    localPath: _localDeckPath,
+                    networkUrl: _networkDeckUrl,
+                    onPick: _pickDocument,
+                    onView: () => _viewDocument(
+                      _localDeckPath,
+                      _networkDeckUrl,
+                      'Pitch Deck',
+                    ),
+                    onRemove: () => setState(() {
+                      _localDeckPath = null;
+                      _networkDeckUrl = null;
+                    }),
+                  ),
+                  AppSizes.vGapLg,
+                  AppPrimaryButton(
+                    label: 'Save',
+                    isLoading: _saving,
+                    onPressed: _save,
+                  ),
+                ],
               ),
-              AppSizes.vGapMd,
-              AppPrimaryButton(
-                label: 'Save',
-                isLoading: _saving,
-                onPressed: _save,
-              ),
-            ],
-          ),
-  );
+      );
 }
 
 class FounderBusinessPlanLivePage extends StatefulWidget {
@@ -1258,6 +1446,7 @@ class _FounderBusinessPlanLivePageState
       'businessName': _startupName.text.trim(),
       if (docUrl != null && docUrl!.isNotEmpty) 'docUrl': docUrl,
       if (docUrl != null && docUrl!.isNotEmpty) 'businessPlanUrl': docUrl,
+      if (docUrl != null && docUrl!.isNotEmpty) 'documentUrl': docUrl,
     };
 
     var res = await api.put<Map<String, dynamic>>(
@@ -1281,12 +1470,26 @@ class _FounderBusinessPlanLivePageState
     );
   }
 
+  void _viewDocument(String? localPath, String? networkUrl, String name) {
+    final target = (localPath != null && localPath.isNotEmpty)
+        ? localPath
+        : networkUrl;
+    if (target == null || target.isEmpty) {
+      context.showSnack('No document available to view', isError: true);
+      return;
+    }
+    context.push(
+      '${Routes.documentViewer}?url=${Uri.encodeComponent(target)}&name=${Uri.encodeComponent(name)}&type=PDF',
+    );
+  }
+
   Widget _buildDocPickerItem({
     required String label,
     required String? localPath,
     required String? networkUrl,
     required VoidCallback onPick,
     required VoidCallback onRemove,
+    VoidCallback? onView,
   }) {
     final hasFile =
         localPath != null || (networkUrl != null && networkUrl.isNotEmpty);
@@ -1328,6 +1531,12 @@ class _FounderBusinessPlanLivePageState
                 ],
               ),
             ),
+            if (onView != null)
+              IconButton(
+                icon: const Icon(Icons.visibility_outlined, size: 20),
+                onPressed: onView,
+                tooltip: 'View File',
+              ),
             IconButton(
               icon: const Icon(Icons.edit_outlined, size: 20),
               onPressed: onPick,
@@ -1391,11 +1600,22 @@ class _FounderBusinessPlanLivePageState
                     hint: 'Enter startup name',
                   ),
                   AppSizes.vGapMd,
+                  Text(
+                    'Business Plan Attachment',
+                    style: context.text.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
                   _buildDocPickerItem(
                     label: 'Business Plan Document',
                     localPath: _localDocPath,
                     networkUrl: _networkDocUrl,
                     onPick: _pickDocument,
+                    onView: () => _viewDocument(
+                      _localDocPath,
+                      _networkDocUrl,
+                      'Business Plan',
+                    ),
                     onRemove: () => setState(() {
                       _localDocPath = null;
                       _networkDocUrl = null;
