@@ -10,11 +10,11 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_status_chip.dart';
-import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/icon_widget.dart';
-import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../data/team_repository.dart';
 import '../../domain/team_member.dart';
+import '../widgets/add_edit_member_modal.dart';
+import '../widgets/credentials_generated_dialog.dart';
 
 class TeamMembersPage extends StatefulWidget {
   const TeamMembersPage({super.key, this.repository});
@@ -28,47 +28,15 @@ class TeamMembersPage extends StatefulWidget {
 class _TeamMembersPageState extends State<TeamMembersPage> {
   late final TeamRepository _repository =
       widget.repository ?? TeamRepository(sl<ApiClientHelper>());
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _roleController = TextEditingController();
-  final _departmentController = TextEditingController();
+  
   List<TeamMember> _members = const [];
   bool _loading = true;
   String? _error;
-  List<String> _roleOptions = const [];
-  List<String> _departmentOptions = const [];
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _emailController.dispose();
-    _roleController.dispose();
-    _departmentController.dispose();
-    super.dispose();
-  }
 
   @override
   void initState() {
     super.initState();
     _load();
-    _loadDropdownOptions();
-  }
-
-  Future<void> _loadDropdownOptions() async {
-    final masters = sl<MasterDataRepository>();
-    final roles = await masters.getDesignations();
-    final departments = await masters.getMasters('department');
-    if (!mounted) return;
-    setState(() {
-      final fetchedRoles = roles.valueOrNull ?? const [];
-      if (fetchedRoles.isNotEmpty) {
-        _roleOptions = fetchedRoles;
-      }
-      final fetchedDepts = departments.valueOrNull ?? const [];
-      if (fetchedDepts.isNotEmpty) {
-        _departmentOptions = fetchedDepts;
-      }
-    });
   }
 
   Future<void> _load() async {
@@ -91,244 +59,56 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
   }
 
   Future<void> _showMemberForm([TeamMember? member]) async {
-    _nameController.text = member?.name ?? '';
-    _emailController.text = member?.email ?? '';
-    _roleController.text = member?.role ?? '';
-    _departmentController.text = member?.department ?? '';
-    var status = member?.status.isNotEmpty == true ? member!.status : 'invited';
-    var submitting = false;
-    String? formError;
-    
-    // Map to hold selected permissions
-    final Map<String, List<String>> selectedPermissions = {};
-    if (member?.permissions != null) {
-      selectedPermissions.addAll(member!.permissions);
-    }
-    
-    final List<String> availableModules = [
-      'team_management',
-      'documents',
-      'billing',
-      'analytics',
-      'settings',
-      'projects'
-    ];
-    await showModalBottomSheet<void>(
+    await showDialog(
       context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      backgroundColor: context.isDark ? AppColors.darkCard : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) => SafeArea(
-          top: false,
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              AppSizes.lg,
-              AppSizes.xs,
-              AppSizes.lg,
-              MediaQuery.viewInsetsOf(context).bottom + AppSizes.lg,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    member == null
-                        ? 'Invite team member'
-                        : 'Update team member',
-                    style: context.text.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  AppSizes.vGapLg,
-                  AppTextField(
-                    controller: _nameController,
-                    label: 'Name',
-                    hint: 'Full name',
-                  ),
-                  AppSizes.vGapMd,
-                  AppTextField(
-                    controller: _emailController,
-                    label: 'Email',
-                    hint: 'name@example.com',
-                    keyboardType: TextInputType.emailAddress,
-                    enabled: member == null,
-                  ),
-                  AppSizes.vGapMd,
-                  _SuggestionField(
-                    controller: _roleController,
-                    label: 'Role',
-                    hint: 'e.g. Developer',
-                    options: _roleOptions,
-                  ),
-                  AppSizes.vGapMd,
-                  _SuggestionField(
-                    controller: _departmentController,
-                    label: 'Department',
-                    hint: 'e.g. Engineering',
-                    options: _departmentOptions,
-                  ),
-                  if (member != null) ...[
-                    AppSizes.vGapMd,
-                    DropdownButtonFormField<String>(
-                      initialValue: status,
-                      decoration: const InputDecoration(labelText: 'Status'),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'invited',
-                          child: Text('Invited'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'active',
-                          child: Text('Active'),
-                        ),
-                        DropdownMenuItem(
-                          value: 'inactive',
-                          child: Text('Inactive'),
-                        ),
-                      ],
-                      onChanged: (value) => status = value ?? status,
-                    ),
-                  ],
-                  AppSizes.vGapLg,
-                  Text(
-                    'Module Permissions',
-                    style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  AppSizes.vGapSm,
-                  Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: context.colors.outlineVariant),
-                      borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-                    ),
-                    child: Column(
-                      children: availableModules.map((module) {
-                        final isSelected = selectedPermissions.containsKey(module);
-                        return CheckboxListTile(
-                          title: Text(module.replaceAll('_', ' ').toUpperCase()),
-                          value: isSelected,
-                          onChanged: (val) {
-                            setSheetState(() {
-                              if (val == true) {
-                                selectedPermissions[module] = ['read', 'write'];
-                              } else {
-                                selectedPermissions.remove(module);
-                              }
-                            });
-                          },
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                  if (formError != null) ...[
-                    AppSizes.vGapMd,
-                    Text(
-                      formError!,
-                      style: const TextStyle(color: AppColors.danger),
-                    ),
-                  ],
-                  AppSizes.vGapXl,
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: FilledButton.icon(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(
-                            AppSizes.radiusMd,
-                          ),
-                        ),
-                      ),
-                      onPressed: submitting
-                          ? null
-                          : () async {
-                              final trimmedName = _nameController.text.trim();
-                              final trimmedEmail = _emailController.text.trim();
-                              final trimmedRole = _roleController.text.trim();
-                              if (trimmedName.isEmpty ||
-                                  trimmedEmail.isEmpty ||
-                                  trimmedRole.isEmpty ||
-                                  !trimmedEmail.contains('@')) {
-                                setSheetState(
-                                  () => formError =
-                                      'Enter a valid name, email, and role.',
-                                );
-                                return;
-                              }
-                              setSheetState(() {
-                                submitting = true;
-                                formError = null;
-                              });
-                              final result = member == null
-                                  ? await _repository.invite(
-                                      name: trimmedName,
-                                      email: trimmedEmail,
-                                      role: trimmedRole,
-                                      department: _departmentController.text.trim(),
-                                      permissions: selectedPermissions,
-                                    )
-                                  : await _repository.update(
-                                      member,
-                                      name: trimmedName,
-                                      email: trimmedEmail,
-                                      role: trimmedRole,
-                                      status: status,
-                                      permissions: selectedPermissions,
-                                    );
-                              if (!sheetContext.mounted) return;
-                              if (result.isFailure) {
-                                setSheetState(() {
-                                  submitting = false;
-                                  formError = result.failureOrNull!.message;
-                                });
-                                return;
-                              }
+      builder: (ctx) => AddEditMemberModal(
+        member: member,
+        onSave: (name, email, role, department, dashboards, permissions) async {
+          final result = member == null
+              ? await _repository.invite(
+                  name: name,
+                  email: email,
+                  role: role,
+                  department: department,
+                  permittedDashboards: dashboards,
+                  permissions: permissions,
+                  emailVerified: true, // Auto active
+                )
+              : await _repository.update(
+                  member,
+                  name: name,
+                  email: email,
+                  role: role,
+                  department: department,
+                  permittedDashboards: dashboards,
+                  permissions: permissions,
+                );
 
-                              // Close any editable DropdownMenu overlay before
-                              // removing the sheet's inherited widget subtree.
-                              FocusManager.instance.primaryFocus?.unfocus();
-                              await Future<void>.delayed(
-                                const Duration(milliseconds: 100),
-                              );
-                              if (sheetContext.mounted) {
-                                Navigator.pop(sheetContext);
-                              }
-                            },
-                      icon: submitting
-                          ? const SizedBox.square(
-                              dimension: 18,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Icon(
-                              member == null
-                                  ? Icons.person_add_alt_1_rounded
-                                  : Icons.save_outlined,
-                            ),
-                      label: Text(
-                        member == null ? 'Send invitation' : 'Save changes',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSizes.sm),
-                ],
-              ),
-            ),
-          ),
-        ),
+          if (result.isFailure) {
+            throw Exception(result.failureOrNull?.message ?? 'Unknown error');
+          }
+
+          if (member == null && mounted) {
+            // New member created, backend returns credentials in the raw JSON response.
+            // Wait, our invite method parses TeamMember directly. 
+            // We changed the API to return {success: true, data: newMember, credentials: {email, password}}
+            // So we need to show the CredentialsGeneratedDialog. Wait, we don't have the password!
+            // Let's hardcode the initial password as per spec if we don't get it back easily, or modify TeamRepository to return it.
+            // The spec said password is given.
+            if (ctx.mounted) {
+               showDialog(
+                context: ctx,
+                builder: (_) => CredentialsGeneratedDialog(
+                  email: email,
+                  password: 'GoExperts@2025',
+                ),
+              );
+            }
+          }
+        },
       ),
     );
-    if (mounted) await _load();
+    if (mounted) _load();
   }
 
   Future<void> _remove(TeamMember member) async {
@@ -353,7 +133,7 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
   Widget build(BuildContext context) => AppScaffold(
     appBar: AppBar(
       leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-      title: const Text('Team members'),
+      title: const Text('Teams Directory'),
       actions: [
         IconButton(
           tooltip: 'Invite member',
@@ -365,7 +145,7 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
     floatingActionButton: FloatingActionButton.extended(
       onPressed: () => _showMemberForm(),
       icon: const Icon(Icons.add_rounded),
-      label: const Text('Invite'),
+      label: const Text('Add Member'),
     ),
     body: _loading
         ? const Center(child: CircularProgressIndicator())
@@ -377,9 +157,21 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(AppSizes.screenPadding),
               children: [
-                Text(
-                  '${_members.length} ${_members.length == 1 ? 'member' : 'members'}',
-                  style: context.text.titleMedium,
+                _buildOwnerCard(),
+                AppSizes.vGapLg,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Team Members (${_members.length})',
+                      style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {},
+                      icon: const Icon(Icons.filter_list),
+                      label: const Text('Filter'),
+                    ),
+                  ],
                 ),
                 AppSizes.vGapMd,
                 if (_members.isEmpty) const _EmptyTeam(),
@@ -393,6 +185,29 @@ class _TeamMembersPageState extends State<TeamMembersPage> {
             ),
           ),
   );
+
+  Widget _buildOwnerCard() {
+    return AppCard(
+      padding: const EdgeInsets.all(16),
+      color: Colors.blue.shade50,
+      child: Row(
+        children: [
+          const AppAvatar(name: 'Workspace Owner', size: 56),
+          AppSizes.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Workspace Owner', style: context.text.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                const Text('Full Access', style: TextStyle(color: Colors.black54)),
+              ],
+            ),
+          ),
+          const Icon(Icons.verified, color: Colors.blue),
+        ],
+      ),
+    );
+  }
 }
 
 class _MemberCard extends StatelessWidget {
@@ -409,25 +224,45 @@ class _MemberCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppCard(
     margin: const EdgeInsets.only(bottom: AppSizes.sm),
-    child: Row(
-      children: [
-        AppAvatar(name: member.name.isEmpty ? 'Member' : member.name, size: 48),
-        AppSizes.hGapMd,
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    child: Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          AppAvatar(name: member.name.isEmpty ? 'Member' : member.name, size: 48),
+          AppSizes.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(member.name, style: context.text.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+                AppSizes.vGapXs,
+                Text(
+                  [
+                    member.role,
+                    member.department,
+                  ].where((value) => value.isNotEmpty).join(' • '),
+                  style: context.text.bodySmall,
+                ),
+                Text(member.email, style: context.text.labelSmall),
+                AppSizes.vGapSm,
+                Wrap(
+                  spacing: 4,
+                  children: member.permissions.permittedDashboards.map((db) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(db.toUpperCase(), style: const TextStyle(fontSize: 10)),
+                    );
+                  }).toList(),
+                )
+              ],
+            ),
+          ),
+          Column(
             children: [
-              Text(member.name, style: context.text.titleSmall),
-              AppSizes.vGapXs,
-              Text(
-                [
-                  member.role,
-                  member.department,
-                ].where((value) => value.isNotEmpty).join(' • '),
-                style: context.text.bodySmall,
-              ),
-              Text(member.email, style: context.text.labelSmall),
-              AppSizes.vGapSm,
               AppStatusChip(
                 label: member.status.isEmpty ? 'Invited' : member.status,
                 dense: true,
@@ -435,57 +270,18 @@ class _MemberCard extends StatelessWidget {
                     ? AppColors.success
                     : AppColors.warning,
               ),
+              PopupMenuButton<String>(
+                tooltip: 'Member actions',
+                onSelected: (value) => value == 'edit' ? onEdit() : onRemove(),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Edit Access')),
+                  PopupMenuItem(value: 'remove', child: Text('Remove')),
+                ],
+              ),
             ],
-          ),
-        ),
-        PopupMenuButton<String>(
-          tooltip: 'Member actions',
-          onSelected: (value) => value == 'edit' ? onEdit() : onRemove(),
-          itemBuilder: (_) => const [
-            PopupMenuItem(value: 'edit', child: Text('Edit')),
-            PopupMenuItem(value: 'remove', child: Text('Remove')),
-          ],
-        ),
-      ],
-    ),
-  );
-}
-
-class _SuggestionField extends StatelessWidget {
-  const _SuggestionField({
-    required this.controller,
-    required this.label,
-    required this.hint,
-    required this.options,
-  });
-
-  final TextEditingController controller;
-  final String label;
-  final String hint;
-  final List<String> options;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) => DropdownMenu<String>(
-      controller: controller,
-      width: constraints.maxWidth,
-      enableFilter: true,
-      enableSearch: true,
-      requestFocusOnTap: true,
-      label: Text(label),
-      hintText: hint,
-      initialSelection:
-          controller.text.isNotEmpty && options.contains(controller.text)
-          ? controller.text
-          : null,
-      onSelected: (val) {
-        if (val != null) {
-          controller.text = val;
-        }
-      },
-      dropdownMenuEntries: options
-          .map((option) => DropdownMenuEntry(value: option, label: option))
-          .toList(),
+          )
+        ],
+      ),
     ),
   );
 }

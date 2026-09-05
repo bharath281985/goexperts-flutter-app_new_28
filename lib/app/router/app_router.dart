@@ -83,6 +83,7 @@ import '../../features/subscriptions/presentation/pages/subscription_selection_p
 import '../../features/support/presentation/pages/support_page.dart';
 import '../../features/team/data/team_repository.dart';
 import '../../features/team/presentation/pages/team_members_page.dart';
+import '../../features/team/presentation/pages/team_access_page.dart';
 import '../../features/wallet/presentation/pages/wallet_page.dart';
 import '../../core/widgets/app_error_state.dart';
 import 'route_names.dart';
@@ -793,6 +794,34 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(
         path: Routes.clientTeams,
         builder: (_, __) => const TeamMembersPage(),
+      ),
+      GoRoute(
+        path: Routes.clientTeamAccess,
+        builder: (_, __) => const TeamAccessPage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerTeams,
+        builder: (_, __) => const TeamMembersPage(),
+      ),
+      GoRoute(
+        path: Routes.freelancerTeamAccess,
+        builder: (_, __) => const TeamAccessPage(),
+      ),
+      GoRoute(
+        path: Routes.investorTeams,
+        builder: (_, __) => const TeamMembersPage(),
+      ),
+      GoRoute(
+        path: Routes.investorTeamAccess,
+        builder: (_, __) => const TeamAccessPage(),
+      ),
+      GoRoute(
+        path: Routes.founderTeams,
+        builder: (_, __) => const TeamMembersPage(),
+      ),
+      GoRoute(
+        path: Routes.founderTeamAccess,
+        builder: (_, __) => const TeamAccessPage(),
       ),
       GoRoute(
         path: Routes.clientReports,

@@ -18,7 +18,10 @@ class TeamRepository {
     required String email,
     required String role,
     String? department,
-    Map<String, List<String>>? permissions,
+    String? password,
+    bool? emailVerified,
+    required List<String> permittedDashboards,
+    PermissionsData? permissions,
   }) => _api.post(
     ApiEndpoints.mobileTeamInvite,
     body: {
@@ -26,25 +29,37 @@ class TeamRepository {
       'email': email,
       'role': role,
       if (department?.isNotEmpty == true) 'department': department,
-      if (permissions != null) 'permissions': permissions,
+      if (password?.isNotEmpty == true) 'password': password,
+      if (emailVerified != null) 'emailVerified': emailVerified,
+      'permittedDashboards': permittedDashboards,
+      if (permissions != null) 'permissions': permissions.toJson(),
     },
-    parser: TeamMember.fromJson,
+    parser: (data) {
+      if (data is Map && data['data'] != null) {
+        return TeamMember.fromJson(data['data']);
+      }
+      return TeamMember.fromJson(data);
+    },
   );
 
   Future<Result<TeamMember>> update(
     TeamMember member, {
     String? name,
-    String? email,
     String? role,
+    String? department,
     String? status,
-    Map<String, List<String>>? permissions,
+    List<String>? permittedDashboards,
+    PermissionsData? permissions,
   }) {
     return _api.patchEnvelope(
       ApiEndpoints.mobileTeamMemberPermissions(member.id),
       body: {
+        if (name != null) 'name': name,
         if (role != null) 'role': role,
-        if (permissions != null) 'permissions': permissions,
+        if (department != null) 'department': department,
         if (status != null) 'status': status,
+        if (permittedDashboards != null) 'permittedDashboards': permittedDashboards,
+        if (permissions != null) 'permissions': permissions.toJson(),
       },
       parser: (envelope) => TeamMember.fromJson(envelope.data),
     );

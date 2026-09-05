@@ -467,7 +467,15 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
               onTap: () => context.push(Routes.freelancerPortfolioPage),
               width: width,
             ),
-          
+            DashboardActionButton(
+              text: 'Team Access',
+              subtitle: 'Invite assistants & co-freelancers',
+              tag: 'Access',
+              icon: Icons.groups_rounded,
+              color: const Color(0xFFEC4899),
+              onTap: () => context.push(Routes.freelancerTeams),
+              width: width,
+            ),
           ],
         );
       },

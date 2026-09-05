@@ -305,6 +305,12 @@ class AppDrawer extends StatelessWidget {
         DrawerEntry(
           'Team Access',
           Icons.people_outline_rounded,
+          route: switch (effectiveRole) {
+            UserRole.freelancer => Routes.freelancerTeamAccess,
+            UserRole.client => Routes.clientTeamAccess,
+            UserRole.investor => Routes.investorTeamAccess,
+            UserRole.founder => Routes.founderTeamAccess,
+          },
           requiredModule: 'team_management',
         ),
       ]),

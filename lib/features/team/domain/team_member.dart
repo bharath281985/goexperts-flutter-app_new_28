@@ -1,3 +1,52 @@
+class PermissionsData {
+  const PermissionsData({
+    this.permittedDashboards = const [],
+    this.capabilities = const [],
+    this.modulePermissions = const {},
+  });
+
+  final List<String> permittedDashboards;
+  final List<String> capabilities;
+  final Map<String, dynamic> modulePermissions;
+
+  factory PermissionsData.fromJson(dynamic value) {
+    if (value is! Map) {
+      return const PermissionsData();
+    }
+    
+    final json = Map<String, dynamic>.from(value);
+    
+    List<String> parsedDashboards = [];
+    if (json['permittedDashboards'] is List) {
+      parsedDashboards = (json['permittedDashboards'] as List).map((e) => e.toString()).toList();
+    }
+
+    List<String> parsedCapabilities = [];
+    if (json['capabilities'] is List) {
+      parsedCapabilities = (json['capabilities'] as List).map((e) => e.toString()).toList();
+    }
+
+    Map<String, dynamic> parsedModules = {};
+    if (json['modulePermissions'] is Map) {
+      parsedModules = Map<String, dynamic>.from(json['modulePermissions'] as Map);
+    }
+
+    return PermissionsData(
+      permittedDashboards: parsedDashboards,
+      capabilities: parsedCapabilities,
+      modulePermissions: parsedModules,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'permittedDashboards': permittedDashboards,
+      'capabilities': capabilities,
+      'modulePermissions': modulePermissions,
+    };
+  }
+}
+
 class TeamMember {
   const TeamMember({
     required this.id,
@@ -17,7 +66,7 @@ class TeamMember {
   final String role;
   final String department;
   final String status;
-  final Map<String, List<String>> permissions;
+  final PermissionsData permissions;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -25,16 +74,6 @@ class TeamMember {
     final json = value is Map
         ? Map<String, dynamic>.from(value)
         : <String, dynamic>{};
-    
-    Map<String, List<String>> parsedPermissions = {};
-    if (json['permissions'] is Map) {
-      final permsMap = json['permissions'] as Map;
-      permsMap.forEach((key, val) {
-        if (val is List) {
-          parsedPermissions[key.toString()] = val.map((e) => e.toString()).toList();
-        }
-      });
-    }
 
     return TeamMember(
       id: json['id']?.toString() ?? '',
@@ -43,7 +82,7 @@ class TeamMember {
       role: json['role']?.toString() ?? '',
       department: json['department']?.toString() ?? '',
       status: json['status']?.toString() ?? 'invited',
-      permissions: parsedPermissions,
+      permissions: PermissionsData.fromJson(json['permissions']),
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
     );
@@ -64,7 +103,7 @@ class TeamMembersResult {
     final json = value is Map
         ? Map<String, dynamic>.from(value)
         : <String, dynamic>{};
-    final rawMembers = json['members'];
+    final rawMembers = json['rows'] ?? json['members'];
     final members = rawMembers is List
         ? rawMembers.map(TeamMember.fromJson).toList()
         : <TeamMember>[];

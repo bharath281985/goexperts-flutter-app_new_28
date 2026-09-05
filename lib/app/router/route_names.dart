@@ -134,6 +134,7 @@ class Routes {
   static const freelancerFreelancers = '/freelancer/freelancers';
   static const freelancerApplications = '/freelancer/applications';
   static const freelancerTeams = '/freelancer/teams';
+  static const freelancerTeamAccess = '/freelancer/team-access';
   static const freelancerStartups = '/freelancer/startups';
   static const freelancerDeals = '/freelancer/deals';
   static const freelancerOffers = '/freelancer/offers';
@@ -153,6 +154,7 @@ class Routes {
   static const clientPortfolioPage = '/client/portfolio';
   static const clientShortlisted = '/client/shortlisted';
   static const clientTeams = '/client/teams';
+  static const clientTeamAccess = '/client/team-access';
   static const clientReports = '/client/reports';
   static const clientAnalytics = '/client/analytics';
   static const clientStartups = '/client/startups';
@@ -172,6 +174,7 @@ class Routes {
   static const investorFreelancers = '/investor/freelancers';
   static const investorApplications = '/investor/applications';
   static const investorTeams = '/investor/teams';
+  static const investorTeamAccess = '/investor/team-access';
   static const investorPortfolioPage = '/investor/portfolio-page';
   static const investorPreferences = '/investor/preferences';
   static const investorDueDiligence = '/investor/due-diligence';
@@ -196,6 +199,7 @@ class Routes {
   static const founderFreelancers = '/founder/freelancers';
   static const founderApplications = '/founder/applications';
   static const founderTeams = '/founder/teams';
+  static const founderTeamAccess = '/founder/team-access';
   static const founderPortfolioPage = '/founder/portfolio-page';
   static const founderStartups = '/founder/startups';
   static const founderDeals = '/founder/deals';
