@@ -45,6 +45,7 @@ class TeamRepository {
   Future<Result<TeamMember>> update(
     TeamMember member, {
     String? name,
+    String? email,
     String? role,
     String? department,
     String? status,
@@ -56,6 +57,7 @@ class TeamRepository {
       body: {
         if (name != null) 'name': name,
         if (role != null) 'role': role,
+        if (email != null) 'email': email,
         if (department != null) 'department': department,
         if (status != null) 'status': status,
         if (permittedDashboards != null) 'permittedDashboards': permittedDashboards,
