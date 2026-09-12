@@ -369,14 +369,14 @@ class _DocumentViewerPageState extends State<DocumentViewerPage> {
         );
       case 'video':
       case 'mp4':
-        return const _DocMeta(
+        return  _DocMeta(
           _DocKind.video,
           Icons.movie_outlined,
           AppColors.primary,
         );
       case 'audio':
       case 'mp3':
-        return const _DocMeta(
+        return  _DocMeta(
           _DocKind.audio,
           Icons.audiotrack_outlined,
           AppColors.primary,

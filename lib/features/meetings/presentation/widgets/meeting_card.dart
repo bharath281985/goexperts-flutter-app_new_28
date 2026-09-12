@@ -80,6 +80,14 @@ class AppMeetingCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
+                    Text(
+                      meeting.withRole,
+                      style: context.text.labelSmall?.copyWith(
+                        color: AppColors.mutedText,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),

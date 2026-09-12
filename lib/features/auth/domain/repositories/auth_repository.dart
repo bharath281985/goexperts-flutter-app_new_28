@@ -46,6 +46,7 @@ abstract class AuthRepository {
     Map<String, dynamic> data, {
     List<int>? avatarBytes,
   });
+
   Future<Result<bool>> saveOnboardingDraft(Map<String, dynamic> data);
 
   /// Persists a local "subscription active" flag so Skip / free activation
@@ -56,6 +57,8 @@ abstract class AuthRepository {
     required String oldPassword,
     required String newPassword,
   });
+
+  Future<Result<bool>> deleteAccount();
 
   Future<Result<AppUser>> currentUser();
   Future<void> updateCachedUser(AppUser user);

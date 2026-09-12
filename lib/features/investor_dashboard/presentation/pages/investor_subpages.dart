@@ -208,7 +208,7 @@ class InvestorOffersPage extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: AppSizes.sm),
               child: Row(
                 children: [
-                  const Icon(
+                   Icon(
                     Icons.local_offer_outlined,
                     color: AppColors.primary,
                   ),
@@ -266,7 +266,7 @@ class InvestorDocumentsPage extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Icon(
+                   Icon(
                     Icons.description_outlined,
                     color: AppColors.primary,
                   ),

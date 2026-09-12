@@ -90,7 +90,11 @@ extension ContextX on BuildContext {
       case 'Analytics':
         return l10n.analytics;
       case 'Subscription':
+      case 'Package':
         return l10n.subscription;
+      case 'Subscriptions':
+      case 'Packages':
+        return l10n.subscriptions;
       case 'Dashboard':
         return l10n.dashboard;
       case 'Discover Projects':

@@ -159,7 +159,7 @@ class _PortfolioListViewState extends State<PortfolioListView> {
                       'Add Holding',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AppColors.success,
                     foregroundColor: Colors.white,
                   ),
             itemBuilder: (context, item, _) => _PortfolioCard(
@@ -485,7 +485,7 @@ class _PortfolioCard extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                       Icon(
                         Icons.language_rounded,
                         size: 14,
                         color: AppColors.primary,
@@ -504,7 +504,7 @@ class _PortfolioCard extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Icon(
+                       Icon(
                         Icons.open_in_new_rounded,
                         size: 12,
                         color: AppColors.primary,
@@ -519,7 +519,7 @@ class _PortfolioCard extends StatelessWidget {
 
             // Financial Metrics Container
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               decoration: BoxDecoration(
                 color: isDark
                     ? const Color(0xFF161A22)
@@ -534,23 +534,32 @@ class _PortfolioCard extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
+                    flex: 5,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Invested',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.mutedText,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
+                        Center(
+                          child: Text(
+                            'Invested',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: context.text.labelSmall?.copyWith(
+                              color: AppColors.mutedText,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          Formatters.compactCurrency(item.investedAmount),
-                          style: context.text.titleSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            Formatters.compactCurrency(item.investedAmount),
+                            style: context.text.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ],
@@ -562,13 +571,16 @@ class _PortfolioCard extends StatelessWidget {
                     color: AppColors.border.withValues(alpha: 0.6),
                   ),
                   Expanded(
+                    flex: 3,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Text(
                             'Equity Stake',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: context.text.labelSmall?.copyWith(
                               color: AppColors.mutedText,
                               fontSize: 11,
@@ -576,11 +588,14 @@ class _PortfolioCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 3),
-                          Text(
-                            '${item.equity.toStringAsFixed(1)}%',
-                            style: context.text.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              '${item.equity.toStringAsFixed(1)}%',
+                              style: context.text.titleSmall?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 14,
+                              ),
                             ),
                           ),
                         ],
@@ -593,48 +608,63 @@ class _PortfolioCard extends StatelessWidget {
                     color: AppColors.border.withValues(alpha: 0.6),
                   ),
                   Expanded(
+                    flex: 6,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        Text(
-                          'Valuation',
-                          style: context.text.labelSmall?.copyWith(
-                            color: AppColors.mutedText,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
+                        Center(
+                          child: Row( 
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Valuation',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: context.text.labelSmall?.copyWith(
+                                  color: AppColors.mutedText,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                                if (item.investedAmount > 0) ...[
+                                const SizedBox(width: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                  decoration: BoxDecoration(
+                                    color: (isPositive ? AppColors.success : AppColors.danger).withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${isPositive ? '+' : ''}${roi.toStringAsFixed(0)}%',
+                                    style: TextStyle(
+                                      color: isPositive ? AppColors.success : AppColors.danger,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                         const SizedBox(height: 3),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              Formatters.compactCurrency(item.currentValue),
-                              style: context.text.titleSmall?.copyWith(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 14,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            if (item.investedAmount > 0) ...[
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                                decoration: BoxDecoration(
-                                  color: (isPositive ? AppColors.success : AppColors.danger).withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${isPositive ? '+' : ''}${roi.toStringAsFixed(0)}%',
-                                  style: TextStyle(
-                                    color: isPositive ? AppColors.success : AppColors.danger,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w800,
-                                  ),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                Formatters.compactCurrency(item.currentValue),
+                                style: context.text.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 14,
+                                   color: isPositive ? AppColors.success : AppColors.danger,
                                 ),
                               ),
+                            
                             ],
-                          ],
+                          ),
                         ),
                       ],
                     ),
@@ -1287,7 +1317,7 @@ class _InvestorPortfolioFormPageState extends State<InvestorPortfolioFormPage> {
                               color: AppColors.primary.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                             ),
-                            child: const Icon(
+                            child:  Icon(
                               Icons.calendar_month_rounded,
                               size: 20,
                               color: AppColors.primary,
@@ -1420,67 +1450,91 @@ class _InvestorPortfolioFormPageState extends State<InvestorPortfolioFormPage> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Net Gain / Loss',
-                                    style: context.text.labelSmall?.copyWith(
-                                      color: AppColors.mutedText,
-                                      fontSize: 11,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Net Gain / Loss',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: context.text.labelSmall?.copyWith(
+                                        color: AppColors.mutedText,
+                                        fontSize: 11,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${isGain ? '+' : ''}${Formatters.currency(gainLoss)}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                      color: isGain ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                    const SizedBox(height: 2),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerLeft,
+                                      child: Text(
+                                        '${isGain ? '+' : ''}${Formatters.currency(gainLoss)}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                          color: isGain ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Return (ROI)',
-                                    style: context.text.labelSmall?.copyWith(
-                                      color: AppColors.mutedText,
-                                      fontSize: 11,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Return (ROI)',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: context.text.labelSmall?.copyWith(
+                                        color: AppColors.mutedText,
+                                        fontSize: 11,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${isGain ? '+' : ''}${roiPercent.toStringAsFixed(1)}%',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
-                                      color: isGain ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                    const SizedBox(height: 2),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.center,
+                                      child: Text(
+                                        '${isGain ? '+' : ''}${roiPercent.toStringAsFixed(1)}%',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                          color: isGain ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Multiple (MOIC)',
-                                    style: context.text.labelSmall?.copyWith(
-                                      color: AppColors.mutedText,
-                                      fontSize: 11,
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      'Multiple (MOIC)',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: context.text.labelSmall?.copyWith(
+                                        color: AppColors.mutedText,
+                                        fontSize: 11,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    '${multiple.toStringAsFixed(2)}x',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 14,
+                                    const SizedBox(height: 2),
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      alignment: Alignment.centerRight,
+                                      child: Text(
+                                        '${multiple.toStringAsFixed(2)}x',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),

@@ -3,9 +3,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/constants/app_strings.dart';
+import '../../../../app/constants/app_assets.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/storage/local_storage.dart';
+import '../../../../core/network/app_runtime_config_service.dart';
+import 'package:video_player/video_player.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -22,36 +25,49 @@ class _OnboardingPageState extends State<OnboardingPage>
   late AnimationController _iconAnimationController;
   late Animation<double> _fadeAnimation;
 
-  late final List<_OnboardingData> onboardingData = [
-    _OnboardingData(
-      title: AppStrings.onboarding[0]['title'] ?? 'Hire & Get Hired',
-      description:
-          AppStrings.onboarding[0]['subtitle'] ??
-          'Connect with Top Freelancers and Businesses to deliver World-Class Projects.',
-      image: 'assets/images/1.png',
-      icon: Icons.work_outline_rounded,
-    ),
-    _OnboardingData(
-      title: AppStrings.onboarding[1]['title'] ?? 'Fund & Get Funded',
-      description:
-          AppStrings.onboarding[1]['subtitle'] ??
-          'Investors discover High-Potential Startups and Founders Raise Capital with ease.',
-      image: 'assets/images/2.png',
-      icon: Icons.trending_up_rounded,
-    ),
-    _OnboardingData(
-      title: AppStrings.onboarding[2]['title'] ?? 'Grow Together',
-      description:
-          AppStrings.onboarding[2]['subtitle'] ??
-          'Manage contracts, meetings, payments and deals — all in one secure workspace.',
-      image: 'assets/images/3.png',
-      icon: Icons.groups_2_outlined,
-    ),
-  ];
+  late List<_OnboardingData> onboardingData = [];
+
+  void _initializeOnboardingData() {
+    final splashSettings = sl<AppRuntimeConfigService>().latest['splashSettings'];
+    final steps = splashSettings?['onboarding']?['steps'] as List?;
+    
+    if (steps != null && steps.isNotEmpty) {
+      onboardingData = steps.asMap().entries.map((entry) {
+        final i = entry.key;
+        final step = entry.value;
+        return _OnboardingData(
+          title: step['title']?.toString() ?? '',
+          description: step['description']?.toString() ?? '',
+          mediaUrl: step['mediaUrl']?.toString() ?? '',
+          mediaType: step['mediaType']?.toString() ?? 'image',
+          icon: _getFallbackIcon(i),
+        );
+      }).toList();
+    } else {
+      onboardingData = AppAssets.fallbackOnboarding.asMap().entries.map((entry) {
+        final i = entry.key;
+        final step = entry.value;
+        return _OnboardingData(
+          title: step['title'] ?? '',
+          description: step['description'] ?? '',
+          mediaUrl: step['image'] ?? '',
+          mediaType: step['mediaType'] ?? 'image',
+          icon: _getFallbackIcon(i),
+        );
+      }).toList();
+    }
+  }
+
+  IconData _getFallbackIcon(int index) {
+    if (index == 0) return Icons.work_outline_rounded;
+    if (index == 1) return Icons.trending_up_rounded;
+    return Icons.groups_2_outlined;
+  }
 
   @override
   void initState() {
     super.initState();
+    _initializeOnboardingData();
     _animationController = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -132,7 +148,7 @@ class _OnboardingPageState extends State<OnboardingPage>
             text: lastWord,
             style: TextStyle(
               foreground: Paint()
-                ..shader = const LinearGradient(
+                ..shader =  LinearGradient(
                   colors: [
                     AppColors.primary,
                     Color(0xFFC80010),
@@ -187,12 +203,7 @@ class _OnboardingPageState extends State<OnboardingPage>
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(AppSizes.radiusXl),
             ),
-            child: Image.asset(
-              data.image,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) =>
-                  Icon(data.icon, size: 100, color: AppColors.primary),
-            ),
+            child: _OnboardingMediaWidget(data: data),
           ),
         ),
 
@@ -352,7 +363,7 @@ class _OnboardingPageState extends State<OnboardingPage>
                     horizontal: 16,
                     vertical: 8,
                   ),
-                  child: const Text(
+                  child:  Text(
                     'Skip',
                     style: TextStyle(
                       color: AppColors.primary,
@@ -370,16 +381,109 @@ class _OnboardingPageState extends State<OnboardingPage>
   }
 }
 
+class _OnboardingMediaWidget extends StatefulWidget {
+  final _OnboardingData data;
+  const _OnboardingMediaWidget({required this.data});
+
+  @override
+  State<_OnboardingMediaWidget> createState() => _OnboardingMediaWidgetState();
+}
+
+class _OnboardingMediaWidgetState extends State<_OnboardingMediaWidget> {
+  VideoPlayerController? _videoController;
+  bool _isVideoReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initMedia();
+  }
+
+  @override
+  void didUpdateWidget(covariant _OnboardingMediaWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.data.mediaUrl != widget.data.mediaUrl) {
+      _initMedia();
+    }
+  }
+
+  void _initMedia() {
+    _videoController?.dispose();
+    _videoController = null;
+    _isVideoReady = false;
+
+    if (widget.data.mediaType == 'video' && widget.data.mediaUrl.isNotEmpty) {
+      if (widget.data.mediaUrl.startsWith('http')) {
+        _videoController = VideoPlayerController.networkUrl(Uri.parse(widget.data.mediaUrl));
+      } else {
+        _videoController = VideoPlayerController.asset(widget.data.mediaUrl);
+      }
+
+      _videoController!.initialize().then((_) {
+        if (!mounted) return;
+        setState(() {
+          _isVideoReady = true;
+        });
+        _videoController!.setLooping(true);
+        _videoController!.play();
+      }).catchError((_) {
+        // Handle error gracefully, maybe fallback to image or icon
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.data.mediaType == 'video' && _videoController != null) {
+      if (_isVideoReady) {
+        return FittedBox(
+          fit: BoxFit.cover,
+          child: SizedBox(
+            width: _videoController!.value.size.width,
+            height: _videoController!.value.size.height,
+            child: VideoPlayer(_videoController!),
+          ),
+        );
+      } else {
+        return const Center(child: CircularProgressIndicator());
+      }
+    }
+
+    // Default to image
+    if (widget.data.mediaUrl.startsWith('http')) {
+      return Image.network(
+        widget.data.mediaUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(widget.data.icon, size: 100, color: AppColors.primary),
+      );
+    } else {
+      return Image.asset(
+        widget.data.mediaUrl,
+        fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) => Icon(widget.data.icon, size: 100, color: AppColors.primary),
+      );
+    }
+  }
+}
+
 class _OnboardingData {
   final String title;
   final String description;
-  final String image;
+  final String mediaUrl;
+  final String mediaType;
   final IconData icon;
 
   _OnboardingData({
     required this.title,
     required this.description,
-    required this.image,
+    required this.mediaUrl,
+    required this.mediaType,
     required this.icon,
   });
 }

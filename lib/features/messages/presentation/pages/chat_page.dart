@@ -53,16 +53,26 @@ class _ChatViewState extends State<_ChatView> {
   }
 
   Future<void> _resolvePeerDetails() async {
-    if (_conversation != null &&
-        _conversation!.name.isNotEmpty &&
-        _conversation!.name.toLowerCase() != 'chat') {
-      return;
-    }
     final convId = context.read<ChatCubit>().conversationId;
     final cached = await sl<MessageRepository>().getCachedConversations();
     final match = cached.where((c) => c.id == convId).firstOrNull;
     if (match != null && mounted) {
-      setState(() => _conversation = match);
+      final preserveFromProfile = _conversation?.isFromProfile ?? false;
+      setState(() => _conversation = Conversation(
+        id: match.id,
+        name: match.name,
+        lastMessage: match.lastMessage,
+        lastMessageAt: match.lastMessageAt,
+        avatarUrl: match.avatarUrl,
+        unreadCount: match.unreadCount,
+        isOnline: match.isOnline,
+        isPinned: match.isPinned,
+        isMuted: match.isMuted,
+        isTyping: match.isTyping,
+        role: match.role,
+        participantId: match.participantId,
+        isFromProfile: preserveFromProfile,
+      ));
     }
   }
 
@@ -95,10 +105,27 @@ class _ChatViewState extends State<_ChatView> {
 
   String _profileRoute(BuildContext context) {
     final conversation = _conversation ?? widget.conversation;
-    final profileId = conversation?.participantId.isNotEmpty == true
-        ? conversation!.participantId
-        : context.read<ChatCubit>().conversationId;
-    var role = conversation?.role.trim().toLowerCase() ?? '';
+    final currentUserId = context.read<AuthBloc>().state.user?.id;
+    final senderId = context.read<ChatCubit>().state.messages
+      .map((message) => message.senderId)
+      .firstWhere(
+        (senderId) =>
+          senderId.isNotEmpty &&
+          senderId != 'me' &&
+          senderId != currentUserId,
+        orElse: () => '',
+      );
+    final profileId = senderId.isNotEmpty
+      ? senderId
+      : (conversation?.participantId ?? '');
+    final peerMessages = context.read<ChatCubit>().state.messages;
+    final peerMessage = peerMessages.where(
+      (message) => message.senderId == profileId,
+    );
+    var role = peerMessage.isNotEmpty
+        ? (peerMessage.first.senderRole?.trim().toLowerCase() ?? '')
+        : '';
+    if (role.isEmpty) role = conversation?.role.trim().toLowerCase() ?? '';
 
     if (role.isEmpty) {
       role = switch (context.read<AuthBloc>().state.user?.role) {
@@ -122,7 +149,9 @@ class _ChatViewState extends State<_ChatView> {
 
   Future<void> _setConversationReadState({required bool unread}) async {
     final repository = sl<MessageRepository>();
-    final conversationId = context.read<ChatCubit>().conversationId;
+    final conversationId =
+      context.read<ChatCubit>().currentConversationId;
+    if (conversationId.isEmpty) return;
     final result = unread
         ? await repository.markConversationUnread(conversationId)
         : await repository.markConversationRead(conversationId);
@@ -204,6 +233,8 @@ class _ChatViewState extends State<_ChatView> {
             : 'Chat');
     final avatarUrl = convo?.avatarUrl ?? widget.conversation?.avatarUrl;
     final isOnline = convo?.isOnline ?? widget.conversation?.isOnline ?? true;
+    
+     
 
     return Scaffold(
       appBar: AppBar(
@@ -263,37 +294,26 @@ class _ChatViewState extends State<_ChatView> {
           ),
           IconButton(
             icon: const Icon(Icons.more_vert_rounded),
-            onPressed: () => AppActionSheet.show(
-              context,
-              title: name,
-              actions: [
-                AppAction(
-                  label: 'Mark as Unread',
-                  icon: Icons.mark_email_unread_outlined,
-                  onTap: () => _setConversationReadState(unread: true),
-                ),
-                AppAction(
-                  label: 'Mark as Read',
-                  icon: Icons.mark_email_read_outlined,
-                  onTap: () => _setConversationReadState(unread: false),
-                ),
-                AppAction(
-                  label: 'View Profile',
-                  icon: Icons.person_outline_rounded,
-                  onTap: () {
-                    final route = _profileRoute(context);
-                    if (route.isEmpty) {
-                      context.showSnack(
-                        'Profile is unavailable for this conversation',
-                        isError: true,
-                      );
-                      return;
-                    }
-                    context.push(route);
-                  },
-                ),
-              ],
-            ),
+            onPressed: () {
+              final route = _profileRoute(context);
+              AppActionSheet.show(
+                context,
+                title: name,
+                actions: [
+                  AppAction(
+                    label: 'Mark as Read',
+                    icon: Icons.mark_email_read_outlined,
+                    onTap: () => _setConversationReadState(unread: false),
+                  ),
+                  if (route.isNotEmpty && !(_conversation?.isFromProfile ?? false))
+                    AppAction(
+                      label: 'View Profile',
+                      icon: Icons.person_outline_rounded,
+                      onTap: () => context.push(route),
+                    ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -317,6 +337,7 @@ class _ChatViewState extends State<_ChatView> {
                     }
                     return _Bubble(
                       message: row.message!,
+                      peer: convo,
                       onLongPress: () => _messageActions(context, row.message!),
                     );
                   },
@@ -399,13 +420,70 @@ class _DateChip extends StatelessWidget {
 }
 
 class _Bubble extends StatelessWidget {
-  const _Bubble({required this.message, this.onLongPress});
+  const _Bubble({
+    required this.message,
+    this.peer,
+    this.onLongPress,
+  });
   final ChatMessage message;
+  final Conversation? peer;
   final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
-    final mine = message.isMine;
+    final currentUser = context.read<AuthBloc>().state.user;
+    final currentrole = context.read<AuthBloc>().state.user?.role;
+    final currentUserId = currentUser?.id?.trim().toLowerCase();
+    final currentUserName = currentUser?.fullName?.trim().toLowerCase();
+    final currentUserEmail = currentUser?.email?.trim().toLowerCase();
+
+    final peerId = (peer?.participantId.isNotEmpty == true
+            ? peer!.participantId
+            : null)
+        ?.trim()
+        .toLowerCase();
+    final senderrole = message.senderRole?.trim();
+    final rawPeerName = peer?.name?.trim().toLowerCase();
+    final peerName = (rawPeerName != null &&
+            rawPeerName.isNotEmpty &&
+            rawPeerName != 'chat' &&
+            rawPeerName != 'conversation')
+        ? rawPeerName
+        : null;
+
+    final sender = message.senderId.trim().toLowerCase();
+
+        final isPeer = (peerId != null &&
+          peerId.isNotEmpty &&
+          peerId != currentUserId &&
+          sender == peerId) ||
+        (peerName != null &&
+            (sender == peerName ||
+                peerName.contains(sender) ||
+                (sender.length >= 3 && sender.contains(peerName))));
+
+    bool mine = message.isMine;
+    if (isPeer) {
+      mine = false;
+    } else if (!mine) {
+      if (sender == 'me' ||
+          sender == 'self' ||
+          sender == 'you' ||
+          (currentUserId != null &&
+              currentUserId.isNotEmpty &&
+              sender == currentUserId) ||
+          (currentUserEmail != null &&
+              currentUserEmail.isNotEmpty &&
+              sender == currentUserEmail) ||
+          (currentUserName != null &&
+              currentUserName.isNotEmpty &&
+              (sender == currentUserName ||
+                  sender.contains(currentUserName) ||
+                  currentUserName.contains(sender)))) {
+        mine = true;
+      }
+    }
+
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: GestureDetector(
@@ -418,7 +496,7 @@ class _Bubble extends StatelessWidget {
           ),
           constraints: BoxConstraints(maxWidth: context.width * 0.72),
           decoration: BoxDecoration(
-            color: mine ? AppColors.primary : context.theme.cardColor,
+            color: mine ? AppColors.primary : AppColors.getRoleColor(senderrole!),
             borderRadius: BorderRadius.only(
               topLeft: const Radius.circular(AppSizes.radiusLg),
               topRight: const Radius.circular(AppSizes.radiusLg),

@@ -1231,7 +1231,7 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
         ),
         child: Row(
           children: [
-            const Icon(
+             Icon(
               Icons.description_outlined,
               color: AppColors.primary,
               size: 32,
@@ -1294,7 +1294,7 @@ class _FounderPitchDeckLivePageState extends State<FounderPitchDeckLivePage> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.upload_file_rounded, color: AppColors.primary),
+             Icon(Icons.upload_file_rounded, color: AppColors.primary),
             const SizedBox(width: 10),
             Text(
               'Attach $label',
@@ -1506,7 +1506,7 @@ class _FounderBusinessPlanLivePageState
         ),
         child: Row(
           children: [
-            const Icon(
+             Icon(
               Icons.description_outlined,
               color: AppColors.primary,
               size: 32,
@@ -1569,7 +1569,7 @@ class _FounderBusinessPlanLivePageState
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.upload_file_rounded, color: AppColors.primary),
+             Icon(Icons.upload_file_rounded, color: AppColors.primary),
             const SizedBox(width: 10),
             Text(
               'Attach $label',
@@ -1886,7 +1886,7 @@ class _FounderAnalyticsLivePageState extends State<FounderAnalyticsLivePage> {
                 _metric('Meetings', _analytics['meetings']),
                 _metric('Pitch Deck Views', _analytics['pitchDeckViews']),
                 _metric('Wallet', _analytics['walletBalance']),
-                _metric('Subscription', _analytics['subscriptionPlan']),
+                _metric('Package', _analytics['subscriptionPlan']),
                 for (final rep in _reports)
                   AppCard(
                     margin: const EdgeInsets.only(top: AppSizes.sm),

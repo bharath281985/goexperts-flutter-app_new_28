@@ -6,6 +6,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../master_data/domain/entities/master_option.dart';
@@ -46,6 +47,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _cityController = TextEditingController();
+  final _referralCodeController = TextEditingController();
   double? _detectedLatitude;
   double? _detectedLongitude;
   bool _termsAccepted = false;
@@ -101,6 +103,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       _passwordController,
       _confirmPasswordController,
       _cityController,
+      _referralCodeController,
       _businessNameController,
       _companySiteController,
     ]) {
@@ -134,6 +137,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     _confirmPasswordController.text =
         fields['confirmPassword']?.toString() ?? '';
     _cityController.text = fields['city']?.toString() ?? '';
+    _referralCodeController.text = fields['referralCode']?.toString() ?? '';
     _selectedCountry = fields['country']?.toString();
     _selectedState = fields['state']?.toString();
     _termsAccepted = fields['termsAccepted'] == true;
@@ -234,11 +238,14 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       'country': _selectedCountry,
       'state': _selectedState,
       'city': _cityController.text.trim(),
+      'referralCode': _referralCodeController.text.trim(),
       if (_detectedLatitude != null) 'latitude': _detectedLatitude,
       if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       'termsAccepted': _termsAccepted,
       'companyName': _businessNameController.text.trim(),
-      'companySite': _companySiteController.text.trim(),
+      'socialLinks': {
+        'companySite': _companySiteController.text.trim(),
+      },
       'companySize': _selectedCompanySize,
       'companySizeId': _selectedCompanySize,
       'currentTeam': _selectedTeamSize,
@@ -280,6 +287,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         'country': _selectedCountry,
         // 'state': _selectedState,
         'city': _cityController.text.trim(),
+        'referralCode': _referralCodeController.text.trim(),
         if (_detectedLatitude != null) 'latitude': _detectedLatitude,
         if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       },
@@ -466,12 +474,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
     final isSocial =
         context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
     if (!isSocial) {
-      if (_passwordController.text.isEmpty) {
-        return 'Please enter password';
-      }
-      if (_passwordController.text.length < 8) {
-        return 'Password must be at least 8 characters';
-      }
+      final pwdError = Validators.password(_passwordController.text);
+      if (pwdError != null) return pwdError;
       if (_passwordController.text != _confirmPasswordController.text) {
         return 'Password and confirm password must match';
       }
@@ -641,6 +645,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           passwordController: _passwordController,
           confirmPasswordController: _confirmPasswordController,
           cityController: _cityController,
+          referralCodeController: _referralCodeController,
           countries: _countries,
           // states: _states,
           selectedCountry: _selectedCountry,

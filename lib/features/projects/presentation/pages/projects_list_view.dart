@@ -15,6 +15,7 @@ import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/project_repository.dart';
+import '../../../proposals/domain/repositories/proposal_repository.dart';
 import '../widgets/project_card.dart';
 
 const _projectSortOptions = [
@@ -33,9 +34,14 @@ const _projectSortApiValues = {
 
 /// Embeddable discover-projects catalog with Role-Wise Top Tabs.
 class ProjectsListView extends StatefulWidget {
-  const ProjectsListView({super.key, this.initialTabIndex = 0});
+  const ProjectsListView({
+    super.key,
+    this.initialTabIndex = 0,
+    this.initialSearch = '',
+  });
 
   final int initialTabIndex;
+  final String initialSearch;
 
   @override
   State<ProjectsListView> createState() => _ProjectsListViewState();
@@ -57,8 +63,7 @@ class _ProjectsListViewState extends State<ProjectsListView> {
 
   Future<void> _bootstrap() async {
     final role = await sl<TokenRoleHelper>().resolve();
-    final categoriesResult = await sl<MasterDataRepository>()
-        .getSkillCategories(page: 1, pageSize: 200);
+    final categoriesResult = await sl<MasterDataRepository>().getIndustries();
     if (!mounted) return;
     setState(() {
       _role = role;
@@ -83,6 +88,15 @@ class _ProjectsListViewState extends State<ProjectsListView> {
     String projectId,
   ) async {
     await context.push<bool>('${Routes.projectDetails}/$projectId');
+    if (!mounted) return;
+    setState(() => _refreshKey++);
+  }
+
+  Future<void> _openApplyProject(BuildContext context, Project project) async {
+    final name = Uri.encodeComponent(project.title);
+    await context.push<bool>(
+      '${Routes.apply}?type=Project&projectId=${project.id}&name=$name',
+    );
     if (!mounted) return;
     setState(() => _refreshKey++);
   }
@@ -116,6 +130,54 @@ class _ProjectsListViewState extends State<ProjectsListView> {
         context.showSnack(
           newSaved ? 'Project saved' : 'Project removed from saved',
         );
+      },
+    );
+  }
+
+  Future<void> _withdrawProposal(BuildContext context, Project project) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw Proposal'),
+        content: const Text('Are you sure you want to withdraw your proposal?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Withdraw', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    final res = await sl<ProposalRepository>().withdraw(
+      project.proposalId ?? project.id,
+    );
+    if (!context.mounted) return;
+    res.fold(
+      (failure) => context.showSnack(
+        failure.message.isNotEmpty
+            ? failure.message
+            : 'Failed to withdraw proposal',
+        isError: true,
+      ),
+      (_) {
+        try {
+          context.read<ListBloc<Project>>().add(
+            ListItemUpdated(
+              project.copyWith(isApplied: false, proposalId: null),
+              (existing, updated) =>
+                  (existing as Project).id == (updated as Project).id,
+            ),
+          );
+        } catch (_) {}
+        context.showSnack('Proposal withdrawn successfully');
       },
     );
   }
@@ -271,6 +333,7 @@ class _ProjectsListViewState extends State<ProjectsListView> {
             searchHint: isExplore
                 ? 'Search projects, skills…'
                 : 'Search my projects…',
+            initialSearch: widget.initialSearch,
             emptyTitle: isExplore
                 ? 'No projects found'
                 : (isClient
@@ -310,7 +373,8 @@ class _ProjectsListViewState extends State<ProjectsListView> {
                 onSave: isOwner
                     ? null
                     : () => _toggleSaveProject(context, project),
-                onApply: () => _openProjectDetails(context, project.id),
+                onApply: () => _openApplyProject(context, project),
+                onWithdraw: () => _withdrawProposal(context, project),
                 onEdit: isOwner
                     ? () => _openEditProject(context, project.id)
                     : null,

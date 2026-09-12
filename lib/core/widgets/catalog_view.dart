@@ -25,6 +25,7 @@ class CatalogView<T> extends StatelessWidget {
     this.header,
     this.gridColumns = 1,
     this.showSearch = true,
+    this.initialSearch = '',
     this.skeletonHeight = 120,
     this.floatingActionButton,
     this.onRefresh,
@@ -42,6 +43,7 @@ class CatalogView<T> extends StatelessWidget {
   final Widget? header;
   final int gridColumns;
   final bool showSearch;
+  final String initialSearch;
   final double skeletonHeight;
   final Widget? floatingActionButton;
   final Future<void> Function()? onRefresh;
@@ -49,7 +51,12 @@ class CatalogView<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider<ListBloc<T>>(
-      create: (_) => ListBloc<T>(fetcher: fetcher)..add(const ListStarted()),
+      create: (_) => ListBloc<T>(fetcher: fetcher)
+        ..add(
+          initialSearch.trim().isEmpty
+              ? const ListStarted()
+              : ListSearchChanged(initialSearch.trim()),
+        ),
       child: _CatalogBody<T>(
         itemBuilder: itemBuilder,
         searchHint: searchHint,
@@ -62,6 +69,7 @@ class CatalogView<T> extends StatelessWidget {
         header: header,
         gridColumns: gridColumns,
         showSearch: showSearch,
+        initialSearch: initialSearch,
         skeletonHeight: skeletonHeight,
         floatingActionButton: floatingActionButton,
         onRefresh: onRefresh,
@@ -83,6 +91,7 @@ class _CatalogBody<T> extends StatefulWidget {
     required this.header,
     required this.gridColumns,
     required this.showSearch,
+    required this.initialSearch,
     required this.skeletonHeight,
     this.floatingActionButton,
     this.onRefresh,
@@ -99,6 +108,7 @@ class _CatalogBody<T> extends StatefulWidget {
   final Widget? header;
   final int gridColumns;
   final bool showSearch;
+  final String initialSearch;
   final double skeletonHeight;
   final Widget? floatingActionButton;
   final Future<void> Function()? onRefresh;
@@ -110,6 +120,12 @@ class _CatalogBody<T> extends StatefulWidget {
 class _CatalogBodyState<T> extends State<_CatalogBody<T>> {
   final _searchController = TextEditingController();
   Timer? _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController.text = widget.initialSearch;
+  }
 
   @override
   void dispose() {

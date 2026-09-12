@@ -65,6 +65,53 @@ class AppTextField extends StatefulWidget {
 
 class _AppTextFieldState extends State<AppTextField> {
   late bool _obscured = widget.obscure;
+  TextEditingController? _internalController;
+
+  TextEditingController get _controller {
+    if (widget.controller != null) return widget.controller!;
+    if (_internalController == null) {
+      _internalController = TextEditingController(text: widget.initialValue);
+      _internalController!.addListener(_onTextChanged);
+    }
+    return _internalController!;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.controller == null) {
+      _internalController = TextEditingController(text: widget.initialValue);
+    }
+    _controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?.removeListener(_onTextChanged);
+      widget.controller?.addListener(_onTextChanged);
+      
+      if (widget.controller != null && _internalController != null) {
+        _internalController?.dispose();
+        _internalController = null;
+      } else if (widget.controller == null && _internalController == null) {
+        _internalController = TextEditingController(text: widget.initialValue);
+        _internalController!.addListener(_onTextChanged);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTextChanged);
+    _internalController?.dispose();
+    super.dispose();
+  }
+
+  void _onTextChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +126,21 @@ class _AppTextFieldState extends State<AppTextField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.label != null) ...[
-          Text(context.tr(widget.label!), style: context.text.titleSmall),
+          if (widget.label!.contains('*'))
+            RichText(
+              text: TextSpan(
+                text: context.tr(widget.label!.replaceAll('*', '').trimRight()),
+                style: context.text.titleSmall,
+                children: [
+                  TextSpan(
+                    text: ' *',
+                    style: context.text.titleSmall?.copyWith(color: Colors.red),
+                  ),
+                ],
+              ),
+            )
+          else
+            Text(context.tr(widget.label!), style: context.text.titleSmall),
           AppSizes.vGapSm,
         ],
         TextFormField(
@@ -91,12 +152,15 @@ class _AppTextFieldState extends State<AppTextField> {
           validator: widget.validator,
           autovalidateMode: widget.autovalidateMode,
           onChanged: widget.onChanged,
-          onFieldSubmitted: widget.onSubmitted,
+          onFieldSubmitted: widget.onSubmitted ?? (_) => FocusScope.of(context).nextFocus(),
           maxLines: widget.obscure ? 1 : widget.maxLines,
           maxLength: widget.maxLength,
           inputFormatters: widget.inputFormatters,
           enabled: widget.enabled,
-          textInputAction: widget.textInputAction,
+          textInputAction: widget.textInputAction ??
+              (widget.maxLines == 1
+                  ? TextInputAction.next
+                  : TextInputAction.newline),
           readOnly: widget.readOnly,
           onTap: widget.onTap,
           decoration: InputDecoration(
@@ -112,21 +176,61 @@ class _AppTextFieldState extends State<AppTextField> {
             suffixText: widget.suffixText,
             suffixStyle: const TextStyle(fontWeight: FontWeight.w600),
             helperText: widget.helperText,
-            suffixIcon: widget.obscure
-                ? IconButton(
-                    icon: Icon(
-                      _obscured
-                          ? Icons.visibility_off_outlined
-                          : Icons.visibility_outlined,
-                      size: AppSizes.iconMd,
-                    ),
-                    onPressed: () => setState(() => _obscured = !_obscured),
-                  )
-                : widget.suffixIcon,
+            suffixIcon: _buildSuffixIcon(),
           ),
         ),
       ],
     );
+  }
+
+  Widget? _buildSuffixIcon() {
+    if (widget.obscure) {
+      return IconButton(
+        icon: Icon(
+          _obscured ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+          size: AppSizes.iconMd,
+        ),
+        onPressed: () => setState(() => _obscured = !_obscured),
+      );
+    }
+
+    final isRequired = widget.label?.contains('*') == true;
+    final isEmpty = _controller.text.trim().isEmpty;
+
+    if (isRequired && isEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (widget.suffixIcon != null) widget.suffixIcon!,
+          const Padding(
+            padding: EdgeInsets.only(right: 12.0, left: 4.0),
+            child: Text(
+              '*',
+              style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      );
+    } else if (!isEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          if (widget.suffixIcon != null) widget.suffixIcon!,
+          const Padding(
+            padding: EdgeInsets.only(right: 12.0, left: 4.0),
+            child: Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: 18,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return widget.suffixIcon;
   }
 }
 

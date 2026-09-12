@@ -44,12 +44,12 @@ class AppSectionHeader extends StatelessWidget {
               children: [
                 Text(
                   context.tr(actionLabel!),
-                  style: const TextStyle(
+                  style:  TextStyle(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const Icon(
+                 Icon(
                   Icons.chevron_right_rounded,
                   size: 18,
                   color: AppColors.primary,

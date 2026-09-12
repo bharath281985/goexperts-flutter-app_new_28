@@ -10,9 +10,11 @@ class ProfileCompletionCard extends StatelessWidget {
   final int percent;
 
   Color get _color {
-    if (percent >= 80) return AppColors.success;
-    if (percent >= 50) return AppColors.warning;
-    return AppColors.danger;
+    if (percent >= 80) return AppColors.primary;
+    if (percent >= 50) return AppColors.primary.withValues(alpha: 0.5);
+    if (percent >= 30) return AppColors.primary.withValues(alpha: 0.3);
+    if (percent >= 10) return AppColors.primary.withValues(alpha: 0.1);
+    return AppColors.primary.withValues(alpha: 0.05);
   }
 
   @override

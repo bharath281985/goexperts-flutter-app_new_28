@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -17,28 +18,81 @@ import '../../domain/entities/investor.dart';
 import '../../domain/repositories/investor_repository.dart';
 import '../widgets/investment_edit_sheet.dart';
 import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
+import '../../../proposals/domain/entities/proposal.dart';
+import '../../../proposals/domain/repositories/proposal_repository.dart';
+import '../../../proposals/presentation/pages/proposals_list_view.dart';
+import '../../../auth/presentation/bloc/auth_bloc.dart';
 
-/// Embeddable deal-room & contracts catalog with 2 top tabs.
+/// Embeddable deal-room & contracts catalog with 3 top tabs.
+/// Tab order: Founder/Investor → Deals first. Other roles → Deals last.
 class DealsListView extends StatefulWidget {
-  const DealsListView({super.key, this.initialTabIndex = 0});
+  const DealsListView({
+    super.key,
+    this.initialTabIndex = -1, // -1 = auto-detect from role
+    this.isContractsFirst = false,
+  });
 
   final int initialTabIndex;
+  final bool isContractsFirst;
 
   @override
   State<DealsListView> createState() => _DealsListViewState();
 }
 
+// Tab slot constants
+const int _kContracts = 0;
+const int _kProposals = 1;
+const int _kDeals = 2;
+
+/// Returns the visible ordering of [_kContracts, _kProposals, _kDeals]
+/// based on whether the user is a Founder/Investor.
+/// Founder/Investor: Deals → Proposals → Contracts
+/// Others:           Proposals → Contracts → Deals
+List<int> _tabOrder(bool dealsFirst) =>
+    dealsFirst
+        ? [_kDeals, _kProposals, _kContracts]
+        : [_kProposals, _kContracts, _kDeals];
+
 class _DealsListViewState extends State<DealsListView> {
-  late int _selectedTab;
+  late int _selectedSlot; // logical slot: _kContracts / _kProposals / _kDeals
   int _refreshKey = 0;
 
   @override
   void initState() {
     super.initState();
-    _selectedTab = widget.initialTabIndex;
+    if (widget.initialTabIndex >= 0) {
+      _selectedSlot = widget.initialTabIndex.clamp(0, 2);
+    } else {
+      // Default slot: will be corrected in build() after we know the role
+      _selectedSlot = -1; // sentinel → resolved in build
+    }
   }
 
-  Widget _buildTopTabs(BuildContext context) {
+  bool _dealsFirst(BuildContext context) {
+    final role = context.read<AuthBloc>().state.user?.role;
+    return role == UserRole.investor || role == UserRole.founder;
+  }
+
+  Widget _buildTopTabs(BuildContext context, List<int> order) {
+    String _label(int slot) {
+      switch (slot) {
+        case _kContracts: return 'Contracts';
+        case _kProposals: return 'Proposals';
+        default: return 'Deals';
+      }
+    }
+
+    IconData _icon(int slot, bool active) {
+      switch (slot) {
+        case _kContracts:
+          return active ? Icons.description_rounded : Icons.description_outlined;
+        case _kProposals:
+          return active ? Icons.send_rounded : Icons.send_outlined;
+        default:
+          return active ? Icons.handshake_rounded : Icons.handshake_outlined;
+      }
+    }
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       padding: const EdgeInsets.all(4),
@@ -46,46 +100,30 @@ class _DealsListViewState extends State<DealsListView> {
         color: context.isDark ? AppColors.darkCard : const Color(0xFFF1F3F9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: context.isDark
-              ? AppColors.darkBorder
-              : const Color(0xFFE2E8F0),
+          color: context.isDark ? AppColors.darkBorder : const Color(0xFFE2E8F0),
         ),
       ),
       child: Row(
         children: [
-          Expanded(
-            child: _TabButton(
-              label: 'Investment Deals',
-              icon: Icons.handshake_outlined,
-              activeIcon: Icons.handshake_rounded,
-              isSelected: _selectedTab == 0,
-              onTap: () {
-                if (_selectedTab != 0) {
-                  setState(() {
-                    _selectedTab = 0;
-                    _refreshKey++;
-                  });
-                }
-              },
+          for (int i = 0; i < order.length; i++) ...[
+            if (i > 0) const SizedBox(width: 4),
+            Expanded(
+              child: _TabButton(
+                label: _label(order[i]),
+                icon: _icon(order[i], false),
+                activeIcon: _icon(order[i], true),
+                isSelected: _selectedSlot == order[i],
+                onTap: () {
+                  if (_selectedSlot != order[i]) {
+                    setState(() {
+                      _selectedSlot = order[i];
+                      _refreshKey++;
+                    });
+                  }
+                },
+              ),
             ),
-          ),
-          const SizedBox(width: 4),
-          Expanded(
-            child: _TabButton(
-              label: 'Project Contracts',
-              icon: Icons.description_outlined,
-              activeIcon: Icons.description_rounded,
-              isSelected: _selectedTab == 1,
-              onTap: () {
-                if (_selectedTab != 1) {
-                  setState(() {
-                    _selectedTab = 1;
-                    _refreshKey++;
-                  });
-                }
-              },
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -93,39 +131,65 @@ class _DealsListViewState extends State<DealsListView> {
 
   @override
   Widget build(BuildContext context) {
-    final isDeals = _selectedTab == 0;
+    final dealsFirst = _dealsFirst(context);
+    final order = _tabOrder(dealsFirst);
+
+    // Resolve sentinel default
+    if (_selectedSlot == -1) {
+      _selectedSlot = order[0]; // first visible tab is the default
+    }
+
     final projectRepo = sl<ProjectRepository>();
+    final proposalRepo = sl<ProposalRepository>();
     final investorRepo = sl<InvestorRepository>();
+
+    Widget body;
+    switch (_selectedSlot) {
+      case _kContracts:
+        body = CatalogView<Contract>(
+          key: ValueKey('contracts-tab-$_refreshKey'),
+          fetcher: projectRepo.getContracts,
+          searchHint: 'Search contracts…',
+          emptyTitle: 'No project contracts yet',
+          emptyMessage:
+              'Accepted proposals and active project contracts will appear here.',
+          emptyIcon: Icons.description_outlined,
+          skeletonHeight: 120,
+          itemBuilder: (context, contract, _) =>
+              ContractCard(contract: contract),
+        );
+        break;
+      case _kProposals:
+        body = CatalogView<Proposal>(
+          key: ValueKey('proposals-tab-$_refreshKey'),
+          fetcher: proposalRepo.getProposals,
+          searchHint: 'Search proposals…',
+          emptyTitle: 'No applied proposals',
+          emptyMessage: 'You have not applied to any projects yet.',
+          emptyIcon: Icons.description_outlined,
+          skeletonHeight: 120,
+          itemBuilder: (context, proposal, _) =>
+              ProposalCard(proposal: proposal, onReturned: () {}),
+        );
+        break;
+      default:
+        body = CatalogView<Deal>(
+          key: ValueKey('deals-tab-$_refreshKey'),
+          fetcher: investorRepo.getDeals,
+          searchHint: 'Search deals…',
+          emptyTitle: 'No active investment deals',
+          emptyMessage:
+              'Startup investment offers and deal room opportunities will appear here.',
+          emptyIcon: Icons.handshake_outlined,
+          skeletonHeight: 120,
+          itemBuilder: (context, deal, _) => DealCard(deal: deal),
+        );
+    }
 
     return Column(
       children: [
-        _buildTopTabs(context),
-        Expanded(
-          child: isDeals
-              ? CatalogView<Deal>(
-                  key: ValueKey('deals-tab-$_selectedTab-$_refreshKey'),
-                  fetcher: investorRepo.getDeals,
-                  searchHint: 'Search deals…',
-                  emptyTitle: 'No active investment deals',
-                  emptyMessage:
-                      'Startup investment offers and deal room opportunities will appear here.',
-                  emptyIcon: Icons.handshake_outlined,
-                  skeletonHeight: 120,
-                  itemBuilder: (context, deal, _) => _DealCard(deal: deal),
-                )
-              : CatalogView<Contract>(
-                  key: ValueKey('contracts-tab-$_selectedTab-$_refreshKey'),
-                  fetcher: projectRepo.getContracts,
-                  searchHint: 'Search contracts…',
-                  emptyTitle: 'No project contracts yet',
-                  emptyMessage:
-                      'Accepted proposals and active project contracts will appear here.',
-                  emptyIcon: Icons.description_outlined,
-                  skeletonHeight: 120,
-                  itemBuilder: (context, contract, _) =>
-                      _ContractCard(contract: contract),
-                ),
-        ),
+        _buildTopTabs(context, order),
+        Expanded(child: body),
       ],
     );
   }
@@ -148,8 +212,8 @@ String _formatStage(String raw) {
   return raw.replaceAll(RegExp(r'[{}]'), '').trim();
 }
 
-class _DealCard extends StatelessWidget {
-  const _DealCard({required this.deal});
+class DealCard extends StatelessWidget {
+  const DealCard({required this.deal, super.key});
   final Deal deal;
 
   @override
@@ -373,7 +437,7 @@ class _DealCard extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                const Icon(
+                                 Icon(
                                   Icons.lock_outline_rounded,
                                   size: 14,
                                   color: AppColors.primary,
@@ -532,8 +596,8 @@ class _DealCard extends StatelessWidget {
   }
 }
 
-class _ContractCard extends StatelessWidget {
-  const _ContractCard({required this.contract});
+class ContractCard extends StatelessWidget {
+  const ContractCard({required this.contract, super.key});
   final Contract contract;
 
   @override

@@ -13,4 +13,28 @@ class AppAssets {
   static const String splashImage = 'assets/images/splash_screen.png';
   static const String backIcon = 'assets/icons/backicon.png';
   static const String menuIcon = 'assets/icons/menu.png';
+
+  // Fallback Data
+  static String? dynamicLogo ; // Can be updated when API is fetched
+
+  static const List<Map<String, String>> fallbackOnboarding = [
+    {
+      'title': 'Discover Go Experts',
+      'description': 'Find verified freelancers, investors, clients, and founders in one place.',
+      'image': 'assets/images/1.png',
+      'mediaType': 'image',
+    },
+    {
+      'title': 'Connect With the Right People',
+      'description': 'Use smart matching to build your network and start meaningful conversations.',
+      'image': 'assets/images/2.png',
+      'mediaType': 'image',
+    },
+    {
+      'title': 'Build, Fund, and Scale',
+      'description': 'Manage opportunities, projects, funding, and growth from your workspace.',
+      'image': 'assets/images/3.png',
+      'mediaType': 'image',
+    },
+  ];
 }

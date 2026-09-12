@@ -30,7 +30,7 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
   final _otpController = TextEditingController();
   final _dio = Dio(
     BaseOptions(
-      baseUrl: AppConfig.authBaseUrl,
+      baseUrl: AppConfig.baseUrl,
       connectTimeout: AppConfig.connectTimeout,
       receiveTimeout: AppConfig.receiveTimeout,
       headers: const {
@@ -149,6 +149,12 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         '/auth/send-otp',
         data: {'email': email},
       );
+      debugPrint('=== SEND OTP RESPONSE ===');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Headers: ${response.headers}');
+      debugPrint('Body: ${response.data}');
+      debugPrint('========================');
+      if (!mounted) return;
       final data = response.data ?? {};
       _showMessage(
         data['message']?.toString() ?? 'Verification OTP sent to your email.',
@@ -162,6 +168,20 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         _startResendTimer();
       }
     } catch (e) {
+      debugPrint('=== SEND OTP ERROR ===');
+      debugPrint('Type: ${e.runtimeType}');
+      if (e is DioException) {
+        debugPrint('DioException type: ${e.type}');
+        debugPrint('Status code: ${e.response?.statusCode}');
+        debugPrint('Response headers: ${e.response?.headers}');
+        debugPrint('Response body: ${e.response?.data}');
+        debugPrint('Message: ${e.message}');
+        debugPrint('Error: ${e.error}');
+      } else {
+        debugPrint('Error: $e');
+      }
+      debugPrint('======================');
+      if (!mounted) return;
       _showMessage(
         _messageFromError(e, 'Failed to send email OTP'),
         isSuccess: false,
@@ -185,6 +205,12 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         '/auth/verify-otp',
         data: {'email': email, 'otp': otp},
       );
+      debugPrint('=== VERIFY OTP RESPONSE ===');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Headers: ${response.headers}');
+      debugPrint('Body: ${response.data}');
+      debugPrint('===========================');
+      if (!mounted) return;
       final data = response.data ?? {};
       _resendTimer?.cancel();
       setState(() {
@@ -198,6 +224,20 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         isSuccess: true,
       );
     } catch (e) {
+      debugPrint('=== VERIFY OTP ERROR ===');
+      debugPrint('Type: ${e.runtimeType}');
+      if (e is DioException) {
+        debugPrint('DioException type: ${e.type}');
+        debugPrint('Status code: ${e.response?.statusCode}');
+        debugPrint('Response headers: ${e.response?.headers}');
+        debugPrint('Response body: ${e.response?.data}');
+        debugPrint('Message: ${e.message}');
+        debugPrint('Error: ${e.error}');
+      } else {
+        debugPrint('Error: $e');
+      }
+      debugPrint('========================');
+      if (!mounted) return;
       setState(() {
         _isVerified = false;
         _verifiedEmail = null;
@@ -212,8 +252,47 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
   String _messageFromError(Object error, String fallback) {
     if (error is DioException) {
       final data = error.response?.data;
-      if (data is Map && data['message'] != null) {
-        return data['message'].toString();
+
+      // Try common backend error keys in order of priority
+      if (data is Map) {
+        for (final key in ['message', 'error', 'detail', 'msg']) {
+          final val = data[key];
+          if (val != null && val.toString().trim().isNotEmpty) {
+            return val.toString().trim();
+          }
+        }
+        // Some backends send errors as a list under 'errors'
+        final errors = data['errors'];
+        if (errors is List && errors.isNotEmpty) {
+          return errors.map((e) => e.toString()).join(', ');
+        }
+        // Last resort: show raw response body so nothing is hidden
+        if (data.isNotEmpty) {
+          return 'Server error: $data';
+        }
+      }
+
+      if (data is String && data.trim().isNotEmpty) {
+        return data.trim();
+      }
+
+      // Network / timeout / connection errors
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+          return 'Connection timed out. Please check your network.';
+        case DioExceptionType.receiveTimeout:
+          return 'Server took too long to respond. Try again.';
+        case DioExceptionType.sendTimeout:
+          return 'Request timed out while sending. Try again.';
+        case DioExceptionType.connectionError:
+          return 'No internet connection. Please check your network.';
+        case DioExceptionType.badResponse:
+          final status = error.response?.statusCode;
+          return status != null
+              ? 'Server returned error $status.'
+              : fallback;
+        default:
+          break;
       }
     }
     return fallback;
@@ -244,7 +323,7 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+            borderSide:  BorderSide(color: AppColors.primary, width: 1.5),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(14),
@@ -335,7 +414,7 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
                   child: ElevatedButton(
                     onPressed: _isSending ? null : _sendOtp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryBlack,
+                      backgroundColor: AppColors.success.withValues(alpha: 0.8),
                       foregroundColor: Colors.white,
                       disabledBackgroundColor: const Color(0xFF737378),
                       disabledForegroundColor: Colors.white,
@@ -430,7 +509,7 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
                           ? null
                           : _sendOtp,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryBlack,
+                        backgroundColor: AppColors.primary.withValues(alpha:0.5),
                         foregroundColor: Colors.white,
                         disabledBackgroundColor: const Color(0xFF737378),
                         disabledForegroundColor: Colors.white,

@@ -15,17 +15,20 @@ class ScheduleMeetingSheet extends StatefulWidget {
     required this.targetId,
     required this.targetName,
     this.targetAvatar,
+    this.initialTitle,
   });
 
   final String targetId;
   final String targetName;
   final String? targetAvatar;
+  final String? initialTitle;
 
   static Future<bool?> show(
     BuildContext context, {
     required String targetId,
     required String targetName,
     String? targetAvatar,
+    String? initialTitle,
   }) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -42,6 +45,7 @@ class ScheduleMeetingSheet extends StatefulWidget {
         targetId: targetId,
         targetName: targetName,
         targetAvatar: targetAvatar,
+        initialTitle: initialTitle,
       ),
     );
   }
@@ -51,7 +55,9 @@ class ScheduleMeetingSheet extends StatefulWidget {
 }
 
 class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
-  final _titleCtrl = TextEditingController(text: 'Introduction Meeting');
+  late final TextEditingController _titleCtrl = TextEditingController(
+    text: widget.initialTitle ?? 'Introduction Meeting',
+  );
   final _meetingUrlCtrl = TextEditingController();
   final _agendaCtrl = TextEditingController();
   DateTime? _selectedDate;
@@ -144,11 +150,11 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSizes.xl,
           0,
           AppSizes.xl,
-          AppSizes.xxxl,
+          AppSizes.xxxl + MediaQuery.of(context).viewInsets.bottom,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -187,7 +193,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                           Icon(
                             Icons.calendar_today_rounded,
                             size: 20,
                             color: AppColors.primary,
@@ -219,7 +225,7 @@ class _ScheduleMeetingSheetState extends State<ScheduleMeetingSheet> {
                       ),
                       child: Row(
                         children: [
-                          const Icon(
+                           Icon(
                             Icons.access_time_rounded,
                             size: 20,
                             color: AppColors.primary,

@@ -656,14 +656,12 @@ class _CreateProjectPageState extends State<CreateProjectPage> {
   }
 
   void _toggleSkill(String skillId) {
-    setState(() {
-      if (_selectedSkillIds.contains(skillId)) {
-        _selectedSkillIds.remove(skillId);
-      } else {
-        _selectedSkillIds.add(skillId);
-      }
-      _skillsError = null;
-    });
+    if (_selectedSkillIds.contains(skillId)) {
+      _selectedSkillIds.remove(skillId);
+    } else {
+      _selectedSkillIds.add(skillId);
+    }
+    _skillsError = null;
   }
 
   void _showSkillsBottomSheet() {

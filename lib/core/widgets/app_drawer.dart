@@ -210,7 +210,12 @@ class AppDrawer extends StatelessWidget {
 
     return _FounderDrawer(
       user: user,
-      sections: _sections(context, role, user: user, dashboardData: dashboardData),
+      sections: _sections(
+        context,
+        role,
+        user: user,
+        dashboardData: dashboardData,
+      ),
       currentPath: currentPath,
       onTabSelected: onTabSelected,
       workspaceLabel: switch (role) {
@@ -230,7 +235,6 @@ class AppDrawer extends StatelessWidget {
     dynamic user,
     Map<String, dynamic> dashboardData = const {},
   }) {
-
     final effectiveRole = userRole ?? role;
     final (kycText, kycColor) = _resolveKycBadge(user, dashboardData);
     final (planText, planColor) = _resolvePlanBadge(user, dashboardData);
@@ -273,13 +277,12 @@ class AppDrawer extends StatelessWidget {
         ),
         if (!(!kIsWeb && Platform.isIOS))
           DrawerEntry(
-            'My Subscriptions',
+            'My Packages',
             Icons.workspace_premium_outlined,
             route: Routes.subscriptionsManage,
             badgeText: planText,
             badgeColor: planColor,
           ),
-
 
         if (effectiveRole == UserRole.freelancer) ...[
           DrawerEntry(
@@ -389,7 +392,7 @@ class AppDrawer extends StatelessWidget {
             ),
 
           DrawerEntry(
-            'Contracts',
+            'Proposals',
             Icons.assignment_outlined,
             route: switch (effectiveRole) {
               UserRole.freelancer => Routes.freelancerContracts,
@@ -471,11 +474,7 @@ class AppDrawer extends StatelessWidget {
       ]),
 
       DrawerSection('System', [
-        DrawerEntry(
-          "My Social Links",
-          Icons.public,
-          route: Routes.socialLinks,
-        ),
+        DrawerEntry("My Social Links", Icons.public, route: Routes.socialLinks),
         DrawerEntry(
           'Support',
           Icons.support_agent_outlined,
@@ -619,7 +618,7 @@ class AppDrawer extends StatelessWidget {
           ]),
           const DrawerSection('Finance', [
             DrawerEntry(
-              'Subscriptions',
+              'Packages',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
@@ -732,7 +731,7 @@ class AppDrawer extends StatelessWidget {
           ]),
           const DrawerSection('Finance', [
             DrawerEntry(
-              'Subscriptions',
+              'Packages',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
@@ -851,7 +850,7 @@ class AppDrawer extends StatelessWidget {
               route: Routes.investorDocuments,
             ),
             DrawerEntry(
-              'Subscription',
+              'Package',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
@@ -956,7 +955,7 @@ class AppDrawer extends StatelessWidget {
           ]),
           const DrawerSection('Finance', [
             DrawerEntry(
-              'Subscriptions',
+              'Packages',
               Icons.workspace_premium_outlined,
               route: Routes.subscriptionsManage,
             ),
@@ -1038,18 +1037,25 @@ class _FounderDrawer extends StatelessWidget {
     final colors = context.colors;
     final permissionService = PermissionService(currentUser: user);
 
-    final filteredSections = sections.map((section) {
-      final permittedEntries = section.entries.where((entry) {
-        if (entry.requiredDashboard != null && !permissionService.hasDashboardAccess(entry.requiredDashboard!)) {
-          return false;
-        }
-        if (entry.requiredModule != null && !permissionService.canRead(entry.requiredModule!)) {
-          return false;
-        }
-        return true;
-      }).toList();
-      return DrawerSection(section.title, permittedEntries);
-    }).where((section) => section.entries.isNotEmpty).toList();
+    final filteredSections = sections
+        .map((section) {
+          final permittedEntries = section.entries.where((entry) {
+            if (entry.requiredDashboard != null &&
+                !permissionService.hasDashboardAccess(
+                  entry.requiredDashboard!,
+                )) {
+              return false;
+            }
+            if (entry.requiredModule != null &&
+                !permissionService.canRead(entry.requiredModule!)) {
+              return false;
+            }
+            return true;
+          }).toList();
+          return DrawerSection(section.title, permittedEntries);
+        })
+        .where((section) => section.entries.isNotEmpty)
+        .toList();
 
     return Drawer(
       width: 288,
@@ -1179,7 +1185,7 @@ class _FounderBrandHeader extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.25),
+                          color: AppColors.primary,
                           width: 1.5,
                         ),
                       ),
@@ -1246,7 +1252,7 @@ class _FounderBrandHeader extends StatelessWidget {
                             ),
                             child: Text(
                               workspaceLabel,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: AppColors.primary,
                                 fontSize: 9.5,
                                 letterSpacing: 1.1,
@@ -1261,17 +1267,31 @@ class _FounderBrandHeader extends StatelessWidget {
                               vertical: 2,
                             ),
                             decoration: BoxDecoration(
-                              color: user?.isOwner == true ? const Color(0xFF10B981).withValues(alpha: 0.1) : const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+                              color: user?.isOwner == true
+                                  ? const Color(
+                                      0xFF10B981,
+                                    ).withValues(alpha: 0.1)
+                                  : const Color(
+                                      0xFF8B5CF6,
+                                    ).withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(4),
                               border: Border.all(
-                                color: user?.isOwner == true ? const Color(0xFF10B981).withValues(alpha: 0.3) : const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+                                color: user?.isOwner == true
+                                    ? const Color(
+                                        0xFF10B981,
+                                      ).withValues(alpha: 0.3)
+                                    : const Color(
+                                        0xFF8B5CF6,
+                                      ).withValues(alpha: 0.3),
                                 width: 0.8,
                               ),
                             ),
                             child: Text(
                               user?.accountType.toUpperCase() ?? 'OWNER',
                               style: TextStyle(
-                                color: user?.isOwner == true ? const Color(0xFF047857) : const Color(0xFF5B21B6),
+                                color: user?.isOwner == true
+                                    ? const Color(0xFF047857)
+                                    : const Color(0xFF5B21B6),
                                 fontSize: 8.5,
                                 letterSpacing: 1.1,
                                 fontWeight: FontWeight.w800,
@@ -1354,16 +1374,34 @@ class _FounderDrawerFooter extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Image.asset(
-            AppAssets.fullBannerImage,
-            height: 22,
-            fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) => Image.asset(
-              AppAssets.appLogo,
-              height: 22,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
+          Builder(
+            builder: (context) {
+              final logo = AppAssets.dynamicLogo;
+              if (logo != null && logo.startsWith('http')) {
+                return Image.network(
+                  logo,
+                  height: 22,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => Image.asset(
+                    AppAssets.appLogo,
+                    height: 22,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  ),
+                );
+              }
+              return Image.asset(
+                logo ?? AppAssets.fullBannerImage,
+                height: 22,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Image.asset(
+                  AppAssets.appLogo,
+                  height: 22,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              );
+            },
           ),
           const SizedBox(height: 6),
           const Text(
@@ -1475,50 +1513,54 @@ class _FounderDrawerSection extends StatelessWidget {
             ),
           ),
           for (final entry in section.entries)
-            Builder(builder: (context) {
-              final tile = _DrawerMenuTile(
-                entry: entry,
-                currentPath: currentPath,
-                founderStyle: true,
-                onTap: () async {
-                  final route = entry.route;
-                  final customTap = entry.onTap;
-                  if (route != null) {
-                    AppDrawer._lastSelectedRoute = route;
-                  }
-                  final rootScaffold = Scaffold.maybeOf(context);
-                  Navigator.of(context).pop();
-                  if (customTap != null) {
-                    customTap();
-                  } else if (route != null) {
-                    final tabIndex = _resolveTabIndex(route);
-                    if (tabIndex != null && onTabSelected != null) {
-                      onTabSelected!(tabIndex);
-                      return;
+            Builder(
+              builder: (context) {
+                final tile = _DrawerMenuTile(
+                  role: role,
+                  entry: entry,
+                  currentPath: currentPath,
+                  founderStyle: true,
+                  onTap: () async {
+                    final route = entry.route;
+                    final customTap = entry.onTap;
+                    if (route != null) {
+                      AppDrawer._lastSelectedRoute = route;
                     }
-                    if (currentPath == route) return;
-                    await context.push(route);
-                    if (rootScaffold != null &&
-                        rootScaffold.mounted &&
-                        !rootScaffold.isDrawerOpen) {
-                      rootScaffold.openDrawer();
+                    final rootScaffold = Scaffold.maybeOf(context);
+                    Navigator.of(context).pop();
+                    if (customTap != null) {
+                      customTap();
+                    } else if (route != null) {
+                      final tabIndex = _resolveTabIndex(route);
+                      if (tabIndex != null && onTabSelected != null) {
+                        onTabSelected!(tabIndex);
+                        return;
+                      }
+                      if (currentPath == route) return;
+                      await context.push(route);
+                      if (rootScaffold != null &&
+                          rootScaffold.mounted &&
+                          !rootScaffold.isDrawerOpen) {
+                        rootScaffold.openDrawer();
+                      }
+                    } else {
+                      context.showSnack('Coming soon');
                     }
-                  } else {
-                    context.showSnack('Coming soon');
-                  }
-                },
-              );
-
-              if (entry.requiredDashboard != null || entry.requiredModule != null) {
-                return PermissionGate(
-                  user: user,
-                  module: entry.requiredModule ?? '',
-                  requiredDashboard: entry.requiredDashboard,
-                  child: tile,
+                  },
                 );
-              }
-              return tile;
-            }),
+
+                if (entry.requiredDashboard != null ||
+                    entry.requiredModule != null) {
+                  return PermissionGate(
+                    user: user,
+                    module: entry.requiredModule ?? '',
+                    requiredDashboard: entry.requiredDashboard,
+                    child: tile,
+                  );
+                }
+                return tile;
+              },
+            ),
         ],
       ),
     );
@@ -1562,6 +1604,7 @@ class _FounderFooterAction extends StatelessWidget {
 
 class _DrawerMenuTile extends StatelessWidget {
   const _DrawerMenuTile({
+    required this.role,
     required this.entry,
     required this.currentPath,
     this.dense = false,
@@ -1571,6 +1614,7 @@ class _DrawerMenuTile extends StatelessWidget {
   });
 
   final DrawerEntry entry;
+  final UserRole role;
   final String currentPath;
   final bool dense;
   final bool founderStyle;
@@ -1723,7 +1767,7 @@ class _DrawerMenuTile extends StatelessWidget {
       return Container(
         width: 6,
         height: 6,
-        decoration: const BoxDecoration(
+        decoration:  BoxDecoration(
           shape: BoxShape.circle,
           gradient: AppColors.primaryGradient,
         ),
@@ -1753,7 +1797,7 @@ void _showLogoutLoading(BuildContext context) {
               ),
             ],
           ),
-          child: const Row(
+          child:  Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox(
@@ -1781,4 +1825,3 @@ void _showLogoutLoading(BuildContext context) {
     ),
   );
 }
-

@@ -13,6 +13,7 @@ import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../proposals/domain/entities/proposal.dart';
 import '../../../messages/domain/repositories/message_repository.dart';
+import '../../../meetings/presentation/widgets/schedule_meeting_sheet.dart';
 import '../../domain/repositories/client_proposal_repository.dart';
 import '../bloc/client_proposal_bloc.dart';
 
@@ -126,8 +127,10 @@ class _ClientProposalActionBarBody extends StatelessWidget {
                       ClientProposalAction.interview,
                       proposal.id,
                     ),
-                    onPressed: () =>
-                        bloc.add(ClientProposalInterviewRequested(proposal.id)),
+                    onPressed: () async{
+                      await _scheduleInterview(context, bloc);
+                      bloc.add(ClientProposalInterviewRequested(proposal.id));
+                    },
                   ),
                 ],
                 if (status == EntityStatus.shortlisted ||
@@ -212,6 +215,28 @@ class _ClientProposalActionBarBody extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _scheduleInterview(
+    BuildContext context,
+    ClientProposalBloc bloc,
+  ) async {
+    final freelancerId = proposal.freelancerId;
+    if (freelancerId == null || freelancerId.isEmpty) {
+      context.showSnack('Freelancer info unavailable', isError: true);
+      return;
+    }
+    // Open the meeting scheduler first
+    await ScheduleMeetingSheet.show(
+      context,
+      targetId: freelancerId,
+      targetName: proposal.freelancerName,
+      targetAvatar: proposal.freelancerAvatar,
+      initialTitle: 'Interview Meeting',
+    );
+    // Whether or not the meeting was saved, still move the proposal to interview
+    if (!context.mounted) return;
+    bloc.add(ClientProposalInterviewRequested(proposal.id));
   }
 
   Future<void> _confirm(

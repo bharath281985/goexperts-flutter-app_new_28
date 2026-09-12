@@ -179,7 +179,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.sync_rounded, color: AppColors.primary),
+                  child:  Icon(Icons.sync_rounded, color: AppColors.primary),
                 ),
                 title: const Text('Sync with Server', style: TextStyle(fontWeight: FontWeight.w600)),
                 subtitle: const Text('Refresh latest scheduled meetings'),

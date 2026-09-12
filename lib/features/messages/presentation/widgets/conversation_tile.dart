@@ -110,7 +110,7 @@ class ConversationTile extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.only(left: 6),
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: const BoxDecoration(
+                decoration:  BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
@@ -150,33 +150,33 @@ class _RoleBadge extends StatelessWidget {
 
     switch (clean) {
       case 'freelancer':
-        bg = isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFEFF6FF);
-        border = isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.5) : const Color(0xFFBFDBFE);
-        text = isDark ? const Color(0xFF93C5FD) : const Color(0xFF2563EB);
+        bg = !isDark ?  AppColors.freelancerColor.withValues(alpha: 0.04) : const Color(0xFFEFF6FF);
+        border = !isDark ?  AppColors.freelancerColor.withValues(alpha: 0.5) : const Color(0xFFBFDBFE);
+        text = !isDark ?  AppColors.freelancerColor : const Color(0xFF2563EB);
         label = 'Freelancer';
         break;
       case 'client':
-        bg = isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5);
-        border = isDark ? const Color(0xFF10B981).withValues(alpha: 0.5) : const Color(0xFFA7F3D0);
-        text = isDark ? const Color(0xFF6EE7B7) : const Color(0xFF059669);
+        bg = !isDark ?  AppColors.clientColor.withValues(alpha: 0.04) : const Color(0xFFECFDF5);
+        border = !isDark ?  AppColors.clientColor.withValues(alpha: 0.5) : const Color(0xFFA7F3D0);
+        text = !isDark ?  AppColors.clientColor : const Color(0xFF059669);
         label = 'Client';
         break;
       case 'founder':
-        bg = isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFFFBEB);
-        border = isDark ? const Color(0xFFF59E0B).withValues(alpha: 0.5) : const Color(0xFFFDE68A);
-        text = isDark ? const Color(0xFFFCD34D) : const Color(0xFFD97706);
+        bg = !isDark ?  AppColors.founderColor.withValues(alpha: 0.04) : const Color(0xFFFFFBEB);
+        border = !isDark ?  AppColors.founderColor.withValues(alpha: 0.5) : const Color(0xFFFDE68A);
+        text = !isDark ?  AppColors.founderColor : const Color(0xFFD97706);
         label = 'Founder';
         break;
       case 'investor':
-        bg = isDark ? const Color(0xFF4C1D95).withValues(alpha: 0.4) : const Color(0xFFF5F3FF);
-        border = isDark ? const Color(0xFF8B5CF6).withValues(alpha: 0.5) : const Color(0xFFDDD6FE);
-        text = isDark ? const Color(0xFFC4B5FD) : const Color(0xFF7C3AED);
+        bg = !isDark ?  AppColors.investorColor.withValues(alpha: 0.04) : const Color(0xFFF5F3FF);
+        border = !isDark ?  AppColors.investorColor.withValues(alpha: 0.5) : const Color(0xFFDDD6FE);
+        text = !isDark ?  AppColors.investorColor : const Color(0xFFDDD6FE);
         label = 'Investor';
         break;
       case 'admin':
-        bg = isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.4) : const Color(0xFFFEF2F2);
-        border = isDark ? const Color(0xFFEF4444).withValues(alpha: 0.5) : const Color(0xFFFECACA);
-        text = isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626);
+        bg = isDark ?  AppColors.primary.withValues(alpha: 0.4) : const Color(0xFFFEF2F2);
+        border = isDark ?  AppColors.primary.withValues(alpha: 0.5) : const Color(0xFFFECACA);
+        text = isDark ?  AppColors.primary : const Color(0xFFDC2626);
         label = 'Admin';
         break;
       default:

@@ -112,7 +112,7 @@ class AuthScaffold extends StatelessWidget {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(
+                           Icon(
                             Icons.auto_awesome_rounded,
                             size: 13,
                             color: AppColors.primary,
@@ -133,7 +133,7 @@ class AuthScaffold extends StatelessWidget {
                             ],
                           ),
                           const SizedBox(width: 6),
-                          const Icon(
+                           Icon(
                             Icons.auto_awesome_rounded,
                             size: 13,
                             color: AppColors.primary,

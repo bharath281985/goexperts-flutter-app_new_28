@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/founder_dashboard/presentation/pages/my_startup_view.dart';
+import '../../features/client_dashboard/presentation/pages/clients_list_view.dart';
 import '../../features/freelancer_dashboard/presentation/pages/freelancers_list_view.dart';
 import '../../features/investor_dashboard/presentation/pages/deals_list_view.dart';
 import '../../features/investor_dashboard/presentation/pages/investors_list_view.dart';
@@ -27,10 +28,11 @@ AppScaffold _wrap(BuildContext context, String title, Widget body) => AppScaffol
 );
 
 class ProjectsStandalonePage extends StatelessWidget {
-  const ProjectsStandalonePage({super.key});
+  const ProjectsStandalonePage({super.key, this.initialSearch = ''});
+  final String initialSearch;
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'Projects', const ProjectsListView(initialTabIndex: 0));
+      _wrap(context, 'Projects', ProjectsListView(initialTabIndex: 0, initialSearch: initialSearch));
 }
 
 class MyProjectsStandalonePage extends StatelessWidget {
@@ -48,17 +50,27 @@ class ProposalsStandalonePage extends StatelessWidget {
 }
 
 class FreelancersStandalonePage extends StatelessWidget {
-  const FreelancersStandalonePage({super.key});
+  const FreelancersStandalonePage({super.key, this.initialSearch = ''});
+  final String initialSearch;
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'Freelancers', const FreelancersListView());
+      _wrap(context, 'Freelancers', FreelancersListView(initialSearch: initialSearch));
 }
 
 class StartupsStandalonePage extends StatelessWidget {
-  const StartupsStandalonePage({super.key});
+  const StartupsStandalonePage({super.key, this.initialSearch = ''});
+  final String initialSearch;
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'Startups', const StartupsListView());
+      _wrap(context, 'Startups', StartupsListView(initialSearch: initialSearch));
+}
+
+class ClientsStandalonePage extends StatelessWidget {
+  const ClientsStandalonePage({super.key, this.initialSearch = ''});
+  final String initialSearch;
+  @override
+  Widget build(BuildContext context) =>
+      _wrap(context, 'Clients', ClientsListView(initialSearch: initialSearch));
 }
 
 class InvestorsStandalonePage extends StatelessWidget {
@@ -72,7 +84,7 @@ class DealsStandalonePage extends StatelessWidget {
   const DealsStandalonePage({super.key});
   @override
   Widget build(BuildContext context) =>
-      _wrap(context, 'Deal Rooms', const DealsListView());
+      _wrap(context, 'Proposals', const DealsListView());
 }
 
 class PortfolioStandalonePage extends StatelessWidget {

@@ -137,9 +137,11 @@ class _MyProfilePageState extends State<MyProfilePage> {
               ? (data['user'] as Map)['profileCompletion']
               : null);
 
-      int computedPercent = (user.profileCompletion ?? 0);
+      int computedPercent = 0;
       if (rawComp != null) {
         computedPercent = (rawComp as num).toInt();
+      } else if ((user.profileCompletion ?? 0) > 0) {
+        computedPercent = user.profileCompletion!;
       } else {
         int filled = 0;
         const int totalFields = 7;
@@ -435,19 +437,19 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           ),
                         ],
                       ),
-                      IconButton(
-                        onPressed: () => _navigateAndRefresh(
-                          () => context.push(Routes.changePassword),
-                        ),
-                        icon: Icon(
-                          Icons.settings_outlined,
-                          color: context.isDark
-                              ? Colors.white70
-                              : AppColors.mutedText,
-                          size: 22,
-                        ),
-                        tooltip: 'Account Settings',
-                      ),
+                      // IconButton(
+                      //   onPressed: () => _navigateAndRefresh(
+                      //     () => context.push(Routes.changePassword),
+                      //   ),
+                      //   icon: Icon(
+                      //     Icons.settings_outlined,
+                      //     color: context.isDark
+                      //         ? Colors.white70
+                      //         : AppColors.mutedText,
+                      //     size: 22,
+                      //   ),
+                      //   tooltip: 'Account Settings',
+                      // ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -562,50 +564,50 @@ class _MyProfilePageState extends State<MyProfilePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // ─── CLEAN METRICS STRIP ─────────────────────────────────────
-                  AppCard(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 14,
-                      horizontal: 8,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _cleanMetric(
-                            icon: Icons.star_rounded,
-                            iconColor: const Color(0xFFF59E0B),
-                            value: _loadingAverage
-                                ? '…'
-                                : _rating.toStringAsFixed(1),
-                            label: 'Rating',
-                            caption: _loadingAverage
-                                ? '—'
-                                : '$_reviewsCount reviews',
-                          ),
-                        ),
-                        _cleanDivider(),
-                        Expanded(
-                          child: _cleanMetric(
-                            icon: metric1Icon,
-                            iconColor: AppColors.primary,
-                            value: metric1Val,
-                            label: metric1Label,
-                            caption: 'Active',
-                          ),
-                        ),
-                        _cleanDivider(),
-                        Expanded(
-                          child: _cleanMetric(
-                            icon: metric2Icon,
-                            iconColor: AppColors.success,
-                            value: metric2Val,
-                            label: metric2Label,
-                            caption: 'Total',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  // AppCard(
+                  //   padding: const EdgeInsets.symmetric(
+                  //     vertical: 14,
+                  //     horizontal: 8,
+                  //   ),
+                  //   child: Row(
+                  //     children: [
+                  //       Expanded(
+                  //         child: _cleanMetric(
+                  //           icon: Icons.star_rounded,
+                  //           iconColor: const Color(0xFFF59E0B),
+                  //           value: _loadingAverage
+                  //               ? '…'
+                  //               : _rating.toStringAsFixed(1),
+                  //           label: 'Rating',
+                  //           caption: _loadingAverage
+                  //               ? '—'
+                  //               : '$_reviewsCount reviews',
+                  //         ),
+                  //       ),
+                  //       _cleanDivider(),
+                  //       Expanded(
+                  //         child: _cleanMetric(
+                  //           icon: metric1Icon,
+                  //           iconColor: AppColors.primary,
+                  //           value: metric1Val,
+                  //           label: metric1Label,
+                  //           caption: 'Active',
+                  //         ),
+                  //       ),
+                  //       _cleanDivider(),
+                  //       Expanded(
+                  //         child: _cleanMetric(
+                  //           icon: metric2Icon,
+                  //           iconColor: AppColors.success,
+                  //           value: metric2Val,
+                  //           label: metric2Label,
+                  //           caption: 'Total',
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
+                  // const SizedBox(height: 16),
 
                   // ─── PROFILE COMPLETION STATUS CARD ──────────────────────────
                   if (activeCompletion < 100) ...[
@@ -651,7 +653,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                               children: [
                                 Row(
                                   children: [
-                                    const Icon(
+                                     Icon(
                                       Icons.tune_rounded,
                                       size: 18,
                                       color: AppColors.primary,
@@ -671,7 +673,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                 ),
                                 Text(
                                   '$activeCompletion%',
-                                  style: const TextStyle(
+                                  style:  TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.primary,
@@ -691,7 +693,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                 backgroundColor: context.isDark
                                     ? Colors.white.withValues(alpha: 0.1)
                                     : AppColors.background,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                valueColor:  AlwaysStoppedAnimation<Color>(
                                   AppColors.primary,
                                 ),
                               ),
@@ -809,8 +811,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
                           _profileTile(
                             context,
                             icon: Icons.workspace_premium_outlined,
-                            title: 'My Subscription',
-                            subtitle: 'Plan details, limits and invoices',
+                            title: 'Current Package',
+                            subtitle: 'Package details, limits and invoices',
                             trailing: _buildSubscriptionBadge(user),
                             onTap: () => _navigateAndRefresh(
                               () => context.push(Routes.subscriptionsManage),
@@ -1126,7 +1128,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
             ),
             const SizedBox(width: 4),
             Text(
-              context.tr('Not Verified'),
+              context.tr('No Active Package'),
               style: const TextStyle(
                 color: AppColors.danger,
                 fontSize: 11.5,
@@ -1182,8 +1184,8 @@ class _MyProfilePageState extends State<MyProfilePage> {
             label.isEmpty ? 'Pro' : label,
             style: TextStyle(
               color: badgeColor,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(width: 4),
@@ -1211,7 +1213,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       subtitle: subtitle,
       leadingIcon: icon,
       trailing: trailing,
-      iconColor: isDestructive ? AppColors.danger : AppColors.primary,
+      iconColor: AppColors.danger ,
       onTap: onTap,
     );
   }
@@ -1255,7 +1257,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   ),
                 ],
               ),
-              child: const Row(
+              child:  Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(

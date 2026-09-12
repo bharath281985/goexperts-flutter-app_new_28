@@ -115,6 +115,19 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<bool>> deleteAccount() async {
+    try {
+      final success = await _api.deleteAccount();
+      if (success) {
+        await logout(remote: false); // Clear local data since account is deleted
+      }
+      return Success(success);
+    } catch (e) {
+      return Err(_mapError(e));
+    }
+  }
+
+  @override
   Future<Result<AppUser>> login({
     required String email,
     required String password,

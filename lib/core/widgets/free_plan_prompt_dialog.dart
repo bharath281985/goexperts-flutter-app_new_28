@@ -219,20 +219,20 @@ class _FreePlanPromptDialogState extends State<FreePlanPromptDialog>
                 ),
               ),
               // Shimmer sweep
-              Positioned.fill(
-                child: ShaderMask(
-                  shaderCallback: (rect) => LinearGradient(
-                    begin: Alignment(_shimmerAnim.value - 1, 0),
-                    end: Alignment(_shimmerAnim.value, 0),
-                    colors: [
-                      Colors.transparent,
-                      Colors.white.withValues(alpha: 0.08),
-                      Colors.transparent,
-                    ],
-                  ).createShader(rect),
-                  child: Container(color: Colors.white),
-                ),
-              ),
+              // Positioned.fill(
+              //   child: ShaderMask(
+              //     shaderCallback: (rect) => LinearGradient(
+              //       begin: Alignment(_shimmerAnim.value - 1, 0),
+              //       end: Alignment(_shimmerAnim.value, 0),
+              //       colors: [
+              //         Colors.transparent,
+              //         Colors.white.withValues(alpha: 0.08),
+              //         Colors.transparent,
+              //       ],
+              //     ).createShader(rect),
+              //     child: Container(color: Colors.white),
+              //   ),
+              // ),
               // Main content
               Center(
                 child: Column(
@@ -484,26 +484,26 @@ class _FreePlanPromptDialogState extends State<FreePlanPromptDialog>
             child: Stack(
               children: [
                 // Shimmer on button
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: ShaderMask(
-                    shaderCallback: (rect) => LinearGradient(
-                      begin: Alignment(_shimmerAnim.value - 1, 0),
-                      end: Alignment(_shimmerAnim.value, 0),
-                      colors: [
-                        Colors.transparent,
-                        Colors.white.withValues(alpha: 0.15),
-                        Colors.transparent,
-                      ],
-                    ).createShader(rect),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
+                // ClipRRect(
+                //   borderRadius: BorderRadius.circular(14),
+                //   child: ShaderMask(
+                //     shaderCallback: (rect) => LinearGradient(
+                //       begin: Alignment(_shimmerAnim.value - 1, 0),
+                //       end: Alignment(_shimmerAnim.value, 0),
+                //       colors: [
+                //         Colors.transparent,
+                //         Colors.white.withValues(alpha: 0.15),
+                //         Colors.transparent,
+                //       ],
+                //     ).createShader(rect),
+                //     child: Container(
+                //       decoration: BoxDecoration(
+                //         borderRadius: BorderRadius.circular(14),
+                //         color: Colors.white,
+                //       ),
+                //     ),
+                //   ),
+                // ),
                 Center(
                   child: Text(
                     label,

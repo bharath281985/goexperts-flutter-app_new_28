@@ -25,6 +25,7 @@ import '../../../master_data/domain/entities/skill_category.dart';
 import '../../../master_data/domain/entities/skill_option.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/repositories/freelancer_profile_repository.dart';
+import '../../../auth/presentation/widgets/signup_multi_select_sheet.dart';
 
 class FreelancerEditProfilePage extends StatefulWidget {
   const FreelancerEditProfilePage({super.key});
@@ -48,6 +49,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   final _skillsDisplayController = TextEditingController();
   final _categorySearch = TextEditingController();
   final _skillSearch = TextEditingController();
+  final _otherSkillController = TextEditingController();
 
   // Social & Link Controllers
   final _github = TextEditingController();
@@ -80,6 +82,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   List<String> _selectedCategoryIds = [];
   List<SkillOption> _visibleSkills = [];
   final Set<String> _selectedSkillIds = {};
+  List<String> _selectedSkillNames = [];
+  List<String> _availableSkillNames = [];
+  final Map<String, SkillOption> _skillsMap = {};
   final Map<String, List<SkillOption>> _skillsByCategoryId = {};
 
   // Loading States
@@ -110,6 +115,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     _skillsDisplayController.dispose();
     _categorySearch.dispose();
     _skillSearch.dispose();
+    _otherSkillController.dispose();
     _github.dispose();
     _portfolio.dispose();
     _linkedin.dispose();
@@ -174,9 +180,10 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   Future<void> _loadSkillsForCategory() async {
-    // Skills are a shared catalogue; the API does not support filtering them
-    // by industry, so cache the unfiltered result once.
-    const cacheKey = '__all__';
+    if (_selectedCategoryIds.isEmpty) return;
+
+    final selectedCategoriesSorted = List<String>.from(_selectedCategoryIds)..sort();
+    final cacheKey = selectedCategoriesSorted.join('_');
     if (_skillsByCategoryId.containsKey(cacheKey) &&
         (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
       setState(() {
@@ -192,8 +199,20 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
     final repo = sl<MasterDataRepository>();
     const pageSize = 100;
-    final allSkills = await _fetchSkillsForSingleCategory(repo, null, pageSize);
-    if (!mounted) return;
+    final allSkills = <SkillOption>[];
+    final seenNames = <String>{};
+
+    for (final categoryId in _selectedCategoryIds) {
+      final skillsForCat = await _fetchSkillsForSingleCategory(repo, categoryId, pageSize);
+      if (!mounted) return;
+      for (final skill in skillsForCat) {
+        if (seenNames.add(skill.name)) {
+          allSkills.add(skill);
+        }
+      }
+    }
+
+    allSkills.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
     for (final skill in allSkills) {
       for (final sIdOrName in List<String>.from(_selectedSkillIds)) {
@@ -208,6 +227,17 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     setState(() {
       _skillsByCategoryId[cacheKey] = allSkills;
       _visibleSkills = allSkills;
+      
+      _skillsMap.clear();
+      for (final skill in allSkills) {
+        _skillsMap[skill.name] = skill;
+      }
+      
+      _availableSkillNames = allSkills.map((s) => s.name).toList();
+      if (!_availableSkillNames.contains('Other')) {
+        _availableSkillNames.add('Other');
+      }
+
       _loadingSkills = false;
     });
     _updateSkillsDisplayText();
@@ -548,6 +578,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         'skillIds': _selectedSkillIds.toList().join(','),
         'skills': _selectedSkillIds.toList(),
       },
+      if (_otherSkillController.text.trim().isNotEmpty)
+        'otherSkill': _otherSkillController.text.trim(),
       'portfolioUrl': _portfolio.text.trim(),
       'githubUrl': _github.text.trim(),
       'linkedInUrl': _linkedin.text.trim(),
@@ -723,10 +755,17 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         selectedNames.add(s.name);
       }
     }
+    
+    if (_otherSkillController.text.trim().isNotEmpty && !selectedNames.contains('Other')) {
+      selectedNames.add('Other');
+    }
+    
     if (selectedNames.isNotEmpty) {
       _skillsDisplayController.text = selectedNames.join(', ');
+      _selectedSkillNames = selectedNames;
     } else if (_selectedSkillIds.isEmpty) {
       _skillsDisplayController.clear();
+      _selectedSkillNames = [];
     }
   }
 
@@ -826,133 +865,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     );
   }
 
-  Future<void> _showSkillsBottomSheet() async {
-    if (_selectedCategoryIds.isEmpty) {
-      context.showSnack(
-        'Please select an Industry / Domain first',
-        isError: true,
-      );
-      return;
-    }
 
-    const cacheKey = '__all__';
-    if (_skillsByCategoryId.containsKey(cacheKey) &&
-        (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
-      setState(() {
-        _visibleSkills = _skillsByCategoryId[cacheKey]!;
-      });
-    } else {
-      await _loadSkillsForCategory();
-    }
-
-    if (!mounted) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      useSafeArea: true,
-      showDragHandle: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final search = _skillSearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<SkillOption>.from(_visibleSkills)
-                : _visibleSkills
-                      .where((s) => s.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = _selectedSkillIds.contains(a.id);
-                final bSel = _selectedSkillIds.contains(b.id);
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
-
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: 0.75,
-              maxChildSize: 0.95,
-              builder: (context, scrollController) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Select Skills (${_selectedSkillIds.length})',
-                            style: context.text.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              _updateSkillsDisplayText();
-                              Navigator.of(context).pop();
-                            },
-                            child: const Text(
-                              'Done',
-                              style: TextStyle(fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      AppSizes.vGapSm,
-                      AppTextField(
-                        controller: _skillSearch,
-                        hint: 'Search skills...',
-                        prefixIcon: Icons.search,
-                        onChanged: (_) => setSheetState(() {}),
-                      ),
-                      AppSizes.vGapMd,
-                      Expanded(
-                        child: _loadingSkills
-                            ? const Center(child: CircularProgressIndicator())
-                            : filtered.isEmpty
-                            ? const Center(child: Text('No skills found'))
-                            : ListView.separated(
-                                controller: scrollController,
-                                itemCount: filtered.length,
-                                separatorBuilder: (_, __) =>
-                                    const Divider(height: 1),
-                                itemBuilder: (context, index) {
-                                  final skill = filtered[index];
-                                  final isSelected = _selectedSkillIds.contains(
-                                    skill.id,
-                                  );
-                                  return CheckboxListTile(
-                                    title: Text(skill.name),
-                                    value: isSelected,
-                                    activeColor: AppColors.primary,
-                                    onChanged: (_) {
-                                      _toggleSkill(skill.id);
-                                      setSheetState(() {});
-                                    },
-                                  );
-                                },
-                              ),
-                      ),
-                      AppSizes.vGapMd,
-                      AppPrimaryButton(
-                        label: 'Done (${_selectedSkillIds.length} selected)',
-                        onPressed: () {
-                          _updateSkillsDisplayText();
-                          Navigator.of(context).pop();
-                        },
-                      ),
-                      AppSizes.vGapLg,
-                    ],
-                  ),
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
 
   // ─── UI Build ──────────────────────────────────────────────────────────────
 
@@ -1132,7 +1045,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                       controller: _hourlyRate,
                       label: 'Hourly Rate (₹/hr) *',
                       hint: 'Enter Hourly Rate',
-                      prefixIcon: Icons.attach_money_rounded,
+                      prefixIcon: Icons.currency_rupee_sharp,
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
@@ -1185,39 +1098,89 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                     
                     ),
                     AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _skillsDisplayController,
-                      label: 'Skills (optional)',
+                    SignupMultiSelectSheet(
                       hint: _selectedCategoryIds.isEmpty
                           ? 'Select industry first'
                           : 'Select skills',
-                      readOnly: true,
-                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      onTap: _showSkillsBottomSheet,
+                      label: 'Skills (optional)',
+                      selectedItems: _selectedSkillNames,
+                      availableOptions: _availableSkillNames,
+                      minSelection: 0,
+                      onSearchApi: (query) async {
+                        if (query.isEmpty) return _availableSkillNames;
+                        final q = query.toLowerCase();
+                        return _availableSkillNames.where((s) => s.toLowerCase().contains(q)).toList();
+                      },
+                      onChanged: (items) {
+                        setState(() {
+                          _selectedSkillNames = items;
+                          _selectedSkillIds.clear();
+                          for (final name in items) {
+                            if (name == 'Other') continue;
+                            final option = _skillsMap[name];
+                            if (option != null) {
+                              _selectedSkillIds.add(option.id);
+                            } else {
+                              _selectedSkillIds.add('static_${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}');
+                            }
+                          }
+                        });
+                      },
+                      onTap: () {
+                        if (_selectedCategoryIds.isEmpty) {
+                          context.showSnack(
+                            'Please select an Industry / Domain first',
+                            isError: true,
+                          );
+                        } else {
+                          final selectedCategoriesSorted = List<String>.from(_selectedCategoryIds)..sort();
+                          final cacheKey = selectedCategoriesSorted.join('_');
+                          if (!_skillsByCategoryId.containsKey(cacheKey) || _skillsByCategoryId[cacheKey]!.isEmpty) {
+                            _loadSkillsForCategory();
+                          }
+                        }
+                      },
                     ),
+                    if (_selectedSkillNames.contains('Other')) ...[
+                      AppSizes.vGapMd,
+                      AppTextField(
+                        controller: _otherSkillController,
+                        label: 'Other Skill *',
+                        hint: 'Enter your area of expertise ',
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) {
+                            return 'Please enter your skill';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                     AppSizes.vGapLg,
 
                     // Social Links
-                    const _SectionLabel('Social & Links'),
-                    AppSizes.vGapSm,
-                    AppTextField(
-                      controller: _portfolio,
-                      label: 'Portfolio URL',
-                      hint: 'Enter Portfolio URL',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _github,
-                      label: 'GitHub URL',
-                      hint: 'Enter GitHub URL',
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _linkedin,
-                      label: 'LinkedIn Profile',
-                      hint: 'Enter LinkedIn Profile',
-                    ),
-                    AppSizes.vGapXl,
+                    // const _SectionLabel('Social & Links'),
+                    // AppSizes.vGapSm,
+                    // AppTextField(
+                    //   controller: _portfolio,
+                    //   label: 'Portfolio URL',
+                    //   hint: 'Enter Portfolio URL',
+                    //   validator: Validators.url,
+                    // ),
+                    // AppSizes.vGapMd,
+                    // AppTextField(
+                    //   controller: _github,
+                    //   label: 'GitHub URL',
+                    //   hint: 'Enter GitHub URL',
+                    //   validator: Validators.url,
+                    // ),
+                    // AppSizes.vGapMd,
+                    // AppTextField(
+                    //   controller: _linkedin,
+                    //   label: 'LinkedIn Profile',
+                    //   hint: 'Enter LinkedIn Profile',
+                    //   validator: Validators.url,
+                    // ),
+                    // AppSizes.vGapXl,
 
                     // Save Button
                     AppPrimaryButton(

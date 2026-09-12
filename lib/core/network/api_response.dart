@@ -24,7 +24,11 @@ class ApiResponse<T> {
     Map<String, dynamic> json,
     T Function(dynamic raw)? dataParser,
   ) {
-    final rawData = json['data'] ?? json['user'] ?? (json.containsKey('rows') ? json : null);
+    final rawData = json['data'] ??
+      json['user'] ??
+      (json.containsKey('rows') ? json : null) ??
+      (json.containsKey('links') ? json['links'] : null) ??
+      (json.containsKey('link') ? json['link'] : null);
     T? parsed;
     if (dataParser != null && rawData != null) {
       parsed = dataParser(rawData);

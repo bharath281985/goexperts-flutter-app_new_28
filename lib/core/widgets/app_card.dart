@@ -51,7 +51,7 @@ class AppCard extends StatefulWidget {
       onTap: onTap,
       color: surfaceColor,
       borderGradient: borderGradient ??
-          const LinearGradient(
+           LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
@@ -134,7 +134,7 @@ class AppCard extends StatefulWidget {
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(AppSizes.lg),
     VoidCallback? onTap,
-    Gradient gradient = AppColors.primaryGradient,
+    Gradient? gradient ,
     Color? glowColor,
     bool border = false,
     Color? borderColor,

@@ -67,9 +67,11 @@ class _ConversationsListViewState extends State<ConversationsListView> {
         }
       },
       (page) {
+        final sorted = List<Conversation>.from(page.items)
+          ..sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
         setState(() {
-          _items = page.items;
-          _status = page.items.isEmpty ? ViewStatus.empty : ViewStatus.success;
+          _items = sorted;
+          _status = sorted.isEmpty ? ViewStatus.empty : ViewStatus.success;
           _error = null;
         });
       },

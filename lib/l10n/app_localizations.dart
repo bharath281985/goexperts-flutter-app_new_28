@@ -233,7 +233,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptionBilling.
   ///
   /// In en, this message translates to:
-  /// **'Subscription & Billing'**
+  /// **'Package & Billing'**
   String get subscriptionBilling;
 
   /// No description provided for @preferences.
@@ -497,7 +497,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscriptions.
   ///
   /// In en, this message translates to:
-  /// **'Subscriptions'**
+  /// **'Packages'**
   String get subscriptions;
 
   /// No description provided for @logOut.
@@ -659,61 +659,61 @@ abstract class AppLocalizations {
   /// No description provided for @subscribe.
   ///
   /// In en, this message translates to:
-  /// **'Subscribe'**
+  /// **'Continue'**
   String get subscribe;
 
   /// No description provided for @choosePlan.
   ///
   /// In en, this message translates to:
-  /// **'Choose a plan'**
+  /// **'Choose a package'**
   String get choosePlan;
 
   /// No description provided for @chooseYourPlan.
   ///
   /// In en, this message translates to:
-  /// **'Choose your plan'**
+  /// **'Choose your package'**
   String get chooseYourPlan;
 
   /// No description provided for @renewPlan.
   ///
   /// In en, this message translates to:
-  /// **'Renew your plan'**
+  /// **'Continue your package'**
   String get renewPlan;
 
   /// No description provided for @viewPlans.
   ///
   /// In en, this message translates to:
-  /// **'View Plans'**
+  /// **'View Packages'**
   String get viewPlans;
 
   /// No description provided for @noCurrentPlan.
   ///
   /// In en, this message translates to:
-  /// **'No current plan'**
+  /// **'No current package'**
   String get noCurrentPlan;
 
   /// No description provided for @planFeatures.
   ///
   /// In en, this message translates to:
-  /// **'Plan Features'**
+  /// **'Package Benefits'**
   String get planFeatures;
 
   /// No description provided for @planLimits.
   ///
   /// In en, this message translates to:
-  /// **'Plan Limits'**
+  /// **'Package Limits'**
   String get planLimits;
 
   /// No description provided for @starterPlan.
   ///
   /// In en, this message translates to:
-  /// **'Starter plan'**
+  /// **'Starter package'**
   String get starterPlan;
 
   /// No description provided for @freelancerAnnualPlan.
   ///
   /// In en, this message translates to:
-  /// **'Freelancer Annual plan'**
+  /// **'Freelancer Annual package'**
   String get freelancerAnnualPlan;
 
   /// No description provided for @portfolio.
@@ -737,7 +737,7 @@ abstract class AppLocalizations {
   /// No description provided for @subscription.
   ///
   /// In en, this message translates to:
-  /// **'Subscription'**
+  /// **'Package'**
   String get subscription;
 
   /// No description provided for @dashboard.

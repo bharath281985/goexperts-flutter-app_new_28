@@ -23,6 +23,8 @@ class TokenRoleHelper {
   }
 
   Future<String?> userId() async {
+    final stored = await _secureStorage.userId;
+    if (stored != null && stored.isNotEmpty) return stored;
     final token = await _secureStorage.accessToken;
     if (token == null || token.isEmpty) return null;
     return idFromToken(token);
@@ -42,7 +44,12 @@ class TokenRoleHelper {
   static String? idFromToken(String token) {
     final payload = _payload(token);
     if (payload == null) return null;
-    final id = payload['id'] ?? payload['userId'] ?? payload['sub'];
+    final id = payload['id'] ??
+        payload['userId'] ??
+        payload['user_id'] ??
+        payload['sub'] ??
+        payload['uid'] ??
+        payload['_id'];
     return id?.toString();
   }
 

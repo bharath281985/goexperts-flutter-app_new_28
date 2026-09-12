@@ -153,7 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
               onTap: () => context.push(Routes.securityCenter),
             ),
             AppListTile(
-              title: 'Subscription & Billing',
+              title: 'Package & Billing',
               leadingIcon: Icons.workspace_premium_outlined,
               onTap: () => context.push(Routes.subscriptionsManage),
             ),

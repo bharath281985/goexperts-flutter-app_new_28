@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -112,6 +111,17 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
   }
 
   Future<void> _launchUrl(String url) async {
+    final joined = await sl<MeetingRepository>().join(widget.id);
+    if (!mounted) return;
+    if (joined.isFailure) {
+      context.showSnack(
+        joined.failureOrNull?.message ?? 'Unable to join meeting',
+        isError: true,
+      );
+      return;
+    }
+    setState(_load);
+
     String finalUrl = url.trim();
     if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
       finalUrl = 'https://$finalUrl';
@@ -136,77 +146,6 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
     context.showSnack('Meeting link copied to clipboard!');
   }
 
-  void _shareLink(Meeting m) {
-    final formatTime =
-        '${Formatters.date(m.startTime)} at ${Formatters.time(m.startTime)}';
-    final text =
-        'Join me for a meeting: ${m.title}\nTime: $formatTime\n\nLink: ${m.meetingLink}';
-    Share.share(text, subject: 'Meeting Invitation: ${m.title}');
-  }
-
-  void _showShareSheet(BuildContext context, Meeting m) {
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSizes.radiusXl),
-        ),
-      ),
-      builder: (_) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSizes.screenPadding,
-                0,
-                AppSizes.screenPadding,
-                8,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Share Meeting Invite',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    m.meetingLink,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodySmall?.copyWith(color: AppColors.mutedText),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            ListTile(
-              leading: const Icon(Icons.share_rounded),
-              title: const Text('Share via apps (WhatsApp, Gmail…)'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _shareLink(m);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.copy_rounded),
-              title: const Text('Copy link'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _copyLink(m.meetingLink);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<Result<Meeting>>(
@@ -229,15 +168,6 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
           appBar: AppBar(
             title: const Text('Meeting Details'),
             actions: [
-              IconButton(
-                icon: const Icon(Icons.share_outlined),
-                onPressed: () => _showShareSheet(context, meeting),
-                tooltip: 'Share options',
-              ),
-              IconButton(
-                icon: const Icon(Icons.event_available_outlined),
-                onPressed: () => context.showSnack('Added to calendar'),
-              ),
               if (meeting.status != EntityStatus.cancelled)
                 IconButton(
                   icon: const Icon(Icons.cancel_outlined, color: Colors.red),
@@ -337,7 +267,7 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
                       ],
                     ),
                   ),
-                  AppStatusChip.status(m.status, dense: true),
+                  AppStatusChip.status(m.status, dense: true,color: AppColors.background),
                 ],
               ),
               AppSizes.vGapMd,
@@ -385,7 +315,7 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
                         color: AppColors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(AppSizes.radiusMd),
                       ),
-                      child: const Icon(
+                      child:  Icon(
                         Icons.event_rounded,
                         color: AppColors.primary,
                       ),
@@ -475,6 +405,12 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
                               m.withName,
                               style: context.text.titleSmall?.copyWith(
                                 fontSize: 15,
+                              ),
+                            ),
+                            Text(
+                              m.withRole,
+                              style: context.text.labelSmall?.copyWith(
+                                color: AppColors.mutedText,
                               ),
                             ),
                           ],
@@ -572,17 +508,25 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
                 context,
                 m.withName,
                 m.withAvatar,
-                'Participant',
+                m.withRole,
               ),
 
               for (final p in m.participants)
-                if (!RegExp(r'^[0-9a-fA-F]{8}-').hasMatch(p) &&
+                if (_participantName(p).isNotEmpty &&
+                    _participantName(p) != m.withName &&
+                    _participantName(p) != m.hostName &&
+                    !RegExp(r'^[0-9a-fA-F]{8}-').hasMatch(_participantName(p)) &&
                     !p.startsWith('inv-') &&
                     !p.startsWith('usr-') &&
                     !p.startsWith('client-') &&
                     !p.startsWith('founder-')) ...[
                   const Divider(height: 1),
-                  _participantTile(context, p, null, 'Participant'),
+                  _participantTile(
+                    context,
+                    _participantName(p),
+                    null,
+                    _participantRole(p),
+                  ),
                 ],
             ],
           ),
@@ -634,7 +578,7 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: const Text(
+              child:  Text(
                 'HOST',
                 style: TextStyle(
                   color: AppColors.primary,
@@ -647,5 +591,17 @@ class _MeetingDetailsPageState extends State<MeetingDetailsPage> {
         ],
       ),
     );
+  }
+
+  String _participantName(String value) {
+    final parts = value.split('|');
+    return parts.isNotEmpty ? parts.first.trim() : value.trim();
+  }
+
+  String _participantRole(String value) {
+    final parts = value.split('|');
+    return parts.length > 1 && parts[1].trim().isNotEmpty
+        ? parts[1].trim()
+        : 'Participant';
   }
 }

@@ -289,7 +289,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
+                                  child:  Icon(
                                     Icons.account_balance_wallet_rounded,
                                     size: 16,
                                     color: AppColors.primary,
@@ -448,26 +448,26 @@ class _FounderHomePageState extends State<FounderHomePage> {
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
-      tabs: const [
+      tabs:  [
         RecommendationTabConfig(
           key: 'investors',
           label: 'Investors',
           icon: Icons.monetization_on_rounded,
-          accent: Color(0xFF3B82F6),
+          accent: AppColors.investorColor,
           viewAllRoute: Routes.founderInvestors,
         ),
         RecommendationTabConfig(
           key: 'freelancers',
           label: 'Freelancers',
           icon: Icons.engineering_rounded,
-          accent: Color(0xFF10B981),
+          accent: AppColors.freelancerColor,
           viewAllRoute: Routes.founderFreelancers,
         ),
         RecommendationTabConfig(
           key: 'startups',
           label: 'Startups',
           icon: Icons.rocket_launch_rounded,
-          accent: Color(0xFF8B5CF6),
+          accent: AppColors.founderColor,
           viewAllRoute: Routes.founderStartups,
         ),
       ],
@@ -526,7 +526,7 @@ class _FounderHomePageState extends State<FounderHomePage> {
                 subtitle: 'Reach active angels & VCs',
                 tag: 'Network',
                 icon: Icons.monetization_on_rounded,
-                color: const Color(0xFFEC4899),
+                color: AppColors.investorColor,
                 onTap: () => context.push(Routes.founderInvestors),
                 width: width,
               ),

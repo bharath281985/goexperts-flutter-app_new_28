@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -12,7 +14,7 @@ import '../../../../core/widgets/responsive_wrapper.dart';
 import '../../../../core/widgets/safe_bottom.dart';
 import '../../domain/entities/current_subscription.dart';
 import '../../domain/repositories/subscription_repository.dart';
-import 'subscription_selection_page.dart';
+// import 'subscription_selection_page.dart';
 
 class CurrentSubscriptionPage extends StatefulWidget {
   const CurrentSubscriptionPage({super.key});
@@ -58,12 +60,122 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
   }
 
   Future<void> _openPlans() async {
-    await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const SubscriptionSelectionPage(isOnboarding: false),
-      ),
+    // await Navigator.of(context).push(
+    //   MaterialPageRoute(
+    //     builder: (_) => const SubscriptionSelectionPage(isOnboarding: false),
+    //   ),
+    // );
+    // if (mounted) _load();
+
+    await _showWebRedirectDialog();
+  }
+
+  Future<void> _showWebRedirectDialog() async {
+    const webUrl = 'https://goexperts.in';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+          ),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: AppSizes.xl,
+            vertical: AppSizes.xxl,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSizes.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child:  Icon(
+                            Icons.language_rounded,
+                            color: AppColors.primary,
+                            size: 22,
+                          ),
+                        ),
+                        AppSizes.hGapSm,
+                        Text(
+                          'View Packages',
+                          style: context.text.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      tooltip: 'Close',
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ],
+                ),
+                AppSizes.vGapLg,
+                Text(
+                  'Do you want to go to the GoExperts website to view packages and manage your package?',
+                  style: context.text.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white70 : AppColors.black,
+                    height: 1.45,
+                  ),
+                ),
+                AppSizes.vGapXl,
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+                          ),
+                        ),
+                        child: const Text('Cancel'),
+                      ),
+                    ),
+                    AppSizes.hGapSm,
+                    Expanded(
+                      child: AppPrimaryButton(
+                        label: 'Go to Website',
+                        icon: Icons.open_in_new_rounded,
+                        onPressed: () async {
+                          Navigator.of(dialogContext).pop();
+                          final uri = Uri.parse(webUrl);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(
+                              uri,
+                              mode: LaunchMode.externalApplication,
+                            );
+                          } else {
+                            await launchUrl(uri);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
-    if (mounted) _load();
   }
 
   @override
@@ -72,7 +184,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-        title: const Text('Subscription'),
+        title: const Text('Current Package'),
         backgroundColor: AppColors.background,
         surfaceTintColor: Colors.transparent,
       ),
@@ -96,7 +208,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
                   AppSizes.md,
                 ),
                 child: AppPrimaryButton(
-                  label: 'View Plans',
+                  label: 'View Packages',
                   icon: Icons.workspace_premium_outlined,
                   onPressed: _openPlans,
                 ),
@@ -176,7 +288,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
                       color: AppColors.primary.withValues(alpha: 0.09),
                       borderRadius: BorderRadius.circular(AppSizes.radiusXl),
                     ),
-                    child: const Icon(
+                    child:  Icon(
                       Icons.workspace_premium_outlined,
                       size: 34,
                       color: AppColors.primary,
@@ -184,7 +296,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
                   ),
                   AppSizes.vGapLg,
                   Text(
-                    'No current plan',
+                    'No current package',
                     textAlign: TextAlign.center,
                     style: context.text.titleLarge?.copyWith(
                       fontWeight: FontWeight.w800,
@@ -192,7 +304,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
                   ),
                   AppSizes.vGapSm,
                   Text(
-                    'Choose a subscription plan to activate your account benefits.',
+                    'Choose a package to activate your account benefits.',
                     textAlign: TextAlign.center,
                     style: context.text.bodyMedium?.copyWith(
                       color: AppColors.mutedText,
@@ -264,7 +376,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
           if (subscription.plan.features.isNotEmpty) ...[
             AppSizes.vGapLg,
             _SectionPanel(
-              title: 'Plan Features',
+              title: 'Package Benefits',
               icon: Icons.verified_outlined,
               children: [
                 for (final feature in subscription.plan.features)
@@ -275,7 +387,7 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
           if (subscription.plan.limits.isNotEmpty) ...[
             AppSizes.vGapLg,
             _SectionPanel(
-              title: 'Plan Limits',
+              title: 'Package Limits',
               icon: Icons.tune_rounded,
               children: [
                 for (final entry in subscription.plan.limits.entries)

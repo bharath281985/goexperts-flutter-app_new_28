@@ -66,7 +66,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get securityCenter => 'Security Center';
 
   @override
-  String get subscriptionBilling => 'Subscription & Billing';
+  String get subscriptionBilling => 'Package & Billing';
 
   @override
   String get preferences => 'Preferences';
@@ -200,7 +200,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bookmarks => 'Bookmarks';
 
   @override
-  String get subscriptions => 'Subscriptions';
+  String get subscriptions => 'Packages';
 
   @override
   String get logOut => 'Log Out';
@@ -286,34 +286,34 @@ class AppLocalizationsEn extends AppLocalizations {
   String get adjustSearchFilters => 'Try adjusting your search or filters.';
 
   @override
-  String get subscribe => 'Subscribe';
+  String get subscribe => 'Continue';
 
   @override
-  String get choosePlan => 'Choose a plan';
+  String get choosePlan => 'Choose a package';
 
   @override
-  String get chooseYourPlan => 'Choose your plan';
+  String get chooseYourPlan => 'Choose your package';
 
   @override
-  String get renewPlan => 'Renew your plan';
+  String get renewPlan => 'Continue your package';
 
   @override
-  String get viewPlans => 'View Plans';
+  String get viewPlans => 'View Packages';
 
   @override
-  String get noCurrentPlan => 'No current plan';
+  String get noCurrentPlan => 'No current package';
 
   @override
-  String get planFeatures => 'Plan Features';
+  String get planFeatures => 'Package Benefits';
 
   @override
-  String get planLimits => 'Plan Limits';
+  String get planLimits => 'Package Limits';
 
   @override
-  String get starterPlan => 'Starter plan';
+  String get starterPlan => 'Starter package';
 
   @override
-  String get freelancerAnnualPlan => 'Freelancer Annual plan';
+  String get freelancerAnnualPlan => 'Freelancer Annual package';
 
   @override
   String get portfolio => 'Portfolio';
@@ -325,7 +325,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get analytics => 'Analytics';
 
   @override
-  String get subscription => 'Subscription';
+  String get subscription => 'Package';
 
   @override
   String get dashboard => 'Dashboard';

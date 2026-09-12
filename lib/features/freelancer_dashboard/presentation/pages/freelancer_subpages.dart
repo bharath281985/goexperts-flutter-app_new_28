@@ -45,10 +45,16 @@ import '../../domain/repositories/freelancer_task_repository.dart';
 import '../../domain/repositories/portfolio_repository.dart';
 import '../../../profile/domain/entities/review.dart';
 import '../../../profile/domain/repositories/review_repository.dart';
-import '../../../projects/domain/entities/project.dart';
-import '../../../projects/domain/repositories/project_repository.dart';
 import '../../../wallet/domain/entities/wallet.dart';
 import '../../../wallet/domain/repositories/wallet_repository.dart';
+import '../../../investor_dashboard/domain/entities/investor.dart' show Deal;
+import '../../../investor_dashboard/domain/repositories/investor_repository.dart';
+import '../../../investor_dashboard/presentation/pages/deals_list_view.dart';
+import '../../../projects/domain/entities/project.dart';
+import '../../../projects/domain/repositories/project_repository.dart';
+import '../../../proposals/domain/entities/proposal.dart';
+import '../../../proposals/domain/repositories/proposal_repository.dart';
+import '../../../proposals/presentation/pages/proposals_list_view.dart';
 
 class _ListScaffold extends StatelessWidget {
   const _ListScaffold({required this.title, required this.child});
@@ -67,45 +73,66 @@ class _ListScaffold extends StatelessWidget {
 class FreelancerContractsPage extends StatelessWidget {
   const FreelancerContractsPage({super.key});
   @override
-  Widget build(BuildContext context) => _ListScaffold(
-    title: 'Contracts',
-    child: CatalogView<Contract>(
-      fetcher: (q) => sl<ProjectRepository>().getContracts(q),
-      searchHint: 'Search contracts…',
-      emptyTitle: 'No contracts yet',
-      itemBuilder: (context, c, __) => AppCard(
-        onTap: () => context.push('${Routes.contractDetails}/${c.id}'),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) {
+    final projectRepo = sl<ProjectRepository>();
+    final proposalRepo = sl<ProposalRepository>();
+    final investorRepo = sl<InvestorRepository>();
+    return DefaultTabController(
+      length: 3,
+      child: AppScaffold(
+        appBar: AppBar(
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('My Work'),
+          bottom: const TabBar(
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
+            tabs: [
+              Tab(text: 'Proposals'),
+              Tab(text: 'Contracts'),
+              Tab(text: 'Deals'),
+            ],
+          ),
+        ),
+        body: TabBarView(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(c.projectTitle, style: context.text.titleSmall),
-                ),
-                AppStatusChip.status(c.status, dense: true),
-              ],
+            CatalogView<Proposal>(
+              key: const ValueKey('proposals-tab'),
+              fetcher: proposalRepo.getProposals,
+              searchHint: 'Search proposals…',
+              emptyTitle: 'No applied proposals',
+              emptyMessage: 'You have not applied to any projects yet.',
+              emptyIcon: Icons.description_outlined,
+              skeletonHeight: 120,
+              itemBuilder: (context, proposal, _) =>
+                  ProposalCard(proposal: proposal, onReturned: () {}),
             ),
-            AppSizes.vGapSm,
-            Text(
-              '${c.counterpartyName} · ${Formatters.compactCurrency(c.amount)}',
-              style: context.text.bodySmall,
+            CatalogView<Contract>(
+              key: const ValueKey('contracts-tab'),
+              fetcher: projectRepo.getContracts,
+              searchHint: 'Search contracts…',
+              emptyTitle: 'No project contracts yet',
+              emptyMessage:
+                  'Accepted proposals and active project contracts will appear here.',
+              emptyIcon: Icons.description_outlined,
+              skeletonHeight: 120,
+              itemBuilder: (context, contract, _) =>
+                  ContractCard(contract: contract),
             ),
-            AppSizes.vGapSm,
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: c.progress,
-                minHeight: 6,
-                backgroundColor: context.theme.dividerColor,
-                valueColor: const AlwaysStoppedAnimation(AppColors.success),
-              ),
+            CatalogView<Deal>(
+              key: const ValueKey('deals-tab'),
+              fetcher: investorRepo.getDeals,
+              searchHint: 'Search deals…',
+              emptyTitle: 'No investment deals',
+              emptyMessage: 'Startup investment deals will appear here.',
+              emptyIcon: Icons.handshake_outlined,
+              skeletonHeight: 120,
+              itemBuilder: (context, deal, _) => DealCard(deal: deal),
             ),
           ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class FreelancerReviewsPage extends StatelessWidget {
@@ -664,7 +691,7 @@ class _CertificateListCard extends StatelessWidget {
     return AppCard(
       child: Row(
         children: [
-          const Icon(
+           Icon(
             Icons.workspace_premium_outlined,
             color: AppColors.primary,
           ),
@@ -969,7 +996,7 @@ class FreelancerInvoicesPage extends StatelessWidget {
         onTap: () => context.push('${Routes.invoiceDetails}/${inv.id}'),
         child: Row(
           children: [
-            const Icon(Icons.receipt_long_outlined, color: AppColors.primary),
+             Icon(Icons.receipt_long_outlined, color: AppColors.primary),
             AppSizes.hGapMd,
             Expanded(
               child: Column(
@@ -2040,7 +2067,7 @@ class _ExperienceApiCard extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(AppSizes.radiusMd),
             ),
-            child: const Icon(
+            child:  Icon(
               Icons.work_outline_rounded,
               color: AppColors.primary,
             ),
@@ -3128,7 +3155,7 @@ class _EducationListCard extends StatelessWidget {
     return AppCard(
       child: Row(
         children: [
-          const Icon(Icons.school_outlined, color: AppColors.primary),
+           Icon(Icons.school_outlined, color: AppColors.primary),
           AppSizes.hGapMd,
           Expanded(
             child: Column(
@@ -3333,7 +3360,7 @@ class _FreelancerPortfolioPageState extends State<FreelancerPortfolioPage> {
         (widget.freelancerId != null && widget.freelancerId!.isNotEmpty);
 
     return _ListScaffold(
-      title: isReadOnly ? 'Freelancer Portfolio' : 'Portfolio',
+      title: isReadOnly ? 'Portfolio' : 'Portfolio',
       child: CatalogView<PortfolioItem>(
         key: ValueKey(_listKey),
         fetcher: (q) => sl<PortfolioRepository>().getPortfolio(
@@ -4467,113 +4494,152 @@ class _PortfolioCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final skills = item.displaySkillNames;
-    final visibleSkills = skills.take(3).toList();
+    final visibleSkills = skills.take(4).toList();
     final remainingSkills = skills.length - visibleSkills.length;
     final cover = item.coverMedia.trim().isNotEmpty
         ? item.coverMedia.trim()
         : item.extraScreenshot.trim();
-    final meta = [
-      if (item.industry.trim().isNotEmpty) item.industry.trim(),
-      if (item.category.trim().isNotEmpty) item.category.trim(),
-    ];
 
-    return AppCard(
-      padding: EdgeInsets.zero,
-      onTap: onTap,
-      radius: AppSizes.radiusXl,
-      child: IntrinsicHeight(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(minHeight: 174),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                width: 132,
-                child: _PortfolioCardMedia(
-                  source: cover,
-                  status: item.status,
-                  category: item.category,
-                ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSizes.md,
-                    AppSizes.md,
-                    AppSizes.sm,
-                    AppSizes.md,
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161A22) : Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.08)
+              : AppColors.border.withValues(alpha: 0.7),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Top Cover Banner (Compact 120px)
+                SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: _PortfolioCardMedia(
+                    source: cover,
+                    status: item.status,
+                    category: item.category,
+                    onEdit: onEdit,
+                    onDelete: onDelete,
                   ),
+                ),
+
+                // Card Body
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              item.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: context.text.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                height: 1.18,
-                              ),
-                            ),
-                          ),
-                          if (onEdit != null) ...[
-                            const SizedBox(width: AppSizes.xs),
-                            _PortfolioActionButton(
-                              tooltip: 'Edit',
-                              icon: Icons.edit_outlined,
-                              onPressed: onEdit!,
-                            ),
-                          ],
-                          if (onDelete != null) ...[
-                            const SizedBox(width: AppSizes.xs),
-                            _PortfolioActionButton(
-                              tooltip: 'Delete',
-                              icon: Icons.delete_outline_rounded,
-                              color: AppColors.danger,
-                              onPressed: onDelete!,
-                            ),
-                          ],
-                        ],
+                      // Title
+                      Text(
+                        item.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: context.text.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
                       ),
-                      if (item.displayDescription.isNotEmpty) ...[
-                        AppSizes.vGapXs,
+
+                      // Industry & Client Row
+                      if (item.industry.trim().isNotEmpty || item.client.trim().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Row(
+                          children: [
+                            if (item.industry.trim().isNotEmpty) ...[
+                               Icon(
+                                Icons.business_center_outlined,
+                                size: 13,
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  item.industry.trim(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.text.bodySmall?.copyWith(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                            ],
+                            if (item.industry.trim().isNotEmpty && item.client.trim().isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 5),
+                                child: Text(
+                                  '•',
+                                  style: TextStyle(color: AppColors.mutedText.withValues(alpha: 0.6)),
+                                ),
+                              ),
+                            ],
+                            if (item.client.trim().isNotEmpty) ...[
+                              const Icon(
+                                Icons.person_outline_rounded,
+                                size: 13,
+                                color: AppColors.mutedText,
+                              ),
+                              const SizedBox(width: 4),
+                              Flexible(
+                                child: Text(
+                                  item.client.trim(),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: context.text.bodySmall?.copyWith(
+                                    color: AppColors.mutedText,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+
+                      // Description Snippet
+                      if (item.displayDescription.trim().isNotEmpty) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          item.displayDescription,
+                          item.displayDescription.trim(),
                           style: context.text.bodySmall?.copyWith(
                             color: AppColors.mutedText,
-                            height: 1.2,
+                            height: 1.3,
+                            fontSize: 12,
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
-                      if (meta.isNotEmpty) ...[
-                        AppSizes.vGapSm,
-                        Wrap(
-                          spacing: AppSizes.xs,
-                          runSpacing: AppSizes.xs,
-                          children: [
-                            for (final value in meta.take(2))
-                              _PortfolioMetaPill(
-                                label: value,
-                                icon: value == item.industry
-                                    ? Icons.business_center_outlined
-                                    : Icons.category_outlined,
-                              ),
-                          ],
-                        ),
-                      ],
+
+                      // Skills Chips
                       if (visibleSkills.isNotEmpty) ...[
-                        AppSizes.vGapSm,
+                        const SizedBox(height: 6),
                         Wrap(
-                          spacing: AppSizes.xs,
-                          runSpacing: AppSizes.xs,
+                          spacing: 5,
+                          runSpacing: 4,
                           children: [
                             for (final skill in visibleSkills)
                               _PortfolioSkillPill(label: skill),
@@ -4585,11 +4651,114 @@ class _PortfolioCard extends StatelessWidget {
                           ],
                         ),
                       ],
+
+                      const SizedBox(height: 8),
+
+                      // Bottom Action / Divider Footer
+                      Container(
+                        height: 1,
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.06)
+                            : AppColors.border.withValues(alpha: 0.5),
+                      ),
+                      const SizedBox(height: 6),
+
+                      Row(
+                        children: [
+                          if (item.liveUrl.trim().isNotEmpty || item.projectUrl != null && item.projectUrl!.trim().isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.success.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: const [
+                                  Icon(Icons.link_rounded, size: 12, color: AppColors.success),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'Live Project',
+                                    style: TextStyle(
+                                      color: AppColors.success,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else if (item.githubUrl.trim().isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children:  [
+                                  Icon(Icons.code_rounded, size: 12, color: AppColors.primary),
+                                  SizedBox(width: 3),
+                                  Text(
+                                    'Source Code',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ] else ...[
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.work_history_outlined,
+                                  size: 12,
+                                  color: AppColors.mutedText.withValues(alpha: 0.8),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  item.duration.trim().isNotEmpty ? item.duration.trim() : 'Case Study',
+                                  style: const TextStyle(
+                                    color: AppColors.mutedText,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const Spacer(),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children:  [
+                              Text(
+                                'View Details',
+                                style: TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 11,
+                                ),
+                              ),
+                              SizedBox(width: 3),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 13,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -4602,18 +4771,24 @@ class _PortfolioCardMedia extends StatelessWidget {
     required this.source,
     required this.status,
     required this.category,
+    this.onEdit,
+    this.onDelete,
   });
 
   final String source;
   final String status;
   final String category;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
     final hasImage = _isImageSource(source);
+
     return Stack(
       fit: StackFit.expand,
       children: [
+        // 1. Background Image or Modern Gradient
         if (hasImage)
           _PortfolioCardImage(source: source)
         else
@@ -4623,87 +4798,161 @@ class _PortfolioCardMedia extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  AppColors.primary.withValues(alpha: 0.12),
-                  AppColors.primary.withValues(alpha: 0.03),
-                  AppColors.warning.withValues(alpha: 0.10),
+                  AppColors.primary.withValues(alpha: 0.16),
+                  AppColors.primary.withValues(alpha: 0.05),
+                  const Color(0xFF6366F1).withValues(alpha: 0.12),
                 ],
               ),
             ),
             child: Center(
               child: Container(
-                width: 56,
-                height: 56,
+                width: 58,
+                height: 58,
                 decoration: BoxDecoration(
-                  color: AppColors.white.withValues(alpha: 0.82),
-                  borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                  color: Colors.white.withValues(alpha: 0.90),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primaryBlack.withValues(alpha: 0.08),
-                      blurRadius: 14,
-                      offset: const Offset(0, 8),
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.business_center_outlined,
+                child:  Icon(
+                  Icons.business_center_rounded,
                   color: AppColors.primary,
-                  size: 30,
+                  size: 28,
                 ),
               ),
             ),
           ),
+
+        // 2. Dual Gradient Scrim (top for buttons/status, bottom for category)
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                Colors.black.withValues(alpha: hasImage ? 0.10 : 0),
-                Colors.black.withValues(alpha: hasImage ? 0.42 : 0),
+                Colors.black.withValues(alpha: hasImage ? 0.45 : 0.08),
+                Colors.transparent,
+                Colors.black.withValues(alpha: hasImage ? 0.65 : 0.15),
               ],
+              stops: const [0.0, 0.45, 1.0],
             ),
           ),
         ),
+
+        // 3. Status Badge (Top-Left)
         if (status.trim().isNotEmpty)
           Positioned(
-            left: AppSizes.sm,
-            top: AppSizes.sm,
+            left: 12,
+            top: 12,
             child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSizes.sm,
-                vertical: 5,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: hasImage
-                    ? Colors.white.withValues(alpha: 0.92)
-                    : AppColors.primary.withValues(alpha: 0.10),
+                color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-              ),
-              child: Text(
-                status,
-                style: context.text.labelSmall?.copyWith(
-                  color: hasImage ? AppColors.primaryBlack : AppColors.primary,
-                  fontWeight: FontWeight.w900,
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  width: 0.8,
                 ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: AppColors.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    status.trim(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+
+        // 4. Action Buttons (Top-Right: Edit & Delete)
+        if (onEdit != null || onDelete != null)
+          Positioned(
+            right: 10,
+            top: 10,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (onEdit != null)
+                  _PortfolioFrostedButton(
+                    icon: Icons.edit_rounded,
+                    tooltip: 'Edit Portfolio',
+                    color: Colors.white,
+                    onPressed: onEdit!,
+                  ),
+                if (onEdit != null && onDelete != null)
+                  const SizedBox(width: 8),
+                if (onDelete != null)
+                  _PortfolioFrostedButton(
+                    icon: Icons.delete_outline_rounded,
+                    tooltip: 'Delete Portfolio',
+                    color: const Color(0xFFFF5252),
+                    onPressed: onDelete!,
+                  ),
+              ],
+            ),
+          ),
+
+        // 5. Category Badge (Bottom-Left)
         if (category.trim().isNotEmpty)
           Positioned(
-            left: AppSizes.sm,
-            right: AppSizes.sm,
-            bottom: AppSizes.sm,
-            child: Center(
-              child: Text(
-                category,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: context.text.titleSmall?.copyWith(
-                  color: hasImage ? Colors.white : AppColors.primaryBlack,
-                  fontWeight: FontWeight.w800,
-                  shadows: hasImage
-                      ? const [Shadow(color: Colors.black54, blurRadius: 8)]
-                      : null,
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Align(
+              alignment: Alignment.bottomLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.60),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.layers_outlined,
+                      size: 13,
+                      color: Colors.white70,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        category.trim(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -4713,35 +4962,37 @@ class _PortfolioCardMedia extends StatelessWidget {
   }
 }
 
-class _PortfolioActionButton extends StatelessWidget {
-  const _PortfolioActionButton({
-    required this.tooltip,
+class _PortfolioFrostedButton extends StatelessWidget {
+  const _PortfolioFrostedButton({
     required this.icon,
+    required this.tooltip,
+    required this.color,
     required this.onPressed,
-    this.color = AppColors.primaryBlack,
   });
 
-  final String tooltip;
   final IconData icon;
-  final VoidCallback onPressed;
+  final String tooltip;
   final Color color;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 34,
-      height: 34,
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.52),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.25),
+          width: 0.8,
+        ),
+      ),
       child: IconButton(
         tooltip: tooltip,
-        onPressed: onPressed,
         padding: EdgeInsets.zero,
-        icon: Icon(icon, size: 19, color: color),
-        style: IconButton.styleFrom(
-          backgroundColor: AppColors.primaryBlack.withValues(alpha: 0.04),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppSizes.radiusMd),
-          ),
-        ),
+        icon: Icon(icon, size: 16, color: color),
+        onPressed: onPressed,
       ),
     );
   }
@@ -4767,39 +5018,6 @@ class _PortfolioCardImage extends StatelessWidget {
   }
 }
 
-class _PortfolioMetaPill extends StatelessWidget {
-  const _PortfolioMetaPill({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 6),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(AppSizes.radiusPill),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.14)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: AppColors.primary),
-          const SizedBox(width: AppSizes.xs),
-          Text(
-            label,
-            style: context.text.labelSmall?.copyWith(
-              color: AppColors.primaryBlack,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PortfolioSkillPill extends StatelessWidget {
   const _PortfolioSkillPill({required this.label, this.strong = false});
 
@@ -4808,23 +5026,37 @@ class _PortfolioSkillPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: (strong ? AppColors.primary : AppColors.success).withValues(
-          alpha: strong ? 0.10 : 0.08,
-        ),
+        color: strong
+            ? AppColors.primary.withValues(alpha: 0.12)
+            : isDark
+                ? Colors.white.withValues(alpha: 0.06)
+                : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(AppSizes.radiusPill),
         border: Border.all(
-          color: (strong ? AppColors.primary : AppColors.success).withValues(
-            alpha: strong ? 0.22 : 0.16,
-          ),
+          color: strong
+              ? AppColors.primary.withValues(alpha: 0.25)
+              : isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : AppColors.border.withValues(alpha: 0.6),
+          width: 0.8,
         ),
       ),
       child: Text(
         label,
-        style: context.text.labelSmall?.copyWith(
-          color: AppColors.primaryBlack,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: TextStyle(
+          color: strong
+              ? AppColors.primary
+              : isDark
+                  ? Colors.white.withValues(alpha: 0.9)
+                  : const Color(0xFF334155),
+          fontSize: 11,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -4893,6 +5125,9 @@ class _PortfolioSkillPicker extends StatelessWidget {
       return;
     }
     final searchController = TextEditingController();
+    // Local mutable copy — avoids the stale-snapshot bug where selectedIds
+    // was a frozen Set created via .toSet() in the parent's build method.
+    final liveSelected = Set<String>.from(selectedIds);
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -4927,7 +5162,7 @@ class _PortfolioSkillPicker extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Select Skills (${selectedIds.length})',
+                            'Select Skills (${liveSelected.length})',
                             style: context.text.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
@@ -4966,7 +5201,7 @@ class _PortfolioSkillPicker extends StatelessWidget {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final option = filtered[index];
-                                  final isSelected = selectedIds.contains(
+                                  final isSelected = liveSelected.contains(
                                     option.id,
                                   );
                                   return CheckboxListTile(
@@ -4984,8 +5219,14 @@ class _PortfolioSkillPicker extends StatelessWidget {
                                     controlAffinity:
                                         ListTileControlAffinity.trailing,
                                     onChanged: (_) {
+                                      setSheetState(() {
+                                        if (liveSelected.contains(option.id)) {
+                                          liveSelected.remove(option.id);
+                                        } else {
+                                          liveSelected.add(option.id);
+                                        }
+                                      });
                                       onToggle!(option);
-                                      setSheetState(() {});
                                     },
                                   );
                                 },
@@ -4993,7 +5234,7 @@ class _PortfolioSkillPicker extends StatelessWidget {
                       ),
                       AppSizes.vGapMd,
                       AppPrimaryButton(
-                        label: 'Done (${selectedIds.length} selected)',
+                        label: 'Done (${liveSelected.length} selected)',
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       AppSizes.vGapLg,

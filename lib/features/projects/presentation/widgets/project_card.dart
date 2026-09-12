@@ -20,6 +20,7 @@ class AppProjectCard extends StatelessWidget {
     this.onTap,
     this.onSave,
     this.onApply,
+    this.onWithdraw,
     this.onEdit,
     this.onUpdateStatus,
   });
@@ -28,6 +29,7 @@ class AppProjectCard extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onSave;
   final VoidCallback? onApply;
+  final VoidCallback? onWithdraw;
   final VoidCallback? onEdit;
   final VoidCallback? onUpdateStatus;
 
@@ -164,17 +166,17 @@ class AppProjectCard extends StatelessWidget {
                     AppSizes.hGapXs,
                     Expanded(
                       child: AppPrimaryButton(
-                        label: project.isApplied ? 'Applied' : 'Apply',
+                        label: project.isApplied ? 'Cancel' : 'Apply',
                         icon: project.isApplied
-                            ? Icons.check_circle_outline_rounded
+                            ? Icons.cancel_outlined
                             : Icons.near_me_rounded,
-                        onPressed: project.isApplied ? null : onApply ?? onTap,
+                        onPressed: project.isApplied ? onWithdraw : onApply ?? onTap,
                         gradient: false,
                         backgroundColor: project.isApplied
-                            ? AppColors.success
+                            ? AppColors.danger
                             : AppColors.projectPurple,
                         disabledBackgroundColor: project.isApplied
-                            ? AppColors.success
+                            ? AppColors.danger.withValues(alpha: 0.5)
                             : AppColors.projectPurple.withValues(alpha: 0.5),
                         height: 40,
                       ),

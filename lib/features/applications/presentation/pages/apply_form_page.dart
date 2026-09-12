@@ -10,6 +10,8 @@ import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_file_upload.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/icon_widget.dart';
 import '../../../projects/domain/repositories/project_repository.dart';
@@ -116,6 +118,39 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
     }
   }
 
+
+  Future<List<String>?> _uploadAttachments() async {
+    final uploaded = <String>[];
+    final files = [
+      if (_resumePath != null) ('resume', _resumePath!),
+      if (_portfolioPath != null) ('portfolio', _portfolioPath!),
+    ];
+
+    for (final file in files) {
+      final uploadRes = await sl<FileUploadHelper>().uploadUrl(
+        path: file.$2,
+        endpoint: ApiEndpoints.filesUpload,
+      );
+      if (uploadRes.isFailure) {
+        if (mounted) {
+          context.showSnack(
+            'Failed to upload ${file.$1}: ${uploadRes.failureOrNull?.message}',
+            isError: true,
+          );
+        }
+        return null;
+      }
+      final url = uploadRes.valueOrNull?.trim() ?? '';
+      if (url.isEmpty) {
+        if (mounted) {
+          context.showSnack('Upload returned no server URL', isError: true);
+        }
+        return null;
+      }
+      uploaded.add(url);
+    }
+    return uploaded;
+  }
   Future<void> _pickFile({
     required bool portfolio,
     required List<String> allowedExtensions,
@@ -149,18 +184,25 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
     if (!_isInvestment && (_timeline == null || _timeline!.isEmpty)) {
       context.showSnack('Please select your timeline', isError: true);
       return;
     }
     setState(() => _submitting = true);
+    final uploadedAttachments = await _uploadAttachments();
+    if (uploadedAttachments == null) {
+      if (mounted) setState(() => _submitting = false);
+      return;
+    }
     if (_isProject && _isEdit) {
       final result = await sl<ProposalRepository>().updateProposal(
         proposalId: widget.proposalId!,
         coverLetter: _coverLetter.text.trim(),
         bidAmount: double.tryParse(_budget.text.trim()) ?? 0,
         deliveryDays: _deliveryDays,
+        attachments: uploadedAttachments,
       );
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -179,10 +221,7 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
         coverLetter: _coverLetter.text.trim(),
         bidAmount: double.tryParse(_budget.text.trim()) ?? 0,
         deliveryDays: _deliveryDays,
-        attachments: [
-          if (_resumePath != null) _resumePath!,
-          if (_portfolioPath != null) _portfolioPath!,
-        ],
+        attachments: uploadedAttachments,
       );
       if (!mounted) return;
       setState(() => _submitting = false);
@@ -329,7 +368,7 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
                   color: AppColors.primary.withValues(alpha: 0.05),
                   child: Row(
                     children: [
-                      const Icon(
+                       Icon(
                         Icons.info_outline_rounded,
                         color: AppColors.primary,
                         size: 18,
@@ -416,53 +455,53 @@ class _ApplyFormPageState extends State<ApplyFormPage> {
                 isLoading: _submitting,
                 onPressed: _submit,
               ),
-              if (_isEdit) ...[
-                AppSizes.vGapMd,
-                AppSecondaryButton(
-                  label: 'Withdraw Proposal',
-                  color: AppColors.danger,
-                  onPressed: () async {
-                    final ok = await AppConfirmDialog.show(
-                      context,
-                      title: 'Withdraw proposal?',
-                      message: 'The client will no longer see this proposal.',
-                      confirmLabel: 'Withdraw',
-                      isDestructive: true,
-                    );
-                    if (!ok || !context.mounted) return;
-                    final res = await sl<ProposalRepository>().withdraw(
-                      widget.proposalId!,
-                    );
-                    if (!context.mounted) return;
-                    res.fold(
-                      (f) => context.showSnack(f.message, isError: true),
-                      (_) {
-                        context.showSnack('Proposal withdrawn');
-                        Navigator.of(context).maybePop();
-                      },
-                    );
-                  },
-                ),
-              ] else ...[
-                AppSizes.vGapMd,
-                AppSecondaryButton(
-                  label: 'Withdraw',
-                  color: AppColors.danger,
-                  onPressed: () async {
-                    final ok = await AppConfirmDialog.show(
-                      context,
-                      title: 'Withdraw application?',
-                      message: 'This will remove your application permanently.',
-                      confirmLabel: 'Withdraw',
-                      isDestructive: true,
-                    );
-                    if (ok && context.mounted) {
-                      context.showSnack('Application withdrawn');
-                      Navigator.of(context).maybePop();
-                    }
-                  },
-                ),
-              ],
+              // if (_isEdit) ...[
+              //   AppSizes.vGapMd,
+              //   AppSecondaryButton(
+              //     label: 'Withdraw Proposal',
+              //     color: AppColors.danger,
+              //     onPressed: () async {
+              //       final ok = await AppConfirmDialog.show(
+              //         context,
+              //         title: 'Withdraw proposal?',
+              //         message: 'The client will no longer see this proposal.',
+              //         confirmLabel: 'Withdraw',
+              //         isDestructive: true,
+              //       );
+              //       if (!ok || !context.mounted) return;
+              //       final res = await sl<ProposalRepository>().withdraw(
+              //         widget.proposalId!,
+              //       );
+              //       if (!context.mounted) return;
+              //       res.fold(
+              //         (f) => context.showSnack(f.message, isError: true),
+              //         (_) {
+              //           context.showSnack('Proposal withdrawn');
+              //           Navigator.of(context).maybePop();
+              //         },
+              //       );
+              //     },
+              //   ),
+              // ] else ...[
+              //   AppSizes.vGapMd,
+              //   AppSecondaryButton(
+              //     label: 'Withdraw',
+              //     color: AppColors.danger,
+              //     onPressed: () async {
+              //       final ok = await AppConfirmDialog.show(
+              //         context,
+              //         title: 'Withdraw application?',
+              //         message: 'This will remove your application permanently.',
+              //         confirmLabel: 'Withdraw',
+              //         isDestructive: true,
+              //       );
+              //       if (ok && context.mounted) {
+              //         context.showSnack('Application withdrawn');
+              //         Navigator.of(context).maybePop();
+              //       }
+              //     },
+              //   ),
+              // ],
             ],
           ),
         ),

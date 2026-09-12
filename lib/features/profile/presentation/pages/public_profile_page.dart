@@ -484,12 +484,174 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       case PublicProfileType.company:
         {
           final cp = _safeMap(raw['clientProfile'] ?? raw);
-          final company = cp['company']?.toString() ?? fullName;
-          final industry = cp['industry']?.toString() ?? '';
+          final company =
+              (cp['company']?.toString().isNotEmpty == true &&
+                  cp['company']?.toString() != 'User')
+              ? cp['company'].toString()
+              : (fullName.isNotEmpty && fullName != 'User'
+                    ? fullName
+                    : 'Company');
+
+          // Robust Industry & Category check (supports String, Map, List, Category, Industry, CompanyCategory)
+          String extractIndustryOrCategory() {
+            final candidates = [
+              raw['Industry'],
+              raw['industry'],
+              raw['industryName'],
+              raw['IndustryName'],
+              raw['Category'],
+              raw['category'],
+              raw['categoryName'],
+              raw['CategoryName'],
+              raw['companyCategory'],
+              raw['categories'],
+              raw['Categories'],
+              cp['Industry'],
+              cp['industry'],
+              cp['industryName'],
+              cp['IndustryName'],
+              cp['Category'],
+              cp['category'],
+              cp['categoryName'],
+              cp['CategoryName'],
+              cp['companyCategory'],
+              cp['categories'],
+              cp['Categories'],
+              reg['companyCategory'],
+              reg['industry'],
+              reg['category'],
+              reg['categories'],
+              reg['industryName'],
+              reg['categoryName'],
+            ];
+
+            for (final cand in candidates) {
+              if (cand == null) continue;
+              if (cand is Map) {
+                final name =
+                    cand['industryName']?.toString().trim() ??
+                    cand['categoryName']?.toString().trim() ??
+                    cand['name']?.toString().trim() ??
+                    cand['label']?.toString().trim() ??
+                    cand['title']?.toString().trim() ??
+                    '';
+                final id =
+                    cand['industryId']?.toString().trim() ??
+                    cand['categoryId']?.toString().trim() ??
+                    cand['id']?.toString().trim() ??
+                    '';
+                final str =
+                    name.isNotEmpty &&
+                        !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(name)
+                    ? name
+                    : (id.isNotEmpty &&
+                              !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(id)
+                          ? id
+                          : '');
+                if (str.isNotEmpty) return str;
+              } else if (cand is List) {
+                final parts = cand
+                    .map((item) {
+                      if (item is Map) {
+                        final name =
+                            item['industryName']?.toString().trim() ??
+                            item['categoryName']?.toString().trim() ??
+                            item['name']?.toString().trim() ??
+                            item['label']?.toString().trim() ??
+                            '';
+                        final id =
+                            item['industryId']?.toString().trim() ??
+                            item['categoryId']?.toString().trim() ??
+                            '';
+                        return name.isNotEmpty ? name : id;
+                      }
+                      return item.toString().trim();
+                    })
+                    .where(
+                      (s) =>
+                          s.isNotEmpty &&
+                          !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s),
+                    )
+                    .toList();
+                if (parts.isNotEmpty) return parts.join(', ');
+              } else if (cand is String) {
+                final s = cand.trim();
+                if (s.isNotEmpty &&
+                    !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(s)) {
+                  return s;
+                }
+              }
+            }
+            return '';
+          }
+
+          final industryLabel = extractIndustryOrCategory();
+
+          // HiringGoal: backend sends {hiringGoalId: "...", hiringGoalName: "Hire a full team"}
+          final hiringGoalRaw =
+              raw['HiringGoal'] ??
+              raw['hiringGoal'] ??
+              cp['HiringGoal'] ??
+              cp['hiringGoal'];
+          String hiringGoalLabel = '';
+          if (hiringGoalRaw is Map) {
+            final name =
+                hiringGoalRaw['hiringGoalName']?.toString().trim() ?? '';
+            final id = hiringGoalRaw['hiringGoalId']?.toString().trim() ?? '';
+            hiringGoalLabel =
+                name.isNotEmpty &&
+                    !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(name)
+                ? name
+                : (id.isNotEmpty && !RegExp(r'^[0-9a-fA-F-]{20,}$').hasMatch(id)
+                      ? id
+                      : '');
+          } else if (hiringGoalRaw is String) {
+            hiringGoalLabel = hiringGoalRaw.trim();
+          }
+
+          final projectsPosted = _safeInt(
+            raw['projectsPosted'] ??
+                raw['ProjectsPosted'] ??
+                raw['totalProjects'] ??
+                raw['TotalProjects'] ??
+                raw['projectsCount'] ??
+                raw['ProjectsCount'] ??
+                raw['projects_count'] ??
+                raw['total_projects'] ??
+                raw['postedProjects'] ??
+                raw['posted_projects'] ??
+                cp['projectsPosted'] ??
+                cp['ProjectsPosted'] ??
+                cp['totalProjects'] ??
+                cp['TotalProjects'] ??
+                cp['projectsCount'] ??
+                cp['ProjectsCount'] ??
+                cp['projects_count'] ??
+                cp['total_projects'] ??
+                cp['postedProjects'] ??
+                cp['posted_projects'] ??
+                (raw['projects'] is List
+                    ? (raw['projects'] as List).length
+                    : null) ??
+                (raw['Projects'] is List
+                    ? (raw['Projects'] as List).length
+                    : null) ??
+                (cp['projects'] is List
+                    ? (cp['projects'] as List).length
+                    : null) ??
+                (cp['Projects'] is List
+                    ? (cp['Projects'] as List).length
+                    : null) ??
+                raw['_count']?['projects'] ??
+                raw['_count']?['Projects'] ??
+                cp['_count']?['projects'] ??
+                cp['_count']?['Projects'],
+          );
+
           return ProfileViewData(
             id: id,
             name: company,
-            headline: industry.isNotEmpty ? industry : 'Client',
+            headline: industryLabel.isNotEmpty ? industryLabel : 'Client',
             location: location,
             avatarUrl: avatarUrl,
             isVerified: isVerified,
@@ -497,14 +659,18 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             isFollowing: apiIsFollowing,
             isSaved: apiIsSaved,
             type: PublicProfileType.company,
-            primaryActionLabel: 'Post a Job',
-            primaryActionIcon: Icons.work_outline_rounded,
+            primaryActionLabel: 'Connect',
+            primaryActionIcon: Icons.people_alt_outlined,
             stats: {
-              'Industry': industry.isEmpty ? '—' : industry,
+              'Industry': industryLabel.isEmpty ? '—' : industryLabel,
               'Manager': fullName.split(' ').first,
+              'Projects': '$projectsPosted',
             },
             phone: phone,
             email: email,
+            projectsPosted: projectsPosted,
+            hiringGoal: hiringGoalLabel,
+            industryName: industryLabel,
           );
         }
       case PublicProfileType.investor:
@@ -601,31 +767,111 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
       case PublicProfileType.founder:
         {
           final fp = _safeMap(raw['founderProfile'] ?? raw);
-          final founderName = fp['founder']?.toString() ?? fullName;
-
-          final startupMap = _safeMap(fp['startup']);
-          final startupName =
-              fp['startupName']?.toString() ??
-              startupMap['startup']?.toString() ??
-              startupMap['name']?.toString() ??
-              (fp['startup'] is String ? fp['startup'].toString() : null) ??
+          final founderName =
+              fp['founder']?.toString() ??
+              raw['fullName']?.toString() ??
+              raw['name']?.toString() ??
               fullName;
 
-          final industryValue = fp['Industry'] ?? fp['industry'];
-          final industry = industryValue is Map
-              ? (industryValue['industryName'] ?? industryValue['name'])
+          final startupMap = _safeMap(fp['startup'] ?? raw['startup']);
+          dynamic rawStartupVal =
+              raw['startupName'] ??
+              fp['startupName'] ??
+              startupMap['startup'] ??
+              startupMap['startupName'] ??
+              startupMap['startup_name'] ??
+              startupMap['name'] ??
+              startupMap['title'] ??
+              fp['startup'] ??
+              raw['startup'];
+          if (rawStartupVal is Map) {
+            rawStartupVal =
+                rawStartupVal['startup'] ??
+                rawStartupVal['startupName'] ??
+                rawStartupVal['startup_name'] ??
+                rawStartupVal['name'] ??
+                rawStartupVal['title'];
+          }
+          final parsedStartupName = rawStartupVal?.toString().trim() ?? '';
+          final startupName =
+              (parsedStartupName.isNotEmpty &&
+                  parsedStartupName != 'User' &&
+                  !parsedStartupName.contains('{') &&
+                  !parsedStartupName.contains('['))
+              ? parsedStartupName
+              : '';
+
+          final rawStartupLogo =
+              startupMap['logo']?.toString() ??
+              startupMap['avatarUrl']?.toString() ??
+              startupMap['logoUrl']?.toString();
+          final startupAvatar = rawStartupLogo?.isNotEmpty == true
+              ? normalizeImageUrl(rawStartupLogo!)
+              : avatarUrl;
+
+          final rawStartupLocation = startupMap['location']?.toString() ?? '';
+          final cleanedStartupLocation = rawStartupLocation
+              .replaceAll(RegExp(r',\s*[0-9a-fA-F-]{20,}'), '')
+              .trim();
+          final founderLocation = cleanedStartupLocation.isNotEmpty
+              ? cleanedStartupLocation
+              : location;
+
+          final startupBio =
+              startupMap['description']?.toString() ??
+              startupMap['about']?.toString() ??
+              startupMap['tagline']?.toString() ??
+              '';
+          final founderBio = bio.isNotEmpty ? bio : startupBio;
+
+          final industryRaw =
+              raw['Industry'] ??
+              fp['Industry'] ??
+              fp['industry'] ??
+              startupMap['industry'];
+          String industry = '';
+          if (industryRaw is List) {
+            industry = industryRaw
+                .map((item) {
+                  if (item is Map) {
+                    final name = item['industryName']?.toString().trim() ?? '';
+                    final id = item['industryId']?.toString().trim() ?? '';
+                    return name.isNotEmpty ? name : id;
+                  }
+                  return item.toString().trim();
+                })
+                .where(
+                  (s) => s.isNotEmpty && !s.contains('{') && !s.contains('['),
+                )
+                .join(', ');
+          } else if (industryRaw is Map) {
+            final name =
+                industryRaw['industryName']?.toString().trim() ??
+                industryRaw['name']?.toString().trim() ??
+                '';
+            final id =
+                industryRaw['industryId']?.toString().trim() ??
+                industryRaw['id']?.toString().trim() ??
+                '';
+            industry = name.isNotEmpty ? name : id;
+          } else if (industryRaw is String) {
+            final s = industryRaw.trim();
+            if (!s.contains('{') && !s.contains('[')) industry = s;
+          }
+
+          final rawStage =
+              raw['stage']?.toString() ?? fp['stage']?.toString() ?? '';
+          final startupStage = startupMap['stage'] is Map
+              ? (startupMap['stage']['name'] ??
+                            startupMap['stage']['stageName'])
                         ?.toString() ??
                     ''
-              : industryValue?.toString() ??
-                    startupMap['industry']?.toString() ??
-                    '';
-          final rawStage = fp['stage']?.toString() ?? '';
-          final startupStage = startupMap['stage']?.toString() ?? '';
+              : startupMap['stage']?.toString() ?? '';
           final stage = rawStage.contains('-') && startupStage.isNotEmpty
               ? startupStage
               : (rawStage.isNotEmpty ? rawStage : startupStage);
 
-          final teamSizeValue = fp['teamSize'];
+          final teamSizeValue = raw['teamSize'] ?? fp['teamSize'];
           final startupMetrics = _safeMap(startupMap['metrics']);
           final startupTeamSize =
               startupMap['teamSize'] ?? startupMetrics['teamSize'];
@@ -633,29 +879,47 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
               ? (teamSizeValue['name'] ?? teamSizeValue['label'])?.toString() ??
                     ''
               : teamSizeValue is num
-              ? teamSizeValue.toInt().toString()
+              ? '${teamSizeValue.toInt()} members'
               : startupTeamSize is num
-              ? startupTeamSize.toInt().toString()
+              ? '${startupTeamSize.toInt()} members'
               : startupTeamSize?.toString() ?? '';
           final raised = _safeDouble(
-            fp['raised'] ??
+            raw['raised'] ??
+                fp['raised'] ??
                 startupMap['fundingRaised'] ??
                 startupMap['funding'],
           );
 
-          final primaryGoals = fp['PrimaryGoal'];
+          final primaryGoals = raw['PrimaryGoal'] ?? fp['PrimaryGoal'];
           final skillsRaw = raw['skills']?.toString() ?? '';
           final skills = primaryGoals is List
               ? primaryGoals
-                    .map(
-                      (goal) => goal is Map
-                          ? (goal['primaryGoalName'] ?? goal['name'])
-                                    ?.toString() ??
-                                ''
-                          : goal.toString(),
+                    .map((goal) {
+                      if (goal is Map) {
+                        final name =
+                            goal['primaryGoalName']?.toString().trim() ?? '';
+                        final id =
+                            goal['primaryGoalId']?.toString().trim() ?? '';
+                        return name.isNotEmpty ? name : id;
+                      }
+                      return goal.toString().trim();
+                    })
+                    .where(
+                      (goal) =>
+                          goal.isNotEmpty &&
+                          !goal.contains('{') &&
+                          !goal.contains('['),
                     )
-                    .where((goal) => goal.trim().isNotEmpty)
                     .toList()
+              : primaryGoals is Map
+              ? (() {
+                  final name =
+                      primaryGoals['primaryGoalName']?.toString().trim() ?? '';
+                  final id =
+                      primaryGoals['primaryGoalId']?.toString().trim() ?? '';
+                  final res = name.isNotEmpty ? name : id;
+                  return res.isNotEmpty ? [res] : <String>[];
+                })()
               : skillsRaw.isNotEmpty
               ? skillsRaw
                     .split(',')
@@ -666,27 +930,39 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           final experience = raw['experience']?.toString() ?? '';
           final education = raw['education']?.toString() ?? '';
           final linkedin = raw['linkedin']?.toString() ?? '';
-          final website = raw['website']?.toString() ?? '';
-          final founderType =
-              raw['founderType']?.toString() ??
-              raw['founderRole']?.toString() ??
+          final website =
+              startupMap['website']?.toString() ??
+              raw['website']?.toString() ??
               '';
+          final founderRoleRaw =
+              raw['founderRole']?.toString() ??
+              raw['founderType']?.toString() ??
+              fp['founderRole']?.toString() ??
+              fp['founderType']?.toString() ??
+              '';
+          final founderType = founderRoleRaw.trim();
+
+          final headlineParts =
+              [
+                    founderType.isNotEmpty ? founderType : 'Founder',
+                    if (startupName.trim().isNotEmpty) startupName.trim(),
+                    if (industry.trim().isNotEmpty) industry.trim(),
+                    if (stage.trim().isNotEmpty) stage.trim(),
+                  ]
+                  .map((s) => s.replaceAll(RegExp(r'\s+'), ' ').trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
 
           return ProfileViewData(
             id: id,
-            name: founderName.isNotEmpty && founderName != 'User'
-                ? founderName
-                : startupName,
-            headline: [
-              founderType.isNotEmpty ? founderType : 'Founder',
-              if (startupName.isNotEmpty && startupName != 'User') startupName,
-              if (industry.isNotEmpty) industry,
-              if (stage.isNotEmpty) stage,
-            ].join(' · '),
-            location: location,
-            avatarUrl: avatarUrl,
+            name: fullName.isNotEmpty && fullName != 'User'
+                ? fullName
+                : (founderName.isNotEmpty ? founderName : 'User'),
+            headline: headlineParts.join(' · '),
+            location: founderLocation,
+            avatarUrl: startupAvatar,
             isVerified: isVerified,
-            about: bio,
+            about: founderBio,
             skills: skills,
             experience: experience,
             education: education,
@@ -701,7 +977,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             primaryActionLabel: 'Connect',
             primaryActionIcon: Icons.handshake_outlined,
             stats: {
-              'Startup': startupName,
+              'Startup': startupName.isNotEmpty ? startupName : '—',
               'Stage': stage.isEmpty ? '—' : stage,
               'Team': teamSizeLabel.isNotEmpty ? teamSizeLabel : '—',
               'Raised': raised > 0 ? Formatters.compactCurrency(raised) : '—',
@@ -936,180 +1212,188 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                     ),
                 ],
               ),
-              body: () {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const AppLoadingShimmer(itemCount: 4, height: 120);
-                }
-                if (profile == null) return const AppErrorState();
-                return ProfileView(
-                  data: profile,
-                  reviews: reviews,
-                  onShare: () => _showShareSheet(context, profile),
-                  onPrimaryAction: () async {
-                    if (widget.type == PublicProfileType.freelancer) {
-                      final invited = await InviteFreelancerDialog.show(
-                        context,
-                        freelancerId: widget.id,
-                        freelancerName: profile.name,
-                        freelancerAvatar: profile.avatarUrl,
-                      );
-                      if (invited == true && mounted) {
-                        setState(() {
-                          _future = _loadAll();
-                        });
+              body: SafeArea(
+                child: () {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const AppLoadingShimmer(itemCount: 4, height: 120);
+                  }
+                  if (profile == null) return const AppErrorState();
+                  return ProfileView(
+                    data: profile,
+                    reviews: reviews,
+                    onShare: () => _showShareSheet(context, profile),
+                    onPrimaryAction: () async {
+                      if (widget.type == PublicProfileType.freelancer) {
+                        final invited = await InviteFreelancerDialog.show(
+                          context,
+                          freelancerId: widget.id,
+                          freelancerName: profile.name,
+                          freelancerAvatar: profile.avatarUrl,
+                        );
+                        if (invited == true && mounted) {
+                          setState(() {
+                            _future = _loadAll();
+                          });
+                        }
+                      } else if (widget.type == PublicProfileType.company ||
+                          profile.primaryActionLabel == 'Connect') {
+                        ScheduleMeetingSheet.show(
+                          context,
+                          targetId: widget.id,
+                          targetName: profile.name,
+                          targetAvatar: profile.avatarUrl,
+                        );
+                      } else {
+                        context.showSnack(
+                          '${profile.primaryActionLabel} · ${profile.name}',
+                        );
                       }
-                    } else if (profile.primaryActionLabel == 'Connect') {
-                      ScheduleMeetingSheet.show(
-                        context,
-                        targetId: widget.id,
-                        targetName: profile.name,
-                        targetAvatar: profile.avatarUrl,
+                    },
+                    onMessage: () {
+                      final targetId =
+                          (profile.id != null && profile.id!.isNotEmpty)
+                          ? profile.id!
+                          : widget.id;
+                      final nameEncoded = Uri.encodeComponent(profile.name);
+                      final avatarEncoded = Uri.encodeComponent(
+                        profile.avatarUrl ?? '',
                       );
-                    } else {
-                      context.showSnack(
-                        '${profile.primaryActionLabel} · ${profile.name}',
+                      final bool fromprofile = true;
+                      context.push(
+                        '${Routes.chat}/$targetId?name=$nameEncoded&avatarUrl=$avatarEncoded&fromprofile=$fromprofile',
                       );
-                    }
-                  },
-                  onMessage: () {
-                    final nameEncoded = Uri.encodeComponent(profile.name);
-                    final avatarEncoded = Uri.encodeComponent(
-                      profile.avatarUrl ?? '',
-                    );
-                    context.push(
-                      '${Routes.chat}/${widget.id}?name=$nameEncoded&avatarUrl=$avatarEncoded',
-                    );
-                  },
-
-                  onBookmark: () async {
-                    if (widget.type == PublicProfileType.investor) {
-                      final api = sl<ApiClientHelper>();
-                      final isSaved = BookmarkManager.instance.isBookmarked(
-                        _bookmarkCategory,
-                        widget.id,
-                      );
-                      final res = isSaved
-                          ? await api.deleteAction(
-                              ApiEndpoints.publicInvestorSave(widget.id),
-                            )
-                          : await api.postAction(
-                              ApiEndpoints.publicInvestorSave(widget.id),
+                    },
+                    onBookmark: () async {
+                      if (widget.type == PublicProfileType.investor) {
+                        final api = sl<ApiClientHelper>();
+                        final isSaved = BookmarkManager.instance.isBookmarked(
+                          _bookmarkCategory,
+                          widget.id,
+                        );
+                        final res = isSaved
+                            ? await api.deleteAction(
+                                ApiEndpoints.publicInvestorSave(widget.id),
+                              )
+                            : await api.postAction(
+                                ApiEndpoints.publicInvestorSave(widget.id),
+                              );
+                        if (!context.mounted) return;
+                        res.fold(
+                          (f) {
+                            context.showSnack(f.message, isError: true);
+                          },
+                          (success) {
+                            BookmarkManager.instance.syncItem(
+                              _bookmarkCategory,
+                              widget.id,
+                              !isSaved,
                             );
-                      if (!context.mounted) return;
-                      res.fold(
-                        (f) {
-                          context.showSnack(f.message, isError: true);
-                        },
-                        (success) {
-                          BookmarkManager.instance.syncItem(
-                            _bookmarkCategory,
-                            widget.id,
-                            !isSaved,
-                          );
-                          context.showSnack(
-                            isSaved
-                                ? 'Investor removed from saved'
-                                : 'Investor saved',
-                          );
-                          setState(() {
-                            _future = _loadAll();
-                          });
-                        },
-                      );
-                    } else if (widget.type == PublicProfileType.founder) {
-                      final api = sl<ApiClientHelper>();
-                      final isSaved = BookmarkManager.instance.isBookmarked(
-                        _bookmarkCategory,
-                        widget.id,
-                      );
-
-                      final res = isSaved
-                          ? await api.deleteAction(
-                              ApiEndpoints.investorFounderSave(widget.id),
-                            )
-                          : await api.postAction(
-                              ApiEndpoints.investorFounderSave(widget.id),
+                            context.showSnack(
+                              isSaved
+                                  ? 'Investor removed from saved'
+                                  : 'Investor saved',
                             );
+                            setState(() {
+                              _future = _loadAll();
+                            });
+                          },
+                        );
+                      } else if (widget.type == PublicProfileType.founder) {
+                        final api = sl<ApiClientHelper>();
+                        final isSaved = BookmarkManager.instance.isBookmarked(
+                          _bookmarkCategory,
+                          widget.id,
+                        );
 
-                      res.fold(
-                        (f) {
-                          context.showSnack(f.message, isError: true);
-                        },
-                        (success) {
-                          BookmarkManager.instance.toggle(
-                            _bookmarkCategory,
-                            widget.id,
-                          );
-                          setState(() {
-                            _future = _loadAll();
-                          });
-                        },
-                      );
-                    } else if (widget.type == PublicProfileType.freelancer) {
-                      final isSaved = BookmarkManager.instance.isBookmarked(
-                        _bookmarkCategory,
-                        widget.id,
-                      );
-                      final res = await sl<FreelancerRepository>().toggleSave(
-                        widget.id,
-                      );
-                      if (!context.mounted) return;
-                      res.fold(
-                        (f) => context.showSnack(
-                          f.message.isNotEmpty
-                              ? f.message
-                              : 'Failed to update saved status',
-                          isError: true,
-                        ),
-                        (_) {
-                          BookmarkManager.instance.syncItem(
-                            _bookmarkCategory,
-                            widget.id,
-                            !isSaved,
-                          );
-                          context.showSnack(
-                            isSaved
-                                ? 'Freelancer removed from saved'
-                                : 'Freelancer saved',
-                          );
-                          setState(() => _future = _loadAll());
-                        },
-                      );
-                    } else {
-                      final api = sl<ApiClientHelper>();
-                      final isSaved = BookmarkManager.instance.isBookmarked(
-                        _bookmarkCategory,
-                        widget.id,
-                      );
+                        final res = isSaved
+                            ? await api.deleteAction(
+                                ApiEndpoints.investorFounderSave(widget.id),
+                              )
+                            : await api.postAction(
+                                ApiEndpoints.investorFounderSave(widget.id),
+                              );
 
-                      final res = isSaved
-                          ? await api.deleteAction(
-                              '${ApiEndpoints.favorites}/${widget.id}',
-                            )
-                          : await api.postAction(
-                              '${ApiEndpoints.favorites}/${widget.id}',
+                        if (!context.mounted) return;
+                        res.fold(
+                          (f) {
+                            context.showSnack(f.message, isError: true);
+                          },
+                          (success) {
+                            BookmarkManager.instance.toggle(
+                              _bookmarkCategory,
+                              widget.id,
                             );
+                            setState(() {
+                              _future = _loadAll();
+                            });
+                          },
+                        );
+                      } else if (widget.type == PublicProfileType.freelancer) {
+                        final isSaved = BookmarkManager.instance.isBookmarked(
+                          _bookmarkCategory,
+                          widget.id,
+                        );
+                        final res = await sl<FreelancerRepository>().toggleSave(
+                          widget.id,
+                        );
+                        if (!context.mounted) return;
+                        res.fold(
+                          (f) => context.showSnack(
+                            f.message.isNotEmpty
+                                ? f.message
+                                : 'Failed to update saved status',
+                            isError: true,
+                          ),
+                          (_) {
+                            BookmarkManager.instance.syncItem(
+                              _bookmarkCategory,
+                              widget.id,
+                              !isSaved,
+                            );
+                            context.showSnack(
+                              isSaved
+                                  ? 'Freelancer removed from saved'
+                                  : 'Freelancer saved',
+                            );
+                            setState(() => _future = _loadAll());
+                          },
+                        );
+                      } else {
+                        final api = sl<ApiClientHelper>();
+                        final isSaved = BookmarkManager.instance.isBookmarked(
+                          _bookmarkCategory,
+                          widget.id,
+                        );
 
-                      if (!context.mounted) return;
-                      res.fold(
-                        (f) => context.showSnack(
-                          f.message.isNotEmpty
-                              ? f.message
-                              : 'Failed to update saved status',
-                          isError: true,
-                        ),
-                        (_) {
-                          BookmarkManager.instance.toggle(
-                            _bookmarkCategory,
-                            widget.id,
-                          );
-                          setState(() => _future = _loadAll());
-                        },
-                      );
-                    }
-                  },
-                );
-              }(),
+                        final res = isSaved
+                            ? await api.deleteAction(
+                                '${ApiEndpoints.favorites}/${widget.id}',
+                              )
+                            : await api.postAction(
+                                '${ApiEndpoints.favorites}/${widget.id}',
+                              );
+
+                        if (!context.mounted) return;
+                        res.fold(
+                          (f) => context.showSnack(
+                            f.message.isNotEmpty
+                                ? f.message
+                                : 'Failed to update saved status',
+                            isError: true,
+                          ),
+                          (_) {
+                            BookmarkManager.instance.toggle(
+                              _bookmarkCategory,
+                              widget.id,
+                            );
+                            setState(() => _future = _loadAll());
+                          },
+                        );
+                      }
+                    },
+                  );
+                }(),
+              ),
             );
           },
         );

@@ -11,7 +11,7 @@ class AppNotificationTile extends StatelessWidget {
     required this.body,
     required this.time,
     required this.icon,
-    this.color = AppColors.primary,
+    this.color ,
     this.isRead = false,
     this.onTap,
   });
@@ -20,12 +20,13 @@ class AppNotificationTile extends StatelessWidget {
   final String body;
   final String time;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final bool isRead;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final col = color ?? AppColors.primary;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizes.radiusMd),
@@ -40,7 +41,7 @@ class AppNotificationTile extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSizes.sm + 2),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: col.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: AppSizes.iconSm),
@@ -66,8 +67,8 @@ class AppNotificationTile extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.primary,
+                          decoration:  BoxDecoration(
+                            color: col,
                             shape: BoxShape.circle,
                           ),
                         ),

@@ -45,11 +45,27 @@ class ChatCubit extends Cubit<ChatState> {
   final MessageRepository _repository;
   final String conversationId;
   late String _convoId;
+  String get currentConversationId => _convoId;
   StreamSubscription<ChatMessage>? _sub;
   Timer? _pollTimer;
 
   Future<void> load() async {
     emit(state.copyWith(status: ViewStatus.loading));
+
+    // A chat opened from a profile may receive a participant ID. Resolve it
+    // before any read, polling, or socket operation uses the route value.
+    final cachedConversations = await _repository.getCachedConversations();
+    final isKnownConversation = cachedConversations.any(
+      (conversation) => conversation.id == _convoId,
+    );
+    if (!isKnownConversation) {
+      final resolved = await _repository.startChat(recipientId: _convoId);
+      final resolvedConversationId = resolved.valueOrNull?.conversationId;
+      if (resolvedConversationId != null && resolvedConversationId.isNotEmpty) {
+        _convoId = resolvedConversationId;
+      }
+    }
+
     var result = await _repository.getMessages(_convoId);
 
     if (result.isFailure) {
@@ -79,10 +95,17 @@ class ChatCubit extends Cubit<ChatState> {
 
     result.fold(
       (_) => emit(state.copyWith(status: ViewStatus.failure)),
-      (messages) =>
-          emit(state.copyWith(status: ViewStatus.success, messages: messages)),
+      (messages) {
+        if (messages.isNotEmpty && messages.first.conversationId.isNotEmpty) {
+          _convoId = messages.first.conversationId;
+        }
+        emit(state.copyWith(status: ViewStatus.success, messages: messages));
+      },
     );
-    await _repository.markConversationRead(_convoId);
+
+    if (_convoId.isNotEmpty) {
+      await _repository.markConversationRead(_convoId);
+    }
 
     _subscribeToMessages();
     _startPolling();
@@ -116,10 +139,29 @@ class ChatCubit extends Cubit<ChatState> {
     final result = await _repository.sendMessage(_convoId, text.trim());
     final msg = result.valueOrNull;
     if (msg != null) {
-      if (msg.id.isNotEmpty && state.messages.any((m) => m.id == msg.id)) {
+      if (msg.conversationId.isNotEmpty && msg.conversationId != _convoId) {
+        _convoId = msg.conversationId;
+        _subscribeToMessages();
+      }
+      final confirmed = msg.isMine
+          ? msg
+          : ChatMessage(
+              id: msg.id,
+              conversationId: msg.conversationId,
+              senderId: 'me',
+              text: msg.text,
+              sentAt: msg.sentAt,
+              type: msg.type,
+              status: msg.status,
+              isMine: true,
+              attachmentUrl: msg.attachmentUrl,
+              replyTo: msg.replyTo,
+            );
+      if (confirmed.id.isNotEmpty &&
+          state.messages.any((m) => m.id == confirmed.id)) {
         return;
       }
-      emit(state.copyWith(messages: [...state.messages, msg]));
+      emit(state.copyWith(messages: [...state.messages, confirmed]));
     }
   }
 
@@ -139,9 +181,29 @@ class ChatCubit extends Cubit<ChatState> {
     emit(state.copyWith(uploading: false));
     final msg = result.valueOrNull;
     if (msg != null) {
-      if (msg.id.isEmpty || !state.messages.any((m) => m.id == msg.id)) {
-        emit(state.copyWith(messages: [...state.messages, msg]));
+      if (msg.conversationId.isNotEmpty && msg.conversationId != _convoId) {
+        _convoId = msg.conversationId;
+        _subscribeToMessages();
       }
+      final confirmed = msg.isMine
+          ? msg
+          : ChatMessage(
+              id: msg.id,
+              conversationId: msg.conversationId,
+              senderId: 'me',
+              text: msg.text,
+              sentAt: msg.sentAt,
+              type: msg.type,
+              status: msg.status,
+              isMine: true,
+              attachmentUrl: msg.attachmentUrl,
+              replyTo: msg.replyTo,
+            );
+      if (confirmed.id.isNotEmpty &&
+          state.messages.any((m) => m.id == confirmed.id)) {
+        return null;
+      }
+      emit(state.copyWith(messages: [...state.messages, confirmed]));
       return null;
     }
     return result.fold((f) => f.message, (_) => 'Failed to send attachment');

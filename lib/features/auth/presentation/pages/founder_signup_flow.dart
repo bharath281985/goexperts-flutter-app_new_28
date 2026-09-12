@@ -6,6 +6,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/services/location_service.dart';
+import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
@@ -44,6 +45,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   String _selectedMobileCountryCode = '+91';
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
+  final _referralCodeController = TextEditingController();
   final _cityController = TextEditingController();
   double? _detectedLatitude;
   double? _detectedLongitude;
@@ -101,6 +103,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       _emailController,
       _passwordController,
       _confirmPasswordController,
+      _referralCodeController,
       _cityController,
       _startupNameController,
       _descriptionController,
@@ -137,6 +140,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     _passwordController.text = fields['password']?.toString() ?? '';
     _confirmPasswordController.text =
         fields['confirmPassword']?.toString() ?? '';
+    _referralCodeController.text = fields['referralCode']?.toString() ?? '';
     _cityController.text = fields['city']?.toString() ?? '';
     _selectedCountry = fields['country']?.toString();
     _selectedState = fields['state']?.toString();
@@ -152,8 +156,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     _selectedTeamSize = fields['teamSize']?.toString();
     _selectedGoals = _stringList(fields['primaryGoal']);
     _detectedLatitude = double.tryParse(fields['latitude']?.toString() ?? '');
-    _detectedLongitude =
-        double.tryParse(fields['longitude']?.toString() ?? '');
+    _detectedLongitude = double.tryParse(fields['longitude']?.toString() ?? '');
   }
 
   void _populateFromAuthState() {
@@ -227,6 +230,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       'email': _emailController.text.trim(),
       'password': _passwordController.text,
       'confirmPassword': _confirmPasswordController.text,
+      'referralCode': _referralCodeController.text.trim(),
       'country': _selectedCountry,
       // 'state': _selectedState,
       'city': _cityController.text.trim(),
@@ -267,6 +271,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       signupData: {
         'isSocialLogin': isSocial,
         'isSocial': isSocial,
+        if (_referralCodeController.text.trim().isNotEmpty)
+          'referralCode': _referralCodeController.text.trim(),
         'country': _selectedCountry,
         'city': _cityController.text.trim(),
         if (_detectedLatitude != null) 'latitude': _detectedLatitude,
@@ -446,12 +452,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
     final isSocial =
         context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
     if (!isSocial) {
-      if (_passwordController.text.isEmpty) {
-        return 'Please enter password';
-      }
-      if (_passwordController.text.length < 8) {
-        return 'Password must be at least 8 characters';
-      }
+      final pwdError = Validators.password(_passwordController.text);
+      if (pwdError != null) return pwdError;
       if (_passwordController.text != _confirmPasswordController.text) {
         return 'Password and confirm password must match';
       }
@@ -627,6 +629,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           selectedMobileCountryCode: _selectedMobileCountryCode,
           passwordController: _passwordController,
           confirmPasswordController: _confirmPasswordController,
+          referralCodeController: _referralCodeController,
           cityController: _cityController,
           countries: _countries,
           // states: _states,
@@ -655,7 +658,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail ??
+          initialVerifiedEmail:
+              widget.verifiedEmail ??
               (context.read<AuthBloc>().state.user?.isVerified == true
                   ? context.read<AuthBloc>().state.user?.email
                   : ''),
@@ -708,8 +712,8 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         return Column(
           children: [
             AppDropdown<String>(
-                label: 'Role in Startup *',
-                hint: 'What is your role in the startup?',
+              label: 'Role in Startup *',
+              hint: 'What is your role in the startup?',
               value: _selectedDesignation,
               items: _designations,
               itemLabel: (value) => value,

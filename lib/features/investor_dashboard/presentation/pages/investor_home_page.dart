@@ -291,7 +291,7 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
+                                  child:  Icon(
                                     Icons.account_balance_wallet_rounded,
                                     size: 16,
                                     color: AppColors.primary,
@@ -515,26 +515,26 @@ class _InvestorHomePageState extends State<InvestorHomePage> {
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
-      tabs: const [
+      tabs:  [
         RecommendationTabConfig(
           key: 'startups',
           label: 'Startups',
           icon: Icons.rocket_launch_rounded,
-          accent: Color(0xFF3B82F6),
+          accent: AppColors.founderColor,
           viewAllRoute: Routes.investorStartups,
         ),
         RecommendationTabConfig(
           key: 'projects',
           label: 'Projects',
           icon: Icons.task_alt_rounded,
-          accent: Color(0xFF10B981),
+          accent: AppColors.clientColor,
           viewAllRoute: Routes.investorProjects,
         ),
         RecommendationTabConfig(
           key: 'freelancers',
           label: 'Freelancers',
           icon: Icons.code_rounded,
-          accent: Color(0xFF8B5CF6),
+          accent: AppColors.freelancerColor,
           viewAllRoute: Routes.clientFreelancers,
         ),
       ],

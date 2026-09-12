@@ -114,7 +114,15 @@ class AuthRemoteDatasource {
         throw Exception('Invalid user payload');
       },
     );
-    return result.fold((f) => throw Exception(f.message), (user) => user);
+    final user =
+        result.fold((f) => throw Exception(f.message), (user) => user);
+    if (user.id.isNotEmpty) {
+      await _secureStorage.write(SecureStorage.kUserId, user.id);
+    }
+    if (user.role != null) {
+      await _secureStorage.write(SecureStorage.kRole, user.role!.apiValue);
+    }
+    return user;
   }
 
   Future<ProfileCompletionResult> updateProfile(
@@ -248,6 +256,14 @@ class AuthRemoteDatasource {
     );
   }
 
+  Future<bool> deleteAccount() async {
+    final result = await _api.deleteAction(ApiEndpoints.deleteAccount);
+    return result.fold(
+      (f) => throw Exception(f.message),
+      (_) => true,
+    );
+  }
+
   Future<void> logout() async {
     final device = await _deviceInfo.authPayload();
     final refreshToken = await _secureStorage.refreshToken;
@@ -296,7 +312,7 @@ class AuthRemoteDatasource {
     final userJson = data['user'] ?? data['data'];
     String? userId;
     String? role;
-    if (userJson is Map<String, dynamic>) {
+    if (userJson is Map) {
       userId = userJson['id']?.toString();
       role = userJson['role']?.toString();
     }

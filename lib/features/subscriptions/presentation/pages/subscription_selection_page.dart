@@ -77,7 +77,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
       if (free != null) _selected = free.id;
     }
     if (_plans.isEmpty && _loadError == null) {
-      _loadError = 'No subscription plans are available right now.';
+      _loadError = 'No service packages are available right now.';
     }
     setState(() => _loading = false);
   }
@@ -136,8 +136,8 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
           widget.isOnboarding &&
                   context.read<AuthBloc>().state.subscriptionStatus ==
                       SubscriptionGateStatus.expired
-              ? 'Renew your plan'
-              : 'Choose a plan',
+              ? 'Continue your package'
+              : 'Choose a package',
         ),
         actions: [
           if (widget.isOnboarding)
@@ -170,7 +170,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
                   child: AppPrimaryButton(
                     label: _isSelectedFree
                         ? 'Continue with $_selectedPlanName'
-                        : 'Subscribe',
+                        : 'Continue',
                     isLoading: _saving,
                     onPressed: _submit,
                   ),
@@ -195,7 +195,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                _loadError ?? 'Unable to load subscription plans.',
+                _loadError ?? 'Unable to load service packages.',
                 textAlign: TextAlign.center,
                 style: context.text.bodyMedium,
               ),
@@ -245,8 +245,8 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
                     widget.isOnboarding &&
                             context.read<AuthBloc>().state.subscriptionStatus ==
                                 SubscriptionGateStatus.expired
-                        ? 'Renew your plan'
-                        : 'Choose your plan',
+                        ? 'Continue your package'
+                        : 'Choose your package',
                     style: context.text.headlineSmall?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -256,7 +256,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
               ),
               AppSizes.vGapSm,
               Text(
-                'Tap a plan to select it and view all included benefits.',
+                'Tap a package to select it and view all included benefits.',
                 style: context.text.bodyMedium?.copyWith(
                   color: Colors.white.withValues(alpha: 0.84),
                   height: 1.35,
@@ -309,7 +309,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     // Always continue onboarding on Skip — even if the API write fails.
     res.fold(
       (f) => _onSubscriptionSuccess(
-        message: 'Continuing with $_selectedPlanName plan',
+        message: 'Continuing with $_selectedPlanName package',
         planId: planId,
       ),
       (message) => _onSubscriptionSuccess(message: message, planId: planId),
@@ -401,7 +401,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
       (f) {
         context.showSnack(f.message, isError: true);
         _onSubscriptionSuccess(
-          message: 'Continuing with $_selectedPlanName plan',
+          message: 'Continuing with $_selectedPlanName package',
           planId: _selected,
         );
       },
@@ -410,7 +410,7 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
   }
 
   void _onSubscriptionSuccess({
-    String message = 'Subscription activated successfully',
+    String message = 'Package activated successfully',
     String? planId,
   }) {
     context.showSnack(message);
@@ -651,7 +651,7 @@ class _PlanDetails extends StatelessWidget {
           if (plan.features.isNotEmpty) ...[
             AppSizes.vGapLg,
             Text(
-              'Features',
+              'Package Benefits',
               style: context.text.titleSmall?.copyWith(
                 fontWeight: FontWeight.w900,
               ),

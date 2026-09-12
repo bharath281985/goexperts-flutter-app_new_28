@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../app/constants/app_colors.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/subscription_status.dart';
 import '../../../subscriptions/domain/repositories/subscription_repository.dart';
@@ -64,6 +65,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         fromUser == SubscriptionGateStatus.active) {
       subStatus = SubscriptionGateStatus.active;
     }
+    // 2. Load the newly saved role
+    await AppColors.loadRole();
+
+    // 3. Load colors from API
+    await AppColors.loadRoleColors();
 
     final planRes = await _subscriptionRepository.getCurrentPlanId();
     final planId = planRes.valueOrNull ?? user.subscriptionPlan;
@@ -309,7 +315,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onLogout(AuthLoggedOut event, Emitter<AuthState> emit) async {
+   
     await _repository.logout(remote: event.remote);
+      // 2. Load the newly saved role
+    await AppColors.loadRole();
+
+    // 3. Load colors from API
+    await AppColors.loadRoleColors();
     emit(const AuthState(status: AuthStatus.unauthenticated));
   }
 }

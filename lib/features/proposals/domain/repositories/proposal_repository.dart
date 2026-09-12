@@ -21,6 +21,7 @@ abstract class ProposalRepository {
     required String coverLetter,
     required double bidAmount,
     int? deliveryDays,
+    List<String> attachments = const [],
   });
   Future<Result<bool>> withdraw(String id);
   Future<Result<bool>> acceptOffer(String id);

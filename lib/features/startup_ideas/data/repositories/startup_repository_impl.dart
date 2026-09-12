@@ -3,7 +3,6 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
-import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/startup.dart';
@@ -289,8 +288,9 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> acceptOffer(String id) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _rolePath();
     final primary = await _api.patchAction(
-      ApiEndpoints.founderInvestorRequestAccept(id),
+      ApiEndpoints.roleInvestorRequestAccept(role, id),
     );
     if (primary.isSuccess) return primary;
     return _api.patchAction(ApiEndpoints.publicInvestorRequestAccept(id));
@@ -299,8 +299,9 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> rejectOffer(String id) async {
     if (_api == null) return _apiNotConfigured();
+    final role = await _rolePath();
     final primary = await _api.patchAction(
-      ApiEndpoints.founderInvestorRequestReject(id),
+      ApiEndpoints.roleInvestorRequestReject(role, id),
     );
     if (primary.isSuccess) return primary;
     return _api.patchAction(ApiEndpoints.publicInvestorRequestReject(id));
@@ -319,12 +320,12 @@ class StartupRepositoryImpl implements StartupRepository {
       if (time != null) 'time': time,
     };
     final primary = await _api.patchAction(
-      ApiEndpoints.founderInvestorRequestMeeting(id),
+      ApiEndpoints.publicInvestorRequestMeeting(id),
       body: body.isNotEmpty ? body : null,
     );
     if (primary.isSuccess) return primary;
     return _api.patchAction(
-      ApiEndpoints.publicInvestorRequestMeeting(id),
+      ApiEndpoints.founderInvestorRequestMeeting(id),
       body: body.isNotEmpty ? body : null,
     );
   }

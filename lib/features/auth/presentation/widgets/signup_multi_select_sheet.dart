@@ -258,7 +258,7 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
               ),
               Text(
                 '${_currentSelected.length}',
-                style: const TextStyle(
+                style:  TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primary,
@@ -319,11 +319,57 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
                     ),
                   )
                 : ListView.separated(
-                    itemCount: _options.length,
+                    itemCount: _options.length + 1,
                     separatorBuilder: (_, __) =>
                         const Divider(height: 1, color: Color(0xFFF1F5F9)),
                     itemBuilder: (context, index) {
-                      final item = _options[index];
+                      if (index == 0) {
+                        final selectableOptions = _options.where((o) => o.toLowerCase() != 'other').toList();
+                        final isAllSelected = selectableOptions.isNotEmpty &&
+                            selectableOptions.every((o) => _currentSelected.contains(o));
+                        return CheckboxListTile(
+                          title:  Text(
+                            'Select All',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          activeColor: AppColors.primary,
+                          value: isAllSelected,
+                          onChanged: widget.maxSelection == 1 
+                              ? null 
+                              : (val) {
+                                  setState(() {
+                                    if (val == true) {
+                                      if (widget.maxSelection != null) {
+                                        for (final o in selectableOptions) {
+                                          if (_currentSelected.length >=
+                                              widget.maxSelection!) break;
+                                          if (!_currentSelected.contains(o)) {
+                                            _currentSelected.add(o);
+                                          }
+                                        }
+                                      } else {
+                                        for (final o in selectableOptions) {
+                                          if (!_currentSelected.contains(o)) {
+                                            _currentSelected.add(o);
+                                          }
+                                        }
+                                      }
+                                    } else {
+                                      for (final o in selectableOptions) {
+                                        _currentSelected.remove(o);
+                                      }
+                                    }
+                                    _sortOptions();
+                                  });
+                                },
+                        );
+                      }
+
+                      final item = _options[index - 1];
                       final isSelected = _currentSelected.contains(item);
 
                       return CheckboxListTile(

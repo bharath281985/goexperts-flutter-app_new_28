@@ -190,14 +190,14 @@ class _LoginPageState extends State<LoginPage> {
                             children: [
                               Text(
                                 context.tr('Create Account'),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w700,
                                   fontSize: 13,
                                 ),
                               ),
                               const SizedBox(width: 2),
-                              const Icon(
+                              Icon(
                                 Icons.arrow_forward_rounded,
                                 size: 14,
                                 color: AppColors.primary,
@@ -235,10 +235,14 @@ class _GradientButton extends StatelessWidget {
       height: 52,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        gradient: const LinearGradient(
+        gradient:  LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFE30613), Color(0xFFB00410)],
+          colors: [AppColors.primary, AppColors.secondary],
+          stops: [
+            0.2,
+            0.8,
+          ]
         ),
         boxShadow: [
           BoxShadow(

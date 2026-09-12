@@ -8,6 +8,7 @@ class Meeting extends Equatable {
     required this.title,
     this.withId = '',
     required this.withName,
+    this.withRole = 'Participant',
     required this.startTime,
     this.durationMinutes,
     required this.status,
@@ -25,6 +26,7 @@ class Meeting extends Equatable {
   final String title;
   final String withId;
   final String withName;
+  final String withRole;
   final String? withAvatar;
   final String? hostId;
   final String? hostName;
@@ -42,5 +44,22 @@ class Meeting extends Equatable {
   bool get isUpcoming => startTime.isAfter(DateTime.now());
 
   @override
-  List<Object?> get props => [id, status, startTime];
+  List<Object?> get props => [
+    id,
+    title,
+    withId,
+    withName,
+    withRole,
+    withAvatar,
+    hostId,
+    hostName,
+    hostAvatar,
+    startTime,
+    durationMinutes,
+    status,
+    isVideo,
+    meetingLink,
+    agenda,
+    participants,
+  ];
 }

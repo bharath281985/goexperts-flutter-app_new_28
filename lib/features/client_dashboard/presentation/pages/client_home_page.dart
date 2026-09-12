@@ -293,7 +293,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
+                                  child:  Icon(
                                     Icons.account_balance_wallet_rounded,
                                     size: 16,
                                     color: AppColors.primary,
@@ -433,7 +433,7 @@ class _ClientHomePageState extends State<ClientHomePage> {
               subtitle: 'Live sprint boards & task tracking',
               tag: 'Tracking',
               icon: Icons.view_kanban_rounded,
-              color: const Color(0xFF8B5CF6),
+              color: AppColors.primary,
               onTap: () => context.push(Routes.clientMyProjects),
               width: width,
             ),
@@ -526,26 +526,26 @@ class _ClientHomePageState extends State<ClientHomePage> {
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
-      tabs: const [
+      tabs:  [
         RecommendationTabConfig(
           key: 'freelancers',
           label: 'Freelancers',
           icon: Icons.person_search_rounded,
-          accent: Color(0xFF3B82F6),
+          accent:AppColors.freelancerColor,
           viewAllRoute: Routes.clientFreelancers,
         ),
         RecommendationTabConfig(
           key: 'startups',
           label: 'Startups',
           icon: Icons.rocket_launch_rounded,
-          accent: Color(0xFF10B981),
+          accent:AppColors.founderColor,
           viewAllRoute: Routes.clientStartups,
         ),
         RecommendationTabConfig(
           key: 'investors',
           label: 'Investors',
           icon: Icons.account_balance_rounded,
-          accent: Color(0xFF8B5CF6),
+          accent:AppColors.investorColor  ,
           viewAllRoute: Routes.clientInvestors,
         ),
       ],

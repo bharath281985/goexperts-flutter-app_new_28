@@ -161,7 +161,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
               return (
                 message: envelope.message?.isNotEmpty == true
                     ? envelope.message!
-                    : 'Starter plan activated successfully',
+                    : 'Starter package activated successfully',
                 data: data,
               );
             },
@@ -169,7 +169,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
       return res.fold(Err.new, (parsed) {
         if (parsed.data['requiresPayment'] == true) {
           return const Err(
-            ValidationFailure('Payment is required for this plan'),
+            ValidationFailure('Payment is required for this package'),
           );
         }
         return Success(parsed.message);
@@ -218,7 +218,7 @@ class SubscriptionRepositoryImpl implements SubscriptionRepository {
 
     return SubscriptionPlan(
       id: json['id']?.toString() ?? '',
-      name: json['name'] as String? ?? 'Plan',
+      name: json['name'] as String? ?? 'Package',
       priceMonthly: monthly,
       priceYearly: yearly,
       features: _stringList(json['features']),

@@ -91,7 +91,7 @@ class TechnologyDetailsPage extends StatelessWidget {
                       value: t.popularity / 100,
                       minHeight: 8,
                       backgroundColor: context.theme.dividerColor,
-                      valueColor: const AlwaysStoppedAnimation(
+                      valueColor:  AlwaysStoppedAnimation(
                         AppColors.primary,
                       ),
                     ),
@@ -120,7 +120,7 @@ class TechnologyDetailsPage extends StatelessWidget {
                       onTap: () => context.showSnack('Opening $r'),
                       child: Row(
                         children: [
-                          const Icon(
+                           Icon(
                             Icons.menu_book_outlined,
                             size: 18,
                             color: AppColors.primary,

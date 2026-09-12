@@ -40,6 +40,7 @@ class SignupAccountStep extends StatelessWidget {
     required this.passwordController,
     required this.confirmPasswordController,
     required this.cityController,
+    this.referralCodeController,
     required this.countries,
     required this.selectedCountry,
     // required this.selectedState,
@@ -61,6 +62,7 @@ class SignupAccountStep extends StatelessWidget {
   final TextEditingController passwordController;
   final TextEditingController confirmPasswordController;
   final TextEditingController cityController;
+  final TextEditingController? referralCodeController;
   final List<String> countries;
 
   final String? selectedCountry;
@@ -166,6 +168,15 @@ class SignupAccountStep extends StatelessWidget {
           autoDetectTooltip: 'Detect my current city',
         ),
         const SizedBox(height: 16),
+        if (referralCodeController != null) ...[
+          AppTextField(
+            controller: referralCodeController,
+            label: 'Referral Code (Optional)',
+            hint: 'Enter referral code if you have one',
+            prefixIcon: Icons.card_giftcard,
+          ),
+          const SizedBox(height: 16),
+        ],
         Material(
           color: Colors.transparent,
           child: Row(
@@ -195,7 +206,7 @@ class SignupAccountStep extends StatelessWidget {
                     children: [
                       TextSpan(
                         text: 'Terms Conditions',
-                        style: const TextStyle(
+                        style:  TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,
@@ -212,7 +223,7 @@ class SignupAccountStep extends StatelessWidget {
                       const TextSpan(text: ' & '),
                       TextSpan(
                         text: 'Privacy Policy',
-                        style: const TextStyle(
+                        style:  TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,
                           decoration: TextDecoration.underline,

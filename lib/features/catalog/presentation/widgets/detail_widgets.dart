@@ -106,12 +106,12 @@ class DetailMetric extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.value,
-    this.color = AppColors.primary,
+    this.color ,
   });
   final IconData icon;
   final String label;
   final String value;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +158,7 @@ class DetailChips extends StatelessWidget {
             ),
             child: Text(
               i,
-              style: const TextStyle(
+              style:  TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w600,
                 fontSize: 12,

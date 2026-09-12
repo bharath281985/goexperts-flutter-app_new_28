@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../../../../core/auth/token_role_helper.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
@@ -21,10 +22,8 @@ class ProposalRepositoryImpl implements ProposalRepository {
   Future<Result<Paginated<Proposal>>> getProposals(QueryParams params) async {
     if (_api == null) return _apiNotConfigured();
 
-    final role = await _role();
-    final path = role != null
-        ? ApiEndpoints.roleProposals(role)
-        : ApiEndpoints.freelancerProposals;
+
+    final path =  ApiEndpoints.publicProposals;
 
     var result = await _api.getEnvelope<Paginated<Proposal>>(
       path,
@@ -36,9 +35,9 @@ class ProposalRepositoryImpl implements ProposalRepository {
         fallbackPage: params.page,
       ),
     );
-    if (result.isFailure && path != ApiEndpoints.freelancerProposals) {
+    if (result.isFailure && path != ApiEndpoints.publicProposals) {
       final fallback = await _api.getEnvelope<Paginated<Proposal>>(
-        ApiEndpoints.freelancerProposals,
+        ApiEndpoints.publicProposals,
         query: params.toApiQuery(),
         parser: (envelope) => ApiResponse.parsePaginated(
           envelope.data,
@@ -137,6 +136,10 @@ class ProposalRepositoryImpl implements ProposalRepository {
     if (_api == null) return _apiNotConfigured();
 
     final role = await _role();
+    final path = role != null
+        ? ApiEndpoints.publicProposals
+        : ApiEndpoints.publicProposals;
+
     final body = <String, dynamic>{
       'projectId': projectId,
       'bidAmount': bidAmount,
@@ -146,27 +149,38 @@ class ProposalRepositoryImpl implements ProposalRepository {
     };
 
     var res = await _api.post<Proposal>(
-      ApiEndpoints.freelancerProposals,
+      path,
       body: body,
       parser: (data) =>
           _proposalFromJson(Map<String, dynamic>.from(data as Map)),
       allowNullData: false,
     );
-    if (res.isFailure && role != null) {
-      final rolePath = ApiEndpoints.roleProposals(role);
-      if (rolePath != ApiEndpoints.freelancerProposals) {
-        final fallbackRes = await _api.post<Proposal>(
-          rolePath,
-          body: body,
-          parser: (data) =>
-              _proposalFromJson(Map<String, dynamic>.from(data as Map)),
-          allowNullData: false,
-        );
-        if (fallbackRes.isSuccess) {
-          res = fallbackRes;
-        }
+
+    if (res.isFailure && path != ApiEndpoints.publicProposals) {
+      final fallbackRes = await _api.post<Proposal>(
+        ApiEndpoints.publicProposals,        body: body,
+        parser: (data) =>
+            _proposalFromJson(Map<String, dynamic>.from(data as Map)),
+        allowNullData: false,
+      );
+      if (fallbackRes.isSuccess) {
+        return fallbackRes;
       }
     }
+
+    if (res.isFailure) {
+      final publicRes = await _api.post<Proposal>(
+        ApiEndpoints.publicProposals,
+        body: body,
+        parser: (data) =>
+            _proposalFromJson(Map<String, dynamic>.from(data as Map)),
+        allowNullData: false,
+      );
+      if (publicRes.isSuccess) {
+        return publicRes;
+      }
+    }
+
     return res;
   }
 
@@ -176,6 +190,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
     required String coverLetter,
     required double bidAmount,
     int? deliveryDays,
+    List<String> attachments = const [],
   }) async {
     if (_api == null) return _apiNotConfigured();
 
@@ -190,6 +205,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
         'bidAmount': bidAmount,
         'coverLetter': coverLetter,
         if (deliveryDays != null) 'deliveryTime': deliveryDays,
+        if (attachments.isNotEmpty) 'attachments': attachments,
       },
       parser: (envelope) =>
           _proposalFromJson(Map<String, dynamic>.from(envelope.data as Map)),
@@ -199,18 +215,7 @@ class ProposalRepositoryImpl implements ProposalRepository {
   @override
   Future<Result<bool>> withdraw(String id) async {
     if (_api == null) return _apiNotConfigured();
-    final primary = await _api.deleteAction(
-      ApiEndpoints.freelancerProposalWithdraw(id),
-    );
-    if (primary.isSuccess) return primary;
-
-    final role = await _role();
-    final fallback = await _api.deleteAction(
-      '/${ApiEndpoints.rolePath(role)}/proposals/$id/withdraw',
-    );
-    if (fallback.isSuccess) return fallback;
-
-    return _api.postAction(ApiEndpoints.freelancerProposalWithdraw(id));
+    return _api.deleteAction(ApiEndpoints.freelancerProposalWithdraw(id));
   }
 
   @override
@@ -321,6 +326,14 @@ class ProposalRepositoryImpl implements ProposalRepository {
         : (json['project'] is Map
               ? Map<String, dynamic>.from(json['project'] as Map)
               : null);
+    final freelancer = json['freelancer'] is Map<String, dynamic>
+        ? json['freelancer'] as Map<String, dynamic>
+        : (json['freelancer'] is Map
+              ? Map<String, dynamic>.from(json['freelancer'] as Map)
+              : null);
+    final freelancerProfile = freelancer?['freelancerProfile'] is Map
+        ? Map<String, dynamic>.from(freelancer?['freelancerProfile'] as Map)
+        : null;
 
     final projectTitle =
         json['projectTitle'] as String? ??
@@ -349,15 +362,20 @@ class ProposalRepositoryImpl implements ProposalRepository {
       clientName:
           json['clientName'] as String? ?? json['client_name'] as String?,
       freelancerId:
-          json['freelancerId']?.toString() ?? json['freelancer_id']?.toString(),
+          json['freelancerId']?.toString() ??
+          json['freelancer_id']?.toString() ??
+          freelancer?['id']?.toString(),
       freelancerName:
           json['freelancerName'] as String? ??
           json['freelancer_name'] as String? ??
+          freelancer?['fullName'] as String? ??
+          freelancer?['name'] as String? ??
           'Freelancer',
       freelancerAvatar:
           json['freelancerAvatar'] as String? ??
           json['freelancer_avatar'] as String? ??
-          json['avatarUrl'] as String?,
+          json['avatarUrl'] as String? ??
+          freelancer?['avatarUrl'] as String?,
       contractId:
           json['contractId']?.toString() ??
           json['contract_id']?.toString() ??
@@ -385,14 +403,23 @@ class ProposalRepositoryImpl implements ProposalRepository {
       freelancerRating:
           (json['freelancerRating'] as num?)?.toDouble() ??
           (json['freelancer_rating'] as num?)?.toDouble() ??
+          (freelancerProfile?['rating'] as num?)?.toDouble() ??
           4.8,
-      attachments:
-          (json['attachments'] as List?)?.map((e) => e.toString()).toList() ??
-          (json['attachmentUrls'] as List?)
-              ?.map((e) => e.toString())
-              .toList() ??
-          const [],
+      attachments: _attachmentsFromJson(json['attachments'] ?? json['attachmentUrls']),
     );
+  }
+
+  static List<String> _attachmentsFromJson(dynamic value) {
+    if (value is List) return value.map((e) => e.toString()).toList();
+    if (value is String && value.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(value);
+        if (decoded is List) return decoded.map((e) => e.toString()).toList();
+      } catch (_) {
+        return [value];
+      }
+    }
+    return const [];
   }
 
   static Future<Result<T>> _apiNotConfigured<T>() async =>

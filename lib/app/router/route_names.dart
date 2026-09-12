@@ -75,6 +75,7 @@ class Routes {
   static const settings = '/settings';
   static const support = '/support';
   static const search = '/search';
+  static const clients = '/clients';
   static const bookmarks = '/bookmarks';
   static const wallet = '/wallet';
   static const subscriptionsManage = '/subscriptions';

@@ -64,16 +64,52 @@ class _SplashPageState extends State<SplashPage>
     final storage = sl<LocalStorage>();
     _isFirstLaunch = !storage.getBool('splash_video_played');
 
+    _fetchAndInitSplash(storage);
+  }
+
+  String _currentSplashImage = AppAssets.splashImage;
+
+  Future<void> _fetchAndInitSplash(LocalStorage storage) async {
+    // Wait up to 3 seconds for config
+    try {
+      await sl<AppRuntimeConfigService>().load().timeout(const Duration(seconds: 3));
+    } catch (_) {
+      // Ignore timeout or error, will fallback to local
+    }
+
+    final splashSettings = sl<AppRuntimeConfigService>().latest['splashSettings'];
+    final enabled = splashSettings?['enabled'] == true;
+    final splash = splashSettings?['splash'];
+
+    String? remoteVideo = splash?['videoUrl']?.toString().trim();
+    if (remoteVideo != null && remoteVideo.isEmpty) remoteVideo = null;
+
+    String? remoteImage = splash?['imageUrl']?.toString().trim();
+    if (remoteImage != null && remoteImage.isEmpty) remoteImage = null;
+
+    if (enabled && remoteImage != null) {
+      _currentSplashImage = remoteImage;
+    }
+
     if (_isFirstLaunch) {
       storage.setBool('splash_video_played', true);
-      _videoController = VideoPlayerController.asset(AppAssets.splashVideo)
-        ..setLooping(false)
-        ..setVolume(1);
+      if (enabled && remoteVideo != null) {
+        _videoController = VideoPlayerController.networkUrl(Uri.parse(remoteVideo))
+          ..setLooping(false)
+          ..setVolume(1);
+      } else {
+        _videoController = VideoPlayerController.asset(AppAssets.splashVideo)
+          ..setLooping(false)
+          ..setVolume(1);
+      }
       _initializeVideo();
     } else {
-      _animController.forward();
-      // Fast boot on non-first launch
-      _bootTimer = Timer(const Duration(milliseconds: 600), _boot);
+      if (mounted) {
+        setState(() {});
+        _animController.forward();
+        // Fast boot on non-first launch
+        _bootTimer = Timer(const Duration(milliseconds: 600), _boot);
+      }
     }
   }
 
@@ -103,9 +139,9 @@ class _SplashPageState extends State<SplashPage>
     }
 
     // Run background configuration & update checks asynchronously without blocking the user
+    // (load() was already called, but we can call it again or skip it)
     unawaited(
       Future.wait([
-        sl<AppRuntimeConfigService>().load(),
         const LocationService().requestPermission().catchError((_) {}),
         sl<AppUpdateService>().check().then((update) async {
           if (!mounted) return;
@@ -171,10 +207,19 @@ class _SplashPageState extends State<SplashPage>
                     child: SizedBox(
                       width: MediaQuery.of(context).size.width,
                       height: double.infinity,
-                      child: Image.asset(
-                        AppAssets.splashImage,
-                        fit: BoxFit.contain,
-                      ),
+                      child: _currentSplashImage.startsWith('http')
+                          ? Image.network(
+                              _currentSplashImage,
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Image.asset(
+                                AppAssets.splashImage,
+                                fit: BoxFit.contain,
+                              ),
+                            )
+                          : Image.asset(
+                              _currentSplashImage,
+                              fit: BoxFit.contain,
+                            ),
                     ),
                   ),
                 ),

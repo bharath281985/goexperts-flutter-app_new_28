@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../extensions/context_extensions.dart';
 import 'app_action_sheet.dart';
 import 'report_dialog.dart';
@@ -16,17 +17,17 @@ List<Widget> detailActions(
 }) {
   return [
     if (bookmarkable)
-      IconButton(
-        tooltip: 'Bookmark',
-        icon: const Icon(Icons.bookmark_outline_rounded),
-        onPressed: () => context.showSnack('Bookmarked'),
-      ),
-    IconButton(
-      tooltip: 'Share',
-      icon: const Icon(Icons.share_outlined),
-      onPressed: () =>
-          ShareSheet.show(context, title: shareTitle, link: shareLink),
-    ),
+      // IconButton(
+      //   tooltip: 'Bookmark',
+      //   icon: const Icon(Icons.bookmark_outline_rounded),
+      //   onPressed: () => context.showSnack('Bookmarked'),
+      // ),
+    // IconButton(
+    //   tooltip: 'Share',
+    //   icon: const Icon(Icons.share_outlined),
+    //   onPressed: () =>
+    //       ShareSheet.show(context, title: shareTitle, link: shareLink),
+    // ),
     IconButton(
       tooltip: 'More',
       icon: const Icon(Icons.more_vert_rounded),
@@ -36,7 +37,10 @@ List<Widget> detailActions(
           AppAction(
             label: 'Copy link',
             icon: Icons.link_rounded,
-            onTap: () => context.showSnack('Link copied'),
+            onTap: () async {
+              await Clipboard.setData(ClipboardData(text: shareLink));
+              if (context.mounted) context.showSnack('Link copied');
+            },
           ),
           AppAction(
             label: 'Share',

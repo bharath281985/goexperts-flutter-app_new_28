@@ -249,7 +249,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
               ),
               const SizedBox(height: 16),
               ListTile(
-                leading: const Icon(
+                leading:  Icon(
                   Icons.photo_library_outlined,
                   color: AppColors.primary,
                 ),
@@ -260,7 +260,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                 },
               ),
               ListTile(
-                leading: const Icon(
+                leading:  Icon(
                   Icons.camera_alt_outlined,
                   color: AppColors.primary,
                 ),
@@ -406,7 +406,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                         ? Center(
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
-                              children: const [
+                              children:  [
                                 Icon(
                                   Icons.add_photo_alternate_outlined,
                                   color: AppColors.primary,
@@ -524,7 +524,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                                       color: AppColors.primary.withValues(
                                         alpha: 0.12,
                                       ),
-                                      child: const Icon(
+                                      child:  Icon(
                                         Icons.business,
                                         color: AppColors.primary,
                                         size: 36,
@@ -577,7 +577,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
                       const SizedBox(width: 4),
                       Text(
                         hasLogo ? 'Change Logo' : 'Upload Logo',
-                        style: const TextStyle(
+                        style:  TextStyle(
                           color: AppColors.primary,
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -614,7 +614,7 @@ class EditIdeaBottomSheetState extends State<EditIdeaBottomSheet> {
         ),
         child: Row(
           children: [
-            const Icon(
+             Icon(
               Icons.description_outlined,
               color: AppColors.primary,
               size: 28,

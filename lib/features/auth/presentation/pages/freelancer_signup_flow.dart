@@ -9,6 +9,7 @@ import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/services/location_service.dart';
 import '../../../../core/utils/enums.dart';
+import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../master_data/domain/entities/skill_category.dart';
@@ -50,6 +51,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _cityController = TextEditingController();
+  final _referralCodeController = TextEditingController();
   double? _detectedLatitude;
   double? _detectedLongitude;
   bool _termsAccepted = false;
@@ -131,6 +133,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       _passwordController,
       _confirmPasswordController,
       _cityController,
+      _referralCodeController,
       _headlineController,
       _bioController,
       _hourlyRateController,
@@ -165,6 +168,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     _confirmPasswordController.text =
         fields['confirmPassword']?.toString() ?? '';
     _cityController.text = fields['city']?.toString() ?? '';
+    _referralCodeController.text = fields['referralCode']?.toString() ?? '';
     _selectedCountry = fields['country']?.toString();
     _selectedState = fields['state']?.toString();
     _termsAccepted = fields['termsAccepted'] == true;
@@ -298,8 +302,9 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       'password': _passwordController.text,
       'confirmPassword': _confirmPasswordController.text,
       'country': _selectedCountry,
-      // 'state': _selectedState,
+      'state': _selectedState,
       'city': _cityController.text.trim(),
+      'referralCode': _referralCodeController.text.trim(),
       if (_detectedLatitude != null) 'latitude': _detectedLatitude,
       if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       'termsAccepted': _termsAccepted,
@@ -308,9 +313,11 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       'experienceLevel': _experienceLevel,
       'education': _effectiveEducationLevel,
       'hourlyRate': double.tryParse(_hourlyRateController.text.trim()),
-      'portfolioUrl': _portfolioController.text.trim(),
-      'linkedInUrl': _linkedinController.text.trim(),
-      'githubUrl': _githubController.text.trim(),
+      'socialLinks': {
+        'portfolioUrl': _portfolioController.text.trim(),
+        'linkedInUrl': _linkedinController.text.trim(),
+        'githubUrl': _githubController.text.trim(),
+      },
       'industry': _selectedIndustries,
       'otherIndustry': _otherIndustryController.text.trim(),
       'skills': _selectedSkills.map((name) {
@@ -354,6 +361,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         'country': _selectedCountry,
         // 'state': _selectedState,
         'city': _cityController.text.trim(),
+        'referralCode': _referralCodeController.text.trim(),
         if (_detectedLatitude != null) 'latitude': _detectedLatitude,
         if (_detectedLongitude != null) 'longitude': _detectedLongitude,
       },
@@ -536,12 +544,8 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     final isSocial =
         context.read<AuthBloc>().state.user?.isSocialLogin ?? false;
     if (!isSocial) {
-      if (_passwordController.text.isEmpty) {
-        return 'Please enter password';
-      }
-      if (_passwordController.text.length < 8) {
-        return 'Password must be at least 8 characters';
-      }
+      final pwdError = Validators.password(_passwordController.text);
+      if (pwdError != null) return pwdError;
       if (_passwordController.text != _confirmPasswordController.text) {
         return 'Password and confirm password must match';
       }
@@ -743,27 +747,47 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       // }
 
       final portfolioUrl = _portfolioController.text.trim();
-      if (portfolioUrl.isEmpty) {
-        showSignupTopMessage(
-          context,
-          'Please enter Portfolio Website Link',
-          isSuccess: false,
-        );
-        return;
-      }
+      final githubUrl = _githubController.text.trim();
+      final linkedinUrl = _linkedinController.text.trim();
 
       final urlRegExp = RegExp(
         r'^(https?:\/\/)?([\w\d\-]+\.)+\w{2,}(\/.*)?$',
         caseSensitive: false,
       );
-      if (!urlRegExp.hasMatch(portfolioUrl)) {
-        showSignupTopMessage(
-          context,
-          'Please enter a valid website link (e.g. yourwebsite.com)',
-          isSuccess: false,
-        );
-        return;
+
+      if (portfolioUrl.isNotEmpty) {
+        if (!urlRegExp.hasMatch(portfolioUrl)) {
+          showSignupTopMessage(
+            context,
+            'Please enter a valid portfolio website link (e.g. yourwebsite.com)',
+            isSuccess: false,
+          );
+          return;
+        }
       }
+
+      if (githubUrl.isNotEmpty) {
+        if (!urlRegExp.hasMatch(githubUrl)) {
+          showSignupTopMessage(
+            context,
+            'Please enter a valid GitHub profile link',
+            isSuccess: false,
+          );
+          return;
+        }
+      }
+
+      if (linkedinUrl.isNotEmpty) {
+        if (!urlRegExp.hasMatch(linkedinUrl)) {
+          showSignupTopMessage(
+            context,
+            'Please enter a valid LinkedIn profile link',
+            isSuccess: false,
+          );
+          return;
+        }
+      }
+
       if (!await _submitDraft(step: 4, completed: true)) return;
       await SignupProgressStore.clear();
       setState(() => _currentStep = 5);
@@ -858,6 +882,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           passwordController: _passwordController,
           confirmPasswordController: _confirmPasswordController,
           cityController: _cityController,
+          referralCodeController: _referralCodeController,
           countries: _countries,
           // states: _states,
           selectedCountry: _selectedCountry,
@@ -1011,7 +1036,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
               AppTextField(
                 controller: _otherSkillController,
                 label: 'Specify Skill *',
-                hint: 'Enter your skill',
+                hint: 'Enter your area of expertise',
               ),
             ],
           ],
@@ -1044,7 +1069,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
             const SizedBox(height: 16),
             AppTextField(
               controller: _portfolioController,
-              label: 'Portfolio Website Link *',
+              label: 'Portfolio Website Link',
               hint: 'Add projects that showcase your skills...',
             ),
             const SizedBox(height: 16),

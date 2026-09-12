@@ -79,7 +79,7 @@ class PitchDeckPage extends StatelessWidget {
                     children: [
                       Text(
                         '${i + 1}',
-                        style: const TextStyle(
+                        style:  TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.w800,
                         ),

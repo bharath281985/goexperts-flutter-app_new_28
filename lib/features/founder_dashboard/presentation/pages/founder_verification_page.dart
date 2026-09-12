@@ -1089,7 +1089,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                         Icon(
                           Icons.add_circle_outline,
                           size: 14,
                           color: AppColors.primary,
@@ -1275,7 +1275,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
+                       Icon(
                         Icons.upload_outlined,
                         size: 14,
                         color: AppColors.primary,
@@ -1771,7 +1771,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
       statusText = 'Verified';
     } else if (item.isPending) {
       statusIcon = Icons.hourglass_empty_rounded;
-      statusText = 'Pending';
+           statusText = 'Verification Pending';
     } else {
       statusIcon = Icons.error_outline;
       statusText = 'Missing';
@@ -1784,6 +1784,11 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
     return AppCard(
       radius: AppSizes.radiusMd,
       padding: const EdgeInsets.all(AppSizes.sm),
+       onTap: isSubmitting
+                      ? null
+                      : item.isVerified
+                      ? () => _viewDocument(item)
+                      : () => _showDocumentBottomSheet(item),
       child: _compactCardHeader(
         icon: icon,
         color: color,
@@ -1820,7 +1825,7 @@ class _FounderVerificationPageState extends State<FounderVerificationPage> {
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.visibility_outlined, size: 14, color: AppColors.primary),
+                           Icon(Icons.visibility_outlined, size: 14, color: AppColors.primary),
                           AppSizes.hGapXs,
                           Text(
                             'View',
@@ -1898,6 +1903,18 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final progressValue = (trustScore / 100).clamp(0.0, 1.0);
+      Color color;
+    if (trustScore >= 80) {
+      color = AppColors.primary;
+    } else if (trustScore >= 50) {
+      color = AppColors.primary.withValues(alpha: 0.9);
+    } else if (trustScore >= 30) {
+      color = AppColors.primary.withValues(alpha: 0.6);
+    } else if (trustScore >= 10) {
+      color = AppColors.primary.withValues(alpha: 0.4);
+    } else {
+      color = AppColors.primary.withValues(alpha: 0.2);
+    }
 
     return AppCard(
       radius: AppSizes.radiusMd,
@@ -1991,8 +2008,8 @@ class _HeaderCard extends StatelessWidget {
                         value: progressValue,
                         minHeight: 8,
                         backgroundColor: context.theme.dividerColor,
-                        valueColor: const AlwaysStoppedAnimation(
-                          AppColors.primary,
+                        valueColor:  AlwaysStoppedAnimation(
+                          color,
                         ),
                       ),
                     ),

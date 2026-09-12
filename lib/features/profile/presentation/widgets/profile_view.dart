@@ -50,6 +50,9 @@ class ProfileViewData {
     this.githubUrl = '',
     this.websiteUrl = '',
     this.hourlyRate,
+    this.projectsPosted = 0,
+    this.hiringGoal = '',
+    this.industryName = '',
   });
 
   final String? id;
@@ -86,6 +89,85 @@ class ProfileViewData {
   final String githubUrl;
   final String websiteUrl;
   final double? hourlyRate;
+  final int projectsPosted;
+  final String hiringGoal;
+  final String industryName;
+
+  ProfileViewData copyWith({
+    String? id,
+    String? name,
+    String? headline,
+    String? location,
+    String? avatarUrl,
+    bool? isVerified,
+    String? about,
+    double? rating,
+    int? reviewsCount,
+    int? followers,
+    Map<String, String>? stats,
+    List<String>? skills,
+    List<String>? industries,
+    List<String>? workModes,
+    List<String>? preferredStages,
+    String? primaryActionLabel,
+    IconData? primaryActionIcon,
+    bool? isFollowing,
+    bool? isSaved,
+    PublicProfileType? type,
+    String? phone,
+    String? email,
+    String? experience,
+    String? experienceLevel,
+    String? education,
+    String? linkedin,
+    String? website,
+    String? portfolioUrl,
+    String? linkedInUrl,
+    String? githubUrl,
+    String? websiteUrl,
+    double? hourlyRate,
+    int? projectsPosted,
+    String? hiringGoal,
+    String? industryName,
+  }) {
+    return ProfileViewData(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      headline: headline ?? this.headline,
+      location: location ?? this.location,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      isVerified: isVerified ?? this.isVerified,
+      about: about ?? this.about,
+      rating: rating ?? this.rating,
+      reviewsCount: reviewsCount ?? this.reviewsCount,
+      followers: followers ?? this.followers,
+      stats: stats ?? this.stats,
+      skills: skills ?? this.skills,
+      industries: industries ?? this.industries,
+      workModes: workModes ?? this.workModes,
+      preferredStages: preferredStages ?? this.preferredStages,
+      primaryActionLabel: primaryActionLabel ?? this.primaryActionLabel,
+      primaryActionIcon: primaryActionIcon ?? this.primaryActionIcon,
+      isFollowing: isFollowing ?? this.isFollowing,
+      isSaved: isSaved ?? this.isSaved,
+      type: type ?? this.type,
+      phone: phone ?? this.phone,
+      email: email ?? this.email,
+      experience: experience ?? this.experience,
+      experienceLevel: experienceLevel ?? this.experienceLevel,
+      education: education ?? this.education,
+      linkedin: linkedin ?? this.linkedin,
+      website: website ?? this.website,
+      portfolioUrl: portfolioUrl ?? this.portfolioUrl,
+      linkedInUrl: linkedInUrl ?? this.linkedInUrl,
+      githubUrl: githubUrl ?? this.githubUrl,
+      websiteUrl: websiteUrl ?? this.websiteUrl,
+      hourlyRate: hourlyRate ?? this.hourlyRate,
+      projectsPosted: projectsPosted ?? this.projectsPosted,
+      hiringGoal: hiringGoal ?? this.hiringGoal,
+      industryName: industryName ?? this.industryName,
+    );
+  }
 }
 
 class ProfileView extends StatelessWidget {
@@ -166,7 +248,7 @@ class ProfileView extends StatelessWidget {
                     ),
                     if (data.isVerified) ...[
                       const SizedBox(width: 6),
-                      const Icon(
+                       Icon(
                         Icons.verified_rounded,
                         color: AppColors.primary,
                         size: 20,
@@ -194,7 +276,7 @@ class ProfileView extends StatelessWidget {
                     ),
                     if (data.rating != null) ...[
                       AppSizes.hGapMd,
-                      const Icon(
+                       Icon(
                         Icons.star_rounded,
                         size: 15,
                         color: AppColors.primary,
@@ -215,6 +297,42 @@ class ProfileView extends StatelessWidget {
                   const AppSectionHeader(title: 'About'),
                   AppSizes.vGapSm,
                   Text(data.about, style: context.text.bodyMedium),
+                ],
+                if (data.type == PublicProfileType.company) ...[
+                  AppSizes.vGapLg,
+                  const AppSectionHeader(title: 'Company Info'),
+                  AppSizes.vGapSm,
+                  AppCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      children: [
+                        _companyInfoTile(
+                          context,
+                          icon: Icons.folder_copy_outlined,
+                          label: 'Projects Posted',
+                          value: '${data.projectsPosted}',
+                        ),
+                        if (data.industryName.isNotEmpty) ...[
+                          const Divider(height: 1, indent: 56),
+                          _companyInfoTile(
+                            context,
+                            icon: Icons.business_outlined,
+                            label: 'Industry',
+                            value: data.industryName,
+                          ),
+                        ],
+                        if (data.hiringGoal.isNotEmpty) ...[
+                          const Divider(height: 1, indent: 56),
+                          _companyInfoTile(
+                            context,
+                            icon: Icons.flag_outlined,
+                            label: 'Hiring Goal',
+                            value: data.hiringGoal,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
                 if (displaySkills.isNotEmpty) ...[
                   AppSizes.vGapLg,
@@ -283,7 +401,7 @@ class ProfileView extends StatelessWidget {
                                   ),
                                   borderRadius: BorderRadius.circular(14),
                                 ),
-                                child: const Icon(
+                                child:  Icon(
                                   Icons.work_rounded,
                                   color: AppColors.primary,
                                   size: 24,
@@ -422,6 +540,11 @@ class ProfileView extends StatelessWidget {
                   ),
                 ],
                 () {
+                  // Portfolio & Links: only for freelancer profiles
+                  if (data.type == PublicProfileType.company ||
+                      data.type == PublicProfileType.founder) {
+                    return const SizedBox.shrink();
+                  }
                   final links = <Widget>[];
                   final freelancerId = data.id;
                   if ((freelancerId != null && freelancerId.isNotEmpty) ||
@@ -541,6 +664,54 @@ class ProfileView extends StatelessWidget {
     );
   }
 
+
+  Widget _companyInfoTile(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSizes.md,
+        vertical: AppSizes.sm,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          AppSizes.hGapMd,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: context.text.labelSmall?.copyWith(
+                    color: AppColors.mutedText,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: context.text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _investorView(BuildContext context, List<String> focusAreas) {
     final stages = _uniqueSkills(data.preferredStages ?? const <String>[]);
 
@@ -654,7 +825,7 @@ class ProfileView extends StatelessWidget {
             ),
             if (data.isVerified) ...[
               const SizedBox(width: 6),
-              const Icon(
+               Icon(
                 Icons.verified_rounded,
                 color: AppColors.primary,
                 size: 21,
@@ -717,7 +888,7 @@ class ProfileView extends StatelessWidget {
               label: const Text('Message'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
+                side:  BorderSide(color: AppColors.primary),
                 minimumSize: const Size.fromHeight(46),
               ),
             ),
@@ -784,7 +955,7 @@ class ProfileView extends StatelessWidget {
       children: [
         Row(
           children: [
-            const Icon(
+             Icon(
               Icons.format_quote_rounded,
               color: AppColors.primary,
               size: 22,
@@ -833,7 +1004,7 @@ class ProfileView extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Padding(
+               Padding(
                 padding: EdgeInsets.only(top: 2),
                 child: Icon(
                   Icons.flag_outlined,
@@ -922,9 +1093,11 @@ class ProfileView extends StatelessWidget {
           final key = entry!.key.toLowerCase();
           return key.contains('goal') || key.contains('target');
         }, orElse: () => null);
-    final startupName = startupEntry?.value.trim().isNotEmpty == true
-        ? startupEntry!.value
-        : (data.headline.trim().isNotEmpty ? data.headline : data.name);
+    final startupName = (startupEntry?.value.trim().isNotEmpty == true &&
+            startupEntry!.value.trim() != '—' &&
+            startupEntry.value.trim() != 'User')
+        ? startupEntry.value.trim()
+        : data.name;
     final metrics = data.stats.entries
         .where(
           (entry) =>
@@ -1007,37 +1180,29 @@ class ProfileView extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              right: AppSizes.screenPadding,
-              bottom: 12,
-              child: Row(
-                children: [
-                  _founderCoverAction(
-                    icon: Icons.share_outlined,
-                    onTap: onShare,
-                  ),
-                  const SizedBox(width: 8),
-                  _founderCoverAction(
-                    icon: data.isSaved
-                        ? Icons.bookmark_rounded
-                        : Icons.bookmark_outline_rounded,
-                    onTap: onBookmark,
-                    active: data.isSaved,
-                  ),
-                  const SizedBox(width: 8),
-                  _founderCoverAction(
-                    icon: Icons.more_horiz_rounded,
-                    onTap: () => _more(context),
-                  ),
-                ],
-              ),
-            ),
+            // Positioned(
+            //   right: AppSizes.screenPadding,
+            //   bottom: 12,
+            //   child: Row(
+            //     children: [
+            //       _founderCoverAction(
+            //         icon: Icons.share_outlined,
+            //         onTap: onShare,
+            //       ),
+            //       const SizedBox(width: 8),
+            //       _founderCoverAction(
+            //         icon: Icons.more_horiz_rounded,
+            //         onTap: () => _more(context),
+            //       ),
+            //     ],
+            //   ),
+            // ),
           ],
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(
             AppSizes.screenPadding,
-            54,
+            46,
             AppSizes.screenPadding,
             AppSizes.xl,
           ),
@@ -1071,7 +1236,7 @@ class ProfileView extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      startupName,
+                      data.name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: context.text.headlineSmall?.copyWith(
@@ -1091,19 +1256,19 @@ class ProfileView extends StatelessWidget {
                   ],
                 ],
               ),
-              const SizedBox(height: 5),
-              Text(
-                data.headline.isNotEmpty && data.headline != startupName
-                    ? data.headline
-                    : data.name,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: context.text.titleMedium?.copyWith(
-                  color: AppColors.darkText,
-                  fontWeight: FontWeight.w600,
-                  height: 1.35,
+              if (data.headline.isNotEmpty && data.headline != data.name) ...[
+                const SizedBox(height: 5),
+                Text(
+                  data.headline,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: context.text.titleMedium?.copyWith(
+                    color: AppColors.darkText,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                  ),
                 ),
-              ),
+              ],
               if (data.location.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Row(
@@ -1129,16 +1294,16 @@ class ProfileView extends StatelessWidget {
                   ],
                 ),
               ],
-              if (profileChips.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 7,
-                  runSpacing: 7,
-                  children: profileChips
-                      .map((value) => _founderMetaChip(context, value))
-                      .toList(),
-                ),
-              ],
+              // if (profileChips.isNotEmpty) ...[
+              //   const SizedBox(height: 12),
+              //   Wrap(
+              //     spacing: 7,
+              //     runSpacing: 7,
+              //     children: profileChips
+              //         .map((value) => _founderMetaChip(context, value))
+              //         .toList(),
+              //   ),
+              // ],
               if (metrics.isNotEmpty) ...[
                 AppSizes.vGapLg,
                 const AppSectionHeader(title: 'Overview'),
@@ -1256,7 +1421,7 @@ class ProfileView extends StatelessWidget {
                                 ),
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: const Icon(
+                              child:  Icon(
                                 Icons.trending_up_rounded,
                                 color: AppColors.primary,
                                 size: 20,
@@ -1455,7 +1620,7 @@ class ProfileView extends StatelessWidget {
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
+              side:  BorderSide(color: AppColors.primary),
               minimumSize: const Size.fromHeight(50),
             ),
           ),
@@ -1595,6 +1760,8 @@ class ProfileView extends StatelessWidget {
   );
 
   Widget _actions(BuildContext context) {
+    final showBookmarkAction = data.type != PublicProfileType.company;
+
     return Row(
       children: [
         Expanded(
@@ -1616,20 +1783,21 @@ class ProfileView extends StatelessWidget {
             label: const Text('Message'),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
+              side:  BorderSide(color: AppColors.primary),
               minimumSize: const Size.fromHeight(46),
             ),
           ),
         ),
-        AppSizes.hGapMd,
-        if (data.type != PublicProfileType.founder) ...[],
-        _iconAction(
-          context,
-          data.isSaved
-              ? Icons.bookmark_rounded
-              : Icons.bookmark_outline_rounded,
-          onBookmark,
-        ),
+        if (showBookmarkAction) ...[
+          AppSizes.hGapMd,
+          _iconAction(
+            context,
+            data.isSaved
+                ? Icons.bookmark_rounded
+                : Icons.bookmark_outline_rounded,
+            onBookmark,
+          ),
+        ],
       ],
     );
   }
@@ -1703,7 +1871,7 @@ class ProfileView extends StatelessWidget {
     ),
     child: Text(
       s,
-      style: const TextStyle(
+      style:  TextStyle(
         color: AppColors.primary,
         fontWeight: FontWeight.w600,
         fontSize: 12,
@@ -1751,7 +1919,7 @@ class ProfileView extends StatelessWidget {
                               color: AppColors.primary.withValues(alpha: 0.09),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
+                            child:  Icon(
                               Icons.track_changes_rounded,
                               size: 19,
                               color: AppColors.primary,
@@ -1885,7 +2053,7 @@ class ProfileView extends StatelessWidget {
             color: AppColors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
-          child: const Icon(
+          child:  Icon(
             Icons.pie_chart_outline_rounded,
             color: AppColors.primary,
             size: 22,
@@ -2028,7 +2196,7 @@ class ProfileView extends StatelessWidget {
               ),
               Row(
                 children: [
-                  const Icon(
+                   Icon(
                     Icons.star_rounded,
                     size: 15,
                     color: AppColors.primary,

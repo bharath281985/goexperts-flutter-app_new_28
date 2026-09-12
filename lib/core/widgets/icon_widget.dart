@@ -35,6 +35,7 @@ class IconTapWidget extends StatelessWidget {
               : null,
           child: Image.asset(
             iconImage ?? AppAssets.backIcon,
+            color: AppColors.primary,
             width: 25,
             height: 25,
           ),

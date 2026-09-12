@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -27,8 +28,9 @@ import '../../domain/repositories/proposal_repository.dart';
 
 /// Dedicated proposal details page.
 class ProposalDetailsPage extends StatefulWidget {
-  const ProposalDetailsPage({super.key, required this.id});
+  const ProposalDetailsPage({super.key, required this.id, this.preferClient = false});
   final String id;
+  final bool preferClient;
 
   @override
   State<ProposalDetailsPage> createState() => _ProposalDetailsPageState();
@@ -45,7 +47,8 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
     super.didChangeDependencies();
     if (_loaded) return;
     _loaded = true;
-    _isClient = context.read<AuthBloc>().state.user?.role == UserRole.client;
+    _isClient = widget.preferClient ||
+      context.read<AuthBloc>().state.user?.role == UserRole.client;
     _reload();
   }
 
@@ -72,25 +75,6 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
     res.fold((f) => context.showSnack(f.message, isError: true), (_) {
       context.showSnack('Proposal withdrawn');
       _reload();
-    });
-  }
-
-  Future<void> _delete(Proposal p) async {
-    final ok = await AppConfirmDialog.show(
-      context,
-      title: 'Delete proposal?',
-      message: 'This permanently removes the proposal from your list.',
-      confirmLabel: 'Delete',
-      isDestructive: true,
-    );
-    if (!ok || !mounted) return;
-    setState(() => _busy = true);
-    final res = await sl<ProposalRepository>().deleteProposal(p.id);
-    if (!mounted) return;
-    setState(() => _busy = false);
-    res.fold((f) => context.showSnack(f.message, isError: true), (_) {
-      context.showSnack('Proposal deleted');
-      context.pop();
     });
   }
 
@@ -137,36 +121,43 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
         title: const Text('Proposal Details'),
         actions: [
           if (!isClient) ...[
-            IconButton(
-              tooltip: 'Edit bid',
-              icon: const Icon(Icons.edit_outlined),
-              onPressed: () async {
-                final proposal = (await _future)?.valueOrNull as Proposal?;
-                if (!context.mounted || proposal == null) return;
-                final projectId = proposal.projectId ?? '';
-                final path =
-                    '${Routes.apply}?type=Project'
-                    '&projectId=${Uri.encodeComponent(projectId)}'
-                    '&proposalId=${Uri.encodeComponent(proposal.id)}'
-                    '&name=${Uri.encodeComponent(proposal.projectTitle)}'
-                    '&bid=${Uri.encodeComponent(proposal.bidAmount.toString())}'
-                    '&cover=${Uri.encodeComponent(proposal.coverLetter)}'
-                    '&deliveryDays=${Uri.encodeComponent(proposal.deliveryDays.toString())}';
-                await context.push(path);
-                if (!mounted) return;
-                _reload();
+            FutureBuilder(
+              future: _future,
+              builder: (context, snapshot) {
+                final proposal = snapshot.data?.valueOrNull as Proposal?;
+                if (proposal == null || proposal.status == EntityStatus.accepted) {
+                  return const SizedBox.shrink();
+                }
+                return IconButton(
+                  tooltip: 'Edit bid',
+                  icon: const Icon(Icons.edit_outlined),
+                  onPressed: () async {
+                    final projectId = proposal.projectId ?? '';
+                    final path =
+                        '${Routes.apply}?type=Project'
+                        '&projectId=${Uri.encodeComponent(projectId)}'
+                        '&proposalId=${Uri.encodeComponent(proposal.id)}'
+                        '&name=${Uri.encodeComponent(proposal.projectTitle)}'
+                        '&bid=${Uri.encodeComponent(proposal.bidAmount.toString())}'
+                        '&cover=${Uri.encodeComponent(proposal.coverLetter)}'
+                        '&deliveryDays=${Uri.encodeComponent(proposal.deliveryDays.toString())}';
+                    await context.push(path);
+                    if (!mounted) return;
+                    _reload();
+                  },
+                );
               },
             ),
-            IconButton(
-              tooltip: 'Delete proposal',
-              color: context.theme.colorScheme.error,
-              icon: const Icon(Icons.delete_outline_rounded),
-              onPressed: () async {
-                final proposal = (await _future)?.valueOrNull as Proposal?;
-                if (!context.mounted || proposal == null) return;
-                await _delete(proposal);
-              },
-            ),
+            // IconButton(
+            //   tooltip: 'Delete proposal',
+            //   color: context.theme.colorScheme.error,
+            //   icon: const Icon(Icons.delete_outline_rounded),
+            //   onPressed: () async {
+            //     final proposal = (await _future)?.valueOrNull as Proposal?;
+            //     if (!context.mounted || proposal == null) return;
+            //     await _delete(proposal);
+            //   },
+            // ),
           ],
         ],
       ),
@@ -227,9 +218,9 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
 
   Widget _freelancerActions(BuildContext context, Proposal p) {
     final withdrawn = p.status == EntityStatus.withdrawn;
-    final isOffered =
-        p.status == EntityStatus.accepted ||
-        p.status.toString().toLowerCase().contains('offer');
+    final isAccepted = p.status == EntityStatus.accepted;
+    final isOffered = !isAccepted &&
+      p.status.toString().toLowerCase().contains('offer');
 
     return SafeArea(
       child: Padding(
@@ -242,6 +233,16 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isAccepted)
+              SizedBox(
+                width: double.infinity,
+                child: AppSecondaryButton(
+                  label: 'Message Client',
+                  icon: Icons.chat_bubble_outline_rounded,
+                  onPressed: () => _messageClient(p),
+                ),
+              )
+            else ...[
             if (isOffered) ...[
               AppPrimaryButton(
                 label: 'Accept Client Offer',
@@ -273,6 +274,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                 ),
               ],
             ),
+            ],
           ],
         ),
       ),
@@ -409,33 +411,33 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
           const AppSectionHeader(title: 'My Cover Letter'),
           AppSizes.vGapSm,
           Text(p.coverLetter, style: context.text.bodyMedium),
-          // AppSizes.vGapLg,
-          // const AppSectionHeader(title: 'Attachments'),
-          // AppSizes.vGapSm,
-          // if (p.attachments.isEmpty)
-          //   Text('No attachments', style: context.text.bodySmall)
-          // else
-          //   for (final a in p.attachments)
-          //     AppCard(
-          //       margin: const EdgeInsets.only(bottom: AppSizes.sm),
-          //       padding: const EdgeInsets.all(AppSizes.md),
-          //       onTap: () => context.showSnack('Opening $a'),
-          //       child: Row(
-          //         children: [
-          //           const Icon(
-          //             Icons.description_outlined,
-          //             color: AppColors.primary,
-          //           ),
-          //           AppSizes.hGapMd,
-          //           Expanded(child: Text(a, style: context.text.bodyMedium)),
-          //           const Icon(
-          //             Icons.download_rounded,
-          //             size: 18,
-          //             color: AppColors.mutedText,
-          //           ),
-          //         ],
-          //       ),
-          //     ),
+          AppSizes.vGapLg,
+          const AppSectionHeader(title: 'Attachments'),
+          AppSizes.vGapSm,
+          if (p.attachments.isEmpty)
+            Text('No attachments', style: context.text.bodySmall)
+          else
+            for (final attachment in p.attachments)
+              AppCard(
+                margin: const EdgeInsets.only(bottom: AppSizes.sm),
+                padding: const EdgeInsets.all(AppSizes.md),
+                onTap: () async {
+                  final uri = Uri.tryParse(attachment);
+                  if (uri == null || !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                    if (context.mounted) {
+                      context.showSnack('Unable to open attachment', isError: true);
+                    }
+                  }
+                },
+                child: Row(
+                  children: [
+                     Icon(Icons.description_outlined, color: AppColors.primary),
+                    AppSizes.hGapMd,
+                    Expanded(child: Text(attachment, style: context.text.bodyMedium)),
+                    const Icon(Icons.download_rounded, size: 18, color: AppColors.mutedText),
+                  ],
+                ),
+              ),
         ],
       ),
     );

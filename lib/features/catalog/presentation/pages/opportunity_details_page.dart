@@ -192,7 +192,7 @@ class OpportunityDetailsPage extends StatelessWidget {
     onTap: onTap,
     child: Row(
       children: [
-        const Icon(
+         Icon(
           Icons.description_outlined,
           size: 18,
           color: AppColors.primary,

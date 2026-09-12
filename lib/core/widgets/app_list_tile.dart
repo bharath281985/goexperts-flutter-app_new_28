@@ -14,7 +14,7 @@ class AppListTile extends StatelessWidget {
     this.leading,
     this.trailing,
     this.onTap,
-    this.iconColor = AppColors.primary,
+    this.iconColor,
     this.showChevron = true,
   });
 
@@ -24,47 +24,51 @@ class AppListTile extends StatelessWidget {
   final Widget? leading;
   final Widget? trailing;
   final VoidCallback? onTap;
-  final Color iconColor;
+  final Color? iconColor;
   final bool showChevron;
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.md,
-        vertical: 2,
-      ),
-      leading:
-          leading ??
-          (leadingIcon != null
-              ? Container(
-                  padding: const EdgeInsets.all(AppSizes.sm),
-                  decoration: BoxDecoration(
-                    color: iconColor.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                  ),
-                  child: GradientIcon(
-                    icon: leadingIcon!,
-                    size: AppSizes.iconSm,
-                    colors: [context.colors.primary, context.colors.secondary],
-                  ),
-                )
-              : null),
-      title: Text(context.tr(title), style: context.text.titleSmall),
-      subtitle: subtitle != null
-          ? Text(context.tr(subtitle!), style: context.text.bodySmall)
-          : null,
-      trailing:
-          trailing ??
-          (showChevron && onTap != null
-              ? const Icon(
-                  Icons.chevron_right_rounded,
-                  color: AppColors.subtleText,
-                )
-              : null),
-      onTap: onTap,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+    final iconCl = iconColor ?? AppColors.primary;
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: AppSizes.md,
+          vertical: 2,
+        ),
+        leading:
+            leading ??
+            (leadingIcon != null
+                ? Container(
+                    padding: const EdgeInsets.all(AppSizes.sm),
+                    decoration: BoxDecoration(
+                      color: iconCl.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(AppSizes.radiusSm),
+                    ),
+                    child: GradientIcon(
+                      icon: leadingIcon!,
+                      size: AppSizes.iconSm,
+                      colors: [context.colors.primary, context.colors.secondary],
+                    ),
+                  )
+                : null),
+        title: Text(context.tr(title), style: context.text.titleSmall),
+        subtitle: subtitle != null
+            ? Text(context.tr(subtitle!), style: context.text.bodySmall)
+            : null,
+        trailing:
+            trailing ??
+            (showChevron && onTap != null
+                ? const Icon(
+                    Icons.chevron_right_rounded,
+                    color: AppColors.subtleText,
+                  )
+                : null),
+        onTap: onTap,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.radiusMd),
+        ),
       ),
     );
   }

@@ -19,19 +19,21 @@ class QueryParams extends Equatable {
   final bool ascending;
   final Map<String, dynamic> filters;
 
+  static const _undefined = Object();
+
   QueryParams copyWith({
     int? page,
     int? pageSize,
-    String? search,
-    String? sortBy,
+    Object? search = _undefined,
+    Object? sortBy = _undefined,
     bool? ascending,
     Map<String, dynamic>? filters,
   }) {
     return QueryParams(
       page: page ?? this.page,
       pageSize: pageSize ?? this.pageSize,
-      search: search ?? this.search,
-      sortBy: sortBy ?? this.sortBy,
+      search: identical(search, _undefined) ? this.search : search as String?,
+      sortBy: identical(sortBy, _undefined) ? this.sortBy : sortBy as String?,
       ascending: ascending ?? this.ascending,
       filters: filters ?? this.filters,
     );

@@ -431,13 +431,14 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   @override
   Future<Result<List<MasterOption>>> getHiringBudgetOptions() async {
     final result = await _client.getList<MasterOption>(
-      path: ApiEndpoints.publicHiringBudgetRanges,
+      path: ApiEndpoints.publicProjectBudgetRanges,
       itemParser: MasterOption.fromJson,
     );
     if (result.isFailure) return Err(result.failureOrNull!);
     final list = result.valueOrNull!.rows
         .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
-        .toList();
+        .toList()
+      ..sort(_budgetOptionCompare);
     return Success(list);
   }
 
@@ -531,26 +532,25 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
   @override
   Future<Result<List<MasterOption>>> getBudgetRangeOptions() async {
     final result = await _client.getList<MasterOption>(
-      path: ApiEndpoints.publicHiringBudgetRanges,
+      path: ApiEndpoints.publicProjectBudgetRanges,
       itemParser: MasterOption.fromJson,
     );
-    if (result.isSuccess && result.valueOrNull!.rows.isNotEmpty) {
-      final list = result.valueOrNull!.rows
-          .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
-          .toList();
-      return Success(list);
-    }
-    final fallbackResult = await _client.getList<MasterOption>(
-      path: '/public/budget-ranges',
-      itemParser: MasterOption.fromJson,
-    );
-    if (fallbackResult.isSuccess && fallbackResult.valueOrNull!.rows.isNotEmpty) {
-      final list = fallbackResult.valueOrNull!.rows
-          .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
-          .toList();
-      return Success(list);
-    }
-    return getHiringBudgetOptions();
+    if (result.isFailure) return Err(result.failureOrNull!);
+    final list = result.valueOrNull!.rows
+        .where((opt) => opt.id.isNotEmpty && opt.name.isNotEmpty)
+        .toList()
+      ..sort(_budgetOptionCompare);
+    return Success(list);
+  }
+
+  static int _budgetOptionCompare(MasterOption a, MasterOption b) {
+    final minA = a.min ?? double.maxFinite;
+    final minB = b.min ?? double.maxFinite;
+    final minOrder = minA.compareTo(minB);
+    if (minOrder != 0) return minOrder;
+    final order = a.sortOrder.compareTo(b.sortOrder);
+    if (order != 0) return order;
+    return a.name.toLowerCase().compareTo(b.name.toLowerCase());
   }
 
   @override

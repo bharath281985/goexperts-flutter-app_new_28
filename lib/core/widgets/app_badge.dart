@@ -6,20 +6,21 @@ class AppBadge extends StatelessWidget {
   const AppBadge({
     super.key,
     required this.count,
-    this.color = AppColors.primary,
+    this.color ,
   });
 
   final int count;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     if (count <= 0) return const SizedBox.shrink();
+    final bgColor = color ?? AppColors.primary;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       constraints: const BoxConstraints(minWidth: 18),
       decoration: BoxDecoration(
-        color: color,
+        color: bgColor,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.white, width: 1.5),
       ),

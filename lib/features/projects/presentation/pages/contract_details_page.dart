@@ -152,16 +152,16 @@ class ContractDetailsPage extends StatelessWidget {
                   onPressed: () => _openChat(context, c, role),
                 ),
               ),
-              AppSizes.hGapMd,
-              Expanded(
-                flex: 2,
-                child: AppPrimaryButton(
-                  label: 'View Milestones',
-                  icon: Icons.flag_outlined,
-                  onPressed: () =>
-                      context.showSnack('Showing contract milestones'),
-                ),
-              ),
+              // AppSizes.hGapMd,
+              // Expanded(
+              //   flex: 2,
+              //   child: AppPrimaryButton(
+              //     label: 'View Milestones',
+              //     icon: Icons.flag_outlined,
+              //     onPressed: () =>
+              //         context.showSnack('Showing contract milestones'),
+              //   ),
+              // ),
             ],
           ),
         );
@@ -213,7 +213,7 @@ class ContractDetailsPage extends StatelessWidget {
                       value: c.progress,
                       minHeight: 6,
                       backgroundColor: context.theme.dividerColor,
-                      valueColor: const AlwaysStoppedAnimation(
+                      valueColor:  AlwaysStoppedAnimation(
                         AppColors.primary,
                       ),
                     ),
@@ -346,7 +346,7 @@ class ContractDetailsPage extends StatelessWidget {
                     c.freelancerId != null &&
                     c.freelancerId!.isNotEmpty)
                   IconButton(
-                    icon: const Icon(
+                    icon:  Icon(
                       Icons.chat_bubble_outline_rounded,
                       color: AppColors.primary,
                       size: 20,
@@ -426,7 +426,7 @@ class ContractDetailsPage extends StatelessWidget {
               children: [
                 if (c.proposalId != null && c.proposalId!.isNotEmpty) ...[
                   _Row(
-                    'Proposal ID',
+                    'Proposal ID:',
                     c.proposalId!,
                     valueStyle: context.text.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
@@ -631,11 +631,15 @@ class _Row extends StatelessWidget {
           label,
           style: context.text.bodyMedium?.copyWith(color: AppColors.mutedText),
         ),
-        Text(
-          value,
-          style:
-              valueStyle ??
-              context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+        Expanded(
+          child: Center(
+            child: Text(
+              value,
+              style:
+                  valueStyle ??
+                  context.text.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            ),
+          ),
         ),
       ],
     );

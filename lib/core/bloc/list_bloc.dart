@@ -146,6 +146,7 @@ class ListBloc<T> extends Bloc<ListEvent, ListState<T>> {
   }
 
   final ListFetcher<T> fetcher;
+  int _loadGeneration = 0;
 
   Future<void> _load(
     Emitter<ListState<T>> emit, {
@@ -153,8 +154,10 @@ class ListBloc<T> extends Bloc<ListEvent, ListState<T>> {
     required ViewStatus loadingStatus,
     bool append = false,
   }) async {
+    final generation = ++_loadGeneration;
     emit(state.copyWith(status: loadingStatus, query: query));
     final result = await fetcher(query);
+    if (generation != _loadGeneration) return;
     result.fold(
       (failure) => emit(
         state.copyWith(

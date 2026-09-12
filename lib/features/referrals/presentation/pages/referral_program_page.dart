@@ -113,8 +113,8 @@ class _Content extends StatelessWidget {
               child: Column(
                 children: [
                   _Hero(details: details, onCopy: onCopy, onShare: onShare),
-                  const SizedBox(height: 18),
-                  _ShareCard(details: details, onCopy: onCopy),
+                  // const SizedBox(height: 18),
+                  // _ShareCard(details: details, onCopy: onCopy),
                   const SizedBox(height: 18),
                   GridView.count(
                     crossAxisCount: wide ? 4 : 2,
@@ -150,10 +150,11 @@ class _Content extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
                   const _HowItWorks(),
                   const SizedBox(height: 24),
                   _History(items: details.history),
+
+                   const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -257,7 +258,7 @@ class _Hero extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        const Icon(
+                         Icon(
                           Icons.copy_rounded,
                           size: 17,
                           color: AppColors.primary,
@@ -579,7 +580,7 @@ class _ErrorView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+           Icon(
             Icons.cloud_off_rounded,
             size: 52,
             color: AppColors.primary,

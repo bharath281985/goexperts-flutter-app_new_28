@@ -38,19 +38,60 @@ class AppDropdown<T> extends StatelessWidget {
         : selectHintForLabel(normalizedLabel);
     final uniqueItems = items.toSet().toList(growable: false);
 
+    final isRequired = label?.contains('*') == true;
+    final isEmpty = value == null || (value is String && value.toString().trim().isEmpty);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (label != null) ...[
-          Text(context.tr(label!), style: context.text.titleSmall),
+          if (label!.contains('*'))
+            RichText(
+              text: TextSpan(
+                text: context.tr(label!.replaceAll('*', '').trimRight()),
+                style: context.text.titleSmall,
+                children: [
+                  TextSpan(
+                    text: ' *',
+                    style: context.text.titleSmall?.copyWith(color: Colors.red),
+                  ),
+                ],
+              ),
+            )
+          else
+            Text(context.tr(label!), style: context.text.titleSmall),
           AppSizes.vGapSm,
         ],
         DropdownButtonFormField<T>(
+          key: ValueKey(value),
           initialValue: value,
           isExpanded: true,
           style: context.text.bodyMedium,
           validator: validator,
           onTap: onTap,
+          icon: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.arrow_drop_down),
+              if (isRequired && isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4.0),
+                  child: Text(
+                    '*',
+                    style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                )
+              else if (!isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(left: 4.0),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 18,
+                  ),
+                ),
+            ],
+          ),
           decoration: InputDecoration(
             hintText: hint ?? generatedHint,
             hintStyle: context.theme.inputDecorationTheme.hintStyle,

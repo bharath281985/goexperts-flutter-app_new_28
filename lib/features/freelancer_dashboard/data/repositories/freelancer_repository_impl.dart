@@ -96,7 +96,9 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
   }
 
   static Freelancer _fromJson(Map<String, dynamic> json) {
-    final rawSkills = json['Skills'] ?? json['skills'];
+    final profile = json['freelancerProfile'] as Map<String, dynamic>?;
+    final rawSkills = json['Skills'] ?? json['skills'] ?? profile?['skills'];
+    print('DEBUG: Freelancer json skills for ${json['id']}: rawSkills=$rawSkills, profile=$profile, jsonSkills=${json['skills']}');
     final skills = rawSkills is List
         ? rawSkills
               .map(
@@ -137,10 +139,15 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
           json['headline'] as String? ??
           json['professionalTitle'] as String? ??
           json['title'] as String? ??
+          profile?['titleHeadline'] as String? ??
+          profile?['headline'] as String? ??
+          profile?['title'] as String? ??
+          profile?['professionalTitle'] as String? ??
           '',
       category: category,
       skills: skills,
-      hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 0,
+      hourlyRate: (json['hourlyRate'] as num?)?.toDouble() ?? 
+                  (profile?['hourlyRate'] as num?)?.toDouble() ?? 0,
       rating: (json['rating'] as num?)?.toDouble() ?? 0,
       reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
       location: json['location'] as String? ?? 'Remote',
@@ -153,7 +160,20 @@ class FreelancerRepositoryImpl implements FreelancerRepository {
           const ['English'],
       followers: (json['followers'] as num?)?.toInt() ?? 0,
       successRate: (json['successRate'] as num?)?.toInt() ?? 0,
+      experienceYears: _parseExperience(json['experienceYears'] ?? profile?['experience']),
     );
+  }
+
+  static int _parseExperience(dynamic exp) {
+    if (exp == null) return 3;
+    if (exp is num) return exp.toInt();
+    if (exp is String) {
+      final match = RegExp(r'\d+').firstMatch(exp);
+      if (match != null) {
+        return int.tryParse(match.group(0) ?? '') ?? 3;
+      }
+    }
+    return 3;
   }
 
   Future<Result<T>> _apiNotConfigured<T>() async =>

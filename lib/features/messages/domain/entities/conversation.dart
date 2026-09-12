@@ -15,6 +15,7 @@ class Conversation extends Equatable {
     this.isTyping = false,
     this.role = '',
     this.participantId = '',
+    this.isFromProfile = false,
   });
 
   final String id;
@@ -29,6 +30,7 @@ class Conversation extends Equatable {
   final bool isTyping;
   final String role;
   final String participantId;
+  final bool isFromProfile;
 
   @override
   List<Object?> get props => [
@@ -55,6 +57,7 @@ class ChatMessage extends Equatable {
     this.type = MessageType.text,
     this.status = MessageStatus.sent,
     this.isMine = false,
+    this.senderRole = '',
     this.attachmentUrl,
     this.replyTo,
   });
@@ -67,6 +70,7 @@ class ChatMessage extends Equatable {
   final MessageType type;
   final MessageStatus status;
   final bool isMine;
+  final String? senderRole;
   final String? attachmentUrl;
   final String? replyTo;
 

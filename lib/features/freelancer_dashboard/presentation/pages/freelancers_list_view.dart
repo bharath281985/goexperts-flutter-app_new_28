@@ -17,7 +17,9 @@ import '../widgets/freelancer_card.dart';
 
 /// Embeddable freelancer discovery catalog.
 class FreelancersListView extends StatefulWidget {
-  const FreelancersListView({super.key});
+  const FreelancersListView({super.key, this.initialSearch = ''});
+
+  final String initialSearch;
 
   @override
   State<FreelancersListView> createState() => _FreelancersListViewState();
@@ -34,10 +36,7 @@ class _FreelancersListViewState extends State<FreelancersListView> {
   }
 
   Future<void> _loadCategories() async {
-    final result = await sl<MasterDataRepository>().getSkillCategories(
-      page: 1,
-      pageSize: 200,
-    );
+    final result = await sl<MasterDataRepository>().getIndustries();
     if (!mounted) return;
     setState(() {
       _categories = result.valueOrNull ?? const [];
@@ -89,6 +88,7 @@ class _FreelancersListViewState extends State<FreelancersListView> {
     return CatalogView<Freelancer>(
       fetcher: repo.getFreelancers,
       searchHint: 'Search freelancers, skills…',
+      initialSearch: widget.initialSearch,
       emptyTitle: 'No freelancers found',
       emptyIcon: Icons.groups_outlined,
       sortOptions: const ['Top rated', 'Rate: Low to High', 'Most experienced'],
@@ -132,4 +132,3 @@ class _FreelancersListViewState extends State<FreelancersListView> {
     );
   }
 }
-

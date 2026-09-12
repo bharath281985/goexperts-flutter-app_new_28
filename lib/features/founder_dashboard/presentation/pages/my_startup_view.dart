@@ -18,11 +18,12 @@ import '../widgets/edit_idea_bottom_sheet.dart';
 import '../../domain/repositories/founder_repository.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../app/router/route_names.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 /// Founder's own startup management view (embeddable tab).
 class MyStartupView extends StatefulWidget {
-  const MyStartupView({super.key});
+  final bool showBackButton;
+
+  const MyStartupView({super.key, this.showBackButton = true});
 
   @override
   State<MyStartupView> createState() => _MyStartupViewState();
@@ -181,13 +182,15 @@ class _MyStartupViewState extends State<MyStartupView> {
     final name = _startup['startupName']?.toString().trim().isNotEmpty == true
         ? _startup['startupName'].toString().trim()
         : (_startup['startup']?.toString().trim() ??
-            _startup['name']?.toString().trim() ??
-            '');
+              _startup['name']?.toString().trim() ??
+              '');
 
-    final isPlaceholder = name.toLowerCase().endsWith("'s startup") ||
+    final isPlaceholder =
+        name.toLowerCase().endsWith("'s startup") ||
         name.toLowerCase().endsWith("’s startup");
 
-    final hasValidStartup = _startup.isNotEmpty &&
+    final hasValidStartup =
+        _startup.isNotEmpty &&
         _startup['id'] != null &&
         _startup['id'].toString().isNotEmpty &&
         _startup['id'].toString() != 'null' &&
@@ -199,7 +202,10 @@ class _MyStartupViewState extends State<MyStartupView> {
       return Scaffold(
         backgroundColor: context.theme.scaffoldBackgroundColor,
         appBar: AppBar(
-          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          automaticallyImplyLeading: widget.showBackButton,
+          leading: widget.showBackButton
+              ? IconTapWidget(onTap: () => Navigator.of(context).maybePop())
+              : null,
           title: const Text('My Startup'),
         ),
         body: Center(
@@ -215,7 +221,7 @@ class _MyStartupViewState extends State<MyStartupView> {
                     color: AppColors.primary.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child:  Icon(
                     Icons.rocket_launch_rounded,
                     size: 40,
                     color: AppColors.primary,
@@ -249,28 +255,41 @@ class _MyStartupViewState extends State<MyStartupView> {
       );
     }
     final tagline =
-        _startup['title']?.toString() ??
-        _startup['tagline']?.toString() ??
-        '';
+        _startup['title']?.toString() ?? _startup['tagline']?.toString() ?? '';
     final rawIndObj = _startup['industry'];
-    final rawIndustry = (_startup['industryName'] ??
-            (rawIndObj is Map ? (rawIndObj['name'] ?? rawIndObj['label'] ?? rawIndObj['value']) : rawIndObj))
-        ?.toString()
-        .trim() ??
+    final rawIndustry =
+        (_startup['industryName'] ??
+                (rawIndObj is Map
+                    ? (rawIndObj['name'] ??
+                          rawIndObj['label'] ??
+                          rawIndObj['value'])
+                    : rawIndObj))
+            ?.toString()
+            .trim() ??
         '';
 
     final rawStageObj = _startup['stage'];
-    final rawStage = (_startup['stageName'] ??
-            (rawStageObj is Map ? (rawStageObj['name'] ?? rawStageObj['label'] ?? rawStageObj['value']) : rawStageObj))
-        ?.toString()
-        .trim() ??
+    final rawStage =
+        (_startup['stageName'] ??
+                (rawStageObj is Map
+                    ? (rawStageObj['name'] ??
+                          rawStageObj['label'] ??
+                          rawStageObj['value'])
+                    : rawStageObj))
+            ?.toString()
+            .trim() ??
         '';
 
     final rawCatObj = _startup['category'];
-    final rawCategory = (_startup['categoryName'] ??
-            (rawCatObj is Map ? (rawCatObj['name'] ?? rawCatObj['label'] ?? rawCatObj['value']) : rawCatObj))
-        ?.toString()
-        .trim() ??
+    final rawCategory =
+        (_startup['categoryName'] ??
+                (rawCatObj is Map
+                    ? (rawCatObj['name'] ??
+                          rawCatObj['label'] ??
+                          rawCatObj['value'])
+                    : rawCatObj))
+            ?.toString()
+            .trim() ??
         '';
 
     final uuidRegex = RegExp(
@@ -289,7 +308,8 @@ class _MyStartupViewState extends State<MyStartupView> {
             ? (_startup['user'] as Map)['avatarUrl']?.toString()
             : null);
 
-    final coverUrl = _startup['coverUrl']?.toString() ??
+    final coverUrl =
+        _startup['coverUrl']?.toString() ??
         _startup['cover']?.toString() ??
         _startup['coverImage']?.toString() ??
         _startup['coverimage']?.toString();
@@ -299,7 +319,11 @@ class _MyStartupViewState extends State<MyStartupView> {
     final equity = (num.tryParse(_startup['equity']?.toString() ?? '0') ?? 0)
         .toDouble();
 
-    final bidsList = _startup['bids'] as List? ?? [];
+    final bidsList =
+        _startup['interestedInvestorsList'] as List? ??
+        _startup['investorRequests'] as List? ??
+        _startup['bids'] as List? ??
+        [];
     final bids = bidsList
         .whereType<Map>()
         .map((m) => Map<String, dynamic>.from(m))
@@ -320,10 +344,10 @@ class _MyStartupViewState extends State<MyStartupView> {
       backgroundColor: context.theme.scaffoldBackgroundColor,
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _editStartup,
-        icon: const Icon(Icons.edit_rounded),
-        label: const Text('Update Idea'),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
+        icon: const Icon(Icons.edit_rounded, color: AppColors.white),
+        label: const Text('Update Idea', style: TextStyle(color: AppColors.white)),
+        backgroundColor: AppColors.primary.withValues(alpha: 0.8),
+        // foregroundColor: AppColors.white,
       ),
       body: RefreshIndicator(
         onRefresh: _load,
@@ -358,10 +382,10 @@ class _MyStartupViewState extends State<MyStartupView> {
                       ),
                     ],
                     if (tags.isNotEmpty) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 10),
                       _buildTagsRow(context, tags),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 10),
                     _buildFundingSection(
                       context,
                       goal,
@@ -369,11 +393,11 @@ class _MyStartupViewState extends State<MyStartupView> {
                       equity,
                       interestedInvestors.toString(),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 10),
                     _buildDocumentsSection(context),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 10),
                     _buildInvestorRequests(context, bids),
-                    const SizedBox(height: 80),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),
@@ -391,9 +415,10 @@ class _MyStartupViewState extends State<MyStartupView> {
     required String name,
   }) {
     return SliverAppBar(
-      leading: IconTapWidget(
-        onTap: () => Navigator.of(context).maybePop(),
-      ),
+      automaticallyImplyLeading: widget.showBackButton,
+      leading: widget.showBackButton
+          ? IconTapWidget(onTap: () => Navigator.of(context).maybePop())
+          : null,
       expandedHeight: 200,
       pinned: true,
       backgroundColor: AppColors.background,
@@ -406,7 +431,7 @@ class _MyStartupViewState extends State<MyStartupView> {
             else
               Container(
                 color: AppColors.primary.withValues(alpha: 0.1),
-                child: const Center(
+                child:  Center(
                   child: Icon(
                     Icons.business,
                     size: 60,
@@ -503,7 +528,7 @@ class _MyStartupViewState extends State<MyStartupView> {
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 5),
           ClipRRect(
             borderRadius: BorderRadius.circular(999),
             child: LinearProgressIndicator(
@@ -515,7 +540,7 @@ class _MyStartupViewState extends State<MyStartupView> {
               valueColor: const AlwaysStoppedAnimation(AppColors.success),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -534,7 +559,7 @@ class _MyStartupViewState extends State<MyStartupView> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Row(
             children: [
               Expanded(
@@ -580,7 +605,10 @@ class _MyStartupViewState extends State<MyStartupView> {
         businessPlanUrl.trim().isNotEmpty &&
         businessPlanUrl.trim() != 'null' &&
         !combinedDocs.any((d) => d['name'] == 'Business Plan')) {
-      combinedDocs.add({'name': 'Business Plan', 'url': businessPlanUrl.trim()});
+      combinedDocs.add({
+        'name': 'Business Plan',
+        'url': businessPlanUrl.trim(),
+      });
     }
 
     return Column(
@@ -647,11 +675,11 @@ class _MyStartupViewState extends State<MyStartupView> {
           AppCard(
             margin: const EdgeInsets.only(bottom: AppSizes.md),
             onTap: () async {
-              final id = r['id']?.toString();
-              if (id != null && id.isNotEmpty) {
-                await context.push('${Routes.proposalDetails}/$id');
-                _load();
-              }
+              // final id = r['id']?.toString();
+              // if (id != null && id.isNotEmpty) {
+              //   await context.push('${Routes.proposalDetails}/$id');
+              //   _load();
+              // }
             },
             child: Row(
               children: [
@@ -721,21 +749,47 @@ class _MyStartupViewState extends State<MyStartupView> {
 
   Widget _buildStatusOrActions(Map<String, dynamic> r) {
     final statusStr = r['status']?.toString().toLowerCase() ?? 'pending';
-    if (statusStr == 'accepted' || statusStr == 'accept') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.success.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Text(
-          'Accepted',
-          style: TextStyle(
-            color: AppColors.success,
-            fontWeight: FontWeight.bold,
-            fontSize: 12,
+    if (statusStr == 'accepted' ||
+        statusStr == 'accept' ||
+        statusStr == 'active') {
+      final meetingDate = r['meetingDate']?.toString();
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.success.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Text(
+              'Accepted',
+              style: TextStyle(
+                color: AppColors.success,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
+            ),
           ),
-        ),
+          IconButton(
+            tooltip: 'Create Meeting',
+            onPressed: () => _scheduleMeeting(r['id']?.toString() ?? ''),
+            icon:  Icon(
+              Icons.calendar_month,
+              color: AppColors.primary,
+              size: 26,
+            ),
+          ),
+          if (meetingDate != null && meetingDate.isNotEmpty)
+            Text(
+              'Meeting set',
+              style: TextStyle(
+                color: AppColors.success,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+        ],
       );
     }
     if (statusStr == 'rejected' || statusStr == 'reject') {
@@ -762,7 +816,7 @@ class _MyStartupViewState extends State<MyStartupView> {
         IconButton(
           tooltip: 'Schedule Meeting',
           onPressed: () => _scheduleMeeting(r['id']?.toString() ?? ''),
-          icon: const Icon(
+          icon:  Icon(
             Icons.calendar_month,
             color: AppColors.primary,
             size: 26,
@@ -814,7 +868,9 @@ class _MyStartupViewState extends State<MyStartupView> {
     if (!mounted) return;
     res.fold(
       (f) => context.showSnack(f.message, isError: true),
-      (_) => context.showSnack('Meeting scheduled for $formattedDate at $formattedTime.'),
+      (_) => context.showSnack(
+        'Meeting scheduled for $formattedDate at $formattedTime.',
+      ),
     );
     await _load();
   }
@@ -837,7 +893,8 @@ class _MyStartupViewState extends State<MyStartupView> {
     String? url,
   ) {
     final cleanUrl = url?.trim();
-    final hasUrl = cleanUrl != null && cleanUrl.isNotEmpty && cleanUrl != 'null';
+    final hasUrl =
+        cleanUrl != null && cleanUrl.isNotEmpty && cleanUrl != 'null';
 
     return AppCard(
       margin: const EdgeInsets.only(bottom: AppSizes.sm),
@@ -852,44 +909,44 @@ class _MyStartupViewState extends State<MyStartupView> {
           context.showSnack('No file attached for $title', isError: true);
         }
       },
-    child: Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(8),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
           ),
-          child: Icon(icon, color: AppColors.primary, size: 20),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: context.text.titleSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: context.text.titleSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                meta,
-                style: context.text.labelSmall?.copyWith(
-                  color: AppColors.success,
+                const SizedBox(height: 2),
+                Text(
+                  meta,
+                  style: context.text.labelSmall?.copyWith(
+                    color: AppColors.success,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const Icon(
-          Icons.arrow_forward_ios_rounded,
-          color: AppColors.mutedText,
-          size: 14,
-        ),
-      ],
-    ),
-  );
-}
+          const Icon(
+            Icons.arrow_forward_ios_rounded,
+            color: AppColors.mutedText,
+            size: 14,
+          ),
+        ],
+      ),
+    );
+  }
 }

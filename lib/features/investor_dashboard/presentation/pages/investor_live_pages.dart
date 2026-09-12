@@ -103,7 +103,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     final stRes = await masterRepo.getInvestorStageOptions();
     if (mounted && stRes.isSuccess) _investorStages = stRes.valueOrNull ?? [];
 
-    final catRes = await masterRepo.getSkillCategories();
+    final catRes = await masterRepo.getIndustries();
     if (mounted && catRes.isSuccess) _categories = catRes.valueOrNull ?? [];
 
     final tsRes = await masterRepo.getTicketSizeOptions();

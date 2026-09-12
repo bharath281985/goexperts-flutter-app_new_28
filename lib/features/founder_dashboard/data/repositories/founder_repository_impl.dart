@@ -41,8 +41,8 @@ class FounderRepositoryImpl implements FounderRepository {
     QueryParams params,
   ) async {
     if (_api == null) return _apiNotConfigured();
-    return _api.getEnvelope<Paginated<InvestorRequest>>(
-      ApiEndpoints.founderInvestorRequests,
+    var result = await _api.getEnvelope<Paginated<InvestorRequest>>(
+      ApiEndpoints.publicInvestorRequests,
       query: params.toApiQuery(),
       parser: (env) => ApiResponse.parsePaginated(
         env.data,
@@ -51,6 +51,19 @@ class FounderRepositoryImpl implements FounderRepository {
         fallbackPage: params.page,
       ),
     );
+    if (result.isFailure) {
+      result = await _api.getEnvelope<Paginated<InvestorRequest>>(
+        ApiEndpoints.founderInvestorRequests,
+        query: params.toApiQuery(),
+        parser: (env) => ApiResponse.parsePaginated(
+          env.data,
+          env.meta,
+          _requestFromJson,
+          fallbackPage: params.page,
+        ),
+      );
+    }
+    return result;
   }
 
   @override
@@ -58,18 +71,32 @@ class FounderRepositoryImpl implements FounderRepository {
     if (_api == null) return _apiNotConfigured();
     final normalized = status.toLowerCase();
     if (normalized == 'accepted' || normalized == 'accept') {
-      return _api.patchAction(ApiEndpoints.founderInvestorRequestAccept(id));
+      return _actionWithFallback(
+        ApiEndpoints.publicInvestorRequestAccept(id),
+        ApiEndpoints.founderInvestorRequestAccept(id),
+      );
     }
     if (normalized == 'rejected' || normalized == 'reject') {
-      return _api.patchAction(ApiEndpoints.founderInvestorRequestReject(id));
+      return _actionWithFallback(
+        ApiEndpoints.publicInvestorRequestReject(id),
+        ApiEndpoints.founderInvestorRequestReject(id),
+      );
     }
     if (normalized == 'meeting') {
-      return _api.patchAction(ApiEndpoints.founderInvestorRequestMeeting(id));
+      return _actionWithFallback(
+        ApiEndpoints.publicInvestorRequestMeeting(id),
+        ApiEndpoints.founderInvestorRequestMeeting(id),
+      );
     }
     return _api.patchAction(
       ApiEndpoints.founderInvestorRequestMessage(id),
       body: {'message': status},
     );
+  }
+
+  Future<Result<bool>> _actionWithFallback(String primary, String fallback) async {
+    final result = await _api!.patchAction(primary);
+    return result.isSuccess ? result : _api.patchAction(fallback);
   }
 
   @override

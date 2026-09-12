@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:goexperts_app/app/constants/app_colors.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app/app.dart';
@@ -16,9 +17,11 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+   await AppColors.loadRoleColors();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await initializeDateFormatting('en_IN');
   await configureDependencies();
+ 
   runApp(const GoExpertsApp());
 }

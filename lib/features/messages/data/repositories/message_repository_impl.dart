@@ -37,6 +37,25 @@ class MessageRepositoryImpl implements MessageRepository {
 
   Future<String?> _userId() => _tokenRoleHelper?.userId() ?? Future.value(null);
 
+  Future<({String? id, String? name})> _currentUserInfo() async {
+    String? id = await _userId();
+    String? name;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString('cached_user');
+      if (raw != null && raw.isNotEmpty) {
+        final map = jsonDecode(raw);
+        if (map is Map) {
+          if (id == null || id.isEmpty) {
+            id = map['id']?.toString();
+          }
+          name = map['fullName']?.toString() ?? map['name']?.toString();
+        }
+      }
+    } catch (_) {}
+    return (id: id, name: name);
+  }
+
   Future<Result<T>> _firstSuccess<T>(
     List<Future<Result<T>> Function()> attempts,
   ) async {
@@ -82,6 +101,7 @@ class MessageRepositoryImpl implements MessageRepository {
                 'online': c.isOnline,
                 'typing': c.isTyping,
                 'role': c.role,
+                'participantId': c.participantId,
               },
             )
             .toList(),
@@ -132,13 +152,15 @@ class MessageRepositoryImpl implements MessageRepository {
         (_) => const Err(ServerFailure('Empty')),
       );
     }
-    await _saveCache(list);
+    final sorted = List<Conversation>.from(list)
+      ..sort((a, b) => b.lastMessageAt.compareTo(a.lastMessageAt));
+    await _saveCache(sorted);
     return Success(
       Paginated(
-        items: list,
+        items: sorted,
         page: params.page,
         totalPages: 1,
-        totalItems: list.length,
+        totalItems: sorted.length,
       ),
     );
   }
@@ -158,13 +180,17 @@ class MessageRepositoryImpl implements MessageRepository {
         ? '/chat/conversations/$conversationId'
         : ApiEndpoints.chatConversation(conversationId);
 
-    final userId = await _userId();
+    final user = await _currentUserInfo();
     return _firstSuccess<List<ChatMessage>>([
       () => _api.getEnvelope<List<ChatMessage>>(
         path,
         parser: (envelope) => ApiResponse.parseList(
           envelope.data,
-          (json) => _chatMessageFromJson(json, userId),
+          (json) => _chatMessageFromJson(
+            json,
+            user.id,
+            currentUserName: user.name,
+          ),
         ),
       ),
       if (role == UserRole.client || role == UserRole.freelancer)
@@ -172,7 +198,11 @@ class MessageRepositoryImpl implements MessageRepository {
           ApiEndpoints.chatConversation(conversationId),
           parser: (envelope) => ApiResponse.parseList(
             envelope.data,
-            (json) => _chatMessageFromJson(json, userId),
+            (json) => _chatMessageFromJson(
+              json,
+              user.id,
+              currentUserName: user.name,
+            ),
           ),
         ),
     ]);
@@ -197,7 +227,7 @@ class MessageRepositoryImpl implements MessageRepository {
         ? ApiEndpoints.founderMessagesSend
         : ApiEndpoints.chatSend;
 
-    final userId = await _userId();
+    final user = await _currentUserInfo();
     final body = <String, dynamic>{
       'conversationId': conversationId,
       if (text.trim().isNotEmpty) 'text': text.trim(),
@@ -210,7 +240,9 @@ class MessageRepositoryImpl implements MessageRepository {
         body: body,
         parser: (data) => _chatMessageFromJson(
           Map<String, dynamic>.from(data as Map),
-          userId,
+          user.id,
+          forceMine: true,
+          currentUserName: user.name,
         ),
         allowNullData: false,
       ),
@@ -220,7 +252,9 @@ class MessageRepositoryImpl implements MessageRepository {
           body: body,
           parser: (data) => _chatMessageFromJson(
             Map<String, dynamic>.from(data as Map),
-            userId,
+            user.id,
+            forceMine: true,
+            currentUserName: user.name,
           ),
           allowNullData: false,
         ),
@@ -255,14 +289,16 @@ class MessageRepositoryImpl implements MessageRepository {
       if (projectId != null && projectId.isNotEmpty) 'projectId': projectId,
     };
 
-    final userId = await _userId();
+    final user = await _currentUserInfo();
     return _firstSuccess<ChatMessage>([
       () => _api.post<ChatMessage>(
         path,
         body: body,
         parser: (data) => _chatMessageFromJson(
           Map<String, dynamic>.from(data as Map),
-          userId,
+          user.id,
+          forceMine: true,
+          currentUserName: user.name,
         ),
         allowNullData: false,
       ),
@@ -272,7 +308,9 @@ class MessageRepositoryImpl implements MessageRepository {
           body: body,
           parser: (data) => _chatMessageFromJson(
             Map<String, dynamic>.from(data as Map),
-            userId,
+            user.id,
+            forceMine: true,
+            currentUserName: user.name,
           ),
           allowNullData: false,
         ),
@@ -315,12 +353,21 @@ class MessageRepositoryImpl implements MessageRepository {
   Future<Result<bool>> markMessageRead(String messageId) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.client
+    final path = role == UserRole.freelancer
+        ? '${ApiEndpoints.freelancerMessage(messageId)}/read'
+        : role == UserRole.client
         ? ApiEndpoints.clientMessageRead(messageId)
+        : role == UserRole.investor
+        ? ApiEndpoints.investorMessageRead(messageId)
+        : role == UserRole.founder
+        ? ApiEndpoints.founderMessageRead(messageId)
         : ApiEndpoints.chatMessageRead(messageId);
     return _firstSuccess<bool>([
       () => _api.patchAction(path),
-      if (role == UserRole.client)
+      if (role == UserRole.client ||
+          role == UserRole.freelancer ||
+          role == UserRole.investor ||
+          role == UserRole.founder)
         () => _api.patchAction(ApiEndpoints.chatMessageRead(messageId)),
     ]);
   }
@@ -331,10 +378,14 @@ class MessageRepositoryImpl implements MessageRepository {
     final role = await _role();
     final path = role == UserRole.client
         ? '${ApiEndpoints.clientMessagesConversations}/$conversationId/read-all'
+        : role == UserRole.investor
+        ? '${ApiEndpoints.investorMessagesConversations}/$conversationId/read-all'
+        : role == UserRole.founder
+        ? '${ApiEndpoints.founderMessagesConversations}/$conversationId/read-all'
         : '${ApiEndpoints.chatConversations}/$conversationId/read-all';
     return _firstSuccess<bool>([
       () => _api.patchAction(path),
-      if (role == UserRole.client)
+      if (role == UserRole.client || role == UserRole.investor || role == UserRole.founder)
         () => _api.patchAction(
           '${ApiEndpoints.chatConversations}/$conversationId/read-all',
         ),
@@ -345,12 +396,21 @@ class MessageRepositoryImpl implements MessageRepository {
   Future<Result<bool>> markConversationUnread(String conversationId) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.client
+    final path = role == UserRole.freelancer
+        ? '${ApiEndpoints.freelancerMessage(conversationId)}/unread'
+        : role == UserRole.client
         ? '${ApiEndpoints.clientMessagesConversations}/$conversationId/unread'
+        : role == UserRole.investor
+        ? '${ApiEndpoints.investorMessagesConversations}/$conversationId/unread'
+        : role == UserRole.founder
+        ? '${ApiEndpoints.founderMessagesConversations}/$conversationId/unread'
         : '${ApiEndpoints.chatConversations}/$conversationId/unread';
     return _firstSuccess<bool>([
       () => _api.patchAction(path),
-      if (role == UserRole.client)
+      if (role == UserRole.client ||
+          role == UserRole.freelancer ||
+          role == UserRole.investor ||
+          role == UserRole.founder)
         () => _api.patchAction(
           '${ApiEndpoints.chatConversations}/$conversationId/unread',
         ),
@@ -377,12 +437,21 @@ class MessageRepositoryImpl implements MessageRepository {
   Future<Result<bool>> deleteConversation(String conversationId) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _role();
-    final path = role == UserRole.client
+    final path = role == UserRole.freelancer
+        ? ApiEndpoints.freelancerMessage(conversationId)
+        : role == UserRole.client
         ? '${ApiEndpoints.clientMessagesConversations}/$conversationId'
+        : role == UserRole.investor
+        ? ApiEndpoints.investorMessageConversation(conversationId)
+        : role == UserRole.founder
+        ? ApiEndpoints.founderMessageConversation(conversationId)
         : '${ApiEndpoints.chatConversations}/$conversationId';
     return _firstSuccess<bool>([
       () => _api.deleteAction(path),
-      if (role == UserRole.client)
+      if (role == UserRole.client ||
+          role == UserRole.freelancer ||
+          role == UserRole.investor ||
+          role == UserRole.founder)
         () => _api.deleteAction(
           '${ApiEndpoints.chatConversations}/$conversationId',
         ),
@@ -411,8 +480,12 @@ class MessageRepositoryImpl implements MessageRepository {
           return id.isNotEmpty;
         })
         .asyncMap((raw) async {
-          final userId = await _userId();
-          return _chatMessageFromJson(raw, userId);
+          final user = await _currentUserInfo();
+          return _chatMessageFromJson(
+            raw,
+            user.id,
+            currentUserName: user.name,
+          );
         });
   }
 
@@ -435,15 +508,18 @@ class MessageRepositoryImpl implements MessageRepository {
     final last = messages.isNotEmpty ? messages.first : null;
 
     final lastText =
+        json['lastMessage'] as String? ??
         json['msg'] as String? ??
         last?['text'] as String? ??
-        json['lastMessage'] as String? ??
         '';
     final lastTimeRaw =
+        json['lastMessageAt'] as String? ??
         json['time'] as String? ??
-        last?['time'] as String? ??
+        json['updatedAt'] as String? ??
         last?['createdAt'] as String? ??
+        last?['time'] as String? ??
         '';
+    final parsedTime = DateTime.tryParse(lastTimeRaw);
 
     return Conversation(
       id: json['id']?.toString() ?? '',
@@ -453,10 +529,14 @@ class MessageRepositoryImpl implements MessageRepository {
           'Chat',
       lastMessage: lastText,
       lastMessageAt:
-          DateTime.tryParse(lastTimeRaw) ??
-          DateTime.fromMillisecondsSinceEpoch(0),
+          parsedTime ??
+          (lastTimeRaw.isNotEmpty
+              ? DateTime.now()
+              : DateTime.fromMillisecondsSinceEpoch(0)),
       avatarUrl: json['avatar'] as String? ?? json['avatarUrl'] as String?,
-      unreadCount: (json['unread'] as num?)?.toInt() ?? 0,
+      unreadCount: (json['unreadCount'] as num?)?.toInt() ??
+          (json['unread'] as num?)?.toInt() ??
+          0,
       isOnline: json['online'] as bool? ?? false,
       isPinned: false,
       isMuted: false,
@@ -486,19 +566,65 @@ class MessageRepositoryImpl implements MessageRepository {
 
   static ChatMessage _chatMessageFromJson(
     Map<String, dynamic> json,
-    String? currentUserId,
-  ) {
-    final from = json['from']?.toString() ?? '';
-    final senderId =
-        json['senderId']?.toString() ?? json['sender_id']?.toString();
+    String? currentUserId, {
+    bool forceMine = false,
+    String? currentUserName,
+  }) {
+    final senderRaw = json['sender'];
+    final userRaw = json['user'];
+    final senderFromMap = senderRaw is Map
+        ? (senderRaw['id']?.toString() ?? senderRaw['name']?.toString())
+        : (senderRaw is String ? senderRaw : null);
+    final userFromMap = userRaw is Map
+        ? (userRaw['id']?.toString() ?? userRaw['name']?.toString())
+        : (userRaw is String ? userRaw : null);
+
+    final from = json['from']?.toString().trim() ??
+        (senderRaw is Map ? senderRaw['fullName']?.toString() ?? senderRaw['name']?.toString() : null) ??
+        (userRaw is Map ? userRaw['fullName']?.toString() ?? userRaw['name']?.toString() : null) ??
+        '';
+
+    final senderId = json['senderId']?.toString() ??
+        json['sender_id']?.toString() ??
+        json['userId']?.toString() ??
+        json['user_id']?.toString() ??
+        senderFromMap ??
+        userFromMap;
+      final senderRole = json['senderRole']?.toString() ??
+        json['sender_role']?.toString() ??
+        (senderRaw is Map ? senderRaw['role']?.toString() : null) ??
+        (userRaw is Map ? userRaw['role']?.toString() : null) ??
+        '';
+
     final explicitMine = json['isMine'] as bool?;
-    final isMine =
-        explicitMine ??
-        (from == 'me' ||
-            (currentUserId != null &&
-                senderId != null &&
-                senderId.isNotEmpty &&
-                senderId == currentUserId));
+
+    final fromLower = from.toLowerCase();
+    final isMeFrom = fromLower == 'me' ||
+        fromLower == 'self' ||
+        fromLower == 'sender' ||
+        fromLower == 'you';
+
+    final idMatches = currentUserId != null &&
+        currentUserId.isNotEmpty &&
+        senderId != null &&
+        senderId.isNotEmpty &&
+        (senderId == currentUserId ||
+            senderId.toLowerCase() == currentUserId.toLowerCase() ||
+            senderId == 'me');
+
+    final nameMatches = currentUserName != null &&
+        currentUserName.isNotEmpty &&
+        fromLower.isNotEmpty &&
+        (fromLower == currentUserName.toLowerCase() ||
+            fromLower.contains(currentUserName.toLowerCase()) ||
+            currentUserName.toLowerCase().contains(fromLower));
+
+    final isMine = (currentUserId != null &&
+        currentUserId.isNotEmpty &&
+        senderId != null &&
+        senderId.isNotEmpty)
+      ? idMatches
+      : forceMine || explicitMine == true || isMeFrom || nameMatches;
 
     final timeRaw =
         json['time'] as String? ?? json['createdAt'] as String? ?? '';
@@ -539,7 +665,8 @@ class MessageRepositoryImpl implements MessageRepository {
           json['conversationId']?.toString() ??
           json['conversation_id']?.toString() ??
           '',
-      senderId: isMine ? 'me' : (senderId ?? 'them'),
+      senderId: senderId ?? (isMine ? 'me' : (from.isNotEmpty ? from : 'them')),
+      senderRole: senderRole,
       text: text,
       sentAt: DateTime.tryParse(timeRaw) ?? DateTime.now(),
       type: type,

@@ -12,18 +12,19 @@ class AppChartCard extends StatelessWidget {
     required this.title,
     required this.data,
     this.subtitle,
-    this.color = AppColors.primary,
+    this.color,
     this.height = 160,
   });
 
   final String title;
   final String? subtitle;
   final List<BarData> data;
-  final Color color;
+  final Color? color;
   final double height;
 
   @override
   Widget build(BuildContext context) {
+    final cardColor = color ?? AppColors.primary;
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +47,7 @@ class AppChartCard extends StatelessWidget {
                         child: _Bar(
                           data: bar,
                           maxValue: maxVal == 0 ? 1 : maxVal,
-                          color: color,
+                          color: cardColor,
                           maxHeight: constraints.maxHeight - 24,
                         ),
                       ),

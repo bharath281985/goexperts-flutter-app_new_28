@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/constants/app_assets.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/icon_widget.dart';
-import '../../../../core/services/permission_service.dart';
-import '../bloc/auth_bloc.dart';
 
 /// Redesigned Role Selection View matching attached image reference
 class ChooseRoleView extends StatefulWidget {
@@ -22,14 +19,6 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.select((AuthBloc b) => b.state.user);
-    final permissionService = PermissionService(currentUser: user);
-
-    final showFreelancer = permissionService.hasDashboardAccess('freelancer');
-    final showClient = permissionService.hasDashboardAccess('client');
-    final showFounder = permissionService.hasDashboardAccess('founder');
-    final showInvestor = permissionService.hasDashboardAccess('investor');
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -71,7 +60,7 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 children: [
-                  if (showFreelancer) ...[
+               
                     _buildRoleCard(
                       role: UserRole.freelancer,
                       title: 'Freelancer / Expert',
@@ -84,8 +73,8 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       iconColor: const Color(0xFF7C3AED),
                     ),
                     const SizedBox(height: 16),
-                  ],
-                  if (showClient) ...[
+                
+                 
                     _buildRoleCard(
                       role: UserRole.client,
                       title: 'Client / Business Owner',
@@ -98,8 +87,8 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       iconColor: const Color(0xFF0284C7),
                     ),
                     const SizedBox(height: 16),
-                  ],
-                  if (showFounder) ...[
+                
+                 
                     _buildRoleCard(
                       role: UserRole.founder,
                       title: 'Startup Founder',
@@ -112,8 +101,8 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       iconColor: const Color(0xFF16A34A),
                     ),
                     const SizedBox(height: 16),
-                  ],
-                  if (showInvestor) ...[
+              
+               
                     _buildRoleCard(
                       role: UserRole.investor,
                       title: 'Investor',
@@ -125,7 +114,7 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       iconBgColor: const Color(0xFFFFEDD5),
                       iconColor: const Color(0xFFEA580C),
                     ),
-                  ],
+              
                 ],
               ),
             ),

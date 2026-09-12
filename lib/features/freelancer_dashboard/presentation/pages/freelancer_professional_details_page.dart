@@ -188,10 +188,7 @@ class _FreelancerProfessionalDetailsPageState
     try {
       final res = await sl<ApiClientHelper>().getEnvelope<List<SkillOption>>(
         ApiEndpoints.publicSkills,
-        query: {
-          'page': 1,
-          'limit': 100,
-        },
+        query: {'page': 1, 'limit': 100},
         parser: (env) {
           dynamic list = env.data;
           if (list is Map) {
@@ -401,7 +398,7 @@ class _FreelancerProfessionalDetailsPageState
                           controller: _hourlyRate,
                           label: 'Hourly rate',
                           hint: '250.00',
-                          prefixIcon: Icons.attach_money_rounded,
+                          prefixIcon: Icons.currency_rupee_sharp,
                           keyboardType: const TextInputType.numberWithOptions(
                             decimal: true,
                           ),
@@ -453,7 +450,7 @@ class _FreelancerProfessionalDetailsPageState
                           )
                         else
                           SignupMultiSelectSheet(
-                            hint:"Select the skills you want to offer",
+                            hint: "Select the skills you want to offer",
                             label: 'Skills',
                             minSelection: 0,
                             selectedItems: _selectedSkillNames,
@@ -569,7 +566,7 @@ class _HeaderCard extends StatelessWidget {
                     value: completion / 100,
                     minHeight: 8,
                     backgroundColor: context.theme.dividerColor,
-                    valueColor: const AlwaysStoppedAnimation(AppColors.primary),
+                    valueColor: AlwaysStoppedAnimation(AppColors.primary),
                   ),
                 ),
               ],
@@ -627,7 +624,7 @@ class _SkillDistributionCard extends StatelessWidget {
             AppSizes.vGapXs,
             ClipRRect(
               borderRadius: BorderRadius.circular(99),
-              child: const LinearProgressIndicator(
+              child: LinearProgressIndicator(
                 value: 0.85,
                 minHeight: 6,
                 backgroundColor: AppColors.border,
@@ -691,7 +688,7 @@ class _SnapshotCard extends StatelessWidget {
             value: location.isEmpty ? 'Not set' : location,
           ),
           _MetricRow(
-            icon: Icons.attach_money_rounded,
+            icon: Icons.currency_rupee_sharp,
             label: 'Hourly rate',
             value: rate > 0 ? '\$${rate.toStringAsFixed(2)}/hr' : 'Not set',
           ),

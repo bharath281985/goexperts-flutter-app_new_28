@@ -28,7 +28,11 @@ class NotificationRepositoryImpl implements NotificationRepository {
     );
     return res.fold(
       (f) => Err(f),
-      (m) => Success((m['count'] as num?)?.toInt() ?? 0),
+      (m) => Success(
+        (m['count'] as num?)?.toInt() ??
+        (m['unreadCount'] as num?)?.toInt() ??
+        0,
+      ),
     );
   }
 

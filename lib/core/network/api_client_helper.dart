@@ -40,6 +40,7 @@ class ApiClientHelper {
     String path, {
     Map<String, dynamic>? query,
     required T Function(dynamic data) parser,
+    bool skipSuccessCheck = false,
   }) async {
     try {
       final response = await _dio.get<Map<String, dynamic>>(
@@ -47,8 +48,10 @@ class ApiClientHelper {
         queryParameters: query,
       );
       final envelope = ApiResponse.parse(response.data ?? {}, parser);
-      ApiExceptionHandler.ensureSuccess(envelope);
-      if (envelope.data == null) {
+      if (!skipSuccessCheck) {
+        ApiExceptionHandler.ensureSuccess(envelope);
+      }
+      if (envelope.data == null && !skipSuccessCheck) {
         return const Err(NotFoundFailure('No data returned.'));
       }
       return Success(envelope.data as T);

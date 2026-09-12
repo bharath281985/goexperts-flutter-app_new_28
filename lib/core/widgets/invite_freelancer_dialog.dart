@@ -31,12 +31,6 @@ class InviteFreelancerDialog {
         const QueryParams(page: 1, pageSize: 100, ascending: false),
       );
       projects = res.valueOrNull?.items ?? [];
-      if (projects.isEmpty) {
-        final fallback = await projectRepo.getProjects(
-          const QueryParams(page: 1, pageSize: 100, ascending: false),
-        );
-        projects = fallback.valueOrNull?.items ?? [];
-      }
     } catch (_) {
       // ignore – sheet will show "no projects" state
     }
@@ -230,7 +224,7 @@ class _InviteSheetState extends State<_InviteSheet> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppSizes.radiusSm),
-                borderSide: const BorderSide(
+                borderSide:  BorderSide(
                   color: AppColors.primary,
                   width: 1.5,
                 ),

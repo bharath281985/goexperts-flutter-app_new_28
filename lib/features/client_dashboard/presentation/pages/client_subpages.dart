@@ -115,6 +115,7 @@ class ClientShortlistedPage extends StatelessWidget {
           .where(
             (x) =>
                 x.status == EntityStatus.shortlisted ||
+                x.status == EntityStatus.interview ||
                 x.status == EntityStatus.accepted,
           )
           .toList();

@@ -12,7 +12,7 @@ class AppStatCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    this.color = AppColors.primary,
+    this.color,
     this.trend,
     this.trendUp = true,
     this.onTap,
@@ -21,13 +21,14 @@ class AppStatCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
+  final Color? color;
   final String? trend;
   final bool trendUp;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final col = color ?? AppColors.primary;
     return AppCard(
       onTap: onTap,
       padding: const EdgeInsets.all(AppSizes.md),
@@ -44,7 +45,7 @@ class AppStatCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.all(5),
                       decoration: BoxDecoration(
-                        color: color.withValues(alpha: 0.12),
+                        color: col.withValues(alpha: 0.12),
                         borderRadius: BorderRadius.circular(AppSizes.radiusSm),
                       ),
                       child: GradientIcon(

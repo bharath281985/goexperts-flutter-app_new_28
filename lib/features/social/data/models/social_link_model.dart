@@ -11,9 +11,9 @@ class SocialLink {
 
   factory SocialLink.fromJson(Map<String, dynamic> json) {
     return SocialLink(
-      id: json['id'] as String,
-      platform: json['platform'] as String,
-      url: json['url'] as String,
+      id: json['id']?.toString() ?? '',
+      platform: json['platform']?.toString() ?? '',
+      url: json['url']?.toString() ?? '',
     );
   }
 

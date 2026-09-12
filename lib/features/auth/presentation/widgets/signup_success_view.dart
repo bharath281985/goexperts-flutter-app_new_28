@@ -41,7 +41,7 @@ class SignupSuccessView extends StatelessWidget {
                   color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child:  Icon(
                   Icons.check_circle_rounded,
                   color: AppColors.primary,
                   size: 60,

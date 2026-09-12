@@ -1,45 +1,37 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/widgets/dashboard_app_bar.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/text_styles.dart';
-import '../data/providers/social_links_provider.dart';
-import '../data/models/social_link_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../app/constants/app_colors.dart';
+import '../../../../app/theme/app_text_styles.dart';
+import '../../../../core/network/api_client_helper.dart';
+import '../../../../app/dependency_injection/service_locator.dart';
+import '../../data/models/social_link_model.dart';
+import '../../data/providers/social_links_cubit.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class SocialLinksPage extends ConsumerStatefulWidget {
+class SocialLinksPage extends StatelessWidget {
   const SocialLinksPage({super.key});
-
   @override
-  ConsumerState<SocialLinksPage> createState() => _SocialLinksPageState();
+  Widget build(BuildContext context) {
+    return BlocProvider(
+      create: (_) => SocialLinksCubit(sl<ApiClientHelper>()),
+      child: const _SocialLinksPageContent(),
+    );
+  }
 }
 
-class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _urlController = TextEditingController();
-  String _selectedPlatform = 'LinkedIn';
-  String? _editingId;
-
-  final List<String> _platforms = [
-    'LinkedIn',
-    'GitHub',
-    'Twitter',
-    'Facebook',
-    'Instagram',
-    'Portfolio',
-    'Other'
-  ];
+class _SocialLinksPageContent extends StatefulWidget {
+  const _SocialLinksPageContent();
 
   @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
-  }
+  State<_SocialLinksPageContent> createState() =>
+      _SocialLinksPageContentState();
+}
 
+class _SocialLinksPageContentState extends State<_SocialLinksPageContent> {
   IconData _getIconForPlatform(String platform) {
     switch (platform.toLowerCase()) {
       case 'linkedin':
-        return Icons.business_center; // or specific linkedin icon if available
+        return Icons.business_center;
       case 'github':
         return Icons.code;
       case 'twitter':
@@ -55,80 +47,6 @@ class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
     }
   }
 
-  Color _getColorForPlatform(String platform) {
-    switch (platform.toLowerCase()) {
-      case 'linkedin':
-        return const Color(0xFF0077b5);
-      case 'github':
-        return const Color(0xFF333333);
-      case 'twitter':
-        return const Color(0xFF1DA1F2);
-      case 'facebook':
-        return const Color(0xFF1877F2);
-      case 'instagram':
-        return const Color(0xFFE4405F);
-      case 'portfolio':
-        return AppColors.primary;
-      default:
-        return Colors.grey.shade700;
-    }
-  }
-
-  void _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      final notifier = ref.read(socialLinksProvider.notifier);
-      bool success = false;
-      
-      if (_editingId != null) {
-        success = await notifier.updateLink(
-          _editingId!,
-          _selectedPlatform,
-          _urlController.text.trim(),
-        );
-      } else {
-        success = await notifier.addLink(
-          _selectedPlatform,
-          _urlController.text.trim(),
-        );
-      }
-
-      if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_editingId != null ? 'Link updated' : 'Link added'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        _resetForm();
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to save link'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  void _resetForm() {
-    setState(() {
-      _editingId = null;
-      _selectedPlatform = 'LinkedIn';
-      _urlController.clear();
-    });
-  }
-
-  void _editLink(SocialLink link) {
-    setState(() {
-      _editingId = link.id;
-      _selectedPlatform = _platforms.contains(link.platform) 
-          ? link.platform 
-          : 'Other';
-      _urlController.text = link.url;
-    });
-  }
-
   void _deleteLink(String id) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -141,7 +59,7 @@ class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete', style: TextStyle(color: Colors.white)),
           ),
@@ -150,10 +68,14 @@ class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
     );
 
     if (confirm == true) {
-      final success = await ref.read(socialLinksProvider.notifier).deleteLink(id);
+      if (!mounted) return;
+      final success = await context.read<SocialLinksCubit>().deleteLink(id);
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Link deleted'), backgroundColor: Colors.red),
+          const SnackBar(
+            content: Text('Link deleted'),
+            backgroundColor: AppColors.danger,
+          ),
         );
       }
     }
@@ -165,194 +87,146 @@ class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
       await launchUrl(url);
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not launch $urlString')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not launch $urlString')));
       }
     }
   }
 
+  void _showFormSheet({SocialLink? link}) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return BlocProvider.value(
+          value: context.read<SocialLinksCubit>(),
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: _SocialLinkFormSheet(initialLink: link),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(socialLinksProvider);
-
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: const DashboardAppBar(title: 'My Social Links'),
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            flex: 2,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Your Connected Profiles',
-                    style: AppTextStyles.h3,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add links to your social profiles, portfolios, and other relevant professional sites to build trust with clients and collaborators.',
-                    style: AppTextStyles.bodyText.copyWith(color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 32),
-                  
-                  if (state.isLoading && state.links.isEmpty)
-                    const Center(child: CircularProgressIndicator())
-                  else if (state.error != null && state.links.isEmpty)
-                    Center(child: Text(state.error!, style: const TextStyle(color: Colors.red)))
-                  else if (state.links.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(40),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.link_off, size: 64, color: Colors.grey.shade300),
-                          const SizedBox(height: 16),
-                          Text(
-                            'No links added yet',
-                            style: AppTextStyles.h4.copyWith(color: Colors.grey.shade600),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Use the form to add your first social link',
-                            style: AppTextStyles.bodyText.copyWith(color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: state.links.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) {
-                        final link = state.links[index];
-                        return _buildLinkCard(link);
-                      },
-                    ),
-                ],
-              ),
-            ),
-          ),
-          
-          // Form sidebar
-          Container(
-            width: 400,
-            color: Colors.white,
+      appBar: AppBar(
+        title: const Text(
+          'My Social Links',
+          style: TextStyle(color: AppColors.darkText),
+        ),
+        backgroundColor: AppColors.card,
+        iconTheme: const IconThemeData(color: AppColors.darkText),
+        elevation: 0,
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.primary,
+        onPressed: () => _showFormSheet(),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: BlocBuilder<SocialLinksCubit, SocialLinksState>(
+        builder: (context, state) {
+          return SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _editingId != null ? 'Edit Link' : 'Add New Link',
-                    style: AppTextStyles.h4,
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  const Text('Platform', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String>(
-                    value: _selectedPlatform,
-                    decoration: InputDecoration(
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    items: _platforms.map((platform) {
-                      return DropdownMenuItem(
-                        value: platform,
-                        child: Row(
-                          children: [
-                            Icon(_getIconForPlatform(platform), color: _getColorForPlatform(platform), size: 20),
-                            const SizedBox(width: 12),
-                            Text(platform),
-                          ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Your Connected Profiles',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Add links to your professional and social profiles to enhance your portfolio.',
+                  style: TextStyle(color: AppColors.mutedText),
+                ),
+                const SizedBox(height: 32),
+
+                if (state.isLoading && state.links.isEmpty)
+                  const Center(child: CircularProgressIndicator())
+                else if (state.error != null && state.links.isEmpty)
+                  Center(
+                    child: Column(
+                      children: [
+                        Text(
+                          'Error: ${state.error}',
+                          style: const TextStyle(color: AppColors.danger),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedPlatform = val);
+                        TextButton(
+                          onPressed: () =>
+                              context.read<SocialLinksCubit>().fetchLinks(),
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (state.links.isEmpty)
+                  _buildEmptyState()
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: state.links.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: 16),
+                    itemBuilder: (context, index) {
+                      final link = state.links[index];
+                      return _buildLinkCard(link);
                     },
                   ),
-                  
-                  const SizedBox(height: 20),
-                  
-                  const Text('URL', style: TextStyle(fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    controller: _urlController,
-                    decoration: InputDecoration(
-                      hintText: 'https://...',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(8),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a URL';
-                      }
-                      if (!value.startsWith('http://') && !value.startsWith('https://')) {
-                        return 'URL must start with http:// or https://';
-                      }
-                      return null;
-                    },
-                  ),
-                  
-                  const SizedBox(height: 32),
-                  
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      onPressed: state.isLoading ? null : _submitForm,
-                      child: state.isLoading && _editingId == null
-                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                          : Text(
-                              _editingId != null ? 'Update Link' : 'Save Link',
-                              style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                    ),
-                  ),
-                  
-                  if (_editingId != null) ...[
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 48,
-                      child: TextButton(
-                        style: TextButton.styleFrom(
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        onPressed: _resetForm,
-                        child: Text('Cancel Edit', style: TextStyle(color: Colors.grey.shade700)),
-                      ),
-                    ),
-                  ],
-                ],
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: const EdgeInsets.all(40),
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.link_off,
+                size: 48,
+                color: AppColors.mutedText,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 24),
+            Text(
+              'No social links yet',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Add your first link using the + button below.',
+              style: TextStyle(color: AppColors.mutedText),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -360,35 +234,40 @@ class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
   Widget _buildLinkCard(SocialLink link) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
+        border: Border.all(color: AppColors.border),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: AppColors.shadow,
             blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 20,
+          vertical: 12,
+        ),
         leading: Container(
-          width: 48,
-          height: 48,
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: _getColorForPlatform(link.platform).withOpacity(0.1),
-            shape: BoxShape.circle,
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             _getIconForPlatform(link.platform),
-            color: _getColorForPlatform(link.platform),
+            color: AppColors.primary,
           ),
         ),
-        title: Text(link.platform, style: const TextStyle(fontWeight: FontWeight.w600)),
+        title: Text(
+          link.platform,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         subtitle: Text(
           link.url,
-          style: TextStyle(color: Colors.blue.shade700),
+          style: const TextStyle(color: AppColors.info),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -396,21 +275,242 @@ class _SocialLinksPageState extends ConsumerState<SocialLinksPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.open_in_new, color: Colors.grey),
-              tooltip: 'Visit link',
+              icon: const Icon(Icons.open_in_new, color: AppColors.mutedText),
               onPressed: () => _launchUrl(link.url),
+              tooltip: 'Open link',
             ),
             IconButton(
-              icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+              icon: const Icon(Icons.edit, color: AppColors.mutedText),
+              onPressed: () => _showFormSheet(link: link),
               tooltip: 'Edit link',
-              onPressed: () => _editLink(link),
             ),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.red),
-              tooltip: 'Delete link',
+              icon: const Icon(Icons.delete_outline, color: AppColors.danger),
               onPressed: () => _deleteLink(link.id),
+              tooltip: 'Delete link',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SocialLinkFormSheet extends StatefulWidget {
+  final SocialLink? initialLink;
+
+  const _SocialLinkFormSheet({this.initialLink});
+
+  @override
+  State<_SocialLinkFormSheet> createState() => _SocialLinkFormSheetState();
+}
+
+class _SocialLinkFormSheetState extends State<_SocialLinkFormSheet> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _urlController;
+  String _selectedPlatform = 'LinkedIn';
+
+  final List<String> _platforms = [
+    'LinkedIn',
+    'GitHub',
+    'Twitter',
+    'Facebook',
+    'Instagram',
+    'Portfolio',
+    'Other',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _urlController = TextEditingController(text: widget.initialLink?.url ?? '');
+    if (widget.initialLink != null &&
+        _platforms.contains(widget.initialLink!.platform)) {
+      _selectedPlatform = widget.initialLink!.platform;
+    } else if (widget.initialLink != null) {
+      _selectedPlatform = 'Other';
+    }
+  }
+
+  @override
+  void dispose() {
+    _urlController.dispose();
+    super.dispose();
+  }
+
+  IconData _getIconForPlatform(String platform) {
+    switch (platform.toLowerCase()) {
+      case 'linkedin':
+        return Icons.business_center;
+      case 'github':
+        return Icons.code;
+      case 'twitter':
+        return Icons.flutter_dash;
+      case 'facebook':
+        return Icons.facebook;
+      case 'instagram':
+        return Icons.camera_alt;
+      case 'portfolio':
+        return Icons.language;
+      default:
+        return Icons.link;
+    }
+  }
+
+  void _submit() async {
+    if (_formKey.currentState!.validate()) {
+      final cubit = context.read<SocialLinksCubit>();
+      final platform = _selectedPlatform;
+      final url = _urlController.text;
+
+      bool success;
+      if (widget.initialLink != null) {
+        success = await cubit.updateLink(widget.initialLink!.id, platform, url);
+      } else {
+        success = await cubit.addLink(platform, url);
+      }
+
+      if (mounted) {
+        Navigator.pop(context); // Close the sheet
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Saved successfully' : 'Error saving link'),
+            backgroundColor: success ? AppColors.success : AppColors.danger,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isEditing = widget.initialLink != null;
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: EdgeInsets.only(left: 24.0, right: 24.0, top: 24.0),
+        decoration: const BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEditing ? 'Edit Link' : 'Add New Link',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                DropdownButtonFormField<String>(
+                  value: _selectedPlatform,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    labelText: 'Platform',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  items: _platforms.map((platform) {
+                    return DropdownMenuItem(
+                      value: platform,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _getIconForPlatform(platform),
+                            size: 20,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              platform,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => _selectedPlatform = val);
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _urlController,
+                  decoration: InputDecoration(
+                    labelText: 'URL',
+                    hintText: 'https://...',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.isEmpty) {
+                      return 'Please enter a URL';
+                    }
+                    final uri = Uri.tryParse(val.trim());
+
+                    if (uri == null ||
+                        (uri.scheme != 'http' && uri.scheme != 'https') ||
+                        uri.host.isEmpty) {
+                      return 'Please enter a valid URL';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 10),
+                BlocBuilder<SocialLinksCubit, SocialLinksState>(
+                  builder: (context, state) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        onPressed: state.isLoading ? null : _submit,
+                        child: state.isLoading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                isEditing ? 'Update Link' : 'Add Link',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
         ),
       ),
     );

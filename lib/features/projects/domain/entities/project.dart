@@ -33,6 +33,7 @@ class Project extends Equatable {
     this.endDate,
     this.isSaved = false,
     this.isApplied = false,
+    this.proposalId,
     this.isOwner = false,
     this.location = 'Remote',
     this.techStack = const [],
@@ -70,6 +71,7 @@ class Project extends Equatable {
   final DateTime? endDate;
   final bool isSaved;
   final bool isApplied;
+  final String? proposalId;
   final bool isOwner;
   final String location;
   final List<String> attachments;
@@ -78,6 +80,7 @@ class Project extends Equatable {
   Project copyWith({
     bool? isSaved,
     bool? isApplied,
+    String? proposalId,
     bool? isOwner,
     EntityStatus? status,
     int? proposalsCount,
@@ -118,6 +121,7 @@ class Project extends Equatable {
     endDate: endDate ?? this.endDate,
     isSaved: isSaved ?? this.isSaved,
     isApplied: isApplied ?? this.isApplied,
+    proposalId: proposalId ?? this.proposalId,
     isOwner: isOwner ?? this.isOwner,
     location: location,
     attachments: attachments,
@@ -392,11 +396,16 @@ class Project extends Equatable {
       attachments: _attachments(json['attachments']),
       clientVerified: json['clientVerified'] as bool? ?? true,
       isOwner: json['isOwner'] as bool? ?? false,
+      isApplied: json['isApplied'] as bool? ?? false,
+        proposalId: json['proposalId']?.toString() ??
+          (json['proposal'] is Map
+            ? (json['proposal'] as Map)['id']?.toString()
+            : null),
     );
   }
 
   @override
-  List<Object?> get props => [id, isSaved, isApplied, isOwner, status];
+  List<Object?> get props => [id, isSaved, isApplied, proposalId, isOwner, status];
 }
 
 /// A milestone within a contract.

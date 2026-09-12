@@ -5,6 +5,7 @@ import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_avatar.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -37,18 +38,19 @@ class _ProposalsListViewState extends State<ProposalsListView> {
       emptyMessage: 'Apply to projects to see your proposals here.',
       emptyIcon: Icons.description_outlined,
       itemBuilder: (context, p, _) =>
-          _ProposalCard(proposal: p, onReturned: _reload),
+          ProposalCard(proposal: p, onReturned: _reload),
     );
   }
 }
 
-class _ProposalCard extends StatelessWidget {
-  const _ProposalCard({required this.proposal, required this.onReturned});
+class ProposalCard extends StatelessWidget {
+  const ProposalCard({super.key, required this.proposal, required this.onReturned});
   final Proposal proposal;
   final VoidCallback onReturned;
 
   @override
   Widget build(BuildContext context) {
+    final isWithdrawn = proposal.status == EntityStatus.withdrawn;
     return AppCard(
       onTap: () async {
         await context.push('${Routes.proposalDetails}/${proposal.id}');
@@ -72,7 +74,8 @@ class _ProposalCard extends StatelessWidget {
           ),
           AppSizes.vGapSm,
           InkWell(
-            onTap: (proposal.freelancerId != null &&
+                onTap: (!isWithdrawn &&
+                  proposal.freelancerId != null &&
                     proposal.freelancerId!.isNotEmpty)
                 ? () => context.push(
                     '${Routes.publicFreelancer}/${proposal.freelancerId}')
@@ -89,7 +92,8 @@ class _ProposalCard extends StatelessWidget {
                 Text(
                   proposal.freelancerName,
                   style: context.text.bodySmall?.copyWith(
-                    decoration: (proposal.freelancerId != null &&
+                        decoration: (!isWithdrawn &&
+                          proposal.freelancerId != null &&
                             proposal.freelancerId!.isNotEmpty)
                         ? TextDecoration.underline
                         : null,

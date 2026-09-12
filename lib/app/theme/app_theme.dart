@@ -163,7 +163,7 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppSizes.radiusLg),
         ),
       ),
-      progressIndicatorTheme: const ProgressIndicatorThemeData(
+      progressIndicatorTheme:  ProgressIndicatorThemeData(
         color: AppColors.primary,
       ),
       snackBarTheme: SnackBarThemeData(

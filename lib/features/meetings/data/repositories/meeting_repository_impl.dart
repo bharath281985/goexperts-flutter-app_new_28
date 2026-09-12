@@ -83,6 +83,12 @@ class MeetingRepositoryImpl implements MeetingRepository {
   }
 
   @override
+  Future<Result<bool>> join(String id) async {
+    if (_api == null) return _apiNotConfigured();
+    return _api.patchAction(ApiEndpoints.publicMeetingJoin(id));
+  }
+
+  @override
   Future<Result<bool>> schedule(Meeting meeting) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
@@ -151,7 +157,9 @@ class MeetingRepositoryImpl implements MeetingRepository {
   Future<Result<bool>> reschedule(String id, DateTime newStartTime) async {
     if (_api == null) return _apiNotConfigured();
     final role = await _tokenRoleHelper?.resolve();
-    final base = (role == UserRole.client)
+    final base = (role == UserRole.freelancer)
+        ? ApiEndpoints.freelancerMeetings
+        : (role == UserRole.client)
         ? ApiEndpoints.clientMeetings
         : (role == UserRole.investor)
         ? ApiEndpoints.investorMeetings
@@ -188,6 +196,9 @@ class MeetingRepositoryImpl implements MeetingRepository {
         withProfile?['fullName'] as String? ??
         json['withName'] as String? ??
         'Participant';
+    final parsedWithRole = _displayRole(
+      json['withRole'] as String? ?? withProfile?['role'] as String?,
+    );
 
     String parsedWithId =
         withProfile?['id'] as String? ??
@@ -211,9 +222,14 @@ class MeetingRepositoryImpl implements MeetingRepository {
 
     return Meeting(
       id: json['id']?.toString() ?? '',
-      title: json['title'] as String? ?? 'Meeting',
+        title:
+          json['title'] as String? ??
+          json['meetingTitle'] as String? ??
+          json['subject'] as String? ??
+          'Meeting',
       withId: parsedWithId,
       withName: parsedWithName,
+      withRole: parsedWithRole,
       withAvatar: parsedWithAvatar,
       hostId: parsedHostId,
       hostName: parsedHostName,
@@ -229,11 +245,40 @@ class MeetingRepositoryImpl implements MeetingRepository {
           (json['meeting_link'] ?? json['meetingLink'] ?? json['link'])
               ?.toString() ??
           '',
-      agenda: json['agenda'] as String? ?? '',
+        agenda:
+          json['agenda'] as String? ??
+          json['description'] as String? ??
+          json['notes'] as String? ??
+          '',
       participants:
-          (json['participants'] as List?)?.map((e) => e.toString()).toList() ??
+          (json['participants'] as List?)
+              ?.map((e) {
+                if (e is Map) {
+                  final name = e['fullName'] ?? e['name'];
+                  final role = _displayRole(e['role']?.toString());
+                  return [
+                    if (name != null) name.toString(),
+                    role,
+                  ].join('|');
+                }
+                return e.toString();
+              })
+              .toList() ??
           const [],
     );
+  }
+
+  static String _displayRole(String? value) {
+    final role = value?.trim();
+    if (role == null || role.isEmpty) return 'Participant';
+    return role
+        .split(RegExp(r'[\s_-]+'))
+        .where((part) => part.isNotEmpty)
+        .map(
+          (part) =>
+              '${part[0].toUpperCase()}${part.substring(1).toLowerCase()}',
+        )
+        .join(' ');
   }
 
   Future<Result<T>> _apiNotConfigured<T>() async =>

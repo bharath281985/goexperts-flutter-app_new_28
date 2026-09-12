@@ -195,7 +195,7 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       // If user's profile is incomplete (new user / social signup), redirect to step 2 of signup flow
       final isOnboardingComplete = auth.user?.onboardingStatus?.toUpperCase() == 'COMPLETED';
-      
+
       if (!isOnboardingComplete) {
         if (loc == Routes.signup) return null;
         final stepParam = (auth.user?.isSocialLogin ?? false) ? '&step=2' : '';
@@ -209,7 +209,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       // Check module/dashboard access for team members
       if (auth.user != null) {
         final permissionService = PermissionService(currentUser: auth.user);
-        
+
         if (loc.startsWith('/freelancer') && !permissionService.hasDashboardAccess('freelancer')) {
           return dashboardPathFor(auth.user!.role!);
         }
@@ -311,7 +311,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       // Freelancer standalone
       GoRoute(
         path: Routes.freelancerProjects,
-        builder: (_, __) => const ProjectsStandalonePage(),
+        builder: (_, s) => ProjectsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.freelancerMyProjects,
@@ -364,7 +364,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       // Client standalone
       GoRoute(
         path: Routes.clientProjects,
-        builder: (_, __) => const ProjectsStandalonePage(),
+        builder: (_, s) => ProjectsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.clientMyProjects,
@@ -387,7 +387,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.clientFreelancers,
-        builder: (_, __) => const FreelancersStandalonePage(),
+        builder: (_, s) => FreelancersStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.clientPayments,
@@ -413,7 +413,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       // Investor standalone
       GoRoute(
         path: Routes.investorStartups,
-        builder: (_, __) => const StartupsStandalonePage(),
+        builder: (_, s) => StartupsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.investorDeals,
@@ -532,6 +532,11 @@ GoRouter createRouter(AuthBloc authBloc) {
         builder: (_, __) => const GlobalSearchPage(),
       ),
       GoRoute(
+        path: Routes.clients,
+        builder: (_, s) =>
+            ClientsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
+      ),
+      GoRoute(
         path: Routes.bookmarks,
         builder: (_, __) => const BookmarksPage(),
       ),
@@ -565,15 +570,20 @@ GoRouter createRouter(AuthBloc authBloc) {
           Conversation? conversation = s.extra as Conversation?;
           final qName = s.uri.queryParameters['name'];
           final qAvatar = s.uri.queryParameters['avatarUrl'];
+          final qRole = s.uri.queryParameters['role'] ?? '';
+          final qFromProfile = s.uri.queryParameters['fromprofile'];
           if (conversation == null && qName != null) {
             conversation = Conversation(
               id: id,
               name: qName,
               avatarUrl: qAvatar,
+              participantId: id,
+              role: qRole,
               lastMessage: '',
               lastMessageAt: DateTime.now(),
               unreadCount: 0,
               isOnline: true,
+              isFromProfile: qFromProfile == 'true',
             );
           }
           return ChatPage(conversationId: id, conversation: conversation);
@@ -596,7 +606,10 @@ GoRouter createRouter(AuthBloc authBloc) {
           if (isFounder) {
             return FounderProposalDetailsPage(id: id);
           }
-          return ProposalDetailsPage(id: id);
+          return ProposalDetailsPage(
+            id: id,
+            preferClient: s.uri.queryParameters['view'] == 'client',
+          );
         },
       ),
       GoRoute(
@@ -729,7 +742,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.freelancerFreelancers,
-        builder: (_, __) => const FreelancersStandalonePage(),
+        builder: (_, s) => FreelancersStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.freelancerApplications,
@@ -741,7 +754,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.freelancerStartups,
-        builder: (_, __) => const StartupsStandalonePage(),
+        builder: (_, s) => StartupsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.freelancerDeals,
@@ -850,7 +863,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.clientStartups,
-        builder: (_, __) => const StartupsStandalonePage(),
+        builder: (_, s) => StartupsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.clientDeals,
@@ -884,7 +897,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       // Role sub-pages — Investor
       GoRoute(
         path: Routes.investorProjects,
-        builder: (_, __) => const ProjectsStandalonePage(),
+        builder: (_, s) => ProjectsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.investorMyProjects,
@@ -904,7 +917,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.investorFreelancers,
-        builder: (_, __) => const FreelancersStandalonePage(),
+        builder: (_, s) => FreelancersStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.investorApplications,
@@ -981,7 +994,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       // Role sub-pages — Founder
       GoRoute(
         path: Routes.founderProjects,
-        builder: (_, __) => const ProjectsStandalonePage(),
+        builder: (_, s) => ProjectsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.founderMyProjects,
@@ -1001,7 +1014,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.founderFreelancers,
-        builder: (_, __) => const FreelancersStandalonePage(),
+        builder: (_, s) => FreelancersStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.founderApplications,
@@ -1017,7 +1030,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       ),
       GoRoute(
         path: Routes.founderStartups,
-        builder: (_, __) => const StartupsStandalonePage(),
+        builder: (_, s) => StartupsStandalonePage(initialSearch: s.uri.queryParameters['q'] ?? ''),
       ),
       GoRoute(
         path: Routes.founderDeals,
@@ -1170,4 +1183,3 @@ GoRouter createRouter(AuthBloc authBloc) {
     ],
   );
 }
-

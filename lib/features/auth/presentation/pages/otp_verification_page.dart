@@ -190,7 +190,7 @@ class _OtpVerificationPageState extends State<OtpVerificationPage> {
                     )
                   : TextButton(
                       onPressed: _resend,
-                      child: const Text(
+                      child:  Text(
                         'Resend Code',
                         style: TextStyle(color: AppColors.primary),
                       ),

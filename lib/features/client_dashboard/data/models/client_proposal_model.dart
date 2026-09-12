@@ -1,3 +1,4 @@
+import 'dart:convert';
 import '../../../../core/utils/enums.dart';
 import '../../../proposals/domain/entities/proposal.dart';
 
@@ -5,9 +6,27 @@ import '../../../proposals/domain/entities/proposal.dart';
 class ClientProposalModel {
   ClientProposalModel._();
 
+    static List<String> _attachments(dynamic value) {
+        if (value is List) return value.map((item) => item.toString()).toList();
+        if (value is String && value.trim().isNotEmpty) {
+            try {
+                final decoded = jsonDecode(value);
+                if (decoded is List) return decoded.map((item) => item.toString()).toList();
+            } catch (_) {
+                return [value];
+            }
+        }
+        return const [];
+    }
+
   static Proposal fromJson(Map<String, dynamic> json) {
     final freelancer = json['freelancer'] as Map<String, dynamic>?;
     final project = json['project'] as Map<String, dynamic>?;
+
+    final rawStatus = (json['status'] as String? ?? 'pending').trim().toLowerCase();
+    final status = rawStatus == 'approved' || rawStatus == 'hired'
+        ? EntityStatus.accepted
+        : EntityStatus.fromString(rawStatus);
 
     return Proposal(
       id: json['id']?.toString() ?? '',
@@ -37,7 +56,7 @@ class ClientProposalModel {
       bidAmount: (json['bidAmount'] as num?)?.toDouble() ?? 0,
       isHourly: json['isHourly'] as bool? ?? false,
       coverLetter: json['coverLetter'] as String? ?? '',
-      status: EntityStatus.fromString(json['status'] as String? ?? 'pending'),
+    status: status,
       submittedAt:
           DateTime.tryParse(json['createdAt'] as String? ?? '') ??
           DateTime.now(),
@@ -45,9 +64,7 @@ class ClientProposalModel {
       freelancerRating:
           (freelancer?['freelancerProfile']?['rating'] as num?)?.toDouble() ??
           4.5,
-      attachments:
-          (json['attachments'] as List?)?.map((e) => e.toString()).toList() ??
-          const [],
+      attachments: _attachments(json['attachments'] ?? json['attachmentUrls']),
     );
   }
 }

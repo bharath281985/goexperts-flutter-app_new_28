@@ -28,6 +28,7 @@ import '../../../client_dashboard/domain/repositories/client_proposal_repository
 import '../../../client_dashboard/presentation/widgets/client_proposal_action_bar.dart';
 import '../../../messages/domain/repositories/message_repository.dart';
 import '../../../proposals/domain/entities/proposal.dart';
+import '../../../proposals/domain/repositories/proposal_repository.dart';
 import '../../domain/entities/project.dart';
 import '../../domain/repositories/project_repository.dart';
 
@@ -256,8 +257,49 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
           !currentlySaved,
         );
         context.showSnack(
-          currentlySaved ? 'Project removed from saved' : 'Project saved',
+          !currentlySaved ? 'Project saved' : 'Project removed from saved',
         );
+        _reload();
+      },
+    );
+  }
+
+  Future<void> _withdrawProposal(Project project) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Withdraw Proposal'),
+        content: const Text('Are you sure you want to withdraw your proposal?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child:  Text('Withdraw', style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    if (!context.mounted) return;
+
+    final res = await sl<ProposalRepository>().withdraw(
+      project.proposalId ?? project.id,
+    );
+    if (!context.mounted) return;
+    res.fold(
+      (failure) => context.showSnack(
+        failure.message.isNotEmpty
+            ? failure.message
+            : 'Failed to withdraw proposal',
+        isError: true,
+      ),
+      (_) {
+        context.showSnack('Proposal withdrawn successfully');
+        _reload();
       },
     );
   }
@@ -356,6 +398,16 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
           builder: (context, snapshot) {
             final project = snapshot.data?.project;
             final isOwner = project?.isOwner == true;
+            final hasAcceptedContract = _proposals.any(
+              (proposal) =>
+                  proposal.status == EntityStatus.accepted ||
+                  proposal.contractId?.trim().isNotEmpty == true,
+            );
+            final projectHasStarted = project?.status == EntityStatus.active ||
+              project?.status == EntityStatus.inProgress ||
+              project?.status == EntityStatus.completed;
+            final isReadOnly =
+              isOwner && (hasAcceptedContract || projectHasStarted);
 
             return Scaffold(
               appBar: AppBar(
@@ -364,7 +416,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                 ),
                 title: const Text('Project Details'),
                 actions: [
-                  if (isOwner)
+                  if (isOwner && !isReadOnly)
                     IconButton(
                       tooltip: 'Delete',
                       icon: const Icon(
@@ -407,19 +459,21 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                         child: isOwner
                             ? Row(
                                 children: [
-                                  Expanded(
-                                    child: AppSecondaryButton(
-                                      label: 'Edit',
-                                      icon: Icons.edit_outlined,
-                                      onPressed: () async {
-                                        await context.push(
-                                          '${Routes.clientCreateProject}?projectId=${Uri.encodeComponent(widget.id)}',
-                                        );
-                                        if (mounted) _reload();
-                                      },
+                                  if (!isReadOnly) ...[
+                                    Expanded(
+                                      child: AppSecondaryButton(
+                                        label: 'Edit',
+                                        icon: Icons.edit_outlined,
+                                        onPressed: () async {
+                                          await context.push(
+                                            '${Routes.clientCreateProject}?projectId=${Uri.encodeComponent(widget.id)}',
+                                          );
+                                          if (mounted) _reload();
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                  AppSizes.hGapMd,
+                                    AppSizes.hGapMd,
+                                  ],
                                   Expanded(
                                     child: AppPrimaryButton(
                                       label: 'Update Status',
@@ -443,14 +497,15 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                                   Expanded(
                                     child: AppPrimaryButton(
                                       label: project.isApplied
-                                          ? 'Applied'
+                                          ? 'Cancel'
                                           : 'Apply Now',
                                       icon: project.isApplied
-                                          ? Icons.check_rounded
+                                          ? Icons.cancel_outlined
                                           : Icons.send_rounded,
                                       gradient: !project.isApplied,
+                                      backgroundColor: project.isApplied ? AppColors.danger : AppColors.primary,
                                       onPressed: project.isApplied
-                                          ? null
+                                          ? () => _withdrawProposal(project)
                                           : () async {
                                               final applied = await context.push<bool>(
                                                 '${Routes.apply}?type=Project'
@@ -493,7 +548,9 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         budget = Formatters.currency(val);
       }
     }
-    return ListView(
+    return RefreshIndicator(
+      onRefresh: () async => _reload(),
+      child: ListView(
       padding: const EdgeInsets.all(AppSizes.screenPadding),
       children: [
         ClipRRect(
@@ -704,7 +761,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         AppCard(
           child: Row(
             children: [
-              const Icon(Icons.groups_outlined, color: AppColors.primary),
+               Icon(Icons.groups_outlined, color: AppColors.primary),
               AppSizes.hGapMd,
               Text(
                 '${p.proposalsCount} freelancers have applied',
@@ -732,6 +789,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
           else
             for (final proposal in _proposals) ...[
               AppCard(
+                onTap: () => context.push('${Routes.proposalDetails}/${proposal.id}'),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -794,10 +852,19 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
                       ),
                     ],
                     AppSizes.vGapMd,
-                    ClientProposalActionBar(
-                      proposal: proposal,
-                      onStatusChanged: _reload,
-                    ),
+                    if (proposal.status != EntityStatus.rejected)
+                      ClientProposalActionBar(
+                        proposal: proposal,
+                        onStatusChanged: _loadProposals,
+                      )
+                    else
+                      AppSecondaryButton(
+                        label: 'View Proposal Details',
+                        icon: Icons.visibility_outlined,
+                        onPressed: () => context.push(
+                          '${Routes.proposalDetails}/${proposal.id}?view=client',
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -806,6 +873,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
         ],
         const SizedBox(height: 80),
       ],
+    ),
     );
   }
 
@@ -840,7 +908,7 @@ class _ProjectDetailsPageState extends State<ProjectDetailsPage> {
     ),
     child: Text(
       s,
-      style: const TextStyle(
+      style:  TextStyle(
         color: AppColors.primary,
         fontWeight: FontWeight.w600,
         fontSize: 12,

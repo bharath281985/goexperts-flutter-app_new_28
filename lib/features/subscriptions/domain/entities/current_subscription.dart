@@ -69,7 +69,7 @@ class CurrentSubscriptionPlan extends Equatable {
   factory CurrentSubscriptionPlan.fromApiJson(Map<String, dynamic> json) {
     return CurrentSubscriptionPlan(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? 'Current plan',
+      name: json['name']?.toString() ?? 'Current package',
       role: json['role']?.toString() ?? '',
       amount: (json['amount'] as num?)?.toDouble() ?? 0,
       currency: json['currency']?.toString() ?? 'INR',

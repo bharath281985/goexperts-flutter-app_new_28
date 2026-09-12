@@ -7,6 +7,8 @@ import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
+import '../../../../core/network/api_endpoints.dart';
+import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_confirm_dialog.dart';
 import '../../../../core/widgets/app_file_upload.dart';
@@ -86,6 +88,25 @@ class _FreelancerEducationApiPageState
     if (!mounted || payload == null) return;
 
     setState(() => _saving = true);
+    final documentPath = payload['document']?.toString().trim() ?? '';
+    if (documentPath.isNotEmpty && File(documentPath).existsSync()) {
+      final upload = await sl<FileUploadHelper>().uploadUrl(
+        path: documentPath,
+        endpoint: ApiEndpoints.freelancerDocumentsUpload,
+      );
+      final documentUrl = upload.valueOrNull;
+      if (documentUrl == null || documentUrl.isEmpty) {
+        if (!mounted) return;
+        setState(() => _saving = false);
+        context.showSnack(
+          upload.failureOrNull?.message ?? 'Unable to upload education document',
+          isError: true,
+        );
+        return;
+      }
+      payload['document'] = documentUrl;
+    }
+
     final result = item == null
         ? await _repo.addEducation(payload)
         : await _repo.updateEducation(item.id, payload);
@@ -254,6 +275,26 @@ class _FreelancerCertificatesApiPageState
     if (!mounted || payload == null) return;
 
     setState(() => _saving = true);
+    final certificatePath = payload['certificateFile']?.toString().trim() ?? '';
+    if (certificatePath.isNotEmpty && File(certificatePath).existsSync()) {
+      final upload = await sl<FileUploadHelper>().uploadUrl(
+        path: certificatePath,
+        endpoint: ApiEndpoints.freelancerDocumentsUpload,
+      );
+      final certificateUrl = upload.valueOrNull;
+      if (certificateUrl == null || certificateUrl.isEmpty) {
+        if (!mounted) return;
+        setState(() => _saving = false);
+        context.showSnack(
+          upload.failureOrNull?.message ??
+              'Unable to upload certificate document',
+          isError: true,
+        );
+        return;
+      }
+      payload['certificateFile'] = certificateUrl;
+    }
+
     final result = item == null
         ? await _repo.addCertificate(payload)
         : await _repo.updateCertificate(item.id, payload);

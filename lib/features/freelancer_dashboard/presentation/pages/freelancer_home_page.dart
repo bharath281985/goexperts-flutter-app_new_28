@@ -40,6 +40,8 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
   Map<String, List<Map<String, dynamic>>> _recommendedItems = const {};
 
   void _maybeShowFreePlanPopup(BuildContext context, DashboardState state) {
+    return; // Temporarily disabled to debug emulator crashing
+    /*
     if (_popupShown) return;
     if (!state.shouldShowFreePlanPrompt) return;
     _popupShown = true;
@@ -58,6 +60,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
         },
       );
     });
+    */
   }
 
   @override
@@ -296,7 +299,7 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(
+                                  child:  Icon(
                                     Icons.account_balance_wallet_rounded,
                                     size: 16,
                                     color: AppColors.primary,
@@ -507,7 +510,6 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
     if (mounted) setState(() => _recommendationsLoading = false);
   }
 
-  
  
   Widget _buildRecommendationTabs(BuildContext context) {
     return DashboardRecommendationsSection(
@@ -516,26 +518,26 @@ class _FreelancerHomePageState extends State<FreelancerHomePage> {
       isLoading: _recommendationsLoading,
       items: _recommendedItems,
       onRefresh: _loadRecommendations,
-      tabs: const [
+      tabs:  [
         RecommendationTabConfig(
           key: 'projects',
           label: 'Projects',
           icon: Icons.work_rounded,
-          accent: Color(0xFF3B82F6),
+          accent: AppColors.clientColor,
           viewAllRoute: Routes.freelancerProjects,
         ),
         RecommendationTabConfig(
           key: 'investors',
           label: 'Investors',
           icon: Icons.business_rounded,
-          accent: Color(0xFF10B981),
+          accent: AppColors.investorColor,
           viewAllRoute: Routes.freelancerInvestors,
         ),
         RecommendationTabConfig(
           key: 'startups',
           label: 'Startups',
           icon: Icons.rocket_launch_rounded,
-          accent: Color(0xFF8B5CF6),
+          accent: AppColors.founderColor,
           viewAllRoute: Routes.freelancerStartups,
         ),
       ],

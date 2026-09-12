@@ -114,7 +114,9 @@ class PortfolioItem extends Equatable {
     return PortfolioItem(
       id: json['id']?.toString() ?? '',
       title: json['title'] as String? ?? 'Portfolio item',
-      description: json['description'] as String? ?? '',
+      description: (json['description'] as String? ?? '').isNotEmpty
+          ? json['description'] as String
+          : json['overview']?.toString() ?? '',
       projectUrl: json['projectUrl'] as String? ?? json['url'] as String?,
       technologies: technologies,
       industry: json['industry']?.toString() ?? '',

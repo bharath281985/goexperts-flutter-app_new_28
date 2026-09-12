@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -255,6 +256,28 @@ class _SupportPageState extends State<SupportPage> {
       ),
     );
   }
+  Future<void> makePhoneCall(String phoneNumber) async {
+  final Uri phoneUri = Uri(
+    scheme: 'tel',
+    path:"+911234567890",
+  );
+    final Uri emailUri = Uri(
+    scheme: 'mailto',
+    path:"[EMAIL_ADDRESS]",
+  );
+
+  if (await canLaunchUrl(emailUri)) {
+    await launchUrl(emailUri);
+  } else {
+    throw Exception('Could not open email app');
+  }
+
+  if (await canLaunchUrl(phoneUri)) {
+    await launchUrl(phoneUri);
+  } else {
+    throw Exception('Could not open dial pad');
+  }
+}
 
   Widget _contact(
     BuildContext context,
@@ -263,6 +286,7 @@ class _SupportPageState extends State<SupportPage> {
     Color color,
   ) => InkWell(
     onTap: () => context.showSnack('$label…'),
+    // makePhoneCall('+91123456789'),
     borderRadius: BorderRadius.circular(16),
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -387,7 +411,7 @@ class _CreateTicketSheetState extends State<_CreateTicketSheet> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
+                          borderSide:  BorderSide(
                             color: AppColors.primary,
                           ),
                         ),

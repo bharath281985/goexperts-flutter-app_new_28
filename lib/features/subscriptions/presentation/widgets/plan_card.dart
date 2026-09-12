@@ -68,7 +68,7 @@ class PlanCard extends StatelessWidget {
                     ),
                   const Spacer(),
                   if (selected)
-                    const Icon(
+                     Icon(
                       Icons.check_circle_rounded,
                       color: AppColors.primary,
                     ),

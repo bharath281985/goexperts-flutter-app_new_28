@@ -56,6 +56,26 @@ class ProjectRepositoryImpl implements ProjectRepository {
         result = fallback;
       }
     }
+    // Filter out user's own projects
+    if (result.isSuccess && _tokenRoleHelper != null) {
+      final currentUserId = await _tokenRoleHelper!.userId();
+      if (currentUserId != null) {
+        final paginated = result.valueOrNull;
+        if (paginated != null) {
+          final filtered = paginated.items.where((p) => p.clientId != currentUserId).toList();
+          if (filtered.length != paginated.items.length) {
+            result = Success(
+              Paginated<Project>(
+                items: filtered,
+                totalItems: paginated.totalItems - (paginated.items.length - filtered.length),
+                page: paginated.page,
+                totalPages: paginated.totalPages,
+              ),
+            );
+          }
+        }
+      }
+    }
     return result;
   }
 

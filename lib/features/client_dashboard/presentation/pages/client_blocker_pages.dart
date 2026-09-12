@@ -837,13 +837,13 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                   maxLines: 3,
                 ),
                 AppSizes.vGapLg,
-                Text('Links', style: context.text.titleMedium),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _website,
-                  label: 'Website',
-                  hint: 'Enter Website',
-                ),
+                // Text('Links', style: context.text.titleMedium),
+                // AppSizes.vGapSm,
+                // AppTextField(
+                //   controller: _website,
+                //   label: 'Website',
+                //   hint: 'Enter Website',
+                // ),
                 AppSizes.vGapLg,
                 AppPrimaryButton(
                   label: 'Save Profile',

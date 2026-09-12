@@ -48,8 +48,7 @@ class _MyProjectsListViewState extends State<MyProjectsListView> {
   }
 
   Future<void> _bootstrap() async {
-    final categoriesResult = await sl<MasterDataRepository>()
-        .getSkillCategories(page: 1, pageSize: 200);
+    final categoriesResult = await sl<MasterDataRepository>().getIndustries();
     if (!mounted) return;
     setState(() {
       _categories = categoriesResult.valueOrNull ?? const [];

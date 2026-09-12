@@ -986,7 +986,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                   return ListTile(
                                     title: Text(cat.name),
                                     trailing: isSelected
-                                        ? const Icon(
+                                        ?  Icon(
                                             Icons.check_circle,
                                             color: AppColors.primary,
                                           )
@@ -1182,7 +1182,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                                   return ListTile(
                                     title: Text(item.name),
                                     trailing: isSelected
-                                        ? const Icon(
+                                        ?  Icon(
                                             Icons.check_circle,
                                             color: AppColors.primary,
                                           )
@@ -1873,7 +1873,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                               backgroundColor: AppColors.primary.withValues(
                                 alpha: 0.15,
                               ),
-                              valueColor: const AlwaysStoppedAnimation<Color>(
+                              valueColor:  AlwaysStoppedAnimation<Color>(
                                 AppColors.primary,
                               ),
                             ),
