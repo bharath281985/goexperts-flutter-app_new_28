@@ -196,6 +196,11 @@ class _AppTextFieldState extends State<AppTextField> {
 
     final isRequired = widget.label?.contains('*') == true;
     final isEmpty = _controller.text.trim().isEmpty;
+    final isValid = widget.validator == null || widget.validator!(_controller.text) == null;
+    final isEmail = widget.keyboardType == TextInputType.emailAddress || 
+                    (widget.label?.toLowerCase().contains('email') == true);
+    
+    final shouldShowGreenCheck = isEmail ? (!isEmpty && isValid) : !isEmpty;
 
     if (isRequired && isEmpty) {
       return Row(
@@ -207,12 +212,12 @@ class _AppTextFieldState extends State<AppTextField> {
             padding: EdgeInsets.only(right: 12.0, left: 4.0),
             child: Text(
               '*',
-              style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
+              style: TextStyle(color: Colors.red, fontSize: 30, fontWeight: FontWeight.bold),
             ),
           ),
         ],
       );
-    } else if (!isEmpty) {
+    } else if (shouldShowGreenCheck) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.end,

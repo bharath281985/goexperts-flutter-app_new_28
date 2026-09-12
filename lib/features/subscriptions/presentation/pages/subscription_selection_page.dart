@@ -114,9 +114,9 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     context.go(dashboardRoute);
   }
 
-  void _skipSubscription() {
-    _skipWithFreePlan();
-  }
+  // void _skipSubscription() {
+  //   _skipWithFreePlan();
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -290,31 +290,31 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
     );
   }
 
-  Future<void> _skipWithFreePlan() async {
-    final freePlan = _findFreePlan();
-    final planId = freePlan?.id ?? 'free';
+  // Future<void> _skipWithFreePlan() async {
+  //   final freePlan = _findFreePlan();
+  //   final planId = freePlan?.id ?? 'free';
 
-    setState(() {
-      _selected = planId;
-      _saving = true;
-    });
+  //   setState(() {
+  //     _selected = planId;
+  //     _saving = true;
+  //   });
 
-    final res = await sl<SubscriptionRepository>().subscribe(
-      planId,
-      yearly: false,
-    );
-    if (!mounted) return;
-    setState(() => _saving = false);
+  //   final res = await sl<SubscriptionRepository>().subscribe(
+  //     planId,
+  //     yearly: false,
+  //   );
+  //   if (!mounted) return;
+  //   setState(() => _saving = false);
 
-    // Always continue onboarding on Skip — even if the API write fails.
-    res.fold(
-      (f) => _onSubscriptionSuccess(
-        message: 'Continuing with $_selectedPlanName package',
-        planId: planId,
-      ),
-      (message) => _onSubscriptionSuccess(message: message, planId: planId),
-    );
-  }
+  //   // Always continue onboarding on Skip — even if the API write fails.
+  //   res.fold(
+  //     (f) => _onSubscriptionSuccess(
+  //       message: 'Continuing with $_selectedPlanName package',
+  //       planId: planId,
+  //     ),
+  //     (message) => _onSubscriptionSuccess(message: message, planId: planId),
+  //   );
+  // }
 
   SubscriptionPlan? _findFreePlan() {
     for (final p in _plans) {

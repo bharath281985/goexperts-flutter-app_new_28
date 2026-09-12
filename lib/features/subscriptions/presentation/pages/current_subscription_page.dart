@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:goexperts_app/features/subscriptions/presentation/pages/subscription_selection_page.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -60,14 +61,14 @@ class _CurrentSubscriptionPageState extends State<CurrentSubscriptionPage> {
   }
 
   Future<void> _openPlans() async {
-    // await Navigator.of(context).push(
-    //   MaterialPageRoute(
-    //     builder: (_) => const SubscriptionSelectionPage(isOnboarding: false),
-    //   ),
-    // );
-    // if (mounted) _load();
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const SubscriptionSelectionPage(isOnboarding: false),
+      ),
+    );
+    if (mounted) _load();
 
-    await _showWebRedirectDialog();
+    // await _showWebRedirectDialog();
   }
 
   Future<void> _showWebRedirectDialog() async {

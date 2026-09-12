@@ -74,27 +74,32 @@ class ProposalCard extends StatelessWidget {
           ),
           AppSizes.vGapSm,
           InkWell(
-                onTap: (!isWithdrawn &&
-                  proposal.freelancerId != null &&
-                    proposal.freelancerId!.isNotEmpty)
-                ? () => context.push(
-                    '${Routes.publicFreelancer}/${proposal.freelancerId}')
+            onTap: (!isWithdrawn &&
+                    (proposal.isOwner ? proposal.freelancerId != null && proposal.freelancerId!.isNotEmpty : proposal.clientId != null && proposal.clientId!.isNotEmpty))
+                ? () {
+                    if (proposal.isOwner) {
+                      context.push('${Routes.publicFreelancer}/${proposal.freelancerId}');
+                    } else {
+                      context.push('${Routes.publicCompany}/${proposal.clientId}');
+                    }
+                  }
                 : null,
             borderRadius: BorderRadius.circular(4),
             child: Row(
               children: [
                 AppAvatar(
-                  name: proposal.freelancerName,
-                  imageUrl: proposal.freelancerAvatar,
+                  name: proposal.isOwner ? proposal.freelancerName : (proposal.clientName ?? 'Client'),
+                  imageUrl: proposal.isOwner ? proposal.freelancerAvatar : proposal.clientAvatar,
                   size: 24,
+                  
                 ),
                 AppSizes.hGapSm,
                 Text(
-                  proposal.freelancerName,
+                  
+                  proposal.isOwner ? proposal.freelancerName : (proposal.clientName ?? 'Client'),
                   style: context.text.bodySmall?.copyWith(
                         decoration: (!isWithdrawn &&
-                          proposal.freelancerId != null &&
-                            proposal.freelancerId!.isNotEmpty)
+                          (proposal.isOwner ? proposal.freelancerId != null && proposal.freelancerId!.isNotEmpty : proposal.clientId != null && proposal.clientId!.isNotEmpty))
                         ? TextDecoration.underline
                         : null,
                     decorationColor:

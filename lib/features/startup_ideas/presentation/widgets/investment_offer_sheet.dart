@@ -133,7 +133,7 @@ class _InvestmentOfferSheetState extends State<InvestmentOfferSheet>
     await Future.delayed(const Duration(milliseconds: 100));
     _confettiCtrl.forward();
 
-    await Future.delayed(const Duration(seconds: 3));
+    await Future.delayed(const Duration(milliseconds: 1500));
     if (mounted) Navigator.of(context).pop(true);
   }
 

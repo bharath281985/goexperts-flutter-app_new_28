@@ -8,6 +8,7 @@ import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/widgets/share_sheet.dart';
 import '../../data/referral_repository.dart';
 import '../../domain/referral_details.dart';
+import '../widgets/referral_promo_banner.dart';
 
 class ReferralProgramPage extends StatefulWidget {
   const ReferralProgramPage({super.key, this.repository});
@@ -113,16 +114,17 @@ class _Content extends StatelessWidget {
               child: Column(
                 children: [
                   _Hero(details: details, onCopy: onCopy, onShare: onShare),
-                  // const SizedBox(height: 18),
-                  // _ShareCard(details: details, onCopy: onCopy),
+                  const SizedBox(height: 18),
+                  const ReferralPromoBanner(),
                   const SizedBox(height: 18),
                   GridView.count(
                     crossAxisCount: wide ? 4 : 2,
                     shrinkWrap: true,
+                    padding: EdgeInsets.zero,
                     physics: const NeverScrollableScrollPhysics(),
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: wide ? 1.6 : 1.35,
+                    childAspectRatio: wide ? 2.5 : 2.0,
                     children: [
                       _Stat(
                         'Total referrals',
@@ -384,7 +386,7 @@ class _Stat extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(10),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

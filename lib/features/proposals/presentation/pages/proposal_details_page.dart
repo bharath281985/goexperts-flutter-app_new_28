@@ -117,7 +117,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
 
     return Scaffold(
       appBar: AppBar(
-        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop(true)),
         title: const Text('Proposal Details'),
         actions: [
           if (!isClient) ...[
@@ -125,7 +125,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
               future: _future,
               builder: (context, snapshot) {
                 final proposal = snapshot.data?.valueOrNull as Proposal?;
-                if (proposal == null || proposal.status == EntityStatus.accepted) {
+                if (proposal == null || proposal.status == EntityStatus.accepted || proposal.status == EntityStatus.withdrawn) {
                   return const SizedBox.shrink();
                 }
                 return IconButton(
@@ -242,7 +242,7 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                   onPressed: () => _messageClient(p),
                 ),
               )
-            else ...[
+            else if (!withdrawn) ...[
             if (isOffered) ...[
               AppPrimaryButton(
                 label: 'Accept Client Offer',
@@ -255,11 +255,11 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
               children: [
                 Expanded(
                   child: AppSecondaryButton(
-                    label: withdrawn ? 'Withdrawn' : 'Withdraw',
+                    label: 'Withdraw',
                     icon: Icons.undo_rounded,
                     padding: const EdgeInsets.symmetric(horizontal: 8),
                     fontSize: 13.5,
-                    onPressed: withdrawn ? null : () => _withdraw(p),
+                    onPressed: () => _withdraw(p),
                   ),
                 ),
                 AppSizes.hGapMd,
@@ -329,60 +329,64 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
             style: context.text.labelSmall,
           ),
           AppSizes.vGapLg,
-          AppCard(
-            onTap: (p.freelancerId != null && p.freelancerId!.isNotEmpty)
-                ? () => context.push(
-                    '${Routes.publicFreelancer}/${p.freelancerId}',
-                  )
-                : null,
-            child: Row(
-              children: [
-                AppAvatar(
-                  name: p.freelancerName,
-                  imageUrl: p.freelancerAvatar,
-                  size: 44,
-                ),
-                AppSizes.hGapMd,
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        p.freelancerName,
-                        style: context.text.titleSmall?.copyWith(
-                          decoration:
-                              (p.freelancerId != null &&
-                                  p.freelancerId!.isNotEmpty)
-                              ? TextDecoration.underline
-                              : null,
-                          decorationColor: context.text.titleSmall?.color
-                              ?.withValues(alpha: 0.4),
-                        ),
-                      ),
-                      Row(
+          Builder(
+            builder: (context) {
+              final bool isOwner = p.isOwner ?? false;
+              final String name = isOwner ? p.freelancerName : (p.clientName ?? 'Client');
+              final String avatar = isOwner ? (p.freelancerAvatar ?? '') : (p.clientAvatar ?? '');
+              final String? routeId = isOwner ? p.freelancerId : p.clientId;
+              final String? routePath = isOwner 
+                  ? (routeId != null && routeId.isNotEmpty ? '${Routes.publicFreelancer}/$routeId' : null)
+                  : (routeId != null && routeId.isNotEmpty ? '${Routes.publicCompany}/$routeId' : null);
+
+              return AppCard(
+                onTap: routePath != null ? () => context.push(routePath) : null,
+                child: Row(
+                  children: [
+                    AppAvatar(
+                      name: name,
+                      imageUrl: avatar,
+                      size: 44,
+                    ),
+                    AppSizes.hGapMd,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(
-                            Icons.star_rounded,
-                            size: 14,
-                            color: AppColors.warning,
-                          ),
                           Text(
-                            ' ${p.freelancerRating} rating',
-                            style: context.text.labelSmall,
+                            name,
+                            style: context.text.titleSmall?.copyWith(
+                              decoration: routePath != null ? TextDecoration.underline : null,
+                              decorationColor: context.text.titleSmall?.color?.withValues(alpha: 0.4),
+                            ),
                           ),
+                          if (isOwner) // Ratings are typically for freelancers.
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.star_rounded,
+                                  size: 14,
+                                  color: AppColors.warning,
+                                ),
+                                Text(
+                                  ' ${p.freelancerRating} rating',
+                                  style: context.text.labelSmall,
+                                ),
+                              ],
+                            ),
                         ],
                       ),
-                    ],
-                  ),
+                    ),
+                    if (routePath != null)
+                      const Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: AppColors.mutedText,
+                      ),
+                  ],
                 ),
-                if (p.freelancerId != null && p.freelancerId!.isNotEmpty)
-                  const Icon(
-                    Icons.arrow_forward_ios_rounded,
-                    size: 14,
-                    color: AppColors.mutedText,
-                  ),
-              ],
-            ),
+              );
+            }
           ),
           AppSizes.vGapLg,
           Row(
@@ -433,7 +437,14 @@ class _ProposalDetailsPageState extends State<ProposalDetailsPage> {
                   children: [
                      Icon(Icons.description_outlined, color: AppColors.primary),
                     AppSizes.hGapMd,
-                    Expanded(child: Text(attachment, style: context.text.bodyMedium)),
+                    Expanded(
+                      child: Text(
+                        Uri.tryParse(attachment)?.pathSegments.last ?? attachment,
+                        style: context.text.bodyMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                     const Icon(Icons.download_rounded, size: 18, color: AppColors.mutedText),
                   ],
                 ),

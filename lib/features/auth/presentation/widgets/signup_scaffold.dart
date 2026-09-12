@@ -209,11 +209,11 @@ class SignupScaffold extends StatelessWidget {
                         ),
                         child: isLoading
                             ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
+                                width: 100,
+                                child: LinearProgressIndicator(
                                   color: Colors.white,
-                                  strokeWidth: 2.5,
+                                  backgroundColor: Colors.white24,
+                                  minHeight: 3,
                                 ),
                               )
                             : Row(

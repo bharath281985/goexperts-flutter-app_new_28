@@ -256,27 +256,46 @@ class _SupportPageState extends State<SupportPage> {
       ),
     );
   }
-  Future<void> makePhoneCall(String phoneNumber) async {
-  final Uri phoneUri = Uri(
-    scheme: 'tel',
-    path:"+911234567890",
-  );
-    final Uri emailUri = Uri(
-    scheme: 'mailto',
-    path:"[EMAIL_ADDRESS]",
-  );
-
-  if (await canLaunchUrl(emailUri)) {
-    await launchUrl(emailUri);
-  } else {
-    throw Exception('Could not open email app');
+  Future<void> _handleSupportContact(String text) async {
+  
+  if(text=="Call"){
+    final Uri phoneUri = Uri(
+      scheme: 'tel',
+      path: "+919441457677",
+    );
+    try {
+      final launched = await launchUrl(phoneUri);
+      if (!launched && context.mounted) {
+        context.showSnack('Could not open dial pad', isError: true);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnack('Could not open dial pad', isError: true);
+      }
+    }
+  }
+  else if(text=="Email Us"){
+    try {
+      final launched = await launchUrl(
+        Uri.parse("mailto:servicedesk@goexperts.in"),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched && context.mounted) {
+        context.showSnack('Could not open email app', isError: true);
+      }
+    } catch (e) {
+      if (context.mounted) {
+        context.showSnack('Could not open email app', isError: true);
+      }
+    }
+  }
+  else{
+    context.showSnack("Coming soon");
   }
 
-  if (await canLaunchUrl(phoneUri)) {
-    await launchUrl(phoneUri);
-  } else {
-    throw Exception('Could not open dial pad');
-  }
+ 
+
+ 
 }
 
   Widget _contact(
@@ -285,8 +304,7 @@ class _SupportPageState extends State<SupportPage> {
     String label,
     Color color,
   ) => InkWell(
-    onTap: () => context.showSnack('$label…'),
-    // makePhoneCall('+91123456789'),
+    onTap: () =>_handleSupportContact(label),
     borderRadius: BorderRadius.circular(16),
     child: Container(
       padding: const EdgeInsets.symmetric(vertical: 16),

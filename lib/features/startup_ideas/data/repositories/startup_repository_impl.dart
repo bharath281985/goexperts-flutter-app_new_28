@@ -3,6 +3,7 @@ import '../../../../core/errors/failures.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_response.dart';
+import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/paginated.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/startup.dart';
@@ -141,29 +142,34 @@ class StartupRepositoryImpl implements StartupRepository {
   @override
   Future<Result<bool>> expressInterest(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    final primary = await _api.postEnvelope<bool>(
-      ApiEndpoints.investorInvestmentsExpressInterest,
-      body: data,
-      parser: (env) => true,
-    );
-    if (primary.isSuccess) return primary;
+    final role = await _tokenRoleHelper?.resolve();
+    if (role == UserRole.investor) {
+      return _api.postEnvelope<bool>(
+        ApiEndpoints.investorInvestmentsExpressInterest,
+        body: data,
+        parser: (env) => true,
+      );
+    }
     return submitOffer(data);
   }
 
   @override
   Future<Result<bool>> submitOffer(Map<String, dynamic> data) async {
     if (_api == null) return _apiNotConfigured();
-    final primary = await _api.postEnvelope<bool>(
-      ApiEndpoints.investorOffer,
-      body: data,
-      parser: (env) => true,
-    );
-    if (primary.isSuccess) return primary;
-    return _api.postEnvelope<bool>(
-      ApiEndpoints.publicInvestmentsOffer,
-      body: data,
-      parser: (env) => true,
-    );
+    final role = await _tokenRoleHelper?.resolve();
+    if (role == UserRole.investor) {
+      return _api.postEnvelope<bool>(
+        ApiEndpoints.investorOffer,
+        body: data,
+        parser: (env) => true,
+      );
+    } else {
+      return _api.postEnvelope<bool>(
+        ApiEndpoints.publicInvestmentsOffer,
+        body: data,
+        parser: (env) => true,
+      );
+    }
   }
 
   @override

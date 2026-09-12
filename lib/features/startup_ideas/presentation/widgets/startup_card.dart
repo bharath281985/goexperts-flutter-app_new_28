@@ -164,11 +164,12 @@ class _LeftPanelSmall extends StatelessWidget {
           child: ClipPath(
             clipper: _LeftPanelSwoopClipper(),
             child: Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [Color(0xFFFF3B30), Color(0xFFC80010)],
+                  colors: [AppColors.primary, AppColors.secondary],
+                  stops: const [0.7, 1.0],
                 ),
               ),
             ),

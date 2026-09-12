@@ -145,7 +145,7 @@ class AppDrawer extends StatelessWidget {
           (user?.subscriptionStatus?.toString().toLowerCase() == 'active');
       if (!isSubscribed) {
         return (
-          'Not Verified',
+          'No Active Package',
           const Color(0xFFEF4444),
         ); // Not Verified red badge when subscription is null
       }

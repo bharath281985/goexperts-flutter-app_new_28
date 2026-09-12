@@ -78,7 +78,7 @@ class AppDropdown<T> extends StatelessWidget {
                   padding: EdgeInsets.only(left: 4.0),
                   child: Text(
                     '*',
-                    style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: Colors.red, fontSize: 30, fontWeight: FontWeight.bold),
                   ),
                 )
               else if (!isEmpty)

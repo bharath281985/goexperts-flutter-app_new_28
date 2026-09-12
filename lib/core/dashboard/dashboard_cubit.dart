@@ -194,10 +194,10 @@ class DashboardState extends Equatable {
       verificationMissingCount > 0 || accountVerified == false;
 
   /// True when the user has no active subscription (subscription == null).
-  bool get isFreePlan {
-    final sub = dashboardData['subscription'];
-    return sub == null;
-  }
+  // bool get isFreePlan {
+  //   final sub = dashboardData['subscription'];
+  //   return sub == null;
+  // }
 
   /// Whether to show the free-plan onboarding popup on the dashboard.
   ///

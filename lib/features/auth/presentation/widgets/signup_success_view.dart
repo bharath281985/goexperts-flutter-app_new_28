@@ -8,6 +8,7 @@ import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
 import '../utils/signup_progress_store.dart';
 import '../../../subscriptions/presentation/pages/subscription_selection_page.dart';
+import '../../../referrals/presentation/widgets/referral_promo_banner.dart';
 
 /// Final completion view showing role signup summary & dashboard CTA
 class SignupSuccessView extends StatelessWidget {
@@ -111,6 +112,9 @@ class SignupSuccessView extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              
+              const ReferralPromoBanner(),
+              const SizedBox(height: 24),
 
               // Dashboard CTA Button
               SizedBox(

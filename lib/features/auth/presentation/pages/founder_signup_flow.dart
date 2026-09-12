@@ -309,8 +309,11 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
   }
 
   Future<bool> _submitDraft({required int step, bool completed = false}) async {
+    setState(() => _isLoading = true);
     final data = {..._fields(completed: completed), 'step': step};
     final result = await sl<AuthRepository>().saveOnboardingDraft(data);
+    if (mounted) setState(() => _isLoading = false);
+
     if (result.isFailure) {
       if (!mounted) return false;
       showSignupTopMessage(

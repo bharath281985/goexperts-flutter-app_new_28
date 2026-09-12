@@ -9,6 +9,7 @@ import '../../../../../core/utils/formatters.dart';
 import '../../../../../core/widgets/app_avatar.dart';
 import '../../../../../core/widgets/app_card.dart';
 import '../../../../../core/widgets/app_section_header.dart';
+import '../../../../app/constants/app_assets.dart';
 import '../../domain/entities/startup.dart';
 
 class StartupDetailsContent extends StatelessWidget {
@@ -35,11 +36,9 @@ class StartupDetailsContent extends StatelessWidget {
                           fit: BoxFit.cover,
                           onError: (_, _) {},
                         )
-                      : const DecorationImage(
-                          image: AssetImage(
-                            'assets/images/startup_banner.png',
-                          ),
-                          fit: BoxFit.cover,
+                      :  DecorationImage(
+                          image: (AppAssets.dynamicLogo!=null? NetworkImage(AppAssets.dynamicLogo ?? '') : AssetImage(AppAssets.fullBannerImage)),
+                          fit: BoxFit.fitWidth,
                         ),
                 ),
                 child: Container(
