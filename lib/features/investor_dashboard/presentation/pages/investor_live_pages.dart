@@ -1,6 +1,8 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/validators/validators.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -9,6 +11,8 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/file_upload_helper.dart';
+
+import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
@@ -36,6 +40,7 @@ class InvestorProfilePage extends StatefulWidget {
 
 class _InvestorProfilePageState extends State<InvestorProfilePage> {
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _fullName = TextEditingController();
   final _firm = TextEditingController();
   final _city = TextEditingController();
@@ -79,6 +84,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
   @override
   void dispose() {
     _email.dispose();
+    _phone.dispose();
     _fullName.dispose();
     _firm.dispose();
     _city.dispose();
@@ -156,6 +162,11 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
       final emailVal = userMap['email']?.toString();
       if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
+
+      final phoneVal = userMap['phone']?.toString() ??
+          userMap['mobile']?.toString() ??
+          userMap['phoneNumber']?.toString();
+      if (phoneVal != null && phoneVal.isNotEmpty) _phone.text = phoneVal;
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
@@ -534,10 +545,17 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       return;
     }
 
+    if (_bio.text.trim().isNotEmpty && _bio.text.trim().length < 30) {
+      context.showSnack('Biography / Overview must be at least 30 characters', isError: true);
+      return;
+    }
+
     setState(() => _saving = true);
 
     final payload = <String, dynamic>{
       'fullName': fullName,
+      'phone': _phone.text.trim(),
+      'mobile': _phone.text.trim(),
       'city': _city.text.trim(),
       if (_bio.text.trim().isNotEmpty) 'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
@@ -615,6 +633,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           AuthUserUpdated(
             current.copyWith(
               fullName: fullName.isNotEmpty ? fullName : null,
+              phone: _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
               headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
               location: locationParts.isNotEmpty
                   ? locationParts.join(', ')
@@ -629,12 +648,17 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
       await _load();
       
       if (!mounted) return;
+
+      int missingDocs = 1;
+      try {
+        missingDocs = context.read<DashboardCubit>().state.verificationMissingCount;
+      } catch (_) {}
       
-      if (newCompletion == 100) {
+      if (newCompletion == 100 && missingDocs > 0) {
         ProfileSaveSuccessDialog.show(context);
       } else if (newCompletion == null) {
         final updatedUser = context.read<AuthBloc>().state.user;
-        if (updatedUser?.profileCompletion == 100) {
+        if (updatedUser?.profileCompletion == 100 && missingDocs > 0) {
           ProfileSaveSuccessDialog.show(context);
         }
       }
@@ -729,25 +753,38 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppTextField(
                   controller: _email,
                   label: 'Email',
-                  hint: 'Enter Email',
+                  hint: 'Enter your email address',
                   readOnly: true,
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _phone,
+                  label: 'Phone Number (optional)',
+                  hint: 'Enter 10-digit Phone Number',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  validator: (v) => Validators.phone(v),
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _fullName,
                   label: 'Full Name *',
-                  hint: 'Enter Full Name',
+                  hint: 'Enter your full name',
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _firm,
                   label: 'Firm / Entity Name',
-                  hint: 'Enter Firm / Entity Name',
+                  hint: 'Enter your firm or organization name',
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
                   label: 'Investor Type *',
-                  hint: 'Select Investor Type',
+                  hint: 'Choose your investor type',
                   value: _selectedInvestorType,
                   items: _investorTypes,
                   itemLabel: (item) => item.name,
@@ -757,7 +794,7 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
                   label: 'Preferred Investment Stage *',
-                  hint: 'Select Preferred Investment Stage',
+                  hint: 'Select the stage where you prefer to invest',
                   value: _selectedPreferredStage,
                   items: _investorStages,
                   itemLabel: (item) => item.name,
@@ -770,21 +807,15 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                   label: _selectedFocusAreaIds.isEmpty
                       ? 'Focus Areas / Sectors'
                       : 'Focus Areas / Sectors (${_selectedFocusAreaIds.length})',
-                  hint: 'Select Focus Industries / Sector',
+                  hint: 'Select the industries you’re interested in',
                   readOnly: true,
                   suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                   onTap: _showFocusAreasBottomSheet,
                 ),
                 AppSizes.vGapMd,
-                AppLocationField(
-                  controller: _city,
-                  label: 'Location / City *',
-                  hint: 'Select Location / City',
-                ),
-                AppSizes.vGapMd,
-                AppDropdown<MasterOption>(
+                 AppDropdown<MasterOption>(
                   label: 'Country *',
-                  hint: 'Select Country',
+                  hint: 'Choose the country you’re based in',
                   value: _selectedCountry,
                   items: _countries,
                   itemLabel: (item) => item.name,
@@ -799,6 +830,14 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                     }
                   },
                 ),
+                
+                AppLocationField(
+                  controller: _city,
+                  label: 'City *',
+                  hint: 'Search and select your city',
+                ),
+                AppSizes.vGapMd,
+               
                 // AppSizes.vGapMd,
                 // AppDropdown<MasterOption>(
                 //   label: 'State *',
@@ -811,18 +850,19 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 // ),
                 // AppSizes.vGapMd,
                 AppDropdown<TicketSizeOption>(
-                  label: 'Ticket Size *',
-                  hint: 'Select Ticket Size',
+                  label: 'Budget Range *',
+                  hint: 'Choose your preferred budget range',
                   value: _selectedTicketSize,
                   items: _ticketSizes,
                   itemLabel: (item) => item.label,
                   onChanged: (opt) => setState(() => _selectedTicketSize = opt),
                 ),
+                
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _bio,
                   label: 'About / Bio',
-                  hint: 'Enter About / Bio',
+                  hint: 'Enter brief about you or your organization',
                   maxLines: 3,
                 ),
                 AppSizes.vGapXl,

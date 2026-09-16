@@ -38,6 +38,7 @@ class ClientSignupFlow extends StatefulWidget {
 class _ClientSignupFlowState extends State<ClientSignupFlow> {
   int _currentStep = 1;
   bool _isLoading = false;
+  bool _canPop = false;
 
   // Step 1 Account
   final _fullNameController = TextEditingController();
@@ -569,7 +570,10 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       widget.onBackToRoleSelection!();
     } else if (context.canPop()) {
       _saveProgress(1);
-      context.pop();
+      setState(() => _canPop = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pop();
+      });
     }
   }
 
@@ -586,12 +590,10 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           'Designation Set',
           'Team Workspace Ready',
         ],
-        onGoToDashboard: () async {
-          await SignupProgressStore.clear();
-          if (context.mounted) {
-            context.read<AuthBloc>().add(const AuthCheckRequested());
-            context.go(Routes.clientDashboard);
-          }
+        onGoToDashboard: () {
+          SignupProgressStore.clear();
+          context.read<AuthBloc>().add(const AuthCheckRequested());
+          context.go(Routes.clientDashboard);
         },
       );
     }
@@ -618,21 +620,28 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         break;
     }
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) =>
-          previous.user != current.user ||
-          previous.pendingSignup != current.pendingSignup,
-      listener: _syncFromAuthState,
-      child: SignupScaffold(
-        title: title,
-        subtitle: subtitle,
-        currentStep: _currentStep,
-        totalSteps: 5,
-        onBack: _onBack,
-        onContinue: _onContinue,
-        isLoading: _isLoading,
-        continueLabel:  'Continue',
-        child: _buildStepContent(),
+    return PopScope(
+      canPop: _canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (previous, current) =>
+            previous.user != current.user ||
+            previous.pendingSignup != current.pendingSignup,
+        listener: _syncFromAuthState,
+        child: SignupScaffold(
+          title: title,
+          subtitle: subtitle,
+          currentStep: _currentStep,
+          totalSteps: 5,
+          onBack: _onBack,
+          onContinue: _onContinue,
+          isLoading: _isLoading,
+          continueLabel:  'Continue',
+          child: _buildStepContent(),
+        ),
       ),
     );
   }
@@ -689,7 +698,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             AppTextField(
               controller: _businessNameController,
               label: 'Company Name *',
-              hint: 'Enter your company name',
+              hint: 'Enter the official company name',
             ),
             const SizedBox(height: 16),
             SignupMultiSelectSheet(

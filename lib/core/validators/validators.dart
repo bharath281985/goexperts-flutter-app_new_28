@@ -15,10 +15,13 @@ class Validators {
     return null;
   }
 
-  static String? phone(String? v) {
-    if (v.isNullOrEmpty) return 'Mobile number is required';
-    if (!RegExp(r'^\d{7,15}$').hasMatch(v!.trim())) {
-      return 'Enter a valid mobile number';
+  static String? phone(String? v, {bool isRequired = false, String field = 'Mobile number'}) {
+    if (v == null || v.trim().isEmpty) {
+      return isRequired ? '$field is required' : null;
+    }
+    final digits = v.replaceAll(RegExp(r'\D'), '');
+    if (digits.length != 10) {
+      return '$field must be exactly 10 digits';
     }
     return null;
   }

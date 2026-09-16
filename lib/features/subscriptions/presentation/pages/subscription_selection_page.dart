@@ -8,6 +8,7 @@ import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/payments/payment_checkout_service.dart';
+import '../../../../core/payments/backend_payment_status.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/subscription_status.dart';
@@ -352,43 +353,44 @@ class _SubscriptionSelectionPageState extends State<SubscriptionSelectionPage> {
         purpose: 'subscription',
         amount: amount,
         planId: _selected,
-        metadata: {'billingCycle': _yearly ? 'yearly' : 'monthly'},
+        metadata: {
+          'billingCycle': _yearly ? 'yearly' : 'monthly',
+        },
         endpoint: '/subscriptions/purchase',
       );
+
       if (!mounted) return;
+      setState(() => _saving = false);
 
       await result.fold(
         (f) async {
-          setState(() => _saving = false);
-          context.showSnack(f.message, isError: true);
-        },
-        (paid) async {
-          final sdk = paid.checkout;
-          final verify = await checkout.verify(
-            paymentId: paid.payment.paymentId,
-            gateway: paid.payment.gateway,
-            purpose: 'subscription',
-            planId: _selected,
-            verification: {
-              'status': 'success',
-              'orderId': paid.payment.orderId,
-              'txnid': paid.payment.orderId,
-              'billingCycle': _yearly ? 'yearly' : 'monthly',
-              ...sdk.raw,
-              if (sdk.raw['payment_response'] is Map)
-                ...Map<String, dynamic>.from(
-                  sdk.raw['payment_response'] as Map,
-                ),
+          context.push<bool>(
+            Routes.paymentStatus,
+            extra: {
+              'isSuccess': false,
+              'message': f.message,
             },
           );
-          if (!mounted) return;
-          setState(() => _saving = false);
-          verify.fold((f) => context.showSnack(f.message, isError: true), (_) {
+        },
+        (paid) async {
+          // the result already handled all verifications and fallback checking
+          final backendStatus = paid.backendStatus;
+          final isSuccess = backendStatus == BackendPaymentStatus.paid;
+
+          await context.push<bool>(
+            Routes.paymentStatus,
+            extra: {
+              'isSuccess': isSuccess,
+              'message': paid.message,
+            },
+          );
+
+          if (isSuccess) {
             _onSubscriptionSuccess(
-              message: 'Payment verified successfully',
+              message: paid.message,
               planId: _selected,
             );
-          });
+          }
         },
       );
       return;

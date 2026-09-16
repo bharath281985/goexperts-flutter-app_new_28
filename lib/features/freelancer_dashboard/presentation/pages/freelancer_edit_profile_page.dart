@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/network/file_upload_helper.dart';
+import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_card.dart';
@@ -40,6 +43,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
 
   // Controllers
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _fullName = TextEditingController();
   final _title = TextEditingController();
   final _city = TextEditingController();
@@ -106,6 +110,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   @override
   void dispose() {
     _email.dispose();
+    _phone.dispose();
     _fullName.dispose();
     _title.dispose();
     _city.dispose();
@@ -182,7 +187,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   Future<void> _loadSkillsForCategory() async {
     if (_selectedCategoryIds.isEmpty) return;
 
-    final selectedCategoriesSorted = List<String>.from(_selectedCategoryIds)..sort();
+    final selectedCategoriesSorted = List<String>.from(_selectedCategoryIds)
+      ..sort();
     final cacheKey = selectedCategoriesSorted.join('_');
     if (_skillsByCategoryId.containsKey(cacheKey) &&
         (_skillsByCategoryId[cacheKey] ?? []).isNotEmpty) {
@@ -203,7 +209,11 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final seenNames = <String>{};
 
     for (final categoryId in _selectedCategoryIds) {
-      final skillsForCat = await _fetchSkillsForSingleCategory(repo, categoryId, pageSize);
+      final skillsForCat = await _fetchSkillsForSingleCategory(
+        repo,
+        categoryId,
+        pageSize,
+      );
       if (!mounted) return;
       for (final skill in skillsForCat) {
         if (seenNames.add(skill.name)) {
@@ -212,7 +222,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       }
     }
 
-    allSkills.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    allSkills.sort(
+      (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+    );
 
     for (final skill in allSkills) {
       for (final sIdOrName in List<String>.from(_selectedSkillIds)) {
@@ -227,12 +239,12 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     setState(() {
       _skillsByCategoryId[cacheKey] = allSkills;
       _visibleSkills = allSkills;
-      
+
       _skillsMap.clear();
       for (final skill in allSkills) {
         _skillsMap[skill.name] = skill;
       }
-      
+
       _availableSkillNames = allSkills.map((s) => s.name).toList();
       if (!_availableSkillNames.contains('Other')) {
         _availableSkillNames.add('Other');
@@ -244,7 +256,10 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   }
 
   Future<List<SkillOption>> _fetchSkillsForSingleCategory(
-      MasterDataRepository repo, String? categoryId, int pageSize) async {
+    MasterDataRepository repo,
+    String? categoryId,
+    int pageSize,
+  ) async {
     final list = <SkillOption>[];
     var page = 1;
     var total = 0;
@@ -262,7 +277,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       list.addAll(batch.where((skill) => skill.name.isNotEmpty));
 
       if (page == 1) {
-        final totalResult = await repo.getSkillsTotal(categoryId: categoryId ?? '');
+        final totalResult = await repo.getSkillsTotal(
+          categoryId: categoryId ?? '',
+        );
         total = totalResult.valueOrNull ?? batch.length;
       }
 
@@ -292,7 +309,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       if (_countries.isNotEmpty) {
         _selectedCountry = _matchOption(_selectedCountry, _countries);
       }
-     
+
       if (_experienceLevels.isNotEmpty) {
         _selectedExperience = _matchOption(
           _selectedExperience,
@@ -332,16 +349,27 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         final emailVal = userMap['email']?.toString();
         if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
 
+        final phoneVal =
+            userMap['phone']?.toString() ??
+            userMap['mobile']?.toString() ??
+            userMap['phoneNumber']?.toString() ??
+            (userMap['profile'] is Map
+                ? userMap['profile']['phone']?.toString()
+                : null);
+        if (phoneVal != null && phoneVal.isNotEmpty) _phone.text = phoneVal;
+
         final fn =
             userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
         if (fn != null && fn.isNotEmpty) _fullName.text = fn.toTitleCase();
 
         final bioVal = userMap['bio']?.toString();
-        if (bioVal != null && bioVal.isNotEmpty) _bio.text = bioVal.toTitleCase();
+        if (bioVal != null && bioVal.isNotEmpty)
+          _bio.text = bioVal.toTitleCase();
 
         final locVal =
             userMap['city']?.toString() ?? userMap['location']?.toString();
-        if (locVal != null && locVal.isNotEmpty) _city.text = locVal.toTitleCase();
+        if (locVal != null && locVal.isNotEmpty)
+          _city.text = locVal.toTitleCase();
 
         _currentAvatarUrl =
             userMap['avatarUrl']?.toString() ??
@@ -363,8 +391,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
             await _loadStatesForCountry(cstr);
           }
         }
-
-      
 
         if (userMap['profile'] is Map) {
           final pMap = Map<String, dynamic>.from(userMap['profile'] as Map);
@@ -388,21 +414,22 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
           _linkedin.text =
               (pMap['linkedInUrl'] ?? pMap['linkedin'])?.toString() ?? '';
 
-          final expObj = pMap['ExperienceLevel'] ??
+          final expObj =
+              pMap['ExperienceLevel'] ??
               pMap['experienceLevel'] ??
               pMap['experienceLevelId'] ??
               pMap['experience'];
           if (expObj is Map) {
             final expMap = Map<String, dynamic>.from(expObj);
-            final eid = (expMap['experienceLevelId'] ??
-                    expMap['id'] ??
-                    expMap['_id'])
-                ?.toString() ??
+            final eid =
+                (expMap['experienceLevelId'] ?? expMap['id'] ?? expMap['_id'])
+                    ?.toString() ??
                 '';
-            final ename = (expMap['experienceLevelName'] ??
-                    expMap['name'] ??
-                    expMap['label'])
-                ?.toString() ??
+            final ename =
+                (expMap['experienceLevelName'] ??
+                        expMap['name'] ??
+                        expMap['label'])
+                    ?.toString() ??
                 eid;
             if (eid.isNotEmpty && ename.isNotEmpty) {
               _selectedExperience = MasterOption(id: eid, name: ename);
@@ -416,20 +443,23 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
             _educationLevel = eduObj;
           }
 
-          final availObj = pMap['Availability'] ??
+          final availObj =
+              pMap['Availability'] ??
               pMap['availability'] ??
               pMap['availabilityId'];
           if (availObj is Map) {
             final availMap = Map<String, dynamic>.from(availObj);
-            final aid = (availMap['availabilityId'] ??
-                    availMap['id'] ??
-                    availMap['_id'])
-                ?.toString() ??
+            final aid =
+                (availMap['availabilityId'] ??
+                        availMap['id'] ??
+                        availMap['_id'])
+                    ?.toString() ??
                 '';
-            final aname = (availMap['availabilityName'] ??
-                    availMap['name'] ??
-                    availMap['label'])
-                ?.toString() ??
+            final aname =
+                (availMap['availabilityName'] ??
+                        availMap['name'] ??
+                        availMap['label'])
+                    ?.toString() ??
                 aid;
             if (aid.isNotEmpty && aname.isNotEmpty) {
               _selectedAvailability = MasterOption(id: aid, name: aname);
@@ -452,11 +482,13 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                   _selectedCategoryIds.add(cId);
                   return;
                 }
-                if (rName.isNotEmpty && cName.toLowerCase() == rName.toLowerCase()) {
+                if (rName.isNotEmpty &&
+                    cName.toLowerCase() == rName.toLowerCase()) {
                   _selectedCategoryIds.add(cId);
                   return;
                 }
-                if (rId.isNotEmpty && cName.toLowerCase() == rId.toLowerCase()) {
+                if (rId.isNotEmpty &&
+                    cName.toLowerCase() == rId.toLowerCase()) {
                   _selectedCategoryIds.add(cId);
                   return;
                 }
@@ -477,7 +509,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
             if (rId.isNotEmpty) _selectedCategoryIds.add(rId);
           }
 
-          _addCategoryMatch(String? rId, String? rName) => addCategoryMatch(rId, rName);
+          _addCategoryMatch(String? rId, String? rName) =>
+              addCategoryMatch(rId, rName);
 
           final indObj =
               pMap['industryId'] ?? pMap['categoryId'] ?? pMap['industry'];
@@ -485,7 +518,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
             for (final item in indObj) {
               if (item is Map) {
                 final id = (item['id'] ?? item['_id'])?.toString();
-                final name = (item['name'] ?? item['label'] ?? item['title'])?.toString();
+                final name = (item['name'] ?? item['label'] ?? item['title'])
+                    ?.toString();
                 _addCategoryMatch(id, name);
               } else if (item is String) {
                 _addCategoryMatch(item, item);
@@ -500,7 +534,7 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
               _addCategoryMatch(s.trim(), s.trim());
             }
           }
-          
+
           if (_selectedCategoryIds.isNotEmpty && _categories.isNotEmpty) {
             _categoryDisplayController.text = _categories
                 .where((c) => _selectedCategoryIds.contains(c.id))
@@ -548,10 +582,17 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       return;
     }
 
+    if (_bio.text.trim().isNotEmpty && _bio.text.trim().length < 30) {
+      context.showSnack('Biography / Overview must be at least 30 characters', isError: true);
+      return;
+    }
+
     setState(() => _saving = true);
 
     final payload = <String, dynamic>{
       'fullName': _fullName.text.trim(),
+      'phone': _phone.text.trim(),
+      'mobile': _phone.text.trim(),
       'titleHeadline': _title.text.trim(),
       'bio': _bio.text.trim(),
       'city': _city.text.trim(),
@@ -593,18 +634,27 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         int? newCompletion;
         final rawData = envelope.data;
         if (rawData is Map) {
-          final p = rawData['profileCompletion'] ??
+          final p =
+              rawData['profileCompletion'] ??
               rawData['profile_completion'] ??
               rawData['completionPercentage'] ??
               rawData['completion_percentage'];
-          if (p is num) newCompletion = p.toInt();
-          else if (p is String) newCompletion = int.tryParse(p);
+          if (p is num)
+            newCompletion = p.toInt();
+          else if (p is String)
+            newCompletion = int.tryParse(p);
 
           if (newCompletion == null && rawData['user'] is Map) {
             final u = rawData['user'];
-            final p2 = u['profileCompletion'] ?? u['profile_completion'] ?? u['completionPercentage'] ?? u['completion_percentage'];
-            if (p2 is num) newCompletion = p2.toInt();
-            else if (p2 is String) newCompletion = int.tryParse(p2);
+            final p2 =
+                u['profileCompletion'] ??
+                u['profile_completion'] ??
+                u['completionPercentage'] ??
+                u['completion_percentage'];
+            if (p2 is num)
+              newCompletion = p2.toInt();
+            else if (p2 is String)
+              newCompletion = int.tryParse(p2);
           }
         }
         return {
@@ -623,30 +673,37 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       // Patch the cached user locally — no extra /me round-trip needed.
       final current = context.read<AuthBloc>().state.user;
       final newCompletion = data['profileCompletion'] as int?;
-      
+
       if (current != null) {
         final city = _city.text.trim();
         final country = _selectedCountry?.name ?? '';
-        final locationParts = [city, country]
-            .where((s) => s.isNotEmpty)
-            .toList();
+        final locationParts = [
+          city,
+          country,
+        ].where((s) => s.isNotEmpty).toList();
         context.read<AuthBloc>().add(
           AuthUserUpdated(
             current.copyWith(
               fullName: _fullName.text.trim().isNotEmpty
                   ? _fullName.text.trim()
                   : null,
+              phone: _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
               headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
               location: locationParts.isNotEmpty
                   ? locationParts.join(', ')
                   : null,
-              categoryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
-              industryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
+              categoryId: _selectedCategoryIds.isNotEmpty
+                  ? _selectedCategoryIds.join(',')
+                  : null,
+              industryId: _selectedCategoryIds.isNotEmpty
+                  ? _selectedCategoryIds.join(',')
+                  : null,
               skillIds: _selectedSkillIds.isNotEmpty
                   ? _selectedSkillIds.toList()
                   : null,
-              avatarUrl:
-                  _currentAvatarUrl?.isNotEmpty == true ? _currentAvatarUrl : null,
+              avatarUrl: _currentAvatarUrl?.isNotEmpty == true
+                  ? _currentAvatarUrl
+                  : null,
               profileCompletion: newCompletion ?? current.profileCompletion,
             ),
           ),
@@ -654,15 +711,20 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       }
       // Stay on page and refresh data
       await _load();
-      
+
       if (!mounted) return;
-      
-      if (newCompletion == 100) {
+
+      int missingDocs = 1;
+      try {
+        missingDocs = context.read<DashboardCubit>().state.verificationMissingCount;
+      } catch (_) {}
+
+      if (newCompletion == 100 && missingDocs > 0) {
         ProfileSaveSuccessDialog.show(context);
       } else if (newCompletion == null) {
         // Fallback if API didn't return completion percentage
         final updatedUser = context.read<AuthBloc>().state.user;
-        if (updatedUser?.profileCompletion == 100) {
+        if (updatedUser?.profileCompletion == 100 && missingDocs > 0) {
           ProfileSaveSuccessDialog.show(context);
         }
       }
@@ -677,30 +739,30 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     final res = await sl<FreelancerProfileRepository>().uploadAvatar(path);
     if (!mounted) return;
     setState(() => _uploadingAvatar = false);
-    res.fold((failure) => context.showSnack(failure.message, isError: true),
-      (url) {
-        if (url.trim().isEmpty) {
-          context.showSnack(
-            'Photo uploaded, but the server did not return its URL.',
-            isError: true,
-          );
-          return;
-        }
-        setState(() {
-          _localAvatarPath = null;
-          _currentAvatarUrl = url;
-        });
-        // Patch only the avatar in the cached user.
-        final current = context.read<AuthBloc>().state.user;
-        if (current != null) {
-          context.read<AuthBloc>().add(
-            AuthUserUpdated(current.copyWith(avatarUrl: url)),
-          );
-        }
-        context.showSnack('Avatar updated successfully!');
-        _load();
-      },
-    );
+    res.fold((failure) => context.showSnack(failure.message, isError: true), (
+      url,
+    ) {
+      if (url.trim().isEmpty) {
+        context.showSnack(
+          'Photo uploaded, but the server did not return its URL.',
+          isError: true,
+        );
+        return;
+      }
+      setState(() {
+        _localAvatarPath = null;
+        _currentAvatarUrl = url;
+      });
+      // Patch only the avatar in the cached user.
+      final current = context.read<AuthBloc>().state.user;
+      if (current != null) {
+        context.read<AuthBloc>().add(
+          AuthUserUpdated(current.copyWith(avatarUrl: url)),
+        );
+      }
+      context.showSnack('Avatar updated successfully!');
+      _load();
+    });
   }
 
   void _toggleCategory(String categoryId) {
@@ -755,11 +817,12 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         selectedNames.add(s.name);
       }
     }
-    
-    if (_otherSkillController.text.trim().isNotEmpty && !selectedNames.contains('Other')) {
+
+    if (_otherSkillController.text.trim().isNotEmpty &&
+        !selectedNames.contains('Other')) {
       selectedNames.add('Other');
     }
-    
+
     if (selectedNames.isNotEmpty) {
       _skillsDisplayController.text = selectedNames.join(', ');
       _selectedSkillNames = selectedNames;
@@ -779,18 +842,19 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<SkillCategory>.from(_categories)
-                : _categories
-                      .where((c) => c.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = _selectedCategoryIds.contains(a.id);
-                final bSel = _selectedCategoryIds.contains(b.id);
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
+            final filtered =
+                (search.isEmpty
+                      ? List<SkillCategory>.from(_categories)
+                      : _categories
+                            .where((c) => c.name.toLowerCase().contains(search))
+                            .toList())
+                  ..sort((a, b) {
+                    final aSel = _selectedCategoryIds.contains(a.id);
+                    final bSel = _selectedCategoryIds.contains(b.id);
+                    if (aSel && !bSel) return -1;
+                    if (!aSel && bSel) return 1;
+                    return 0;
+                  });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -841,8 +905,8 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final cat = filtered[index];
-                                  final isSelected =
-                                      _selectedCategoryIds.contains(cat.id);
+                                  final isSelected = _selectedCategoryIds
+                                      .contains(cat.id);
                                   return CheckboxListTile(
                                     title: Text(cat.name),
                                     value: isSelected,
@@ -865,8 +929,6 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
     );
   }
 
-
-
   // ─── UI Build ──────────────────────────────────────────────────────────────
 
   @override
@@ -875,9 +937,12 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        final percent = context.read<AuthBloc>().state.user?.profileCompletion ?? 0;
+        final percent =
+            context.read<AuthBloc>().state.user?.profileCompletion ?? 0;
         if (percent < 100) {
-          final shouldLeave = await ProfileCompletionWarningDialog.show(context);
+          final shouldLeave = await ProfileCompletionWarningDialog.show(
+            context,
+          );
           if (shouldLeave == true && context.mounted) {
             Navigator.of(context).pop();
           }
@@ -887,314 +952,340 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
       },
       child: AppScaffold(
         appBar: AppBar(
-        leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
-        title: const Text('Edit Profile'),
-        actions: [
-          if (!_saving)
-            TextButton.icon(
-              icon: const Icon(Icons.check_rounded, size: 18),
-              label: const Text('Save'),
-              onPressed: _save,
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: AppSizes.md),
-              child: Center(
-                child: SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+          leading: IconTapWidget(onTap: () => Navigator.of(context).maybePop()),
+          title: const Text('Edit Profile'),
+          actions: [
+            if (!_saving)
+              TextButton.icon(
+                icon: const Icon(Icons.check_rounded, size: 18),
+                label: const Text('Save'),
+                onPressed: _save,
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: AppSizes.md),
+                child: Center(
+                  child: SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
               ),
-            ),
-        ],
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(AppSizes.screenPadding),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Completion Card
-                    ProfileCompletionCard(
-                      percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
-                    ),
-                    AppSizes.vGapLg,
+          ],
+        ),
+        body: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // Completion Card
+                      ProfileCompletionCard(
+                        percent:
+                            context
+                                .watch<AuthBloc>()
+                                .state
+                                .user
+                                ?.profileCompletion ??
+                            0,
+                      ),
+                      AppSizes.vGapLg,
 
-                    // Profile Photo
-                    const _SectionLabel('Profile Photo'),
-                    AppSizes.vGapSm,
-                    Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        ProfileAvatarEditor(
-                          localPath: _localAvatarPath,
-                          networkUrl: _currentAvatarUrl,
-                          onPathPicked: _uploadAvatar,
-                          size: 110,
-                        ),
-                        if (_uploadingAvatar)
-                          Positioned.fill(
-                            child: Container(
-                              decoration: const BoxDecoration(
-                                color: Colors.black38,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Center(
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
+                      // Profile Photo
+                      const _SectionLabel('Profile Photo'),
+                      AppSizes.vGapSm,
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          ProfileAvatarEditor(
+                            localPath: _localAvatarPath,
+                            networkUrl: _currentAvatarUrl,
+                            onPathPicked: _uploadAvatar,
+                            size: 110,
+                          ),
+                          if (_uploadingAvatar)
+                            Positioned.fill(
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.black38,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                    AppSizes.vGapLg,
-
-                    // Personal Info
-                    const _SectionLabel('About You'),
-                    AppSizes.vGapSm,
-                    AppTextField(
-                      controller: _email,
-                      label: 'Email',
-                      hint: 'Enter Your Email',
-                      readOnly: true,
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _fullName,
-                      label: 'Full Name *',
-                      hint: 'Enter Your Full Name',
-                      validator: (v) =>
-                          Validators.minLength(v, 2, field: 'Enter Your Full Name'),
-                    ),
-                    AppSizes.vGapMd,
-                    AppTextField(
-                      controller: _title,
-                      label: 'Professional Title *',
-                      hint: 'e.g., Full-Stack Developer | UI/UX Designer',
-                    
-                    ),
-                    AppSizes.vGapLg,
-
-                    // Location
-                    const _SectionLabel('Location'),
-                    AppSizes.vGapMd,
-                    AppDropdown<MasterOption>(
-                      label: 'Country *',
-                      hint: 'Select Country',
-                      value: _selectedCountry,
-                      items: _countries,
-                      itemLabel: (item) => item.name,
-                     
-                      onChanged: (opt) {
-                        setState(() {
-                          _selectedCountry = opt;
-                          _selectedState = null;
-                          _states = [];
-                        });
-                        if (opt != null) {
-                          _loadStatesForCountry(opt.id);
-                        }
-                      },
-                    ),
-                    AppSizes.vGapSm,
-                    AppLocationField(
-                      controller: _city,
-                      country: _selectedCountry?.name,
-                      label: 'City / Location *',
-                      hint: 'Select City / Location',
-                    
-                    ),
-                   
-                    AppSizes.vGapMd,
-                    // AppDropdown<MasterOption>(
-                    //   label: 'State *',
-                    //   hint: 'Select State',
-                    //   prefixIcon: Icons.map_outlined,
-                    //   value: _selectedState,
-                    //   items: _states,
-                    //   itemLabel: (item) => item.name,
-                    //   validator: (v) =>
-                    //       Validators.required(v?.name, field: 'State'),
-                    //   onChanged: (opt) => setState(() => _selectedState = opt),
-                    // ),
-                    // AppSizes.vGapLg,
-
-                    // Professional Bio
-                    const _SectionLabel('Professional Bio'),
-                    AppSizes.vGapSm,
-                    AppTextField(
-                      controller: _bio,
-                      label: 'Bio *',
-                      hint:
-                          'Tell clients about yourself, your expertise, and what makes you unique…',
-                      maxLines: 4,
-                      textInputAction: TextInputAction.newline,
-                    
-                    ),
-                    AppSizes.vGapLg,
-
-                    // Work Preferences
-                    const _SectionLabel('Work Preferences'),
-                    AppSizes.vGapSm,
-                    AppTextField(
-                      controller: _hourlyRate,
-                      label: 'Hourly Rate (₹/hr) *',
-                      hint: 'Enter Hourly Rate',
-                      prefixIcon: Icons.currency_rupee_sharp,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                        ],
                       ),
-                     
-                    ),
-                    AppSizes.vGapMd,
-                    AppDropdown<MasterOption>(
-                      label: 'Availability *',
-                      hint: 'Select Availability',
-                      value: _selectedAvailability,
-                      items: _availabilities,
-                      itemLabel: (item) => item.name,
-                     
-                      onChanged: (opt) =>
-                          setState(() => _selectedAvailability = opt),
-                    ),
-                    AppSizes.vGapMd,
-                    AppDropdown<MasterOption>(
-                      label: 'Experience Level *',
-                      hint: 'Select Experience Level',
-                      value: _selectedExperience,
-                      items: _experienceLevels,
-                      itemLabel: (item) => item.name,
-                     
-                      onChanged: (opt) =>
-                          setState(() => _selectedExperience = opt),
-                    ),
-                    AppSizes.vGapMd,
-                    // AppDropdown<String>(
-                    //   label: 'Education Level *',
-                    //   hint: 'Select Education Level',
-                    //   value: _educationLevel,
-                    //   items: _educationLevels,
-                    //   itemLabel: (item) => item,
-                     
-                    //   onChanged: (val) => setState(() => _educationLevel = val),
-                    // ),
-                    // AppSizes.vGapLg,
+                      AppSizes.vGapLg,
 
-                    // Industry & Skills
-                    const _SectionLabel('Industry & Skills'),
-                    AppSizes.vGapSm,
-                    AppTextField(
-                      controller: _categoryDisplayController,
-                      label: 'Industry / Domain *',
-                      hint: 'Select Industry / Domain',
-                      readOnly: true,
-                      suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-                      onTap: _showCategoryBottomSheet,
-                    
-                    ),
-                    AppSizes.vGapMd,
-                    SignupMultiSelectSheet(
-                      hint: _selectedCategoryIds.isEmpty
-                          ? 'Select industry first'
-                          : 'Select skills',
-                      label: 'Skills (optional)',
-                      selectedItems: _selectedSkillNames,
-                      availableOptions: _availableSkillNames,
-                      minSelection: 0,
-                      onSearchApi: (query) async {
-                        if (query.isEmpty) return _availableSkillNames;
-                        final q = query.toLowerCase();
-                        return _availableSkillNames.where((s) => s.toLowerCase().contains(q)).toList();
-                      },
-                      onChanged: (items) {
-                        setState(() {
-                          _selectedSkillNames = items;
-                          _selectedSkillIds.clear();
-                          for (final name in items) {
-                            if (name == 'Other') continue;
-                            final option = _skillsMap[name];
-                            if (option != null) {
-                              _selectedSkillIds.add(option.id);
-                            } else {
-                              _selectedSkillIds.add('static_${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}');
-                            }
-                          }
-                        });
-                      },
-                      onTap: () {
-                        if (_selectedCategoryIds.isEmpty) {
-                          context.showSnack(
-                            'Please select an Industry / Domain first',
-                            isError: true,
-                          );
-                        } else {
-                          final selectedCategoriesSorted = List<String>.from(_selectedCategoryIds)..sort();
-                          final cacheKey = selectedCategoriesSorted.join('_');
-                          if (!_skillsByCategoryId.containsKey(cacheKey) || _skillsByCategoryId[cacheKey]!.isEmpty) {
-                            _loadSkillsForCategory();
-                          }
-                        }
-                      },
-                    ),
-                    if (_selectedSkillNames.contains('Other')) ...[
+                      // Personal Info
+                      const _SectionLabel('About You'),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _email,
+                        label: 'Email',
+                        hint: 'Enter Your Email',
+                        readOnly: true,
+                      ),
                       AppSizes.vGapMd,
                       AppTextField(
-                        controller: _otherSkillController,
-                        label: 'Other Skill *',
-                        hint: 'Enter your area of expertise ',
-                        validator: (v) {
-                          if (v == null || v.trim().isEmpty) {
-                            return 'Please enter your skill';
+                        controller: _phone,
+                        label: 'Phone Number (optional)',
+                        hint: 'Enter 10-digit Phone Number',
+                        prefixIcon: Icons.phone_outlined,
+                        keyboardType: TextInputType.phone,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(10),
+                        ],
+                        validator: (v) => Validators.phone(v),
+                      ),
+                      AppSizes.vGapMd,
+                      AppTextField(
+                        controller: _fullName,
+                        label: 'Full Name *',
+                        hint: 'Enter Your Full Name',
+                        validator: (v) => Validators.minLength(
+                          v,
+                          2,
+                          field: 'Enter Your Full Name',
+                        ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppTextField(
+                        controller: _title,
+                        label: 'Professional Title *',
+                        hint: 'e.g., Full-Stack Developer | UI/UX Designer',
+                      ),
+                      AppSizes.vGapLg,
+
+                      // Location
+                      const _SectionLabel('Location'),
+                      AppSizes.vGapMd,
+                      AppDropdown<MasterOption>(
+                        label: 'Country *',
+                        hint: 'Choose the country you’re based in',
+                        value: _selectedCountry,
+                        items: _countries,
+                        itemLabel: (item) => item.name,
+
+                        onChanged: (opt) {
+                          setState(() {
+                            _selectedCountry = opt;
+                            _selectedState = null;
+                            _states = [];
+                          });
+                          if (opt != null) {
+                            _loadStatesForCountry(opt.id);
                           }
-                          return null;
                         },
                       ),
+                      AppSizes.vGapSm,
+                      AppLocationField(
+                        controller: _city,
+                        country: _selectedCountry?.name,
+                        label: 'City *',
+                        hint: 'Search and select your city ',
+                      ),
+
+                      AppSizes.vGapMd,
+                      // AppDropdown<MasterOption>(
+                      //   label: 'State *',
+                      //   hint: 'Select State',
+                      //   prefixIcon: Icons.map_outlined,
+                      //   value: _selectedState,
+                      //   items: _states,
+                      //   itemLabel: (item) => item.name,
+                      //   validator: (v) =>
+                      //       Validators.required(v?.name, field: 'State'),
+                      //   onChanged: (opt) => setState(() => _selectedState = opt),
+                      // ),
+                      // AppSizes.vGapLg,
+
+                      // Professional Bio
+
+                      // Work Preferences
+                      const _SectionLabel('Work Preferences'),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _hourlyRate,
+                        label: 'Hourly Rate (₹/hr) *',
+                        hint: 'Set your preferred hourly rate',
+                        prefixIcon: Icons.currency_rupee_sharp,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                      ),
+                      AppSizes.vGapMd,
+                      AppDropdown<MasterOption>(
+                        label: 'Availability *',
+                        hint: 'Select when you’re available',
+                        value: _selectedAvailability,
+                        items: _availabilities,
+                        itemLabel: (item) => item.name,
+
+                        onChanged: (opt) =>
+                            setState(() => _selectedAvailability = opt),
+                      ),
+                      AppSizes.vGapMd,
+                      AppDropdown<MasterOption>(
+                        label: 'Total Experience *',
+                        hint: 'Highlight your professional journey...',
+                        value: _selectedExperience,
+                        items: _experienceLevels,
+                        itemLabel: (item) => item.name,
+
+                        onChanged: (opt) =>
+                            setState(() => _selectedExperience = opt),
+                      ),
+                      AppSizes.vGapMd,
+                      // AppDropdown<String>(
+                      //   label: 'Education Level *',
+                      //   hint: 'Select Education Level',
+                      //   value: _educationLevel,
+                      //   items: _educationLevels,
+                      //   itemLabel: (item) => item,
+
+                      //   onChanged: (val) => setState(() => _educationLevel = val),
+                      // ),
+                      // AppSizes.vGapLg,
+
+                      // Industry & Skills
+                      const _SectionLabel('Industry & Skills'),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _categoryDisplayController,
+                        label: 'Primary Industry / Domain *',
+                        hint: 'Choose the industry that matches your skills',
+                        readOnly: true,
+                        suffixIcon: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                        ),
+                        onTap: _showCategoryBottomSheet,
+                      ),
+                      AppSizes.vGapMd,
+                      SignupMultiSelectSheet(
+                        hint: _selectedCategoryIds.isEmpty
+                            ? 'Select industry first'
+                            : 'Select skills e.g., Flutter, UI/UX.....',
+                        label: 'Skills',
+                        selectedItems: _selectedSkillNames,
+                        availableOptions: _availableSkillNames,
+                        minSelection: 0,
+                        onSearchApi: (query) async {
+                          if (query.isEmpty) return _availableSkillNames;
+                          final q = query.toLowerCase();
+                          return _availableSkillNames
+                              .where((s) => s.toLowerCase().contains(q))
+                              .toList();
+                        },
+                        onChanged: (items) {
+                          setState(() {
+                            _selectedSkillNames = items;
+                            _selectedSkillIds.clear();
+                            for (final name in items) {
+                              if (name == 'Other') continue;
+                              final option = _skillsMap[name];
+                              if (option != null) {
+                                _selectedSkillIds.add(option.id);
+                              } else {
+                                _selectedSkillIds.add(
+                                  'static_${name.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '_')}',
+                                );
+                              }
+                            }
+                          });
+                        },
+                        onTap: () {
+                          if (_selectedCategoryIds.isEmpty) {
+                            context.showSnack(
+                              'Please select an Industry / Domain first',
+                              isError: true,
+                            );
+                          } else {
+                            final selectedCategoriesSorted = List<String>.from(
+                              _selectedCategoryIds,
+                            )..sort();
+                            final cacheKey = selectedCategoriesSorted.join('_');
+                            if (!_skillsByCategoryId.containsKey(cacheKey) ||
+                                _skillsByCategoryId[cacheKey]!.isEmpty) {
+                              _loadSkillsForCategory();
+                            }
+                          }
+                        },
+                      ),
+                      if (_selectedSkillNames.contains('Other')) ...[
+                        AppSizes.vGapMd,
+                        AppTextField(
+                          controller: _otherSkillController,
+                          label: 'Other Skill *',
+                          hint: 'Enter your area of expertise ',
+                          validator: (v) {
+                            if (v == null || v.trim().isEmpty) {
+                              return 'Please enter your skill';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                      AppSizes.vGapLg,
+
+                      // Social Links
+                      // const _SectionLabel('Social & Links'),
+                      // AppSizes.vGapSm,
+                      // AppTextField(
+                      //   controller: _portfolio,
+                      //   label: 'Portfolio URL',
+                      //   hint: 'Enter Portfolio URL',
+                      //   validator: Validators.url,
+                      // ),
+                      // AppSizes.vGapMd,
+                      // AppTextField(
+                      //   controller: _github,
+                      //   label: 'GitHub URL',
+                      //   hint: 'Enter GitHub URL',
+                      //   validator: Validators.url,
+                      // ),
+                      // AppSizes.vGapMd,
+                      // AppTextField(
+                      //   controller: _linkedin,
+                      //   label: 'LinkedIn Profile',
+                      //   hint: 'Enter LinkedIn Profile',
+                      //   validator: Validators.url,
+                      // ),
+                      // AppSizes.vGapXl,
+
+                      // Save Button
+                      const _SectionLabel('Professional Bio'),
+                      AppSizes.vGapSm,
+                      AppTextField(
+                        controller: _bio,
+                        label: 'Brief Bio / Summary *',
+                        hint:
+                            'Turn your experience into your next opportunity...',
+                        maxLines: 4,
+                        textInputAction: TextInputAction.newline,
+                      ),
+                      AppSizes.vGapLg,
+                      AppPrimaryButton(
+                        label: 'Save Profile',
+                        icon: Icons.check_circle_outline_rounded,
+                        isLoading: _saving,
+                        onPressed: _saving ? null : _save,
+                      ),
+                      AppSizes.vGapLg,
                     ],
-                    AppSizes.vGapLg,
-
-                    // Social Links
-                    // const _SectionLabel('Social & Links'),
-                    // AppSizes.vGapSm,
-                    // AppTextField(
-                    //   controller: _portfolio,
-                    //   label: 'Portfolio URL',
-                    //   hint: 'Enter Portfolio URL',
-                    //   validator: Validators.url,
-                    // ),
-                    // AppSizes.vGapMd,
-                    // AppTextField(
-                    //   controller: _github,
-                    //   label: 'GitHub URL',
-                    //   hint: 'Enter GitHub URL',
-                    //   validator: Validators.url,
-                    // ),
-                    // AppSizes.vGapMd,
-                    // AppTextField(
-                    //   controller: _linkedin,
-                    //   label: 'LinkedIn Profile',
-                    //   hint: 'Enter LinkedIn Profile',
-                    //   validator: Validators.url,
-                    // ),
-                    // AppSizes.vGapXl,
-
-                    // Save Button
-                    AppPrimaryButton(
-                      label: 'Save Profile',
-                      icon: Icons.check_circle_outline_rounded,
-                      isLoading: _saving,
-                      onPressed: _saving ? null : _save,
-                    ),
-                    AppSizes.vGapLg,
-                  ],
+                  ),
                 ),
               ),
-            ),
-    ),
+      ),
     );
   }
 }
@@ -1215,4 +1306,3 @@ class _SectionLabel extends StatelessWidget {
     ),
   );
 }
-

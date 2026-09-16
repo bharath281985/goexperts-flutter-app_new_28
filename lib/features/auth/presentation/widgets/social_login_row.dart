@@ -105,9 +105,27 @@ class SocialLoginRow extends StatelessWidget {
       );
     } catch (e) {
       if (e is SocialAuthCancelledException) return;
+      
+      final errorString = e.toString();
+      
+      // Ignore Apple Sign-In cancellation
+      if (errorString.contains('SignInWithAppleAuthorizationException') && 
+          errorString.contains('canceled')) {
+        return;
+      }
+      
       if (!context.mounted) return;
+      
+      // Extract a cleaner message if it's an Exception
+      String displayMessage = errorString;
+      if (displayMessage.startsWith('Exception: ')) {
+        displayMessage = displayMessage.replaceAll('Exception: ', '');
+      } else if (displayMessage.contains('SignInWithAppleAuthorizationException')) {
+        displayMessage = 'Apple sign-in failed. Please try again.';
+      }
+
       context.showSnack(
-        'Login failed: ${e.toString().replaceAll('Exception: ', '')}',
+        'Login failed: $displayMessage',
         isError: true,
       );
     }

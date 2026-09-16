@@ -2,15 +2,15 @@ class TicketSizeOption {
   final String id;
   final String label;
   final String value;
-  final num min;
-  final num max;
+  final num? min;
+  final num? max;
 
   const TicketSizeOption({
     required this.id,
     required this.label,
     required this.value,
-    required this.min,
-    required this.max,
+    this.min,
+    this.max,
   });
 
   factory TicketSizeOption.fromJson(Map<String, dynamic> json) {
@@ -18,8 +18,8 @@ class TicketSizeOption {
       id: (json['id'] ?? json['_id'] ?? json['value'])?.toString() ?? '',
       label: (json['label'] ?? json['name'] ?? json['value'])?.toString() ?? '',
       value: (json['value'] ?? json['id'])?.toString() ?? '',
-      min: num.tryParse(json['min']?.toString() ?? '') ?? 0,
-      max: num.tryParse(json['max']?.toString() ?? '') ?? 0,
+      min: json['min'] != null ? num.tryParse(json['min'].toString()) : null,
+      max: json['max'] != null ? num.tryParse(json['max'].toString()) : null,
     );
   }
 

@@ -126,9 +126,9 @@ class _ClientHomePageState extends State<ClientHomePage> {
   Widget _buildHeroBanner(BuildContext context, DashboardState state) {
     final kycStatus = state.kycStatus;
     final missingCount = state.verificationMissingCount;
-    final isVerified =
-        kycStatus == 'APPROVED' || (state.accountVerified && missingCount == 0);
-    final isPending = kycStatus == 'PENDING';
+    final isRejected = kycStatus == 'REJECTED' || kycStatus == 'ACTION_REQUIRED';
+    final isPending = kycStatus == 'PENDING' || kycStatus == 'UNDER_REVIEW' || kycStatus == 'IN_REVIEW';
+    final isVerified = kycStatus == 'APPROVED' || (!isRejected && !isPending && state.accountVerified && missingCount == 0);
 
     final Color badgeBgColor = isVerified
         ? AppColors.success.withValues(alpha: 0.12)

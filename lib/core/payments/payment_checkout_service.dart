@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:easebuzz_flutter/easebuzz_flutter.dart';
 import 'package:flutter/services.dart';
 
+import 'backend_payment_status.dart';
 import '../../app/config/app_config.dart';
 import '../errors/failures.dart';
 import '../network/api_client_helper.dart';
@@ -180,11 +181,6 @@ class PaymentCheckoutService {
       if (parsed.cancelled) {
         return Err(ValidationFailure(parsed.message ?? 'Payment cancelled'));
       }
-      if (!parsed.success) {
-        return Err(
-          ServerFailure(parsed.message ?? 'Payment failed. Please try again.'),
-        );
-      }
       return Success(parsed);
     } on PlatformException catch (e) {
       return Err(
@@ -195,9 +191,47 @@ class PaymentCheckoutService {
     }
   }
 
-  /// Initiate + open Easebuzz SDK in one step.
+  /// Polls the backend for the true payment status.
+  /// Retries up to 3 times, waiting 2 seconds between each try.
+  Future<Result<BackendPaymentStatus>> verifyPaymentStatus(String paymentId) async {
+    if (paymentId.isEmpty) return const Success(BackendPaymentStatus.unknown);
+
+    for (var i = 0; i < 3; i++) {
+      try {
+        final res = await _api.get<Map<String, dynamic>>(
+          '/payments/$paymentId',
+          parser: (data) => Map<String, dynamic>.from(data as Map),
+        );
+
+        if (res.isSuccess) {
+          final data = res.valueOrNull?['data'] as Map?;
+          final status = data?['status']?.toString().toLowerCase();
+
+          if (status == 'success' || status == 'paid' || status == 'completed') {
+            return const Success(BackendPaymentStatus.paid);
+          } else if (status == 'failed' || status == 'error') {
+            return const Success(BackendPaymentStatus.failed);
+          } else if (status == 'cancelled') {
+            return const Success(BackendPaymentStatus.cancelled);
+          }
+          // If pending, let it loop
+        }
+      } catch (_) {
+        // Ignore errors during polling and try again
+      }
+
+      if (i < 2) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
+    }
+
+    // After 3 tries, if it's still pending, return pending
+    return const Success(BackendPaymentStatus.pending);
+  }
+
+  /// Initiate + open Easebuzz SDK + verify in one step.
   Future<
-    Result<({PaymentInitiateResult payment, EasebuzzCheckoutResult checkout})>
+    Result<({PaymentInitiateResult payment, EasebuzzCheckoutResult checkout, BackendPaymentStatus backendStatus, String message})>
   >
   checkoutWithEasebuzz({
     required String purpose,
@@ -222,15 +256,68 @@ class PaymentCheckoutService {
 
     final payment = initiateResult.valueOrNull!;
     final checkoutResult = await payWithEasebuzzSdk(payment);
-    if (checkoutResult.isFailure) {
-      return Err(checkoutResult.failureOrNull!);
+    
+    BackendPaymentStatus backendStatus = BackendPaymentStatus.pending;
+    String message = 'Payment is being processed. Please check your order status shortly.';
+
+    if (checkoutResult.isSuccess && checkoutResult.valueOrNull!.success) {
+      // SDK says success, let's verify hash with backend immediately
+      final sdk = checkoutResult.valueOrNull!;
+      final verificationPayload = {
+        'status': 'success',
+        'orderId': payment.orderId,
+        'txnid': payment.orderId,
+        'billingCycle': metadata?['billingCycle'] ?? 'monthly', // fallback
+        ...sdk.raw,
+        if (sdk.raw['payment_response'] is Map)
+          ...Map<String, dynamic>.from(sdk.raw['payment_response'] as Map),
+      };
+
+      final verifyRes = await verify(
+        paymentId: payment.paymentId,
+        gateway: payment.gateway,
+        purpose: purpose,
+        planId: planId,
+        verification: verificationPayload,
+      );
+
+      if (verifyRes.isSuccess) {
+        backendStatus = BackendPaymentStatus.paid;
+        message = 'Payment verified successfully';
+      } else {
+        // Verification failed, fallback to checking actual status
+        final finalStatus = await verifyPaymentStatus(payment.paymentId);
+        backendStatus = finalStatus.valueOrNull ?? BackendPaymentStatus.unknown;
+      }
+    } else {
+      // SDK failed or cancelled, do NOT automatically fail. Check backend status.
+      final finalStatus = await verifyPaymentStatus(payment.paymentId);
+      backendStatus = finalStatus.valueOrNull ?? BackendPaymentStatus.unknown;
     }
 
-    return Success((payment: payment, checkout: checkoutResult.valueOrNull!));
+    if (backendStatus == BackendPaymentStatus.failed) {
+      message = 'Payment failed on the server.';
+    } else if (backendStatus == BackendPaymentStatus.cancelled) {
+      message = 'Payment cancelled';
+    } else if (backendStatus == BackendPaymentStatus.paid) {
+      message = 'Payment verified successfully';
+    }
+
+    return Success((
+      payment: payment, 
+      checkout: checkoutResult.valueOrNull ?? EasebuzzCheckoutResult(
+        success: false,
+        status: checkoutResult.failureOrNull?.message ?? 'unknown',
+        raw: {},
+        message: checkoutResult.failureOrNull?.message,
+      ),
+      backendStatus: backendStatus,
+      message: message,
+    ));
   }
 
   Future<
-    Result<({PaymentInitiateResult payment, EasebuzzCheckoutResult checkout})>
+    Result<({PaymentInitiateResult payment, EasebuzzCheckoutResult checkout, BackendPaymentStatus backendStatus, String message})>
   >
   checkoutPublicWithEasebuzz({
     required String purpose,
@@ -241,7 +328,7 @@ class PaymentCheckoutService {
     required String phone,
     String currency = 'INR',
   }) async {
-    final checkoutResult = await _checkoutPublic(
+    final initResult = await _checkoutPublic(
       amount: amount,
       currency: currency,
       email: email,
@@ -251,17 +338,68 @@ class PaymentCheckoutService {
       phone: phone,
       purpose: purpose,
     );
-    if (checkoutResult.isFailure) {
-      return Err(checkoutResult.failureOrNull!);
+    if (initResult.isFailure) {
+      return Err(initResult.failureOrNull!);
     }
 
-    final payment = checkoutResult.valueOrNull!;
-    final sdkResult = await payWithEasebuzzSdk(payment);
-    if (sdkResult.isFailure) {
-      return Err(sdkResult.failureOrNull!);
+    final payment = initResult.valueOrNull!;
+    final checkoutResult = await payWithEasebuzzSdk(payment);
+    
+    BackendPaymentStatus backendStatus = BackendPaymentStatus.pending;
+    String message = 'Payment is being processed. Please check your order status shortly.';
+
+    if (checkoutResult.isSuccess && checkoutResult.valueOrNull!.success) {
+      final sdk = checkoutResult.valueOrNull!;
+      final verificationPayload = {
+        'status': 'success',
+        'orderId': payment.orderId,
+        'txnid': payment.orderId,
+        ...sdk.raw,
+        if (sdk.raw['payment_response'] is Map)
+          ...Map<String, dynamic>.from(sdk.raw['payment_response'] as Map),
+      };
+
+      final verifyRes = await verify(
+        paymentId: payment.paymentId,
+        gateway: payment.gateway,
+        purpose: purpose,
+        planId: planId,
+        verification: verificationPayload,
+      );
+
+      if (verifyRes.isSuccess) {
+        backendStatus = BackendPaymentStatus.paid;
+        message = 'Payment verified successfully';
+      } else {
+        // Fallback for public: we might not have an authenticated status endpoint,
+        // but we'll try verifying status if such endpoint exists.
+        final finalStatus = await verifyPaymentStatus(payment.paymentId);
+        backendStatus = finalStatus.valueOrNull ?? BackendPaymentStatus.unknown;
+      }
+    } else {
+      final finalStatus = await verifyPaymentStatus(payment.paymentId);
+      backendStatus = finalStatus.valueOrNull ?? BackendPaymentStatus.unknown;
     }
 
-    return Success((payment: payment, checkout: sdkResult.valueOrNull!));
+    if (backendStatus == BackendPaymentStatus.failed) {
+      message = 'Payment failed on the server.';
+    } else if (backendStatus == BackendPaymentStatus.cancelled) {
+      message = 'Payment cancelled';
+    } else if (backendStatus == BackendPaymentStatus.paid) {
+      message = 'Payment verified successfully';
+    }
+
+    return Success((
+      payment: payment, 
+      checkout: checkoutResult.valueOrNull ?? EasebuzzCheckoutResult(
+        success: false,
+        status: checkoutResult.failureOrNull?.message ?? 'unknown',
+        raw: {},
+        message: checkoutResult.failureOrNull?.message,
+      ),
+      backendStatus: backendStatus,
+      message: message,
+    ));
   }
 
   Future<Result<PaymentInitiateResult>> _checkoutPublic({

@@ -62,6 +62,12 @@ class FirebasePushNotificationService implements PushNotificationService {
         >()
         ?.requestNotificationsPermission();
 
+    final fcmToken = await _messaging.getToken();
+    // print('\n\n========================================');
+    // print('FCM TOKEN FOR THIS DEVICE:');
+    // print(fcmToken);
+    // print('========================================\n\n');
+
     await _messaging.requestPermission(alert: true, badge: true, sound: true);
 
     FirebaseMessaging.onMessage.listen((message) async {

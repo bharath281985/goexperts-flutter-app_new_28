@@ -38,6 +38,7 @@ class ProfileCompletionPage extends StatefulWidget {
 class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   final _formKey = GlobalKey<FormState>();
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _fullName = TextEditingController();
   final _headline = TextEditingController(); // Job Title / Headline
   final _company =
@@ -156,6 +157,11 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
       final emailVal = userMap['email']?.toString();
       if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
+
+      final phoneVal = userMap['phone']?.toString() ??
+          userMap['mobile']?.toString() ??
+          userMap['phoneNumber']?.toString();
+      if (phoneVal != null && phoneVal.isNotEmpty) _phone.text = phoneVal;
 
       final compVal =
           userMap['profileCompletion'] ?? userMap['profile_completion'];
@@ -1539,6 +1545,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   @override
   void dispose() {
     _email.dispose();
+    _phone.dispose();
     _fullName.dispose();
     _headline.dispose();
     _company.dispose();
@@ -1949,6 +1956,19 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                       label: 'Email',
                       hint: 'Enter Email',
                       readOnly: true,
+                    ),
+                    AppSizes.vGapLg,
+                    AppTextField(
+                      controller: _phone,
+                      label: 'Phone Number (optional)',
+                      hint: 'Enter 10-digit Phone Number',
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      validator: (v) => Validators.phone(v),
                     ),
                     AppSizes.vGapLg,
                     AppTextField(

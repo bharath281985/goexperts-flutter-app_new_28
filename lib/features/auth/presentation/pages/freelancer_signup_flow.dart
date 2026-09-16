@@ -42,6 +42,7 @@ class FreelancerSignupFlow extends StatefulWidget {
 class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   int _currentStep = 1;
   bool _isLoading = false;
+  bool _canPop = false;
 
   // Step 1 Controllers
   final _fullNameController = TextEditingController();
@@ -807,7 +808,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       widget.onBackToRoleSelection!();
     } else if (context.canPop()) {
       _saveProgress(1);
-      context.pop();
+      setState(() => _canPop = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pop();
+      });
     }
   }
 
@@ -824,12 +828,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           'Skills & Technologies Added',
           'Social Media Configured',
         ],
-        onGoToDashboard: () async {
-          await SignupProgressStore.clear();
-          if (context.mounted) {
-            context.read<AuthBloc>().add(const AuthCheckRequested());
-            context.go(Routes.freelancerDashboard);
-          }
+        onGoToDashboard: () {
+          SignupProgressStore.clear();
+          context.read<AuthBloc>().add(const AuthCheckRequested());
+          context.go(Routes.freelancerDashboard);
         },
       );
     }
@@ -856,20 +858,27 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         break;
     }
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) =>
-          previous.user != current.user ||
-          previous.pendingSignup != current.pendingSignup,
-      listener: _syncFromAuthState,
-      child: SignupScaffold(
-        title: title,
-        subtitle: subtitle,
-        currentStep: _currentStep,
-        totalSteps: 5,
-        onBack: _onBack,
-        onContinue: _onContinue,
-        isLoading: _isLoading,
-        child: _buildStepContent(),
+    return PopScope(
+      canPop: _canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (previous, current) =>
+            previous.user != current.user ||
+            previous.pendingSignup != current.pendingSignup,
+        listener: _syncFromAuthState,
+        child: SignupScaffold(
+          title: title,
+          subtitle: subtitle,
+          currentStep: _currentStep,
+          totalSteps: 5,
+          onBack: _onBack,
+          onContinue: _onContinue,
+          isLoading: _isLoading,
+          child: _buildStepContent(),
+        ),
       ),
     );
   }

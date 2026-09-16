@@ -169,7 +169,7 @@ class SignupScaffold extends StatelessWidget {
                             horizontal: 14,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.danger.withValues(alpha: 0.7),
+                            color: AppColors.white,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
@@ -180,10 +180,10 @@ class SignupScaffold extends StatelessWidget {
                                 isDecorate: false,
                               ),
                               const SizedBox(width: 4),
-                              const Text(
+                               Text(
                                 'Back',
                                 style: TextStyle(
-                                  color: AppColors.white,
+                                  color: AppColors.primary,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -191,8 +191,9 @@ class SignupScaffold extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      
                     ],
+                    Spacer(),
                     Expanded(
                       child: ElevatedButton(
                         onPressed: (isContinueEnabled && !isLoading)
@@ -208,11 +209,11 @@ class SignupScaffold extends StatelessWidget {
                           elevation: 0,
                         ),
                         child: isLoading
-                            ? const SizedBox(
+                            ?  SizedBox(
                                 width: 100,
                                 child: LinearProgressIndicator(
-                                  color: Colors.white,
-                                  backgroundColor: Colors.white24,
+                                  color: AppColors.success,
+                                  backgroundColor: AppColors.white.withValues(alpha: 0.3),
                                   minHeight: 3,
                                 ),
                               )

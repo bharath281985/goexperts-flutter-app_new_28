@@ -400,7 +400,7 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
                 child: AppTextField(
                   controller: widget.emailController,
                   keyboardType: TextInputType.emailAddress,
-                  hint: 'Enter email address',
+                  hint: 'Enter your email address',
                   prefixIcon: Icons.alternate_email_rounded,
                   readOnly: widget.isReadOnly,
                 ),

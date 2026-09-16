@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -18,25 +19,9 @@ class SupportPage extends StatefulWidget {
 }
 
 class _SupportPageState extends State<SupportPage> {
-  static const _faqs = [
-    [
-      'How do I withdraw my earnings?',
-      'Go to Wallet → Withdraw and choose your bank account. Payouts take 1–3 business days.',
-    ],
-    [
-      'How does escrow work?',
-      'Funds are held securely and released to freelancers when milestones are approved.',
-    ],
-    [
-      'How do I verify my profile?',
-      'Complete your profile and submit documents under Security Center → Verification.',
-    ],
-    [
-      'Can I switch roles?',
-      'Yes, you can add more roles from Settings → Account at any time.',
-    ],
-  ];
-
+  List<Map<String, dynamic>> _faqs = [];
+  String _supportEmail = 'servicedesk@goexperts.in';
+  String _supportPhone = '+919441457677';
   bool _loading = true;
   List<Map<String, dynamic>> _tickets = const [];
 
@@ -47,20 +32,45 @@ class _SupportPageState extends State<SupportPage> {
   }
 
   Future<void> _load() async {
-    final res = await sl<ApiClientHelper>()
-        .getEnvelope<List<Map<String, dynamic>>>(
-          ApiEndpoints.supportTickets,
-          parser: (e) {
-            final list = e.data as List?;
-            if (list == null) return const [];
-            return list
-                .whereType<Map>()
-                .map((x) => Map<String, dynamic>.from(x))
-                .toList();
-          },
-        );
+    final client = sl<ApiClientHelper>();
+    
+    // Fetch Support Tickets
+    final resTickets = await client.getEnvelope<List<Map<String, dynamic>>>(
+      ApiEndpoints.supportTickets,
+      parser: (e) {
+        final list = e.data as List?;
+        if (list == null) return const [];
+        return list.whereType<Map>().map((x) => Map<String, dynamic>.from(x)).toList();
+      },
+    );
+
+    // Fetch FAQs
+    final resFaqs = await client.getEnvelope<List<Map<String, dynamic>>>(
+      ApiEndpoints.publicFaqs,
+      parser: (e) {
+        final list = e.data as List?;
+        if (list == null) return const [];
+        return list.whereType<Map>().map((x) => Map<String, dynamic>.from(x)).toList();
+      },
+    );
+
+    // Fetch App Config
+    final resConfig = await client.getEnvelope<Map<String, dynamic>>(
+      ApiEndpoints.appConfig,
+      parser: (e) => (e.data as Map?)?.cast<String, dynamic>() ?? {},
+    );
+
     if (!mounted) return;
-    _tickets = res.valueOrNull ?? const [];
+    
+    _tickets = resTickets.valueOrNull ?? const [];
+    _faqs = resFaqs.valueOrNull ?? [];
+    
+    final config = resConfig.valueOrNull;
+    if (config != null) {
+      _supportEmail = config['supportEmail']?.toString() ?? _supportEmail;
+      _supportPhone = config['supportPhone']?.toString() ?? _supportPhone;
+    }
+
     setState(() => _loading = false);
   }
 
@@ -146,52 +156,7 @@ class _SupportPageState extends State<SupportPage> {
             ],
           ),
           AppSizes.vGapLg,
-          const Text(
-            'Frequently Asked Questions',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          AppSizes.vGapSm,
-          for (final f in _faqs)
-            Container(
-              margin: const EdgeInsets.only(bottom: AppSizes.md),
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.grey.shade400),
-              ),
-              child: ExpansionTile(
-                shape: const Border(),
-                collapsedShape: const Border(),
-                title: Text(
-                  f[0],
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black87,
-                  ),
-                ),
-                iconColor: Colors.black87,
-                collapsedIconColor: Colors.black87,
-                childrenPadding: const EdgeInsets.fromLTRB(
-                  AppSizes.lg,
-                  0,
-                  AppSizes.lg,
-                  AppSizes.lg,
-                ),
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      f[1],
-                      style: context.text.bodySmall?.copyWith(
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          AppSizes.vGapLg,
+        
           const Text(
             'My Tickets',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -251,52 +216,123 @@ class _SupportPageState extends State<SupportPage> {
                       ),
                   ],
                 ),
+          AppSizes.vGapXxl,
+          const Text(
+            'Frequently Asked Questions',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          AppSizes.vGapSm,
+          for (final f in _faqs)
+            Container(
+              margin: const EdgeInsets.only(bottom: AppSizes.md),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.grey.shade400),
+              ),
+              child: ExpansionTile(
+                shape: const Border(),
+                collapsedShape: const Border(),
+                title: Text(
+                  f['question']?.toString() ?? '',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.black87,
+                  ),
+                ),
+                iconColor: Colors.black87,
+                collapsedIconColor: Colors.black87,
+                childrenPadding: const EdgeInsets.fromLTRB(
+                  AppSizes.lg,
+                  0,
+                  AppSizes.lg,
+                  AppSizes.lg,
+                ),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      f['answer']?.toString() ?? '',
+                      style: context.text.bodySmall?.copyWith(
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 80),
         ],
       ),
     );
   }
   Future<void> _handleSupportContact(String text) async {
-  
-  if(text=="Call"){
-    final Uri phoneUri = Uri(
-      scheme: 'tel',
-      path: "+919441457677",
-    );
-    try {
-      final launched = await launchUrl(phoneUri);
-      if (!launched && context.mounted) {
-        context.showSnack('Could not open dial pad', isError: true);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        context.showSnack('Could not open dial pad', isError: true);
-      }
-    }
-  }
-  else if(text=="Email Us"){
-    try {
-      final launched = await launchUrl(
-        Uri.parse("mailto:servicedesk@goexperts.in"),
-        mode: LaunchMode.externalApplication,
+    if (text == "Call") {
+      final Uri phoneUri = Uri(
+        scheme: 'tel',
+        path: _supportPhone,
       );
-      if (!launched && context.mounted) {
-        context.showSnack('Could not open email app', isError: true);
+      try {
+        final launched = await launchUrl(phoneUri);
+        if (!launched && context.mounted) {
+          context.showSnack('Could not open dial pad', isError: true);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          context.showSnack('Could not open dial pad', isError: true);
+        }
       }
-    } catch (e) {
-      if (context.mounted) {
-        context.showSnack('Could not open email app', isError: true);
+    } else if (text == "Email Us") {
+      try {
+        final launched = await launchUrl(
+          Uri.parse("mailto:$_supportEmail"),
+          mode: LaunchMode.externalApplication,
+        );
+        if (!launched && context.mounted) {
+          context.showSnack('Could not open email app', isError: true);
+        }
+      } catch (e) {
+        if (context.mounted) {
+          context.showSnack('Could not open email app', isError: true);
+        }
       }
+    } else if (text == "Live Chat") {
+      // Look for an existing open Live Chat ticket
+      final existingChat = _tickets.where((t) {
+        final subject = (t['subject']?.toString() ?? '').toLowerCase();
+        final status = (t['status']?.toString() ?? '').toLowerCase();
+        return subject.contains('live chat') && status != 'closed' && status != 'resolved';
+      }).firstOrNull;
+
+      if (existingChat != null) {
+        _viewTicket(existingChat);
+      } else {
+        context.showSnack('Starting Live Chat...');
+        final res = await sl<ApiClientHelper>().postEnvelope<Map<String, dynamic>>(
+          ApiEndpoints.supportTickets,
+          body: {
+            'subject': 'Live Chat Request',
+            'category': 'General Inquiry',
+            'priority': 'High',
+          },
+          parser: (e) => (e.data as Map?)?.cast<String, dynamic>() ?? {},
+        );
+        
+        if (context.mounted) {
+          res.fold(
+            (l) => context.showSnack(l.message, isError: true),
+            (ticket) {
+              _load(); // Reload the list
+              _viewTicket(ticket);
+            },
+          );
+        }
+      }
+    } else {
+      context.showSnack("Coming soon");
     }
   }
-  else{
-    context.showSnack("Coming soon");
-  }
-
- 
-
- 
-}
 
   Widget _contact(
     BuildContext context,
@@ -617,6 +653,7 @@ class _ViewTicketSheet extends StatefulWidget {
 class _ViewTicketSheetState extends State<_ViewTicketSheet> {
   bool _isLoading = true;
   bool _sending = false;
+  bool _showAllMessages = false;
   Map<String, dynamic>? _ticketDetails;
   final _replyCtrl = TextEditingController();
 
@@ -664,10 +701,15 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
     final categoryStr =
         _ticketDetails?['category']?.toString() ??
         widget.ticketInfo['category']?.toString() ??
+        _ticketDetails?['categoryId']?.toString() ??
         'N/A';
     final priorityStr =
         _ticketDetails?['priority']?.toString() ??
         widget.ticketInfo['priority']?.toString() ??
+        'N/A';
+    final ticketNumber =
+        _ticketDetails?['ticketNumber']?.toString() ??
+        widget.ticketInfo['ticketNumber']?.toString() ??
         'N/A';
     final msgsStr = _ticketDetails?['messages'];
     final messages = (msgsStr is List)
@@ -724,10 +766,45 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          style: Theme.of(context).textTheme.titleLarge
-                              ?.copyWith(fontWeight: FontWeight.bold),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: Theme.of(context).textTheme.titleLarge
+                                    ?.copyWith(fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            if (!isClosed)
+                              TextButton(
+                                onPressed: () async {
+                                  setState(() => _sending = true);
+                                  final res = await sl<ApiClientHelper>()
+                                      .patchAction(ApiEndpoints.supportTicketClose(ticketId));
+                                  if (!mounted) return;
+                                  res.fold(
+                                    (f) {
+                                      context.showSnack(f.message);
+                                      setState(() => _sending = false);
+                                    },
+                                    (_) {
+                                      context.showSnack('Ticket successfully closed');
+                                      Navigator.pop(context);
+                                      widget.onReload();
+                                    },
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                child: const Text(
+                                  'Close Ticket',
+                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                          ],
                         ),
                         AppSizes.vGapMd,
                         Wrap(
@@ -773,6 +850,28 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                             ),
                           ],
                         ),
+                        AppSizes.vGapSm,
+                        Row(
+                          children: [
+                            Text('Ticket Number:',style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),),
+                            Expanded(child: Text(' $ticketNumber')),
+                          ],
+                        ),
+                        AppSizes.vGapSm,
+                        Row(
+                          children: [
+                            Text('Subject:',style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),),
+                            Expanded(child: Text(' ${_ticketDetails?['subject']?.toString() ?? ''}')),
+                          ],
+                        ),
+                       
+
                         AppSizes.vGapLg,
                         if (messages.isNotEmpty) ...[
                           const Text(
@@ -782,126 +881,127 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                               fontSize: 16,
                             ),
                           ),
+                          AppSizes.vGapLg,
+                          const Divider(),
                           AppSizes.vGapSm,
-                          for (var m in messages)
-                            Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).cardColor,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Theme.of(context).dividerColor,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withAlpha(30),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    m['createdAt']?.toString() ?? 'Just now',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.grey.shade500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    m['message']?.toString() ?? '',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      height: 1.4,
-                                    ),
-                                  ),
-                                ],
+                          if (messages.length > 3 && !_showAllMessages)
+                            Center(
+                              child: TextButton(
+                                onPressed: () => setState(() => _showAllMessages = true),
+                                child: Text('View previous messages (${messages.length - 3})'),
                               ),
                             ),
-                          AppSizes.vGapLg,
-                        ],
-                        if (!isClosed) ...[
-                          const Text(
-                            'Leave a Reply',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          AppSizes.vGapSm,
-                          AppTextField(
-                            controller: _replyCtrl,
-                            hint: 'Type your reply here...',
-                            maxLines: 4,
-                          ),
-                          AppSizes.vGapLg,
-                        ],
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            if (!_sending && !isClosed) ...[
-                              TextButton(
-                                onPressed: () async {
-                                  setState(() => _sending = true);
-                                  final res = await sl<ApiClientHelper>()
-                                      .patchAction(
-                                        ApiEndpoints.supportTicketClose(
-                                          ticketId,
+                          for (var i = 0; i < messages.length; i++)
+                            Builder(
+                              builder: (context) {
+                                if (!_showAllMessages && i < messages.length - 3) return const SizedBox.shrink();
+                                final m = messages[i];
+                                final isAdmin = m['senderRole'] == 'admin';
+                                String timeStr = m['createdAt']?.toString() ?? '';
+                                try {
+                                  if (timeStr.isNotEmpty) {
+                                    final dt = DateTime.parse(timeStr).toLocal();
+                                    timeStr = DateFormat('dd MMM yyyy, hh:mm a').format(dt);
+                                  }
+                                } catch (_) {}
+
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                                  child: Row(
+                                    mainAxisAlignment: isAdmin ? MainAxisAlignment.start : MainAxisAlignment.end,
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      if (!isAdmin) const SizedBox(width: 40),
+                                      Flexible(
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                          decoration: BoxDecoration(
+                                            color: isAdmin ? Colors.grey.shade200 : AppColors.primary,
+                                            borderRadius: BorderRadius.only(
+                                              topLeft: const Radius.circular(16),
+                                              topRight: const Radius.circular(16),
+                                              bottomLeft: Radius.circular(isAdmin ? 0 : 16),
+                                              bottomRight: Radius.circular(isAdmin ? 16 : 0),
+                                            ),
+                                          ),
+                                          child: Wrap(
+                                            alignment: isAdmin ? WrapAlignment.start : WrapAlignment.end,
+                                            crossAxisAlignment: WrapCrossAlignment.end,
+                                            children: [
+                                              Text(
+                                                m['message']?.toString() ?? '',
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  height: 1.4,
+                                                  color: isAdmin ? Colors.black87 : Colors.white,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Padding(
+                                                padding: const EdgeInsets.only(bottom: 2),
+                                                child: Text(
+                                                  timeStr,
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: isAdmin ? Colors.black54 : Colors.white70,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                      );
-                                  if (!mounted) return;
-                                  res.fold(
-                                    (f) {
-                                      context.showSnack(f.message);
-                                      setState(() => _sending = false);
-                                    },
-                                    (_) {
-                                      context.showSnack(
-                                        'Ticket successfully closed',
-                                      );
-                                      Navigator.pop(context);
-                                      widget.onReload();
-                                    },
-                                  );
-                                },
-                                style: TextButton.styleFrom(
-                                  foregroundColor: Colors.red,
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 12,
+                                      ),
+                                      if (isAdmin) const SizedBox(width: 40),
+                                    ],
                                   ),
-                                ),
-                                child: const Text(
-                                  'Close Ticket',
-                                  style: TextStyle(fontWeight: FontWeight.w600),
+                                );
+                                }
+                            ),
+                          AppSizes.vGapLg,
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                if (!isClosed) ...[
+                  const Divider(),
+                  AppSizes.vGapSm,
+                  Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Expanded(
+                                child: AppTextField(
+                                  controller: _replyCtrl,
+                                  hint: 'Type a reply...',
+                                  maxLines: 1,
                                 ),
                               ),
-                              AppSizes.hGapMd,
-                            ],
-                            if (!isClosed)
-                              Expanded(
-                                child: ElevatedButton.icon(
-                                  onPressed: _sending
-                                      ? null
-                                      : () async {
-                                          if (_replyCtrl.text.trim().isEmpty) {
-                                            return;
-                                          }
+                              AppSizes.hGapSm,
+                              _sending
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(14),
+                                      child: SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                      ),
+                                    )
+                                  : Container(
+                                      margin: const EdgeInsets.only(bottom: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: IconButton(
+                                        onPressed: () async {
+                                          if (_replyCtrl.text.trim().isEmpty) return;
                                           setState(() => _sending = true);
                                           final res = await sl<ApiClientHelper>()
                                               .postAction(
-                                                ApiEndpoints.supportTicketReply(
-                                                  ticketId,
-                                                ),
-                                                body: {
-                                                  'message': _replyCtrl.text
-                                                      .trim(),
-                                                },
+                                                ApiEndpoints.supportTicketReply(ticketId),
+                                                body: {'message': _replyCtrl.text.trim()},
                                               );
                                           if (!mounted) return;
                                           res.fold(
@@ -910,48 +1010,24 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                               setState(() => _sending = false);
                                             },
                                             (_) {
-                                              context.showSnack(
-                                                'Reply sent successfully',
-                                              );
-                                              Navigator.pop(context);
+                                              context.showSnack('Reply sent successfully');
+                                              _replyCtrl.clear();
+                                              _loadTicket();
+                                              setState(() => _sending = false);
                                               widget.onReload();
                                             },
                                           );
                                         },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: AppColors.primary,
-                                    foregroundColor: Colors.white,
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 16,
+                                        icon: const Icon(Icons.send, size: 20),
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  icon: _sending
-                                      ? const SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.send_rounded,
-                                          size: 18,
-                                        ),
-                                  label: const Text(
-                                    'Send Reply',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (isClosed)
+                            ],
+                          ),
+                        ],
+                        if (isClosed)
+                          Row(
+                            children: [
                               Expanded(
                                 child: OutlinedButton(
                                   onPressed: () => Navigator.pop(context),
@@ -972,13 +1048,9 @@ class _ViewTicketSheetState extends State<_ViewTicketSheet> {
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                            ],
+                          ),
                         SizedBox(height: bottomInset > 0 ? 0 : AppSizes.lg),
-                      ],
-                    ),
-                  ),
-                ),
               ],
             ),
     );

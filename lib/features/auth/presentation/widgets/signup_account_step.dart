@@ -88,10 +88,16 @@ class SignupAccountStep extends StatelessWidget {
 
   Future<void> _clearSessionAndOpenLogin(BuildContext context) async {
     final authBloc = context.read<AuthBloc>();
+    if (authBloc.state.status == AuthStatus.unauthenticated) {
+      context.go(Routes.login);
+      return;
+    }
     authBloc.add(const AuthLoggedOut(remote: false));
-    await authBloc.stream.firstWhere(
-      (state) => state.status == AuthStatus.unauthenticated,
-    );
+    try {
+      await authBloc.stream.firstWhere(
+        (state) => state.status == AuthStatus.unauthenticated,
+      ).timeout(const Duration(seconds: 2));
+    } catch (_) {}
     if (context.mounted) {
       context.go(Routes.login);
     }
@@ -104,7 +110,7 @@ class SignupAccountStep extends StatelessWidget {
         AppTextField(
           controller: fullNameController,
           label: 'Full Name *',
-          hint: 'Enter full name',
+          hint: 'Enter your full name',
           prefixIcon: Icons.person_outline,
         ),
         const SizedBox(height: 16),
@@ -205,7 +211,7 @@ class SignupAccountStep extends StatelessWidget {
                     ),
                     children: [
                       TextSpan(
-                        text: 'Terms Conditions',
+                        text: 'Terms & Conditions',
                         style:  TextStyle(
                           color: AppColors.primary,
                           fontWeight: FontWeight.bold,

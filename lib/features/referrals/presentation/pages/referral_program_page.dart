@@ -115,7 +115,10 @@ class _Content extends StatelessWidget {
                 children: [
                   _Hero(details: details, onCopy: onCopy, onShare: onShare),
                   const SizedBox(height: 18),
-                  const ReferralPromoBanner(),
+                  ReferralPromoBanner(
+                    referralRewardAmount: details.referralRewardAmount,
+                    commission: details.commission,
+                  ),
                   const SizedBox(height: 18),
                   GridView.count(
                     crossAxisCount: wide ? 4 : 2,
@@ -124,7 +127,7 @@ class _Content extends StatelessWidget {
                     physics: const NeverScrollableScrollPhysics(),
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childAspectRatio: wide ? 2.5 : 2.0,
+                    childAspectRatio: wide ? 2.5 : 1.7,
                     children: [
                       _Stat(
                         'Total referrals',
@@ -229,50 +232,55 @@ class _Hero extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 22),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            Row(
               children: [
-                InkWell(
-                  onTap: () => onCopy(details.referralCode, 'Referral code'),
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          details.referralCode.isEmpty
-                              ? 'Code unavailable'
-                              : details.referralCode,
-                          style: const TextStyle(
-                            color: Color(0xFF55101A),
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.2,
+                Expanded(
+                  child: InkWell(
+                    onTap: () => onCopy(details.referralCode, 'Referral code'),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              details.referralCode.isEmpty
+                                  ? 'Code unavailable'
+                                  : details.referralCode,
+                              style: const TextStyle(
+                                color: Color(0xFF55101A),
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.2,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                         Icon(
-                          Icons.copy_rounded,
-                          size: 17,
-                          color: AppColors.primary,
-                        ),
-                      ],
+                          const SizedBox(width: 10),
+                          Icon(
+                            Icons.copy_rounded,
+                            size: 17,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                FilledButton.icon(
-                  onPressed: details.referralLink.isEmpty ? null : onShare,
-                  icon: const Icon(Icons.ios_share_rounded),
-                  label: const Text('Share invite'),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: details.referralLink.isEmpty ? null : onShare,
+                    icon: const Icon(Icons.ios_share_rounded),
+                    label: const Text('Share'),
+                  ),
                 ),
               ],
             ),

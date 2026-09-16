@@ -14,6 +14,7 @@ class AuthScaffold extends StatelessWidget {
     required this.child,
     this.showBack = false,
     this.backAlignment = Alignment.centerLeft,
+    this.floatingActionButton,
   });
 
   final String title;
@@ -21,6 +22,7 @@ class AuthScaffold extends StatelessWidget {
   final Widget child;
   final bool showBack;
   final AlignmentGeometry backAlignment;
+  final Widget? floatingActionButton;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ class AuthScaffold extends StatelessWidget {
       backgroundColor: isDark
           ? AppColors.darkBackground
           : const Color(0xFFF4F6FB),
-
+      floatingActionButton: floatingActionButton,
       body: Stack(
         children: [
           // Background ambient gradient glows

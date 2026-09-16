@@ -16,6 +16,7 @@ class Routes {
   static const profileCompletion = '/profile-completion';
   static const subscription = '/subscription';
   static const authSuccess = '/success';
+  static const paymentStatus = '/payment-status';
 
   // Freelancer
   static const freelancerDashboard = '/freelancer/dashboard';

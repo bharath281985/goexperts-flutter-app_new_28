@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
@@ -49,6 +50,7 @@ class _LoginPageState extends State<LoginPage> {
     return AuthScaffold(
       title: 'Welcome back',
       subtitle: 'Log in to continue to ${AppStrings.appName}',
+      floatingActionButton: const AnimatedHelpFAB(),
       child: BlocConsumer<AuthBloc, AuthState>(
         listenWhen: (p, c) =>
             p.errorMessage != c.errorMessage && c.errorMessage != null,
@@ -289,6 +291,62 @@ class _GradientButton extends StatelessWidget {
                   ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class AnimatedHelpFAB extends StatefulWidget {
+  const AnimatedHelpFAB({super.key});
+
+  @override
+  State<AnimatedHelpFAB> createState() => _AnimatedHelpFABState();
+}
+
+class _AnimatedHelpFABState extends State<AnimatedHelpFAB>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
+
+    _animation = Tween<double>(begin: 1.0, end: 1.08).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _animation,
+      child: FloatingActionButton.small(
+        onPressed: () async {
+          final uri = Uri(
+            scheme: 'mailto',
+            path: 'servicedesk@goexperts.in',
+          );
+          try {
+            await launchUrl(uri);
+          } catch (e) {
+            debugPrint('Could not launch email client: $e');
+          }
+        },
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        tooltip: 'Contact Support',
+        child: const Icon(Icons.help_outline, size: 18),
       ),
     );
   }

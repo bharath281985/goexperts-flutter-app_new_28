@@ -183,7 +183,7 @@ class _LeftPanelSmall extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFFF3B30),
+              color: AppColors.primary,
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -324,9 +324,9 @@ class _LeftPanelSmall extends StatelessWidget {
                       size: 36,
                     ),
                   )
-                : const Icon(
+                :  Icon(
                     Icons.business_rounded,
-                    color: Color(0xFFFF3B30),
+                    color: AppColors.mutedText,
                     size: 36,
                   ),
           ),
@@ -405,7 +405,7 @@ class _RightPanelSmall extends StatelessWidget {
                 _InfoChipSmall(
                   icon: Icons.business_center_outlined,
                   label: startup.industry,
-                  color: const Color(0xFFFF3B30),
+                  color: AppColors.mutedText,
                 ),
                 const SizedBox(width: 8),
                 Text('|', style: TextStyle(color: Colors.grey.shade300)),
@@ -455,25 +455,25 @@ class _RightPanelSmall extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 3),
-                Expanded(
-                  child: _StatBlock(
-                    icon: Icons.bar_chart_rounded,
-                    iconColor: const Color(0xFF5E5CE6),
-                    bgColor: const Color(0xFFEEEBFF),
-                    label: 'Stage',
-                    value: startup.stage.isNotEmpty ? startup.stage : 'Idea',
-                  ),
-                ),
-                const SizedBox(width: 3),
-                const Expanded(
-                  child: _StatBlock(
-                    icon: Icons.people_outline_rounded,
-                    iconColor: Color(0xFFFF9500),
-                    bgColor: Color(0xFFFFF4E5),
-                    label: 'Team',
-                    value: '15+',
-                  ),
-                ),
+                // Expanded(
+                //   child: _StatBlock(
+                //     icon: Icons.bar_chart_rounded,
+                //     iconColor: const Color(0xFF5E5CE6),
+                //     bgColor: const Color(0xFFEEEBFF),
+                //     label: 'Stage',
+                //     value: startup.stage.isNotEmpty ? startup.stage : 'Idea',
+                //   ),
+                // ),
+                // const SizedBox(width: 3),
+                // const Expanded(
+                //   child: _StatBlock(
+                //     icon: Icons.people_outline_rounded,
+                //     iconColor: Color(0xFFFF9500),
+                //     bgColor: Color(0xFFFFF4E5),
+                //     label: 'Team',
+                //     value: '15+',
+                //   ),
+                // ),
               ],
             )
           else
@@ -507,31 +507,31 @@ class _RightPanelSmall extends StatelessWidget {
                 const SizedBox(
                   height: 8,
                 ), // Replaced large gap with compact gap
-                Row(
-                  children: [
-                    Expanded(
-                      child: _StatBlock(
-                        icon: Icons.bar_chart_rounded,
-                        iconColor: const Color(0xFF5E5CE6),
-                        bgColor: const Color(0xFFEEEBFF),
-                        label: 'Stage',
-                        value: startup.stage.isNotEmpty
-                            ? startup.stage
-                            : 'Idea',
-                      ),
-                    ),
-                    const SizedBox(width: 3), // Updated space to 3
-                    const Expanded(
-                      child: _StatBlock(
-                        icon: Icons.people_outline_rounded,
-                        iconColor: Color(0xFFFF9500),
-                        bgColor: Color(0xFFFFF4E5),
-                        label: 'Team',
-                        value: '15+',
-                      ),
-                    ),
-                  ],
-                ),
+                // Row(
+                //   children: [
+                //     Expanded(
+                //       child: _StatBlock(
+                //         icon: Icons.bar_chart_rounded,
+                //         iconColor: const Color(0xFF5E5CE6),
+                //         bgColor: const Color(0xFFEEEBFF),
+                //         label: 'Stage',
+                //         value: startup.stage.isNotEmpty
+                //             ? startup.stage
+                //             : 'Idea',
+                //       ),
+                //     ),
+                //     const SizedBox(width: 3), // Updated space to 3
+                //     const Expanded(
+                //       child: _StatBlock(
+                //         icon: Icons.people_outline_rounded,
+                //         iconColor: Color(0xFFFF9500),
+                //         bgColor: Color(0xFFFFF4E5),
+                //         label: 'Team',
+                //         value: '15+',
+                //       ),
+                //     ),
+                //   ],
+                // ),
               ],
             ),
 
@@ -746,7 +746,7 @@ class _FundingProgressSmall extends StatelessWidget {
                 '${(startup.fundingProgress * 100).toStringAsFixed(0)}% Funded',
                 style: context.text.titleSmall?.copyWith(
                   fontWeight: FontWeight.w800,
-                  color: const Color(0xFFFF3B30),
+                  color: AppColors.primary,
                 ),
               ),
             ],
@@ -890,7 +890,7 @@ class _SolidBtnSmall extends StatelessWidget {
                     const Color(0xFF374151),
                   ] // Grey metallic gradient for withdraw
                 : [
-                    const Color(0xFFFF3B30),
+                    AppColors.primary,
                     const Color(0xFF000000),
                   ], // Signature red for Invest
             begin: Alignment.centerLeft,
@@ -898,7 +898,7 @@ class _SolidBtnSmall extends StatelessWidget {
           ),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFFFF3B30).withValues(alpha: 0.2),
+              color: AppColors.primary.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

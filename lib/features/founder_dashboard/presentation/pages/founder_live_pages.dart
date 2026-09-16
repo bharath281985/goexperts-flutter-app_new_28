@@ -1,7 +1,9 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/validators/validators.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
@@ -9,6 +11,8 @@ import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/file_upload_helper.dart';
+
+import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_primary_button.dart';
 import '../../../../core/widgets/app_scaffold.dart';
@@ -43,6 +47,7 @@ class FounderProfileLivePage extends StatefulWidget {
 
 class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _fullName = TextEditingController();
   final _city = TextEditingController();
   final _startupName = TextEditingController();
@@ -115,6 +120,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
   @override
   void dispose() {
     _email.dispose();
+    _phone.dispose();
     _fullName.dispose();
     _city.dispose();
     _startupName.dispose();
@@ -188,6 +194,10 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       }
 
       _email.text = userMap['email']?.toString() ?? '';
+      final phoneVal = userMap['phone']?.toString() ??
+          userMap['mobile']?.toString() ??
+          userMap['phoneNumber']?.toString();
+      if (phoneVal != null && phoneVal.isNotEmpty) _phone.text = phoneVal;
       _fullName.text = (userMap['fullName']?.toString() ?? '').toTitleCase();
       _city.text =
           (userMap['city']?.toString() ?? userMap['location']?.toString() ?? '').toTitleCase();
@@ -653,10 +663,17 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       return;
     }
 
+    if (_bio.text.trim().isNotEmpty && _bio.text.trim().length < 30) {
+      context.showSnack('Biography / Overview must be at least 30 characters', isError: true);
+      return;
+    }
+
     setState(() => _saving = true);
 
     final payload = <String, dynamic>{
       'fullName': fullName,
+      'phone': _phone.text.trim(),
+      'mobile': _phone.text.trim(),
       'city': _city.text.trim(),
       if (_bio.text.trim().isNotEmpty) 'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
@@ -727,6 +744,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           AuthUserUpdated(
             current.copyWith(
               fullName: fullName.isNotEmpty ? fullName : null,
+              phone: _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
               headline: _pitch.text.trim().isNotEmpty
                   ? _pitch.text.trim()
                   : _bio.text.trim().isNotEmpty
@@ -747,12 +765,17 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
       await _load();
       
       if (!mounted) return;
+
+      int missingDocs = 1;
+      try {
+        missingDocs = context.read<DashboardCubit>().state.verificationMissingCount;
+      } catch (_) {}
       
-      if (newCompletion == 100) {
+      if (newCompletion == 100 && missingDocs > 0) {
         ProfileSaveSuccessDialog.show(context);
       } else if (newCompletion == null) {
         final updatedUser = context.read<AuthBloc>().state.user;
-        if (updatedUser?.profileCompletion == 100) {
+        if (updatedUser?.profileCompletion == 100 && missingDocs > 0) {
           ProfileSaveSuccessDialog.show(context);
         }
       }
@@ -839,26 +862,39 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppTextField(
                       controller: _email,
                       label: 'Email',
-                      hint: 'Enter Email',
+                      hint: 'Enter your email address',
                       readOnly: true,
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
+                      controller: _phone,
+                      label: 'Phone Number (optional)',
+                      hint: 'Enter 10-digit Phone Number',
+                      prefixIcon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        LengthLimitingTextInputFormatter(10),
+                      ],
+                      validator: (v) => Validators.phone(v),
+                    ),
+                    AppSizes.vGapMd,
+                    AppTextField(
                       controller: _fullName,
-                      label: 'Name *',
-                      hint: 'Enter Name',
+                      label: 'Full Legal Name *',
+                      hint: 'Enter your full legal name',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _startupName,
                       label: 'Startup / Company Name *',
-                      hint: 'Enter Startup / Company Name',
+                      hint: 'Enter the official startup name',
                     ),
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _industryDisplayController,
                       label: _selectedIndustryIds.isEmpty ? 'Industry *' : 'Industry (${_selectedIndustryIds.length}) *',
-                      hint: 'Select Industry',
+                      hint: 'Choose the industry your startup is disrupting',
                       readOnly: true,
                       suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                       onTap: _showIndustryBottomSheet,
@@ -866,7 +902,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
                       label: 'Current Stage *',
-                      hint: 'Select Current Stage',
+                      hint: 'Where are you in your startup journey?',
                       value: _selectedStage,
                       items: _stages,
                       itemLabel: (item) => item.name,
@@ -875,7 +911,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
                       label: 'Role in Startup *',
-                      hint: 'Select Role in Startup',
+                      hint: 'What is your role in the startup?',
                       value: _selectedRole,
                       items: _roles,
                       itemLabel: (item) => item.name,
@@ -884,7 +920,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppSizes.vGapMd,
                     AppDropdown<MasterOption>(
                       label: 'Team Size *',
-                      hint: 'Select Team Size',
+                      hint: 'How large is your team?',
                       value: _selectedTeamSize,
                       items: _teamSizes,
                       itemLabel: (item) => item.name,
@@ -897,7 +933,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                       label: _selectedFounderGoalIds.isEmpty
                           ? 'Primary Goal on Platform'
                           : 'Primary Goal on Platform (${_selectedFounderGoalIds.length})',
-                      hint: 'Select Primary Goal',
+                      hint: 'What are you mainly looking for on this platform?',
                       readOnly: true,
                       suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                       onTap: _showPrimaryGoalBottomSheet,
@@ -905,15 +941,15 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                     AppSizes.vGapMd,
                     AppTextField(
                       controller: _targetRaise,
-                      label: 'Target Raise (₹)',
-                      hint: 'Enter Target Raise',
+                      label: 'Target Fundraise (₹)',
+                      hint: 'Enter the maximum capital you plan to raise',
                       keyboardType: TextInputType.number,
                     ),
                     AppSizes.vGapMd,
                    
                     AppDropdown<MasterOption>(
                       label: 'Country *',
-                      hint: 'Select Country',
+                      hint: 'Choose the country you’re based in',
                       value: _selectedCountry,
                       items: _countries,
                       itemLabel: (item) => item.name,
@@ -932,8 +968,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                       controller: _city,
                       country: _selectedCountry?.name,
                       
-                      label: 'City / Location *',
-                      hint: 'Select City / Location',
+                      label: 'City *',
+                      hint: 'Search and select your city ',
                     ),
                     AppSizes.vGapMd,
                     // if (_selectedCountry != null) ...[

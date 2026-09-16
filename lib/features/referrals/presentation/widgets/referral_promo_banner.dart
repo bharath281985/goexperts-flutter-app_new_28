@@ -3,10 +3,23 @@ import '../../../../app/constants/app_sizes.dart';
 import '../../../../core/extensions/context_extensions.dart';
 
 class ReferralPromoBanner extends StatelessWidget {
-  const ReferralPromoBanner({super.key});
+  const ReferralPromoBanner({
+    super.key,
+    this.referralRewardAmount = 25,
+    this.commission = 5,
+  });
+
+  final num referralRewardAmount;
+  final num commission;
+
+  String _formatNum(num value) =>
+      value % 1 == 0 ? value.toInt().toString() : value.toString();
 
   @override
   Widget build(BuildContext context) {
+    final rewardText = _formatNum(referralRewardAmount);
+    final commissionText = _formatNum(commission);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
@@ -52,9 +65,9 @@ class ReferralPromoBanner extends StatelessWidget {
               TextSpan(
                 children: [
                   const TextSpan(text: 'Earn '),
-                  const TextSpan(
-                    text: '₹25 instantly',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
+                  TextSpan(
+                    text: '₹$rewardText instantly',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF16A34A)),
                   ),
                   const TextSpan(text: ' for every successful referral.'),
                 ],
@@ -71,9 +84,9 @@ class ReferralPromoBanner extends StatelessWidget {
               TextSpan(
                 children: [
                   const TextSpan(text: 'When your referred user purchases a package, you’ll receive an additional '),
-                  const TextSpan(
-                    text: '5% commission',
-                    style: TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
+                  TextSpan(
+                    text: '$commissionText% commission',
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFFD97706)),
                   ),
                   const TextSpan(text: ' on the package value.'),
                 ],
@@ -111,7 +124,7 @@ class ReferralPromoBanner extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    'Refer → Earn ₹25 → Earn 5% Commission → Get Paid Instantly',
+                    'Refer → Earn ₹$rewardText → Earn $commissionText% Commission → Get Paid Instantly',
                     textAlign: TextAlign.center,
                     style: context.text.labelLarge?.copyWith(
                       fontWeight: FontWeight.bold,

@@ -30,6 +30,7 @@ class VerificationItem {
     required this.value,
     required this.status,
     this.documentUrl,
+    this.rejectReason,
     required this.required,
   });
 
@@ -38,11 +39,13 @@ class VerificationItem {
   final String value;
   final String status;
   final String? documentUrl;
+  final String? rejectReason;
   final bool required;
 
   bool get isVerified => status.toLowerCase() == 'verified';
   bool get isPending => status.toLowerCase() == 'pending';
-  bool get isMissing => !isVerified && !isPending;
+  bool get isRejected => status.toLowerCase() == 'rejected';
+  bool get isMissing => !isVerified && !isPending && !isRejected;
 
   factory VerificationItem.fromJson(Map<String, dynamic> json) {
     return VerificationItem(
@@ -56,6 +59,7 @@ class VerificationItem {
           json['publicUrl']?.toString() ??
           json['url']?.toString() ??
           json['file']?.toString(),
+      rejectReason: json['rejectReason']?.toString(),
       required: json['required'] == true,
     );
   }
@@ -100,6 +104,8 @@ class _FreelancerVerificationPageState
   int _pendingCount = 0;
   int _missingCount = 0;
   bool _accountVerified = false;
+  bool _kycApproved = false;
+  String _kycStatus = 'MISSING';
   String _headerName = '';
   String _headerEmail = '';
 
@@ -229,6 +235,8 @@ class _FreelancerVerificationPageState
           payload['missingCount'] ?? payload['missing_count'],
         );
         _accountVerified = payload['accountVerified'] == true;
+        _kycApproved = payload['kycApproved'] == true;
+        _kycStatus = payload['kycStatus']?.toString() ?? 'MISSING';
         _headerName =
             payload['fullName']?.toString() ?? user?.fullName ?? 'User';
         _headerEmail = payload['email']?.toString() ?? user?.email ?? '';
@@ -244,13 +252,13 @@ class _FreelancerVerificationPageState
           status: user?.isVerified == true ? 'verified' : 'missing',
           required: true,
         ),
-        VerificationItem(
-          key: 'phone',
-          label: 'Phone number',
-          value: user?.phone ?? '',
-          status: user?.isVerified == true ? 'verified' : 'missing',
-          required: true,
-        ),
+        // VerificationItem(
+        //   key: 'phone',
+        //   label: 'Phone number',
+        //   value: user?.phone ?? '',
+        //   status: user?.isVerified == true ? 'verified' : 'missing',
+        //   required: true,
+        // ),
         VerificationItem(
           key: 'identity',
           label: 'Aadhard Card/Identity (Government ID)',
@@ -391,6 +399,7 @@ class _FreelancerVerificationPageState
   }
 
   String? _validateDocument(String key, String value) {
+    final normalized = value.trim().toUpperCase().replaceAll(' ', '');
     final actualKey =
         (key == 'identity' ||
             key == 'pancard' ||
@@ -399,21 +408,33 @@ class _FreelancerVerificationPageState
         : key;
     final Map<String, Map<String, dynamic>> validators = {
       'pan': {
-        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', caseSensitive: false),
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
+        'message': 'Invalid PAN format (e.g. ABCDE1234F)',
+      },
+      'pancard': {
+        'regex': RegExp(r'^[A-Z]{5}[0-9]{4}[A-Z]$'),
         'message': 'Invalid PAN format (e.g. ABCDE1234F)',
       },
       'aadhaar': {
         'regex': RegExp(r'^\d{4}\s?\d{4}\s?\d{4}$'),
-        'message': 'Invalid Aadhaar format (12 digits)',
+        'message': 'Invalid Aadhaar format (12 digits, e.g. 1234 5678 9012)',
+      },
+      'driving': {
+        'regex': RegExp(r'^[A-Z0-9/\-]{10,20}$'),
+        'message': 'Invalid Driving Licence format',
       },
       'driving_licence': {
-        'regex': RegExp(r'^[A-Z0-9-/\s]{10,20}$', caseSensitive: false),
+        'regex': RegExp(r'^[A-Z0-9/\-]{10,20}$'),
         'message': 'Invalid Driving Licence format',
+      },
+      'passport': {
+        'regex': RegExp(r'^[A-Z][0-9]{7}$'),
+        'message': 'Invalid Passport format (e.g. A1234567)',
       },
     };
     if (validators.containsKey(actualKey)) {
       final RegExp regex = validators[actualKey]!['regex'];
-      if (!regex.hasMatch(value)) {
+      if (!regex.hasMatch(normalized)) {
         return validators[actualKey]!['message'];
       }
     }
@@ -771,7 +792,7 @@ class _FreelancerVerificationPageState
         ? _headerName
         : (user?.fullName ?? 'User');
 
-    final basicKeys = ['email', 'phone', 'mobile'];
+    final basicKeys = ['email'];
     final identityKeys = ['identity', ..._identityOptions.keys];
 
     final basicItems = _items.where((i) => basicKeys.contains(i.key)).toList();
@@ -820,6 +841,8 @@ class _FreelancerVerificationPageState
                       pendingCount: _pendingCount,
                       missingCount: _missingCount,
                       accountVerified: _accountVerified,
+                      kycApproved: _kycApproved,
+                      kycStatus: _kycStatus,
                     ),
                     AppSizes.vGapMd,
                     LayoutBuilder(
@@ -835,8 +858,8 @@ class _FreelancerVerificationPageState
                           children: basicItems.map((item) {
                             final card = item.key == 'email'
                                 ? _buildEmailCard(item, email)
-                                : item.key == 'phone' || item.key == 'mobile'
-                                ? _buildPhoneCard(item)
+                                // : item.key == 'phone' || item.key == 'mobile'
+                                // ? _buildPhoneCard(item)
                                 : _buildItemCard(item);
                             return SizedBox(width: cardWidth, child: card);
                           }).toList(),
@@ -1608,6 +1631,7 @@ class _FreelancerVerificationPageState
                             break;
                         }
 
+                        final isNumericOnly = actualKey == 'aadhaar';
                         return AppTextField(
                           controller: controller,
                           label: '$actualLabel Number',
@@ -1616,6 +1640,18 @@ class _FreelancerVerificationPageState
                           keyboardType: keyboardType,
                           maxLength: maxLength,
                           textInputAction: TextInputAction.done,
+                          textCapitalization: isNumericOnly
+                              ? TextCapitalization.none
+                              : TextCapitalization.characters,
+                          inputFormatters: isNumericOnly
+                              ? [FilteringTextInputFormatter.digitsOnly]
+                              : [
+                                  TextInputFormatter.withFunction(
+                                    (oldValue, newValue) => newValue.copyWith(
+                                      text: newValue.text.toUpperCase(),
+                                    ),
+                                  ),
+                                ],
                         );
                       },
                     ),
@@ -1732,6 +1768,8 @@ class _FreelancerVerificationPageState
       color = AppColors.success;
     } else if (item.isPending) {
       color = AppColors.warning;
+    } else if (item.isRejected) {
+      color = AppColors.danger;
     } else {
       color = AppColors.danger;
     }
@@ -1742,16 +1780,23 @@ class _FreelancerVerificationPageState
       statusIcon = Icons.check_circle_outline;
       statusText = 'Verified';
     } else if (item.isPending) {
-      statusIcon = Icons.hourglass_empty_rounded;
-           statusText = 'Verification Pending';
+      statusIcon = Icons.pending_outlined;
+      statusText = 'Verification Pending';
+    } else if (item.isRejected) {
+      statusIcon = Icons.cancel_outlined;
+      statusText = 'Rejected';
     } else {
       statusIcon = Icons.error_outline;
       statusText = 'Missing';
     }
 
-    final subtitle = item.isPending
+    String subtitle = item.isPending
         ? 'Submitted for review'
-        : (item.isVerified ? item.value : 'Please upload your ${item.label}.');
+        : (item.isVerified 
+            ? item.value 
+            : (item.isRejected 
+                ? (item.rejectReason ?? 'Rejected by admin') 
+                : 'Please upload your ${item.label}.'));
 
     return AppCard(
       radius: AppSizes.radiusMd,
@@ -1832,13 +1877,17 @@ class _FreelancerVerificationPageState
                           Icon(
                             item.isPending
                                 ? Icons.edit_outlined
-                                : Icons.add_circle_outline,
+                                : (item.isRejected
+                                    ? Icons.refresh_outlined
+                                    : Icons.add_circle_outline),
                             size: 14,
                             color: AppColors.primary,
                           ),
                           AppSizes.hGapXs,
                           Text(
-                            item.isPending ? 'Change' : 'Add',
+                            item.isPending 
+                                ? 'Change' 
+                                : (item.isRejected ? 'Change' : 'Add'),
                             style: context.text.labelSmall?.copyWith(
                               color: AppColors.primary,
                               fontWeight: FontWeight.w600,
@@ -1866,6 +1915,8 @@ class _HeaderCard extends StatelessWidget {
     required this.pendingCount,
     required this.missingCount,
     required this.accountVerified,
+    required this.kycApproved,
+    required this.kycStatus,
   });
 
   final String fullName;
@@ -1875,6 +1926,8 @@ class _HeaderCard extends StatelessWidget {
   final int pendingCount;
   final int missingCount;
   final bool accountVerified;
+  final bool kycApproved;
+  final String kycStatus;
 
   @override
   Widget build(BuildContext context) {
@@ -1930,14 +1983,17 @@ class _HeaderCard extends StatelessWidget {
               AppSizes.hGapSm,
               Builder(
                 builder: (context) {
-                  final isFullyVerified = accountVerified && missingCount == 0;
-                  final isPending = !isFullyVerified && pendingCount > 0 && missingCount == 0;
+                  final isRejected = kycStatus.toUpperCase() == 'REJECTED';
+                  final isPending = kycStatus.toUpperCase() == 'PENDING' || (pendingCount > 0 && missingCount == 0);
+                  final isFullyVerified = kycApproved || kycStatus.toUpperCase() == 'APPROVED' || (!isRejected && !isPending && accountVerified && missingCount == 0);
+                  
                   final badgeText = isFullyVerified
                       ? 'Verified Account'
-                      : (isPending ? 'Pending' : 'Not Verified');
+                      : (isRejected ? 'Rejected' : (isPending ? 'Pending' : 'Not Verified'));
+                  
                   final badgeColor = isFullyVerified
                       ? AppColors.success
-                      : (isPending ? AppColors.warning : AppColors.danger);
+                      : (isRejected ? AppColors.danger : (isPending ? AppColors.warning : AppColors.danger));
 
                   return Container(
                     padding: const EdgeInsets.symmetric(

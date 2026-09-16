@@ -237,24 +237,24 @@ class _MyProfilePageState extends State<MyProfilePage> {
               ?.toInt() ??
           0;
 
-      final isAccVerified =
-          (rawKycStatus == 'APPROVED' ||
-              rawKycStatus == 'VERIFIED' ||
-              payload['accountVerified'] == true) &&
-          missingCount == 0;
-
-      String statusKey = 'unverified';
-      if (isAccVerified ||
-          (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
-        statusKey = 'verified';
-      } else if (rawKycStatus == 'PENDING' ||
+      final isRejected = rawKycStatus == 'REJECTED' || rawKycStatus == 'ACTION_REQUIRED';
+      final isPending = rawKycStatus == 'PENDING' ||
           rawKycStatus == 'UNDER_REVIEW' ||
           rawKycStatus == 'IN_REVIEW' ||
-          pendingCount > 0) {
-        statusKey = 'pending';
-      } else if (rawKycStatus == 'REJECTED' ||
-          rawKycStatus == 'ACTION_REQUIRED') {
+          (pendingCount > 0 && missingCount == 0);
+
+      final isAccVerified = rawKycStatus == 'APPROVED' ||
+          rawKycStatus == 'VERIFIED' ||
+          payload['kycApproved'] == true ||
+          (!isRejected && !isPending && payload['accountVerified'] == true && missingCount == 0);
+
+      String statusKey = 'unverified';
+      if (isRejected) {
         statusKey = 'action_required';
+      } else if (isPending) {
+        statusKey = 'pending';
+      } else if (isAccVerified || (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
+        statusKey = 'verified';
       } else if (missingCount > 0 ||
           rawKycStatus == 'NOT_SUBMITTED' ||
           rawKycStatus == 'MISSING') {

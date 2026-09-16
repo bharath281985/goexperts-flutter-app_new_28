@@ -1234,8 +1234,9 @@ class _FounderBrandHeader extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 3),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
                         children: [
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -1260,7 +1261,6 @@ class _FounderBrandHeader extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 6),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 5,

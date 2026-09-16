@@ -1,15 +1,21 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../app/router/route_names.dart';
+import '../../../../core/validators/validators.dart';
 
 import '../../../../app/constants/app_colors.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/dependency_injection/service_locator.dart';
 import '../../../../core/extensions/context_extensions.dart';
 import '../../../../core/network/api_client_helper.dart';
+import '../../../../core/dashboard/dashboard_cubit.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/file_upload_helper.dart';
 import '../../../../core/payments/payment_checkout_service.dart';
+import '../../../../core/payments/backend_payment_status.dart';
 import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_location_field.dart';
@@ -37,6 +43,7 @@ class ClientCompanyProfilePage extends StatefulWidget {
 
 class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   final _email = TextEditingController();
+  final _phone = TextEditingController();
   final _name = TextEditingController();
   final _companyNameController = TextEditingController();
   final _jobTitleController = TextEditingController();
@@ -77,6 +84,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   @override
   void dispose() {
     _email.dispose();
+    _phone.dispose();
     _name.dispose();
     _companyNameController.dispose();
     _jobTitleController.dispose();
@@ -127,6 +135,11 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     if (userMap.isNotEmpty) {
       final emailVal = userMap['email']?.toString();
       if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
+
+      final phoneVal = userMap['phone']?.toString() ??
+          userMap['mobile']?.toString() ??
+          userMap['phoneNumber']?.toString();
+      if (phoneVal != null && phoneVal.isNotEmpty) _phone.text = phoneVal;
 
       final fn =
           userMap['fullName']?.toString() ?? userMap['full_name']?.toString();
@@ -570,6 +583,11 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       context.showSnack('Full name is required', isError: true);
       return;
     }
+
+    if (_bio.text.trim().isNotEmpty && _bio.text.trim().length < 30) {
+      context.showSnack('Biography / Overview must be at least 30 characters', isError: true);
+      return;
+    }
     setState(() => _saving = true);
 
     String? uploadedAvatarUrl = _logoUrl;
@@ -589,6 +607,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
 
     final payload = <String, dynamic>{
       'fullName': _name.text.trim(),
+      'phone': _phone.text.trim(),
+      'mobile': _phone.text.trim(),
       'city': _city.text.trim(),
       'bio': _bio.text.trim(),
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
@@ -658,6 +678,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
               fullName: _name.text.trim().isNotEmpty
                   ? _name.text.trim()
                   : null,
+              phone: _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
               headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
               location: locationParts.isNotEmpty
                   ? locationParts.join(', ')
@@ -676,11 +697,16 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       
       if (!mounted) return;
       
-      if (newCompletion == 100) {
+      int missingDocs = 1;
+      try {
+        missingDocs = context.read<DashboardCubit>().state.verificationMissingCount;
+      } catch (_) {}
+      
+      if (newCompletion == 100 && missingDocs > 0) {
         ProfileSaveSuccessDialog.show(context);
       } else if (newCompletion == null) {
         final updatedUser = context.read<AuthBloc>().state.user;
-        if (updatedUser?.profileCompletion == 100) {
+        if (updatedUser?.profileCompletion == 100 && missingDocs > 0) {
           ProfileSaveSuccessDialog.show(context);
         }
       }
@@ -743,40 +769,53 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppTextField(
                   controller: _email,
                   label: 'Email',
-                  hint: 'Enter Email',
+                  hint: 'Enter your email address',
                   readOnly: true,
+                ),
+                AppSizes.vGapMd,
+                AppTextField(
+                  controller: _phone,
+                  label: 'Phone Number (optional)',
+                  hint: 'Enter 10-digit Phone Number',
+                  prefixIcon: Icons.phone_outlined,
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                  validator: (v) => Validators.phone(v),
                 ),
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _name,
                   label: 'Full Name *',
-                  hint: 'Enter Full Name',
+                  hint: 'Enter your full legal name',
                 ),
                 AppSizes.vGapMd,
-                AppTextField(
-                  controller: _jobTitleController,
-                  label: 'Job Title *',
-                  hint: 'Enter Job Title',
-                ),
-                AppSizes.vGapLg,
+                // AppTextField(
+                //   controller: _jobTitleController,
+                //   label: 'Job Title *',
+                //   hint: 'Enter your job title',
+                // ),
+                // AppSizes.vGapLg,
                 Text('Company Info', style: context.text.titleMedium),
                 AppSizes.vGapSm,
                 AppTextField(
                   controller: _companyNameController,
                   label: 'Company Name *',
-                  hint: 'Enter Company Name',
+                  hint: 'Enter the official company name',
                 ),
                 AppSizes.vGapMd,
                 AppLocationField(
                   controller: _city,
-                  label: 'Location / City *',
-                  hint: 'Select Location / City',
+                  label: 'City *',
+                  hint: 'Search and select your city',
                   country: _selectedCountry?.name,
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
                   label: 'Country *',
-                  hint: 'Select Country',
+                  hint: 'Choose the country you’re based in',
                   value: _selectedCountry,
                   items: _countries,
                   itemLabel: (item) => item.name,
@@ -794,8 +833,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _categoryDisplayController,
-                  label: 'Category / Industry *',
-                  hint: 'Select Category / Industry',
+                  label: 'Industry / Sector *',
+                  hint: 'Choose the industry your business operates in',
                   readOnly: true,
                   suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                   onTap: _showCategoryBottomSheet,
@@ -812,8 +851,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
-                  label: 'Project / Hiring Budget *',
-                  hint: 'Select Project / Hiring Budget',
+                  label: 'Estimated Project / Hiring Budget Range *',
+                  hint: 'What is your budget for this project?',
                   value: _selectedBudgetRange,
                   items: _budgetRanges,
                   itemLabel: (item) => item.name,
@@ -823,8 +862,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppSizes.vGapMd,
                 AppTextField(
                   controller: _hiringGoalsDisplayController,
-                  label: 'Hiring Goals',
-                  hint: 'Select Hiring Goals',
+                  label: 'Primary Hiring Goal',
+                  hint: 'Select your primary goals on the platform',
                   readOnly: true,
                   suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
                   onTap: _showHiringGoalsBottomSheet,
@@ -833,7 +872,7 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 AppTextField(
                   controller: _bio,
                   label: 'Biography / Overview',
-                  hint: 'Enter Biography / Overview',
+                  hint: 'Describe your expertise and the services you offer',
                   maxLines: 3,
                 ),
                 AppSizes.vGapLg,
@@ -941,27 +980,29 @@ class _ClientReportsHubPageState extends State<ClientReportsHubPage> {
       metadata: const {'source': 'client_payments_page'},
     );
     if (!mounted) return;
-    await result.fold((f) async => context.showSnack(f.message), (paid) async {
-      final sdk = paid.checkout;
-      final verify = await checkout.verify(
-        paymentId: paid.payment.paymentId,
-        gateway: paid.payment.gateway,
-        purpose: 'client_payment',
-        verification: {
-          'status': 'success',
-          'orderId': paid.payment.orderId,
-          'txnid': paid.payment.orderId,
-          ...sdk.raw,
-          if (sdk.raw['payment_response'] is Map)
-            ...Map<String, dynamic>.from(sdk.raw['payment_response'] as Map),
-        },
-      );
-      if (!mounted) return;
-      verify.fold(
-        (f) => context.showSnack(f.message),
-        (_) => context.showSnack('Payment completed and verified'),
-      );
-    });
+    await result.fold(
+      (f) async {
+        context.push<bool>(
+          Routes.paymentStatus,
+          extra: {
+            'isSuccess': false,
+            'message': f.message,
+          },
+        );
+      },
+      (paid) async {
+        final backendStatus = paid.backendStatus;
+        final isSuccess = backendStatus == BackendPaymentStatus.paid;
+
+        context.push<bool>(
+          Routes.paymentStatus,
+          extra: {
+            'isSuccess': isSuccess,
+            'message': paid.message,
+          },
+        );
+      },
+    );
   }
 
   Future<void> _verifyPayment() async {

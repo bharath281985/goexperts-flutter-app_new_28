@@ -58,20 +58,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     AppUser user, {
     bool clearPendingSignup = false,
   }) async {
-    // Prefer live subscription endpoint; fall back to login/me payload.
-    var subStatus = await _fetchSubscriptionStatus(user.role);
+    // Start network requests concurrently
+    final futureSubStatus = _fetchSubscriptionStatus(user.role);
+    final futurePlanRes = _subscriptionRepository.getCurrentPlanId();
+
+    // 2. Load the newly saved role
+    await AppColors.loadRole();
+
+    // 3. Load colors from API in the background without blocking navigation
+    AppColors.loadRoleColors();
+
+    var subStatus = await futureSubStatus;
     final fromUser = _statusFromUser(user);
     if (subStatus == SubscriptionGateStatus.none &&
         fromUser == SubscriptionGateStatus.active) {
       subStatus = SubscriptionGateStatus.active;
     }
-    // 2. Load the newly saved role
-    await AppColors.loadRole();
 
-    // 3. Load colors from API
-    await AppColors.loadRoleColors();
-
-    final planRes = await _subscriptionRepository.getCurrentPlanId();
+    final planRes = await futurePlanRes;
     final planId = planRes.valueOrNull ?? user.subscriptionPlan;
     emit(
       state.copyWith(
@@ -321,7 +325,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await AppColors.loadRole();
 
     // 3. Load colors from API
-    await AppColors.loadRoleColors();
+    AppColors.loadRoleColors();
     emit(const AuthState(status: AuthStatus.unauthenticated));
   }
 }

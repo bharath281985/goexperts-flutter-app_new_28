@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/dashboard/role_shell.dart';
+import '../../core/payments/presentation/pages/payment_status_page.dart';
 import '../../core/storage/local_storage.dart';
 import '../../core/services/permission_service.dart';
 import '../../app/dependency_injection/service_locator.dart';
@@ -272,6 +273,16 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: Routes.authSuccess,
         builder: (_, s) =>
             SuccessPage(args: (s.extra as SuccessArgs?) ?? const SuccessArgs()),
+      ),
+      GoRoute(
+        path: Routes.paymentStatus,
+        builder: (_, s) {
+          final extra = s.extra as Map<String, dynamic>? ?? {};
+          return PaymentStatusPage(
+            isSuccess: extra['isSuccess'] as bool? ?? false,
+            message: extra['message'] as String?,
+          );
+        },
       ),
       GoRoute(
         path: Routes.roleSelection,

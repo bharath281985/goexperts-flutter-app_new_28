@@ -9,6 +9,7 @@ import '../../../../core/utils/enums.dart';
 import '../../../../core/validators/validators.dart';
 import '../../../../core/widgets/app_dropdown.dart';
 import '../../../../core/widgets/app_text_field.dart';
+import '../../../master_data/domain/entities/ticket_size_option.dart';
 import '../../../master_data/domain/repositories/master_data_repository.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../bloc/auth_bloc.dart';
@@ -37,6 +38,7 @@ class InvestorSignupFlow extends StatefulWidget {
 class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
   int _currentStep = 1;
   bool _isLoading = false;
+  bool _canPop = false;
 
   // Step 1 Account
   final _fullNameController = TextEditingController();
@@ -63,6 +65,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
   // Step 3 Preferences
   List<String> _preferredIndustries = [];
   String? _selectedStage;
+  TicketSizeOption? _selectedTicketSize;
   final _minCheckSizeController = TextEditingController();
   final _maxCheckSizeController = TextEditingController();
 
@@ -73,6 +76,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
   List<String> _accreditedStatuses = [];
   List<String> _countries = [];
   List<String> _states = [];
+  List<TicketSizeOption> _ticketSizes = [];
   List<String> _industries = [];
   List<String> _stages = [];
 
@@ -244,8 +248,12 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       'investorType': _selectedInvestorType,
       'firm': _firmNameController.text.trim(),
       'isAccredited': _selectedAccreditedStatus,
-      'ticketMin': num.tryParse(_minCheckSizeController.text.trim()),
-      'ticketMax': num.tryParse(_maxCheckSizeController.text.trim()),
+      'ticketMin': _selectedTicketSize?.min ?? num.tryParse(_minCheckSizeController.text.trim()),
+      'ticketMax': _selectedTicketSize?.max ?? num.tryParse(_maxCheckSizeController.text.trim()),
+      if (_selectedTicketSize != null) ...{
+        'ticketSize': _selectedTicketSize!.label,
+        'ticketSizeId': _selectedTicketSize!.id,
+      },
       'preferredStage': _selectedStage == null ? [] : [_selectedStage],
       'focusAreas': _preferredIndustries,
     };
@@ -334,6 +342,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
     final accRes = await repo.getAccreditedStatuses();
     final cRes = await repo.getCountries();
     final stRes = await repo.getInvestorStages();
+    final tsRes = await repo.getTicketSizeOptions();
 
     if (!mounted) return;
     setState(() {
@@ -354,6 +363,9 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
         if (_selectedStage != null && !_stages.contains(_selectedStage)) {
           _selectedStage = null;
         }
+      }
+      if (tsRes.isSuccess && tsRes.valueOrNull!.isNotEmpty) {
+        _ticketSizes = tsRes.valueOrNull!;
       }
       if (_investorTypes.isEmpty) {
         _investorTypes = ['Angel Investor', 'VC', 'Family Office', 'Syndicate'];
@@ -525,7 +537,10 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       widget.onBackToRoleSelection!();
     } else if (context.canPop()) {
       _saveProgress(1);
-      context.pop();
+      setState(() => _canPop = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pop();
+      });
     }
   }
 
@@ -541,12 +556,10 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
           'Investor Profile Configured',
           'Investment Preferences & Ticket Ranges Set',
         ],
-        onGoToDashboard: () async {
-          await SignupProgressStore.clear();
-          if (context.mounted) {
-            context.read<AuthBloc>().add(const AuthCheckRequested());
-            context.go(Routes.investorDashboard);
-          }
+        onGoToDashboard: () {
+          SignupProgressStore.clear();
+          context.read<AuthBloc>().add(const AuthCheckRequested());
+          context.go(Routes.investorDashboard);
         },
       );
     }
@@ -570,20 +583,27 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
         break;
     }
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) =>
-          previous.user != current.user ||
-          previous.pendingSignup != current.pendingSignup,
-      listener: _syncFromAuthState,
-      child: SignupScaffold(
-        title: title,
-        subtitle: subtitle,
-        currentStep: _currentStep,
-        totalSteps: 4,
-        onBack: _onBack,
-        onContinue: _onContinue,
-        isLoading: _isLoading,
-        child: _buildStepContent(),
+    return PopScope(
+      canPop: _canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (previous, current) =>
+            previous.user != current.user ||
+            previous.pendingSignup != current.pendingSignup,
+        listener: _syncFromAuthState,
+        child: SignupScaffold(
+          title: title,
+          subtitle: subtitle,
+          currentStep: _currentStep,
+          totalSteps: 4,
+          onBack: _onBack,
+          onContinue: _onContinue,
+          isLoading: _isLoading,
+          child: _buildStepContent(),
+        ),
       ),
     );
   }
@@ -684,18 +704,17 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
               },
             ),
             const SizedBox(height: 16),
-            AppTextField(
-              controller: _minCheckSizeController,
-              keyboardType: TextInputType.number,
-              label: 'Min Check Size (₹)',
-              hint: 'Enter the minimum check amount you’re open to investing',
-            ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _maxCheckSizeController,
-              keyboardType: TextInputType.number,
-              label: 'Max Check Size (₹)',
-              hint: 'Enter the maximum check amount you’re open to investing',
+            AppDropdown<TicketSizeOption>(
+              label: 'Budget Range *',
+              hint: 'Choose your preferred budget range',
+              value: _selectedTicketSize,
+              items: _ticketSizes,
+              itemLabel: (item) => item.label,
+              onChanged: (opt) {
+                setState(() => _selectedTicketSize = opt);
+                _persistCurrentProgress();
+              },
+              
             ),
             const SizedBox(height: 16),
             AppDropdown<String>(

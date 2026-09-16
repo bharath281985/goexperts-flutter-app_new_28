@@ -37,6 +37,7 @@ class FounderSignupFlow extends StatefulWidget {
 class _FounderSignupFlowState extends State<FounderSignupFlow> {
   int _currentStep = 1;
   bool _isLoading = false;
+  bool _canPop = false;
 
   // Step 1 Account
   final _fullNameController = TextEditingController();
@@ -554,7 +555,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       widget.onBackToRoleSelection!();
     } else if (context.canPop()) {
       _saveProgress(1);
-      context.pop();
+      setState(() => _canPop = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) context.pop();
+      });
     }
   }
 
@@ -571,12 +575,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           'Founder Profile Configured',
           'Startup Goals & Resource Needs Set',
         ],
-        onGoToDashboard: () async {
-          await SignupProgressStore.clear();
-          if (context.mounted) {
-            context.read<AuthBloc>().add(const AuthCheckRequested());
-            context.go(Routes.founderDashboard);
-          }
+        onGoToDashboard: () {
+          SignupProgressStore.clear();
+          context.read<AuthBloc>().add(const AuthCheckRequested());
+          context.go(Routes.founderDashboard);
         },
       );
     }
@@ -604,20 +606,27 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         break;
     }
 
-    return BlocListener<AuthBloc, AuthState>(
-      listenWhen: (previous, current) =>
-          previous.user != current.user ||
-          previous.pendingSignup != current.pendingSignup,
-      listener: _syncFromAuthState,
-      child: SignupScaffold(
-        title: title,
-        subtitle: subtitle,
-        currentStep: _currentStep,
-        totalSteps: 5,
-        onBack: _onBack,
-        onContinue: _onContinue,
-        isLoading: _isLoading,
-        child: _buildStepContent(),
+    return PopScope(
+      canPop: _canPop,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _onBack();
+      },
+      child: BlocListener<AuthBloc, AuthState>(
+        listenWhen: (previous, current) =>
+            previous.user != current.user ||
+            previous.pendingSignup != current.pendingSignup,
+        listener: _syncFromAuthState,
+        child: SignupScaffold(
+          title: title,
+          subtitle: subtitle,
+          currentStep: _currentStep,
+          totalSteps: 5,
+          onBack: _onBack,
+          onContinue: _onContinue,
+          isLoading: _isLoading,
+          child: _buildStepContent(),
+        ),
       ),
     );
   }

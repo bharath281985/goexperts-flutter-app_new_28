@@ -125,23 +125,20 @@ class SignupSuccessView extends StatelessWidget {
                     final hasNext = next != null && next.isNotEmpty;
 
                     return ElevatedButton(
-                      onPressed: () async {
-                        try {
-                          await sl<AuthRepository>().saveOnboardingDraft({
-                            'onboardingComplete': true,
-                          });
-                        } catch (_) {
-                          // Ignore error, proceed to clear and navigate
-                        }
+                      onPressed: () {
+                        // Fire and forget API call
+                        sl<AuthRepository>().saveOnboardingDraft({
+                          'onboardingComplete': true,
+                        }).catchError((_) {});
 
-                        await SignupProgressStore.clear();
-                        if (context.mounted) {
-                          context.read<AuthBloc>().add(const AuthCheckRequested());
-                          if (hasNext) {
-                            context.go(next);
-                          } else {
-                            onGoToDashboard();
-                          }
+                        // Fire and forget local storage clear
+                        SignupProgressStore.clear();
+
+                        context.read<AuthBloc>().add(const AuthCheckRequested());
+                        if (hasNext) {
+                          context.go(next);
+                        } else {
+                          onGoToDashboard();
                         }
                       },
                       style: ElevatedButton.styleFrom(
