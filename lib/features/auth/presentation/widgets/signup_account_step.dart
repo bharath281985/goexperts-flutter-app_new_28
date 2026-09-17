@@ -262,7 +262,7 @@ class SignupAccountStep extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               onTap: () => _clearSessionAndOpenLogin(context),
               child: const Text(
-                "Login",
+                "Sign in",
                 style: TextStyle(
                   color: Color(0xFF044071),
                   fontWeight: FontWeight.w700,

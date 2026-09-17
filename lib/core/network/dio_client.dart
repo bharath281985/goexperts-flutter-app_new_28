@@ -31,7 +31,7 @@ class DioClient {
     _dio.interceptors.add(
       _RefreshInterceptor(_dio, _secureStorage, _sessionHandler),
     );
-    _dio.interceptors.add(_GlobalErrorInterceptor());
+    _dio.interceptors.add(_GlobalErrorInterceptor(_sessionHandler));
     if (kDebugMode) {
       // ── Debug-only SSL bypass ────────────────────────────────────────────
       // The backend (apiai.goexperts.in) sends an incomplete certificate chain
@@ -238,6 +238,10 @@ class _RefreshInterceptor extends Interceptor {
 }
 
 class _GlobalErrorInterceptor extends Interceptor {
+  _GlobalErrorInterceptor(this._sessionHandler);
+  
+  final SessionHandler _sessionHandler;
+
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
     final status = err.response?.statusCode;
@@ -254,6 +258,20 @@ class _GlobalErrorInterceptor extends Interceptor {
       if (body is Map<String, dynamic>) {
         serverMessage = body['message'] as String?;
       }
+      
+      // If the backend indicates the account is blocked/inactive, expire the session.
+      if (status == 403 && serverMessage != null) {
+        final msgLower = serverMessage.toLowerCase();
+        if (msgLower.contains('account inactive') ||
+            msgLower.contains('account suspended') ||
+            msgLower.contains('account blocked') ||
+            msgLower.contains('account deleted') ||
+            msgLower.contains('account unavailable')) {
+          _sessionHandler.notifyExpired(serverMessage);
+          return handler.next(err);
+        }
+      }
+
       final message = AppErrorMessages.forStatus(
         status,
         serverMessage: serverMessage,

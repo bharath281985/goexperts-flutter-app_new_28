@@ -36,7 +36,9 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
     if (result.isFailure) {
       return Err(result.failureOrNull!);
     }
-    return Success(result.valueOrNull!.rows);
+    final rows = result.valueOrNull!.rows.toList()
+      ..sort((a, b) => (a.name ?? '').toLowerCase().compareTo((b.name ?? '').toLowerCase()));
+    return Success(rows);
   }
 
   @override
@@ -309,10 +311,32 @@ class MasterDataRepositoryImpl implements MasterDataRepository {
         final list = result.valueOrNull!.rows
             .where((s) => s.trim().isNotEmpty)
             .toList();
+        list.sort((a, b) {
+          final regex = RegExp(r'\d+');
+          final matchA = regex.firstMatch(a);
+          final matchB = regex.firstMatch(b);
+          final numA = matchA != null ? int.tryParse(matchA.group(0)!) ?? 0 : 0;
+          final numB = matchB != null ? int.tryParse(matchB.group(0)!) ?? 0 : 0;
+          return numA.compareTo(numB);
+        });
         return Success(list);
       }
     } catch (_) {}
-    return getMasters('company_size');
+    
+    final fallbackRes = await getMasters('company_size');
+    if (fallbackRes.isSuccess) {
+      final list = fallbackRes.valueOrNull ?? [];
+      list.sort((a, b) {
+        final regex = RegExp(r'\d+');
+        final matchA = regex.firstMatch(a);
+        final matchB = regex.firstMatch(b);
+        final numA = matchA != null ? int.tryParse(matchA.group(0)!) ?? 0 : 0;
+        final numB = matchB != null ? int.tryParse(matchB.group(0)!) ?? 0 : 0;
+        return numA.compareTo(numB);
+      });
+      return Success(list);
+    }
+    return fallbackRes;
   }
 
   @override

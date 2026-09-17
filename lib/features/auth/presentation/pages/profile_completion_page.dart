@@ -457,6 +457,16 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
             _categoryDisplayController.text = indName;
             _founderIndustryDisplayController.text = indName;
           }
+        } else if (pMap['Industry'] is Map) {
+          final indMap = Map<String, dynamic>.from(pMap['Industry'] as Map);
+          final indId = (indMap['industryId'] ?? indMap['id'] ?? indMap['_id'])?.toString() ?? '';
+          final indName = (indMap['industryName'] ?? indMap['name'] ?? indMap['label'])?.toString() ?? indId;
+          if (indId.isNotEmpty) {
+            _selectedCategoryId = indId;
+            _selectedFounderIndustry = MasterOption(id: indId, name: indName);
+            _categoryDisplayController.text = indName;
+            _founderIndustryDisplayController.text = indName;
+          }
         }
 
         if (pMap['companySizeId'] is Map) {
@@ -466,6 +476,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           if (csId.isNotEmpty && csName.isNotEmpty) {
             _selectedCompanySize = MasterOption(id: csId, name: csName);
           }
+        } else if (pMap['companySizeId'] is String && pMap['companySizeId'].toString().isNotEmpty) {
+          final csId = pMap['companySizeId'].toString();
+          final csName = pMap['companySizeLabel']?.toString() ?? pMap['companySize']?.toString() ?? csId;
+          _selectedCompanySize = MasterOption(id: csId, name: csName);
         }
 
         if (pMap['projectHireBudgetId'] is Map) {
@@ -477,6 +491,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           if (bId.isNotEmpty && bName.isNotEmpty) {
             _selectedBudgetRange = MasterOption(id: bId, name: bName);
           }
+        } else if (pMap['projectHireBudgetId'] is String && pMap['projectHireBudgetId'].toString().isNotEmpty) {
+          final bId = pMap['projectHireBudgetId'].toString();
+          final bName = pMap['projectHireBudgetLabel']?.toString() ?? pMap['projectHireBudget']?.toString() ?? bId;
+          _selectedBudgetRange = MasterOption(id: bId, name: bName);
         }
 
         if (pMap['primaryGoalId'] is List) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../app/constants/app_assets.dart';
+import '../../../../app/constants/app_colors.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/widgets/icon_widget.dart';
 
@@ -68,9 +69,9 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       icon: Icons.person_outline_rounded,
                       bgColor: const Color(0xFFF5F3FF),
                       borderColor: const Color(0xFFDDD6FE),
-                      activeBorderColor: const Color(0xFF7C3AED),
+                      activeBorderColor: AppColors.freelancerColor,
                       iconBgColor: const Color(0xFFEDE9FE),
-                      iconColor: const Color(0xFF7C3AED),
+                      iconColor: AppColors.freelancerColor,
                     ),
                     const SizedBox(height: 16),
                 
@@ -82,9 +83,9 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       icon: Icons.groups_outlined,
                       bgColor: const Color(0xFFF0F9FF),
                       borderColor: const Color(0xFFBAE6FD),
-                      activeBorderColor: const Color(0xFF0284C7),
+                      activeBorderColor: AppColors.clientColor,
                       iconBgColor: const Color(0xFFE0F2FE),
-                      iconColor: const Color(0xFF0284C7),
+                      iconColor: AppColors.clientColor,
                     ),
                     const SizedBox(height: 16),
                 
@@ -96,9 +97,9 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       icon: Icons.person_rounded,
                       bgColor: const Color(0xFFF0FDF4),
                       borderColor: const Color(0xFFBBF7D0),
-                      activeBorderColor: const Color(0xFF16A34A),
+                      activeBorderColor: AppColors.founderColor,
                       iconBgColor: const Color(0xFFDCFCE7),
-                      iconColor: const Color(0xFF16A34A),
+                      iconColor: AppColors.founderColor,
                     ),
                     const SizedBox(height: 16),
               
@@ -110,9 +111,9 @@ class _ChooseRoleViewState extends State<ChooseRoleView> {
                       icon: Icons.person_pin_outlined,
                       bgColor: const Color(0xFFFFF7ED),
                       borderColor: const Color(0xFFFFEDD5),
-                      activeBorderColor: const Color(0xFFEA580C),
+                      activeBorderColor: AppColors.investorColor,
                       iconBgColor: const Color(0xFFFFEDD5),
-                      iconColor: const Color(0xFFEA580C),
+                      iconColor: AppColors.investorColor,
                     ),
               
                 ],

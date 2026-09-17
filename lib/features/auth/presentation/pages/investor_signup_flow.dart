@@ -219,6 +219,12 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
         _emailController.text.trim().isNotEmpty) {
       _emailVerified = true;
     }
+
+    if (user != null && user.email.isNotEmpty) {
+      _registeredEmail = user.email;
+    } else if (draft != null && draft.email.isNotEmpty) {
+      _registeredEmail = draft.email;
+    }
   }
 
   void _syncFromAuthState(BuildContext context, AuthState state) {
@@ -564,12 +570,13 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
       );
     }
 
+    String eyebrow = 'INVESTOR SIGNUP';
     String title = '';
     String subtitle = '';
 
     switch (_currentStep) {
       case 1:
-        title = 'Create Investor Account';
+        title = 'Set up your account';
         subtitle =
             'Discover high-potential startups and promising investment deals.';
         break;
@@ -595,6 +602,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
             previous.pendingSignup != current.pendingSignup,
         listener: _syncFromAuthState,
         child: SignupScaffold(
+          eyebrow: eyebrow,
           title: title,
           subtitle: subtitle,
           currentStep: _currentStep,
@@ -647,10 +655,10 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail ??
+          initialVerifiedEmail: _emailVerified ? _emailController.text : (widget.verifiedEmail ??
               (context.read<AuthBloc>().state.user?.isVerified == true
                   ? context.read<AuthBloc>().state.user?.email
-                  : ''),
+                  : '')),
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
@@ -697,6 +705,7 @@ class _InvestorSignupFlowState extends State<InvestorSignupFlow> {
               selectedItems: _preferredIndustries,
               availableOptions: _industries,
               minSelection: 1,
+              showSelectAll: false,
 
               onChanged: (val) {
                 setState(() => _preferredIndustries = val);

@@ -325,8 +325,7 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Result<bool>> saveOnboardingDraft(Map<String, dynamic> data) async {
     try {
-      final payload = Map<String, dynamic>.from(data)..remove('step');
-      await _api.saveOnboardingDraft(payload);
+      await _api.saveOnboardingDraft(data);
       return const Success(true);
     } catch (e) {
       return Err(_mapError(e));

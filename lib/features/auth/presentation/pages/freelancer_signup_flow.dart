@@ -79,9 +79,9 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
   final List<String> _educationLevels = [
     'High School',
     'Diploma',
-    'Bachelors',
-    'Masters',
-    'Doctorate (Ph.D.)',
+    "Bachelor's Degree",
+    "Master's Degree",
+    "Doctorate / PhD",
     'Other',
   ];
 
@@ -258,6 +258,12 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
     if (user?.isSocialLogin == true ||
         _emailController.text.trim().isNotEmpty) {
       _emailVerified = true;
+    }
+
+    if (user != null && user.email.isNotEmpty) {
+      _registeredEmail = user.email;
+    } else if (draft != null && draft.email.isNotEmpty) {
+      _registeredEmail = draft.email;
     }
   }
 
@@ -671,6 +677,25 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
         );
         return;
       }
+      
+      final bio = _bioController.text.trim();
+      if (bio.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please enter Brief Bio / Summary',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (bio.length < 40) {
+        showSignupTopMessage(
+          context,
+          'Brief Bio / Summary must be at least 40 characters',
+          isSuccess: false,
+        );
+        return;
+      }
+
       if (_experienceLevel == null) {
         showSignupTopMessage(
           context,
@@ -836,12 +861,13 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
       );
     }
 
+    String eyebrow = 'FREELANCER SIGNUP';
     String title = '';
     String subtitle = '';
 
     switch (_currentStep) {
       case 1:
-        title = 'Create Freelancer Account';
+        title = 'Set up your account';
         subtitle = 'Join top clients and work on high-paying global projects.';
         break;
       case 2:
@@ -870,6 +896,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
             previous.pendingSignup != current.pendingSignup,
         listener: _syncFromAuthState,
         child: SignupScaffold(
+          eyebrow: eyebrow,
           title: title,
           subtitle: subtitle,
           currentStep: _currentStep,
@@ -922,10 +949,10 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail ??
+          initialVerifiedEmail: _emailVerified ? _emailController.text : (widget.verifiedEmail ??
               (context.read<AuthBloc>().state.user?.isVerified == true
                   ? context.read<AuthBloc>().state.user?.email
-                  : ''),
+                  : '')),
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
@@ -999,6 +1026,7 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
               selectedItems: _selectedIndustries,
               availableOptions: [..._industries, 'Other'],
               minSelection: 1,
+              showSelectAll: false,
 
               onChanged: (val) {
                 setState(() {
@@ -1085,17 +1113,19 @@ class _FreelancerSignupFlowState extends State<FreelancerSignupFlow> {
               hint: 'Add projects that showcase your skills...',
             ),
             const SizedBox(height: 16),
+             AppTextField(
+              controller: _linkedinController,
+              label: 'LinkedIn Profile Link',
+              hint: 'Share your professional journey...',
+            ),
+             const SizedBox(height: 16),
             AppTextField(
               controller: _githubController,
               label: 'Github Profile Link',
               hint: 'Share your code and contributions...',
             ),
-            const SizedBox(height: 16),
-            AppTextField(
-              controller: _linkedinController,
-              label: 'LinkedIn Profile Link',
-              hint: 'Share your professional journey...',
-            ),
+           
+           
           ],
         );
       default:

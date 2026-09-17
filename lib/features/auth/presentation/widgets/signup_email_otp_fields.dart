@@ -76,24 +76,21 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
     final activeVerifiedEmail = _verifiedEmail ?? widget.initialVerifiedEmail?.trim();
 
     if (_otpSent && email != _otpSentEmail) {
-      _resendTimer?.cancel();
       setState(() {
         _otpSent = false;
-        _otpSentEmail = null;
-        _resendSecondsRemaining = 0;
+      });
+    } else if (!_otpSent && _otpSentEmail != null && email == _otpSentEmail) {
+      setState(() {
+        _otpSent = true;
       });
     }
 
     if (activeVerifiedEmail != null &&
         activeVerifiedEmail.isNotEmpty &&
-        email != activeVerifiedEmail) {
-      _resendTimer?.cancel();
+        email != activeVerifiedEmail &&
+        _isVerified) {
       setState(() {
         _isVerified = false;
-        _otpSent = false;
-        _otpSentEmail = null;
-        _verifiedEmail = null;
-        _resendSecondsRemaining = 0;
       });
       widget.onVerificationChanged(false);
     } else if (activeVerifiedEmail != null &&
@@ -102,6 +99,7 @@ class _SignupEmailOtpFieldsState extends State<SignupEmailOtpFields> {
         !_isVerified) {
       setState(() {
         _isVerified = true;
+        _otpSent = false;
       });
       widget.onVerificationChanged(true);
     }

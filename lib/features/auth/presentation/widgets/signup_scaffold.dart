@@ -5,8 +5,8 @@ import '../../../../app/constants/app_assets.dart';
 import '../../../../app/constants/app_colors.dart';
 import '../../../../core/widgets/icon_widget.dart';
 
-/// Image 1 Mobile Reference Scaffold for Signup & Onboarding Flow
 class SignupScaffold extends StatelessWidget {
+  final String? eyebrow;
   final String title;
   final String subtitle;
   final int currentStep;
@@ -20,6 +20,7 @@ class SignupScaffold extends StatelessWidget {
 
   const SignupScaffold({
     super.key,
+    this.eyebrow,
     required this.title,
     required this.subtitle,
     required this.currentStep,
@@ -128,10 +129,23 @@ class SignupScaffold extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (eyebrow != null)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            eyebrow!.toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.8,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
                       Text(
                         title,
                         style: const TextStyle(
-                          fontSize: 22,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF0F172A),
                         ),

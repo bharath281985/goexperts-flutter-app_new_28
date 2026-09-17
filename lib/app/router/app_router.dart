@@ -199,7 +199,9 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       if (!isOnboardingComplete) {
         if (loc == Routes.signup) return null;
-        final stepParam = (auth.user?.isSocialLogin ?? false) ? '&step=2' : '';
+        int step = auth.user?.currentStep ?? 2;
+        if (step < 2) step = 2;
+        String stepParam = '&step=$step';
         return '${Routes.signup}?role=${auth.user?.role?.name ?? ''}$stepParam';
       }
 

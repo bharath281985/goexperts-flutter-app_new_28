@@ -212,6 +212,12 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         _emailController.text.trim().isNotEmpty) {
       _emailVerified = true;
     }
+
+    if (user != null && user.email.isNotEmpty) {
+      _registeredEmail = user.email;
+    } else if (draft != null && draft.email.isNotEmpty) {
+      _registeredEmail = draft.email;
+    }
   }
 
   void _syncFromAuthState(BuildContext context, AuthState state) {
@@ -514,10 +520,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
         );
         return;
       }
-      if (pitchDetail.length < 20) {
+      if (pitchDetail.length < 40) {
         showSignupTopMessage(
           context,
-          'Short Pitch Detail must be at least 20 characters',
+          'Short Pitch Detail must be at least 40 characters',
           isSuccess: false,
         );
         return;
@@ -527,6 +533,24 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       await _saveProgress(3);
       setState(() => _currentStep = 3);
     } else if (_currentStep == 3) {
+      final founderBio = _founderBioController.text.trim();
+      if (founderBio.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please enter Founder Bio',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (founderBio.length < 40) {
+        showSignupTopMessage(
+          context,
+          'Founder Bio must be at least 40 characters',
+          isSuccess: false,
+        );
+        return;
+      }
+      
       if (!await _submitDraft(step: 3)) return;
       await _saveProgress(4);
       setState(() => _currentStep = 4);
@@ -583,12 +607,13 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
       );
     }
 
+    String eyebrow = 'FOUNDER & STARTUP SIGNUP';
     String title = '';
     String subtitle = '';
 
     switch (_currentStep) {
       case 1:
-        title = 'Create Founder Account';
+        title = 'Set up your account';
         subtitle =
             'Launch your venture, connect with investors, and hire experts.';
         break;
@@ -618,6 +643,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
             previous.pendingSignup != current.pendingSignup,
         listener: _syncFromAuthState,
         child: SignupScaffold(
+          eyebrow: eyebrow,
           title: title,
           subtitle: subtitle,
           currentStep: _currentStep,
@@ -671,10 +697,10 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
           initialVerifiedEmail:
-              widget.verifiedEmail ??
+              _emailVerified ? _emailController.text : (widget.verifiedEmail ??
               (context.read<AuthBloc>().state.user?.isVerified == true
                   ? context.read<AuthBloc>().state.user?.email
-                  : ''),
+                  : '')),
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
@@ -693,6 +719,7 @@ class _FounderSignupFlowState extends State<FounderSignupFlow> {
               selectedItems: _selectedIndustries,
               availableOptions: _industries,
               minSelection: 1,
+              showSelectAll: false,
 
               onChanged: (val) {
                 setState(() => _selectedIndustries = val);

@@ -95,6 +95,7 @@ class AppDropdown<T> extends StatelessWidget {
           decoration: InputDecoration(
             hintText: hint ?? generatedHint,
             hintStyle: context.theme.inputDecorationTheme.hintStyle,
+            hintMaxLines: 1,
             prefixIcon: prefixWidget != null
                 ? Padding(
                     padding: const EdgeInsets.only(left: 12, right: 4),

@@ -15,6 +15,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
   final String? errorText;
   final VoidCallback? onTap;
   final String? hint;
+  final bool showSelectAll;
 
   const SignupMultiSelectSheet({
     super.key,
@@ -28,6 +29,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
     this.onSearchApi,
     this.errorText,
     this.onTap,
+    this.showSelectAll = true,
   });
 
   void _showSheet(BuildContext context) {
@@ -53,6 +55,7 @@ class SignupMultiSelectSheet extends StatelessWidget {
               minSelection: minSelection,
               maxSelection: maxSelection,
               onSearchApi: onSearchApi,
+              showSelectAll: showSelectAll,
               onConfirm: (items) {
                 onChanged(items);
                 Navigator.pop(context);
@@ -126,15 +129,17 @@ class _MultiSelectContent extends StatefulWidget {
   final int? maxSelection;
   final Future<List<String>> Function(String query)? onSearchApi;
   final ValueChanged<List<String>> onConfirm;
+  final bool showSelectAll;
 
   const _MultiSelectContent({
     required this.title,
     required this.selectedItems,
     required this.initialOptions,
     required this.minSelection,
+    required this.onConfirm,
     this.maxSelection,
     this.onSearchApi,
-    required this.onConfirm,
+    this.showSelectAll = true,
   });
 
   @override
@@ -324,6 +329,7 @@ class _MultiSelectContentState extends State<_MultiSelectContent> {
                         const Divider(height: 1, color: Color(0xFFF1F5F9)),
                     itemBuilder: (context, index) {
                       if (index == 0) {
+                        if (!widget.showSelectAll) return const SizedBox.shrink();
                         final selectableOptions = _options.where((o) => o.toLowerCase() != 'other').toList();
                         final isAllSelected = selectableOptions.isNotEmpty &&
                             selectableOptions.every((o) => _currentSelected.contains(o));

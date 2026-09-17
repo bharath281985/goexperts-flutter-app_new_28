@@ -21,6 +21,8 @@ class AppUser extends Equatable {
     this.headline,
     this.location,
     this.profileCompletion = 0,
+    this.currentStep,
+    this.completedSteps,
     
     this.serverHasSubscription,
     this.categoryId,
@@ -52,7 +54,8 @@ class AppUser extends Equatable {
   final String? headline;
   final String? location;
   final int profileCompletion;
-
+  final int? currentStep;
+  final List<int>? completedSteps;
 
   /// `hasSubscription` / `isSubscribed` flag as returned directly by the API.
   final bool? serverHasSubscription;
@@ -80,9 +83,10 @@ class AppUser extends Equatable {
     String? headline,
     String? location,
     int? profileCompletion,
+    int? currentStep,
+    List<int>? completedSteps,
     String? phone,
     String? countryCode,
-  
     bool? serverHasSubscription,
     String? categoryId,
     String? industryId,
@@ -110,7 +114,8 @@ class AppUser extends Equatable {
       headline: headline ?? this.headline,
       location: location ?? this.location,
       profileCompletion: profileCompletion ?? this.profileCompletion,
-
+      currentStep: currentStep ?? this.currentStep,
+      completedSteps: completedSteps ?? this.completedSteps,
       serverHasSubscription:
           serverHasSubscription ?? this.serverHasSubscription,
       categoryId: categoryId ?? this.categoryId,
@@ -214,6 +219,12 @@ class AppUser extends Equatable {
       parsedModules.addAll(rawModules.cast<String, dynamic>());
     }
 
+    final rawCompletedSteps = json['completedSteps'] ?? json['completed_steps'];
+    final parsedCompletedSteps = <int>[];
+    if (rawCompletedSteps is List) {
+      parsedCompletedSteps.addAll(rawCompletedSteps.map((e) => int.tryParse(e.toString()) ?? 0).where((e) => e > 0));
+    }
+
     final avatar = str('avatarUrl', 'avatar_url') ??
         str('avatar', 'avatar') ??
         str('logoUrl', 'logo_url') ??
@@ -247,6 +258,8 @@ class AppUser extends Equatable {
           flag('isProfileComplete', 'is_profile_complete') ||
           profileCompletion >= 80,
       onboardingStatus: str('onboardingStatus', 'onboarding_status'),
+      currentStep: json['currentStep'] as int? ?? json['current_step'] as int?,
+      completedSteps: parsedCompletedSteps,
       isSocialLogin: flag('isSocialLogin', 'is_social_login'),
       profileCompletion: profileCompletion,
       // Prefer human-readable plan name; never store raw plan UUIDs.
@@ -289,6 +302,8 @@ class AppUser extends Equatable {
     'headline': headline,
     'location': location,
     'profile_completion': profileCompletion,
+    'current_step': currentStep,
+    'completed_steps': completedSteps,
 
     'is_owner': isOwner,
     'account_type': accountType,

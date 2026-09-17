@@ -875,9 +875,13 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
           final startupMetrics = _safeMap(startupMap['metrics']);
           final startupTeamSize =
               startupMap['teamSize'] ?? startupMetrics['teamSize'];
-          final teamSizeLabel = teamSizeValue is Map
-              ? (teamSizeValue['name'] ?? teamSizeValue['label'])?.toString() ??
-                    ''
+          final teamSizeLabelStr = raw['teamSizeLabel']?.toString() ?? '';
+          final teamSizeLabel = teamSizeLabelStr.isNotEmpty
+              ? teamSizeLabelStr
+              : teamSizeValue is Map
+              ? (teamSizeValue['name'] ?? teamSizeValue['label'])?.toString() ?? ''
+              : teamSizeValue is String && teamSizeValue.isNotEmpty
+              ? teamSizeValue
               : teamSizeValue is num
               ? '${teamSizeValue.toInt()} members'
               : startupTeamSize is num

@@ -170,6 +170,7 @@ class _AppTextFieldState extends State<AppTextField> {
             hintText: widget.hint == null
                 ? context.tr(generatedHint ?? "")
                 : context.tr(widget.hint!),
+            hintMaxLines: 1,
             prefixText: widget.prefixText,
             prefixStyle: const TextStyle(fontWeight: FontWeight.w600),
             prefixIcon: widget.prefixWidget ??

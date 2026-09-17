@@ -14,7 +14,6 @@ import '../../../../core/widgets/app_scaffold.dart';
 import '../../../../core/widgets/app_secondary_button.dart';
 import '../../../../core/widgets/app_text_field.dart';
 import '../../../../core/widgets/icon_widget.dart';
-import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 
 class DeleteAccountPage extends StatefulWidget {
@@ -92,46 +91,47 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
           envelope.message ?? 'OTP Verified successfully',
     );
     
+
     if (!mounted) return;
     
     verifyResult.fold(
-      (failure) => context.showSnack(failure.message, isError: true),
+      (failure) {
+        context.showSnack(failure.message, isError: true);
+        setState(() => _submitting = false);
+      },
       (message) {
-        setState(() => _emailVerified = true);
-        context.showSnack(message);
-      }
-    );
-    
-    setState(() => _submitting = false);
-  }
-
-  Future<void> _deleteAccount() async {
-    final email = _emailController.text.trim();
-    
-    final confirm = await AppConfirmDialog.show(
-      context,
-      title: 'Confirm Account Deletion',
-      message:
-          'Are you sure you want to permanently delete $email? This action cannot be undone.',
-      confirmLabel: 'Delete Account',
-      isDestructive: true,
-      icon: Icons.delete_forever_outlined,
-    );
-    if (!confirm || !mounted) return;
-
-    setState(() => _submitting = true);
-    
-    final deleteResult = await sl<AuthRepository>().deleteAccount();
-    if (!mounted) return;
-    
-    deleteResult.fold(
-      (failure) => context.showSnack(failure.message, isError: true),
-      (_) {
-        context.showSnack('Account deleted successfully');
+        context.showSnack(
+          'Your account deletion request has been submitted. You will be logged out.',
+        );
+        if(mounted){
+           context.read<AuthBloc>().add(const AuthLoggedOut());
+        }
       },
     );
-    if (mounted) setState(() => _submitting = false);
   }
+
+  // Future<void> _deleteAccount() async {
+  //   final email = _emailController.text.trim();
+    
+  //   final confirm = await AppConfirmDialog.show(
+  //     context,
+  //     title: 'Confirm Account Deletion',
+  //     message:
+  //         'Are you sure you want to permanently delete $email? This action cannot be undone.',
+  //     confirmLabel: 'Delete Account',
+  //     isDestructive: true,
+  //     icon: Icons.delete_forever_outlined,
+  //   );
+  //   if (!confirm || !mounted) return;
+
+  //   context.showSnack(
+  //     'Your account deletion request has been submitted. You will be logged out.',
+  //   );
+    
+  //   // The verify endpoint already submitted the deletion request to admin.
+  //   // Just log the user out.
+    
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -188,28 +188,7 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                         ),
                       ),
                       if (_otpSent)
-                        SizedBox(
-                          width: context.isMobile ? double.infinity : 180,
-                          child: AppPrimaryButton(
-                            label: 'Verify OTP',
-                            icon: Icons.check_circle_outline_rounded,
-                            isLoading: _submitting,
-                            onPressed: _submitting ? null : _verifyOtp,
-                          ),
-                        ),
-                    ],
-                  ),
-                ] else ...[
-                  Text('Account Deletion', style: context.text.titleMedium),
-                  AppSizes.vGapMd,
-                  Text(
-                    'Deleting your account is a permanent action. All your data, profile information, and activity history will be permanently erased and cannot be recovered.',
-                    style: context.text.bodyMedium?.copyWith(
-                      color: AppColors.mutedText,
-                    ),
-                  ),
-                  AppSizes.vGapLg,
-                  SizedBox(
+                      SizedBox(
                     width: double.infinity,
                     child: AppPrimaryButton(
                       label: 'Delete My Account',
@@ -217,10 +196,13 @@ class _DeleteAccountPageState extends State<DeleteAccountPage> {
                       isLoading: _submitting,
                       backgroundColor: AppColors.danger,
                       gradient: false,
-                      onPressed: _submitting ? null : _deleteAccount,
+                      onPressed: _submitting ? null : _verifyOtp,
                     ),
                   ),
-                ],
+                       
+                    ],
+                  ),
+                ] 
               ],
             ),
           ),

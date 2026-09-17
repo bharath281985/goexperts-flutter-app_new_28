@@ -271,6 +271,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           if (csId.isNotEmpty && csName.isNotEmpty) {
             _selectedCompanySize = MasterOption(id: csId, name: csName);
           }
+        } else if (pMap['companySizeId'] is String && pMap['companySizeId'].toString().isNotEmpty) {
+          final csId = pMap['companySizeId'].toString();
+          final csName = pMap['companySizeLabel']?.toString() ?? pMap['companySize']?.toString() ?? csId;
+          _selectedCompanySize = MasterOption(id: csId, name: csName);
         }
 
         if (pMap['projectHireBudgetId'] is Map) {
@@ -282,6 +286,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           if (bId.isNotEmpty && bName.isNotEmpty) {
             _selectedBudgetRange = MasterOption(id: bId, name: bName);
           }
+        } else if (pMap['projectHireBudgetId'] is String && pMap['projectHireBudgetId'].toString().isNotEmpty) {
+          final bId = pMap['projectHireBudgetId'].toString();
+          final bName = pMap['projectHireBudgetLabel']?.toString() ?? pMap['projectHireBudget']?.toString() ?? bId;
+          _selectedBudgetRange = MasterOption(id: bId, name: bName);
         }
 
         if (pMap['hiringGoalId'] is List) {
@@ -841,8 +849,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 ),
                 AppSizes.vGapMd,
                 AppDropdown<MasterOption>(
-                  label: 'Company Size *',
-                  hint: 'Select Company Size',
+                  label: 'Team Size *',
+                  hint: 'Select Team Size',
                   value: _selectedCompanySize,
                   items: _companySizes,
                   itemLabel: (item) => item.name,

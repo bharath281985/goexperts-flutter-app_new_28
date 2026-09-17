@@ -30,11 +30,15 @@ class SignupSuccessView extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: CustomScrollView(
+          slivers: [
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
               Container(
                 width: 90,
                 height: 90,
@@ -195,6 +199,9 @@ class SignupSuccessView extends StatelessWidget {
               // ),
             ],
           ),
+        ),
+            ),
+          ],
         ),
       ),
     );

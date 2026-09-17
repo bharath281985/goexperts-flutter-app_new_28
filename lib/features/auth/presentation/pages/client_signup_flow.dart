@@ -217,6 +217,12 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
         _emailController.text.trim().isNotEmpty) {
       _emailVerified = true;
     }
+
+    if (user != null && user.email.isNotEmpty) {
+      _registeredEmail = user.email;
+    } else if (draft != null && draft.email.isNotEmpty) {
+      _registeredEmail = draft.email;
+    }
   }
 
   void _syncFromAuthState(BuildContext context, AuthState state) {
@@ -247,8 +253,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       'socialLinks': {
         'companySite': _companySiteController.text.trim(),
       },
-      'companySize': _selectedCompanySize,
-      'companySizeId': _selectedCompanySize,
+      'companySize': _selectedCompanySize??_selectedTeamSize,
+      'companySizeId': _selectedCompanySize??_selectedTeamSize,
       'currentTeam': _selectedTeamSize,
       'currentTeamId': _selectedTeamSize,
       'projectHireBudget': _selectedBudgetRange?.name,
@@ -542,6 +548,22 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       await _saveProgress(3);
       setState(() => _currentStep = 3);
     } else if (_currentStep == 3) {
+      if (_selectedJobRole == null || _selectedJobRole!.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please select a Designation',
+          isSuccess: false,
+        );
+        return;
+      }
+      if (_selectedHiringGoals.isEmpty) {
+        showSignupTopMessage(
+          context,
+          'Please select at least one Primary Hiring Goal',
+          isSuccess: false,
+        );
+        return;
+      }
       if (!await _submitDraft(step: 3)) return;
       await _saveProgress(4);
       setState(() => _currentStep = 4);
@@ -598,12 +620,13 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       );
     }
 
+    String eyebrow = 'CLIENT & BUSINESS SIGNUP';
     String title = '';
     String subtitle = '';
 
     switch (_currentStep) {
       case 1:
-        title = 'Create Client Account';
+        title = 'Set up your account';
         subtitle = 'Hire vetted experts and execute projects with confidence.';
         break;
       case 2:
@@ -632,6 +655,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
             previous.pendingSignup != current.pendingSignup,
         listener: _syncFromAuthState,
         child: SignupScaffold(
+          eyebrow: eyebrow,
           title: title,
           subtitle: subtitle,
           currentStep: _currentStep,
@@ -685,10 +709,10 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
           },
           onEmailVerificationChanged: (val) =>
               setState(() => _emailVerified = val),
-          initialVerifiedEmail: widget.verifiedEmail ??
+          initialVerifiedEmail: _emailVerified ? _emailController.text : (widget.verifiedEmail ??
               (context.read<AuthBloc>().state.user?.isVerified == true
                   ? context.read<AuthBloc>().state.user?.email
-                  : ''),
+                  : '')),
           isSocialLogin:
               context.read<AuthBloc>().state.user?.isSocialLogin ?? false,
         );
@@ -707,6 +731,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               selectedItems: _selectedIndustries,
               availableOptions: _industries,
               minSelection: 1,
+              showSelectAll: false,
 
               onChanged: (val) {
                 setState(() => _selectedIndustries = val);

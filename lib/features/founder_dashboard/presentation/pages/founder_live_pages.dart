@@ -323,7 +323,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         } else if (rawTeamSize != null) {
           final tsStr = rawTeamSize.toString();
           if (tsStr.isNotEmpty) {
-            _selectedTeamSize = MasterOption(id: tsStr, name: tsStr);
+            final tsName = pMap['teamSizeLabel']?.toString() ?? tsStr;
+            _selectedTeamSize = MasterOption(id: tsStr, name: tsName);
           }
         }
 
