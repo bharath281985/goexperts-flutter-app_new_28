@@ -333,6 +333,21 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Result<AppUser>> uploadCoverImageBytes(List<int> bytes) async {
+    try {
+      final user = await _api.uploadCoverImageBytes(bytes);
+      final cached = _readCachedUser();
+      final updated = cached != null
+          ? cached.copyWith(coverImageUrl: user.coverImageUrl)
+          : user;
+      await _cacheUser(updated);
+      return Success(updated);
+    } catch (e) {
+      return Err(_mapError(e));
+    }
+  }
+
+  @override
   Future<Result<AppUser>> currentUser() async {
     final token = await _secureStorage.accessToken;
     if (token == null || token.isEmpty) {

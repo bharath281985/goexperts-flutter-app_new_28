@@ -237,23 +237,30 @@ class _MyProfilePageState extends State<MyProfilePage> {
               ?.toInt() ??
           0;
 
-      final isRejected = rawKycStatus == 'REJECTED' || rawKycStatus == 'ACTION_REQUIRED';
-      final isPending = rawKycStatus == 'PENDING' ||
+      final isRejected =
+          rawKycStatus == 'REJECTED' || rawKycStatus == 'ACTION_REQUIRED';
+      final isPending =
+          rawKycStatus == 'PENDING' ||
           rawKycStatus == 'UNDER_REVIEW' ||
           rawKycStatus == 'IN_REVIEW' ||
           (pendingCount > 0 && missingCount == 0);
 
-      final isAccVerified = rawKycStatus == 'APPROVED' ||
+      final isAccVerified =
+          rawKycStatus == 'APPROVED' ||
           rawKycStatus == 'VERIFIED' ||
           payload['kycApproved'] == true ||
-          (!isRejected && !isPending && payload['accountVerified'] == true && missingCount == 0);
+          (!isRejected &&
+              !isPending &&
+              payload['accountVerified'] == true &&
+              missingCount == 0);
 
       String statusKey = 'unverified';
       if (isRejected) {
         statusKey = 'action_required';
       } else if (isPending) {
         statusKey = 'pending';
-      } else if (isAccVerified || (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
+      } else if (isAccVerified ||
+          (missingCount == 0 && pendingCount == 0 && verifiedCount > 0)) {
         statusKey = 'verified';
       } else if (missingCount > 0 ||
           rawKycStatus == 'NOT_SUBMITTED' ||
@@ -653,7 +660,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                               children: [
                                 Row(
                                   children: [
-                                     Icon(
+                                    Icon(
                                       Icons.tune_rounded,
                                       size: 18,
                                       color: AppColors.primary,
@@ -673,7 +680,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                 ),
                                 Text(
                                   '$activeCompletion%',
-                                  style:  TextStyle(
+                                  style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.primary,
@@ -693,7 +700,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                                 backgroundColor: context.isDark
                                     ? Colors.white.withValues(alpha: 0.1)
                                     : AppColors.background,
-                                valueColor:  AlwaysStoppedAnimation<Color>(
+                                valueColor: AlwaysStoppedAnimation<Color>(
                                   AppColors.primary,
                                 ),
                               ),
@@ -1213,7 +1220,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
       subtitle: subtitle,
       leadingIcon: icon,
       trailing: trailing,
-      iconColor: AppColors.danger ,
+      iconColor: AppColors.danger,
       onTap: onTap,
     );
   }
@@ -1257,7 +1264,7 @@ class _MyProfilePageState extends State<MyProfilePage> {
                   ),
                 ],
               ),
-              child:  Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SizedBox(

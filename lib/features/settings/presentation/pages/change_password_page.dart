@@ -20,14 +20,14 @@ class ChangePasswordPage extends StatefulWidget {
 
 class _ChangePasswordPageState extends State<ChangePasswordPage> {
   final _formKey = GlobalKey<FormState>();
-  final _oldPassword = TextEditingController();
+  final _currentPassword = TextEditingController();
   final _newPassword = TextEditingController();
   final _confirmPassword = TextEditingController();
   bool _loading = false;
 
   @override
   void dispose() {
-    _oldPassword.dispose();
+    _currentPassword.dispose();
     _newPassword.dispose();
     _confirmPassword.dispose();
     super.dispose();
@@ -37,7 +37,7 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     final res = await sl<AuthRepository>().changePassword(
-      oldPassword: _oldPassword.text,
+      oldPassword: _currentPassword.text,
       newPassword: _newPassword.text,
     );
     if (!mounted) return;
@@ -66,9 +66,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
             ),
             AppSizes.vGapXl,
             AppTextField(
-              controller: _oldPassword,
-              label: 'Current password',
-              hint: 'Old password',
+              controller: _currentPassword,
+              label: 'Current Password *',
+              hint: 'Enter current password',
               prefixIcon: Icons.lock_outline_rounded,
               obscure: true,
               validator: (v) => (v == null || v.isEmpty)

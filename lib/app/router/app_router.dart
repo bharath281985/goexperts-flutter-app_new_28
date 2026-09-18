@@ -294,10 +294,10 @@ GoRouter createRouter(AuthBloc authBloc) {
               authBloc.state.pendingSignup != null,
         ),
       ),
-      GoRoute(
-        path: Routes.profileCompletion,
-        builder: (_, __) => const ProfileCompletionPage(),
-      ),
+      // GoRoute(
+      //   path: Routes.profileCompletion,
+      //   builder: (_, __) => const ProfileCompletionPage(),
+      // ),
       GoRoute(
         path: Routes.subscription,
         builder: (_, __) => const SubscriptionSelectionPage(),

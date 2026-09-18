@@ -1,8 +1,10 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../../app/router/route_names.dart';
 import '../../../../core/validators/validators.dart';
 
@@ -57,14 +59,14 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
 
   MasterOption? _selectedCountry;
   MasterOption? _selectedState;
-  MasterOption? _selectedCompanySize;
+  MasterOption? _selectedTeamSize;
   MasterOption? _selectedBudgetRange;
   List<String> _selectedCategoryIds = [];
   final Set<String> _selectedHiringGoalIds = {};
 
   List<MasterOption> _countries = [];
   List<MasterOption> _states = [];
-  List<MasterOption> _companySizes = [];
+  List<MasterOption> _teamSizes = [];
   List<MasterOption> _budgetRanges = [];
   List<MasterOption> _hiringGoals = [];
   List<MasterOption> _categories = [];
@@ -74,6 +76,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
   Company? _companyData;
   String? _localLogoPath;
   String? _logoUrl;
+  String? _coverUrl;
+  bool _uploadingCover = false;
 
   @override
   void initState() {
@@ -105,8 +109,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     final cRes = await masterRepo.getCountriesOptions();
     if (mounted && cRes.isSuccess) _countries = cRes.valueOrNull ?? [];
 
-    final csRes = await masterRepo.getCompanySizeOptions();
-    if (mounted && csRes.isSuccess) _companySizes = csRes.valueOrNull ?? [];
+    final tsRes = await masterRepo.getTeamSizeOptions();
+    if (mounted && tsRes.isSuccess) _teamSizes = tsRes.valueOrNull ?? [];
 
     final bRes = await masterRepo.getHiringBudgetOptions();
     if (mounted && bRes.isSuccess) _budgetRanges = bRes.valueOrNull ?? [];
@@ -136,7 +140,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       final emailVal = userMap['email']?.toString();
       if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
 
-      final phoneVal = userMap['phone']?.toString() ??
+      final phoneVal =
+          userMap['phone']?.toString() ??
           userMap['mobile']?.toString() ??
           userMap['phoneNumber']?.toString();
       if (phoneVal != null && phoneVal.isNotEmpty) _phone.text = phoneVal;
@@ -150,12 +155,19 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
 
       final locVal =
           userMap['city']?.toString() ?? userMap['location']?.toString();
-      if (locVal != null && locVal.isNotEmpty) _city.text = locVal.toTitleCase();
+      if (locVal != null && locVal.isNotEmpty)
+        _city.text = locVal.toTitleCase();
 
-      final avVal = userMap['avatarUrl']?.toString() ??
+      final avVal =
+          userMap['avatarUrl']?.toString() ??
           userMap['avatar']?.toString() ??
           userMap['logoUrl']?.toString();
       if (avVal != null && avVal.isNotEmpty) _logoUrl = avVal;
+
+      final covVal =
+          userMap['coverImageUrl']?.toString() ??
+          userMap['coverImage']?.toString();
+      if (covVal != null && covVal.isNotEmpty) _coverUrl = covVal;
 
       if (userMap['country'] is Map) {
         final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
@@ -210,7 +222,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                 _selectedCategoryIds.add(cId);
                 return;
               }
-              if (rName.isNotEmpty && cName.toLowerCase() == rName.toLowerCase()) {
+              if (rName.isNotEmpty &&
+                  cName.toLowerCase() == rName.toLowerCase()) {
                 _selectedCategoryIds.add(cId);
                 return;
               }
@@ -241,7 +254,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           for (final item in indObj) {
             if (item is Map) {
               final id = (item['id'] ?? item['_id'])?.toString();
-              final name = (item['name'] ?? item['label'] ?? item['title'])?.toString();
+              final name = (item['name'] ?? item['label'] ?? item['title'])
+                  ?.toString();
               addCategoryMatch(id, name);
             } else if (item is String) {
               addCategoryMatch(item, item);
@@ -264,17 +278,28 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
               .join(', ');
         }
 
-        if (pMap['companySizeId'] is Map) {
-          final csMap = Map<String, dynamic>.from(pMap['companySizeId'] as Map);
-          final csId = (csMap['id'] ?? csMap['_id'])?.toString() ?? '';
-          final csName = (csMap['name'] ?? csMap['label'])?.toString() ?? csId;
-          if (csId.isNotEmpty && csName.isNotEmpty) {
-            _selectedCompanySize = MasterOption(id: csId, name: csName);
+        if (pMap['teamSizeId'] is Map) {
+          final tsMap = Map<String, dynamic>.from(pMap['teamSizeId'] as Map);
+          final tsId = (tsMap['id'] ?? tsMap['_id'])?.toString() ?? '';
+          final tsName = (tsMap['name'] ?? tsMap['label'])?.toString() ?? tsId;
+          if (tsId.isNotEmpty && tsName.isNotEmpty) {
+            _selectedTeamSize = MasterOption(id: tsId, name: tsName);
           }
-        } else if (pMap['companySizeId'] is String && pMap['companySizeId'].toString().isNotEmpty) {
-          final csId = pMap['companySizeId'].toString();
-          final csName = pMap['companySizeLabel']?.toString() ?? pMap['companySize']?.toString() ?? csId;
-          _selectedCompanySize = MasterOption(id: csId, name: csName);
+        } else if (pMap['teamSize'] is Map) {
+          final tsMap = Map<String, dynamic>.from(pMap['teamSize'] as Map);
+          final tsId = (tsMap['id'] ?? tsMap['_id'])?.toString() ?? '';
+          final tsName = (tsMap['name'] ?? tsMap['label'])?.toString() ?? tsId;
+          if (tsId.isNotEmpty && tsName.isNotEmpty) {
+            _selectedTeamSize = MasterOption(id: tsId, name: tsName);
+          }
+        } else if (pMap['teamSizeId'] is String &&
+            pMap['teamSizeId'].toString().isNotEmpty) {
+          final tsId = pMap['teamSizeId'].toString();
+          _selectedTeamSize = MasterOption(id: tsId, name: tsId);
+        } else if (pMap['teamSize'] is String &&
+            pMap['teamSize'].toString().isNotEmpty) {
+          final tsId = pMap['teamSize'].toString();
+          _selectedTeamSize = MasterOption(id: tsId, name: tsId);
         }
 
         if (pMap['projectHireBudgetId'] is Map) {
@@ -286,9 +311,13 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           if (bId.isNotEmpty && bName.isNotEmpty) {
             _selectedBudgetRange = MasterOption(id: bId, name: bName);
           }
-        } else if (pMap['projectHireBudgetId'] is String && pMap['projectHireBudgetId'].toString().isNotEmpty) {
+        } else if (pMap['projectHireBudgetId'] is String &&
+            pMap['projectHireBudgetId'].toString().isNotEmpty) {
           final bId = pMap['projectHireBudgetId'].toString();
-          final bName = pMap['projectHireBudgetLabel']?.toString() ?? pMap['projectHireBudget']?.toString() ?? bId;
+          final bName =
+              pMap['projectHireBudgetLabel']?.toString() ??
+              pMap['projectHireBudget']?.toString() ??
+              bId;
           _selectedBudgetRange = MasterOption(id: bId, name: bName);
         }
 
@@ -341,11 +370,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       if (_states.isNotEmpty) {
         _selectedState = _matchOption(_selectedState, _states);
       }
-      if (_companySizes.isNotEmpty) {
-        _selectedCompanySize = _matchOption(
-          _selectedCompanySize,
-          _companySizes,
-        );
+      if (_teamSizes.isNotEmpty) {
+        _selectedTeamSize = _matchOption(_selectedTeamSize, _teamSizes);
       }
       if (_budgetRanges.isNotEmpty) {
         _selectedBudgetRange = _matchOption(
@@ -375,18 +401,19 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         return StatefulBuilder(
           builder: (context, setSheetState) {
             final search = _categorySearch.text.trim().toLowerCase();
-            final filtered = (search.isEmpty
-                ? List<MasterOption>.from(_categories)
-                : _categories
-                      .where((c) => c.name.toLowerCase().contains(search))
-                      .toList())
-              ..sort((a, b) {
-                final aSel = _selectedCategoryIds.contains(a.id);
-                final bSel = _selectedCategoryIds.contains(b.id);
-                if (aSel && !bSel) return -1;
-                if (!aSel && bSel) return 1;
-                return 0;
-              });
+            final filtered =
+                (search.isEmpty
+                      ? List<MasterOption>.from(_categories)
+                      : _categories
+                            .where((c) => c.name.toLowerCase().contains(search))
+                            .toList())
+                  ..sort((a, b) {
+                    final aSel = _selectedCategoryIds.contains(a.id);
+                    final bSel = _selectedCategoryIds.contains(b.id);
+                    if (aSel && !bSel) return -1;
+                    if (!aSel && bSel) return 1;
+                    return 0;
+                  });
 
             return DraggableScrollableSheet(
               expand: false,
@@ -435,8 +462,8 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                                     const Divider(height: 1),
                                 itemBuilder: (context, index) {
                                   final cat = filtered[index];
-                                  final isSelected =
-                                      _selectedCategoryIds.contains(cat.id);
+                                  final isSelected = _selectedCategoryIds
+                                      .contains(cat.id);
                                   return CheckboxListTile(
                                     title: Text(cat.name),
                                     value: isSelected,
@@ -450,15 +477,18 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
                                         }
                                       });
                                       setSheetState(() {});
-                                      
+
                                       final names = <String>[];
                                       for (final c in _categories) {
-                                        if (_selectedCategoryIds.contains(c.id)) {
+                                        if (_selectedCategoryIds.contains(
+                                          c.id,
+                                        )) {
                                           names.add(c.name);
                                         }
                                       }
                                       if (names.isNotEmpty) {
-                                        _categoryDisplayController.text = names.join(', ');
+                                        _categoryDisplayController.text = names
+                                            .join(', ');
                                       } else {
                                         _categoryDisplayController.clear();
                                       }
@@ -593,7 +623,10 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     }
 
     if (_bio.text.trim().isNotEmpty && _bio.text.trim().length < 30) {
-      context.showSnack('Biography / Overview must be at least 30 characters', isError: true);
+      context.showSnack(
+        'Biography / Overview must be at least 30 characters',
+        isError: true,
+      );
       return;
     }
     setState(() => _saving = true);
@@ -622,9 +655,12 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       if (_selectedCountry != null) 'countryId': _selectedCountry!.id,
       'company': _companyNameController.text.trim(),
       'jobTitle': _jobTitleController.text.trim(),
-      if (_selectedCategoryIds.isNotEmpty) 'industryId': _selectedCategoryIds.join(','),
-      if (_selectedCompanySize != null)
-        'companySizeId': _selectedCompanySize!.id,
+      if (_selectedCategoryIds.isNotEmpty)
+        'industryId': _selectedCategoryIds.join(','),
+      if (_selectedTeamSize != null) ...{
+        'teamSizeId': _selectedTeamSize!.id,
+        'teamSize': _selectedTeamSize!.id,
+      },
       if (_selectedBudgetRange != null)
         'projectHireBudgetId': _selectedBudgetRange!.id,
       if (_selectedHiringGoalIds.isNotEmpty)
@@ -643,21 +679,32 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         int? newCompletion;
         final rawData = env.data;
         if (rawData is Map) {
-          final p = rawData['profileCompletion'] ??
+          final p =
+              rawData['profileCompletion'] ??
               rawData['profile_completion'] ??
               rawData['completionPercentage'] ??
               rawData['completion_percentage'];
-          if (p is num) newCompletion = p.toInt();
-          else if (p is String) newCompletion = int.tryParse(p);
+          if (p is num)
+            newCompletion = p.toInt();
+          else if (p is String)
+            newCompletion = int.tryParse(p);
 
           if (newCompletion == null && rawData['user'] is Map) {
             final u = rawData['user'];
-            final p2 = u['profileCompletion'] ?? u['profile_completion'] ?? u['completionPercentage'] ?? u['completion_percentage'];
-            if (p2 is num) newCompletion = p2.toInt();
-            else if (p2 is String) newCompletion = int.tryParse(p2);
+            final p2 =
+                u['profileCompletion'] ??
+                u['profile_completion'] ??
+                u['completionPercentage'] ??
+                u['completion_percentage'];
+            if (p2 is num)
+              newCompletion = p2.toInt();
+            else if (p2 is String)
+              newCompletion = int.tryParse(p2);
           }
         }
-        final map = env.data is Map ? Map<String, dynamic>.from(env.data as Map) : <String, dynamic>{};
+        final map = env.data is Map
+            ? Map<String, dynamic>.from(env.data as Map)
+            : <String, dynamic>{};
         map['profileCompletion'] = newCompletion;
         return map;
       },
@@ -673,26 +720,29 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
       context.showSnack(msg);
       final current = context.read<AuthBloc>().state.user;
       final newCompletion = res.valueOrNull?['profileCompletion'] as int?;
-      
+
       if (current != null) {
         final city = _city.text.trim();
         final country = _selectedCountry?.name ?? '';
-        final locationParts = [city, country]
-            .where((s) => s.isNotEmpty)
-            .toList();
+        final locationParts = [
+          city,
+          country,
+        ].where((s) => s.isNotEmpty).toList();
         context.read<AuthBloc>().add(
           AuthUserUpdated(
             current.copyWith(
-              fullName: _name.text.trim().isNotEmpty
-                  ? _name.text.trim()
-                  : null,
+              fullName: _name.text.trim().isNotEmpty ? _name.text.trim() : null,
               phone: _phone.text.trim().isNotEmpty ? _phone.text.trim() : null,
               headline: _bio.text.trim().isNotEmpty ? _bio.text.trim() : null,
               location: locationParts.isNotEmpty
                   ? locationParts.join(', ')
                   : null,
-              categoryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
-              industryId: _selectedCategoryIds.isNotEmpty ? _selectedCategoryIds.join(',') : null,
+              categoryId: _selectedCategoryIds.isNotEmpty
+                  ? _selectedCategoryIds.join(',')
+                  : null,
+              industryId: _selectedCategoryIds.isNotEmpty
+                  ? _selectedCategoryIds.join(',')
+                  : null,
               avatarUrl: (uploadedAvatarUrl?.isNotEmpty == true)
                   ? uploadedAvatarUrl
                   : null,
@@ -702,14 +752,17 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
         );
       }
       await _load();
-      
+
       if (!mounted) return;
-      
+
       int missingDocs = 1;
       try {
-        missingDocs = context.read<DashboardCubit>().state.verificationMissingCount;
+        missingDocs = context
+            .read<DashboardCubit>()
+            .state
+            .verificationMissingCount;
       } catch (_) {}
-      
+
       if (newCompletion == 100 && missingDocs > 0) {
         ProfileSaveSuccessDialog.show(context);
       } else if (newCompletion == null) {
@@ -730,9 +783,46 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
     setState(() => _localLogoPath = path);
   }
 
+  Future<void> _pickAndUploadCover() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() => _uploadingCover = true);
+      final bytes = await picked.readAsBytes();
+
+      final repo = sl<AuthRepository>();
+      final result = await repo.uploadCoverImageBytes(bytes);
+
+      if (!mounted) return;
+      setState(() => _uploadingCover = false);
+
+      result.fold(
+        (failure) => context.showSnack(failure.message, isError: true),
+        (updatedUser) {
+          setState(() {
+            _coverUrl = updatedUser.coverImageUrl;
+          });
+          context.read<AuthBloc>().add(AuthUserUpdated(updatedUser));
+          context.showSnack('Cover photo updated successfully!');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingCover = false);
+        context.showSnack('Error selecting image: $e', isError: true);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isComplete = context.watch<AuthBloc>().state.user?.profileCompletion == 100;
+    final isComplete =
+        context.watch<AuthBloc>().state.user?.profileCompletion == 100;
 
     return PopScope(
       canPop: isComplete,
@@ -749,157 +839,263 @@ class _ClientCompanyProfilePageState extends State<ClientCompanyProfilePage> {
           title: const Text('Company Profile'),
         ),
         body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(AppSizes.screenPadding),
-              children: [
-                if (_companyData?.isVerified == true)
-                  AppCard(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.verified, color: Colors.green, size: 20),
-                        const SizedBox(width: 8),
-                        const Text('Verified business'),
-                      ],
+            ? const Center(child: CircularProgressIndicator())
+            : ListView(
+                padding: const EdgeInsets.all(AppSizes.screenPadding),
+                children: [
+                  if (_companyData?.isVerified == true)
+                    AppCard(
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.verified,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text('Verified business'),
+                        ],
+                      ),
                     ),
+                  if (_companyData?.isVerified == true) AppSizes.vGapMd,
+                  ProfileCompletionCard(
+                    percent:
+                        context
+                            .watch<AuthBloc>()
+                            .state
+                            .user
+                            ?.profileCompletion ??
+                        0,
                   ),
-                if (_companyData?.isVerified == true) AppSizes.vGapMd,
-                ProfileCompletionCard(
-                  percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
-                ),
-                AppSizes.vGapMd,
-                ProfileAvatarEditor(
-                  localPath: _localLogoPath,
-                  networkUrl: _logoUrl,
-                  onPathPicked: _uploadLogo,
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _email,
-                  label: 'Email',
-                  hint: 'Enter your email address',
-                  readOnly: true,
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _phone,
-                  label: 'Phone Number (optional)',
-                  hint: 'Enter 10-digit Phone Number',
-                  prefixIcon: Icons.phone_outlined,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                  validator: (v) => Validators.phone(v),
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _name,
-                  label: 'Full Name *',
-                  hint: 'Enter your full legal name',
-                ),
-                AppSizes.vGapMd,
-                // AppTextField(
-                //   controller: _jobTitleController,
-                //   label: 'Job Title *',
-                //   hint: 'Enter your job title',
-                // ),
-                // AppSizes.vGapLg,
-                Text('Company Info', style: context.text.titleMedium),
-                AppSizes.vGapSm,
-                AppTextField(
-                  controller: _companyNameController,
-                  label: 'Company Name *',
-                  hint: 'Enter the official company name',
-                ),
-                AppSizes.vGapMd,
-                AppLocationField(
-                  controller: _city,
-                  label: 'City *',
-                  hint: 'Search and select your city',
-                  country: _selectedCountry?.name,
-                ),
-                AppSizes.vGapMd,
-                AppDropdown<MasterOption>(
-                  label: 'Country *',
-                  hint: 'Choose the country you’re based in',
-                  value: _selectedCountry,
-                  items: _countries,
-                  itemLabel: (item) => item.name,
-                  onChanged: (opt) {
-                    setState(() {
-                      _selectedCountry = opt;
-                      _selectedState = null;
-                      _states = [];
-                    });
-                    if (opt != null) {
-                      _loadStatesForCountry(opt.id);
-                    }
-                  },
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _categoryDisplayController,
-                  label: 'Industry / Sector *',
-                  hint: 'Choose the industry your business operates in',
-                  readOnly: true,
-                  suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  onTap: _showCategoryBottomSheet,
-                ),
-                AppSizes.vGapMd,
-                AppDropdown<MasterOption>(
-                  label: 'Team Size *',
-                  hint: 'Select Team Size',
-                  value: _selectedCompanySize,
-                  items: _companySizes,
-                  itemLabel: (item) => item.name,
-                  onChanged: (opt) =>
-                      setState(() => _selectedCompanySize = opt),
-                ),
-                AppSizes.vGapMd,
-                AppDropdown<MasterOption>(
-                  label: 'Estimated Project / Hiring Budget Range *',
-                  hint: 'What is your budget for this project?',
-                  value: _selectedBudgetRange,
-                  items: _budgetRanges,
-                  itemLabel: (item) => item.name,
-                  onChanged: (opt) =>
-                      setState(() => _selectedBudgetRange = opt),
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _hiringGoalsDisplayController,
-                  label: 'Primary Hiring Goal',
-                  hint: 'Select your primary goals on the platform',
-                  readOnly: true,
-                  suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
-                  onTap: _showHiringGoalsBottomSheet,
-                ),
-                AppSizes.vGapMd,
-                AppTextField(
-                  controller: _bio,
-                  label: 'Biography / Overview',
-                  hint: 'Describe your expertise and the services you offer',
-                  maxLines: 3,
-                ),
-                AppSizes.vGapLg,
-                // Text('Links', style: context.text.titleMedium),
-                // AppSizes.vGapSm,
-                // AppTextField(
-                //   controller: _website,
-                //   label: 'Website',
-                //   hint: 'Enter Website',
-                // ),
-                AppSizes.vGapLg,
-                AppPrimaryButton(
-                  label: 'Save Profile',
-                  isLoading: _saving,
-                  onPressed: _save,
-                ),
-                SizedBox(height: MediaQuery.viewInsetsOf(context).bottom),
-              ],
-            ),
+                  AppSizes.vGapMd,
+                  Stack(
+                    children: [
+                      Container(
+                        height: 130,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(
+                            AppSizes.radiusLg,
+                          ),
+                          gradient: AppColors.primaryGradient,
+                          image: DecorationImage(
+                            image:
+                                (_coverUrl != null &&
+                                    _coverUrl!.trim().isNotEmpty)
+                                ? NetworkImage(_coverUrl!.trim())
+                                      as ImageProvider
+                                : (context
+                                              .watch<AuthBloc>()
+                                              .state
+                                              .user
+                                              ?.coverImageUrl !=
+                                          null &&
+                                      context
+                                          .watch<AuthBloc>()
+                                          .state
+                                          .user!
+                                          .coverImageUrl!
+                                          .trim()
+                                          .isNotEmpty)
+                                ? NetworkImage(
+                                    context
+                                        .watch<AuthBloc>()
+                                        .state
+                                        .user!
+                                        .coverImageUrl!
+                                        .trim(),
+                                  )
+                                : const AssetImage(
+                                    'assets/images/profile_cover.png',
+                                  ),
+                            fit: BoxFit.cover,
+                            onError: (_, __) {},
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: 8,
+                        right: 8,
+                        child: Material(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(20),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20),
+                            onTap: _pickAndUploadCover,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (_uploadingCover)
+                                    const SizedBox(
+                                      width: 14,
+                                      height: 14,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  else
+                                    const Icon(
+                                      Icons.camera_alt,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    _uploadingCover
+                                        ? 'Uploading...'
+                                        : 'Edit Cover',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  AppSizes.vGapMd,
+                  ProfileAvatarEditor(
+                    localPath: _localLogoPath,
+                    networkUrl: _logoUrl,
+                    onPathPicked: _uploadLogo,
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _email,
+                    label: 'Email',
+                    hint: 'Enter your email address',
+                    readOnly: true,
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _phone,
+                    label: 'Phone Number (optional)',
+                    hint: 'Enter 10-digit Phone Number',
+                    prefixIcon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(10),
+                    ],
+                    validator: (v) => Validators.phone(v),
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _name,
+                    label: 'Full Name *',
+                    hint: 'Enter your full legal name',
+                  ),
+                  AppSizes.vGapMd,
+                  // AppTextField(
+                  //   controller: _jobTitleController,
+                  //   label: 'Job Title *',
+                  //   hint: 'Enter your job title',
+                  // ),
+                  // AppSizes.vGapLg,
+                  Text('Company Info', style: context.text.titleMedium),
+                  AppSizes.vGapSm,
+                  AppTextField(
+                    controller: _companyNameController,
+                    label: 'Company Name *',
+                    hint: 'Enter the official company name',
+                  ),
+                  AppSizes.vGapMd,
+                  AppLocationField(
+                    controller: _city,
+                    label: 'City *',
+                    hint: 'Search and select your city',
+                    country: _selectedCountry?.name,
+                  ),
+                  AppSizes.vGapMd,
+                  AppDropdown<MasterOption>(
+                    label: 'Country *',
+                    hint: 'Choose the country you’re based in',
+                    value: _selectedCountry,
+                    items: _countries,
+                    itemLabel: (item) => item.name,
+                    onChanged: (opt) {
+                      setState(() {
+                        _selectedCountry = opt;
+                        _selectedState = null;
+                        _states = [];
+                      });
+                      if (opt != null) {
+                        _loadStatesForCountry(opt.id);
+                      }
+                    },
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _categoryDisplayController,
+                    label: 'Industry / Sector *',
+                    hint: 'Choose the industry your business operates in',
+                    readOnly: true,
+                    suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    onTap: _showCategoryBottomSheet,
+                  ),
+                  AppSizes.vGapMd,
+                  AppDropdown<MasterOption>(
+                    label: 'Team Size *',
+                    hint: 'Select Team Size',
+                    value: _selectedTeamSize,
+                    items: _teamSizes,
+                    itemLabel: (item) => item.name,
+                    onChanged: (opt) => setState(() => _selectedTeamSize = opt),
+                  ),
+                  AppSizes.vGapMd,
+                  AppDropdown<MasterOption>(
+                    label: 'Estimated Project / Hiring Budget Range *',
+                    hint: 'What is your budget for this project?',
+                    value: _selectedBudgetRange,
+                    items: _budgetRanges,
+                    itemLabel: (item) => item.name,
+                    onChanged: (opt) =>
+                        setState(() => _selectedBudgetRange = opt),
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _hiringGoalsDisplayController,
+                    label: 'Primary Hiring Goal',
+                    hint: 'Select your primary goals on the platform',
+                    readOnly: true,
+                    suffixIcon: const Icon(Icons.keyboard_arrow_down_rounded),
+                    onTap: _showHiringGoalsBottomSheet,
+                  ),
+                  AppSizes.vGapMd,
+                  AppTextField(
+                    controller: _bio,
+                    label: 'Biography / Overview',
+                    hint: 'Describe your expertise and the services you offer',
+                    maxLines: 3,
+                  ),
+                  AppSizes.vGapLg,
+                  // Text('Links', style: context.text.titleMedium),
+                  // AppSizes.vGapSm,
+                  // AppTextField(
+                  //   controller: _website,
+                  //   label: 'Website',
+                  //   hint: 'Enter Website',
+                  // ),
+                  AppSizes.vGapLg,
+                  AppPrimaryButton(
+                    label: 'Save Profile',
+                    isLoading: _saving,
+                    onPressed: _save,
+                  ),
+                  SizedBox(height: MediaQuery.viewInsetsOf(context).bottom),
+                ],
+              ),
       ),
     );
   }
@@ -992,10 +1188,7 @@ class _ClientReportsHubPageState extends State<ClientReportsHubPage> {
       (f) async {
         context.push<bool>(
           Routes.paymentStatus,
-          extra: {
-            'isSuccess': false,
-            'message': f.message,
-          },
+          extra: {'isSuccess': false, 'message': f.message},
         );
       },
       (paid) async {
@@ -1004,10 +1197,7 @@ class _ClientReportsHubPageState extends State<ClientReportsHubPage> {
 
         context.push<bool>(
           Routes.paymentStatus,
-          extra: {
-            'isSuccess': isSuccess,
-            'message': paid.message,
-          },
+          extra: {'isSuccess': isSuccess, 'message': paid.message},
         );
       },
     );

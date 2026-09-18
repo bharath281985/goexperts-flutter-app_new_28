@@ -1,8 +1,10 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../../core/validators/validators.dart';
 import '../../../../app/constants/app_sizes.dart';
 import '../../../../app/router/route_names.dart';
@@ -78,6 +80,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
 
   String? _avatarUrl;
   String? _localAvatarPath;
+  String? _coverUrl;
+  bool _uploadingCover = false;
   bool _loading = true;
   bool _saving = false;
 
@@ -203,6 +207,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           (userMap['city']?.toString() ?? userMap['location']?.toString() ?? '').toTitleCase();
       _bio.text = (userMap['bio']?.toString() ?? '').toTitleCase();
       _avatarUrl = userMap['avatarUrl']?.toString();
+      final covVal = userMap['coverImageUrl']?.toString() ?? userMap['coverImage']?.toString();
+      if (covVal != null && covVal.isNotEmpty) _coverUrl = covVal;
 
       if (userMap['country'] is Map) {
         final cMap = Map<String, dynamic>.from(userMap['country'] as Map);
@@ -391,6 +397,18 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         _selectedState = _matchOption(_selectedState, _states);
       }
       if (_industries.isNotEmpty && _selectedIndustryIds.isNotEmpty) {
+        final newIds = <String>[];
+        for (final val in _selectedIndustryIds) {
+          try {
+            final match = _industries.firstWhere((e) => e.id == val || e.name.toLowerCase() == val.toLowerCase());
+            if (!newIds.contains(match.id)) newIds.add(match.id);
+          } catch (_) {
+            if (!newIds.contains(val)) newIds.add(val);
+          }
+        }
+        _selectedIndustryIds.clear();
+        _selectedIndustryIds.addAll(newIds);
+
         _industryDisplayController.text = _industries
             .where((c) => _selectedIndustryIds.contains(c.id))
             .map((c) => c.name)
@@ -410,6 +428,21 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
           _selectedPrimaryGoal,
           _founderGoals,
         );
+        
+        if (_selectedFounderGoalIds.isNotEmpty) {
+          final newGoalIds = <String>[];
+          for (final val in _selectedFounderGoalIds) {
+            try {
+              final match = _founderGoals.firstWhere((e) => e.id == val || e.name.toLowerCase() == val.toLowerCase());
+              if (!newGoalIds.contains(match.id)) newGoalIds.add(match.id);
+            } catch (_) {
+              if (!newGoalIds.contains(val)) newGoalIds.add(val);
+            }
+          }
+          _selectedFounderGoalIds.clear();
+          _selectedFounderGoalIds.addAll(newGoalIds);
+        }
+
         // Also update goal display text if it wasn't set during load
         if (_selectedFounderGoalIds.isNotEmpty &&
             _primaryGoalDisplayController.text.isEmpty) {
@@ -506,7 +539,8 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                 itemBuilder: (context, index) {
                                   final item = filtered[index];
                                   final isSelected =
-                                      _selectedIndustryIds.contains(item.id);
+                                      _selectedIndustryIds.contains(item.id) || 
+                                      _selectedIndustryIds.contains(item.name);
                                   return CheckboxListTile(
                                     title: Text(item.name),
                                     value: isSelected,
@@ -515,6 +549,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                       setState(() {
                                         if (isSelected) {
                                           _selectedIndustryIds.remove(item.id);
+                                          _selectedIndustryIds.remove(item.name);
                                         } else {
                                           _selectedIndustryIds.add(item.id);
                                         }
@@ -523,7 +558,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
                                       
                                       final names = <String>[];
                                       for (final c in _industries) {
-                                        if (_selectedIndustryIds.contains(c.id)) {
+                                        if (_selectedIndustryIds.contains(c.id) || _selectedIndustryIds.contains(c.name)) {
                                           names.add(c.name);
                                         }
                                       }
@@ -788,6 +823,42 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
     }
   }
 
+  Future<void> _pickAndUploadCover() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() => _uploadingCover = true);
+      final bytes = await picked.readAsBytes();
+
+      final repo = sl<AuthRepository>();
+      final result = await repo.uploadCoverImageBytes(bytes);
+
+      if (!mounted) return;
+      setState(() => _uploadingCover = false);
+
+      result.fold(
+        (failure) => context.showSnack(failure.message, isError: true),
+        (updatedUser) {
+          setState(() {
+            _coverUrl = updatedUser.coverImageUrl;
+          });
+          context.read<AuthBloc>().add(AuthUserUpdated(updatedUser));
+          context.showSnack('Cover photo updated successfully!');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingCover = false);
+        context.showSnack('Error selecting image: $e', isError: true);
+      }
+    }
+  }
+
   Future<void> _uploadAvatar(String path) async {
     setState(() => _localAvatarPath = path);
     final result = await sl<FileUploadHelper>().uploadUrl(
@@ -848,7 +919,70 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
               ProfileCompletionCard(
                 percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
               ),
-              AppSizes.vGapXl,
+              AppSizes.vGapMd,
+              Stack(
+                children: [
+                  Container(
+                    height: 130,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                      gradient: AppColors.primaryGradient,
+                      image: DecorationImage(
+                        image: (_coverUrl != null && _coverUrl!.trim().isNotEmpty)
+                            ? NetworkImage(_coverUrl!.trim()) as ImageProvider
+                            : (context.watch<AuthBloc>().state.user?.coverImageUrl != null &&
+                                    context.watch<AuthBloc>().state.user!.coverImageUrl!.trim().isNotEmpty)
+                                ? NetworkImage(context.watch<AuthBloc>().state.user!.coverImageUrl!.trim())
+                                : const AssetImage('assets/images/profile_cover.png'),
+                        fit: BoxFit.cover,
+                        onError: (_, __) {},
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Material(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: _pickAndUploadCover,
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (_uploadingCover)
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              else
+                                const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                              const SizedBox(width: 6),
+                              Text(
+                                _uploadingCover ? 'Uploading...' : 'Edit Cover',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              AppSizes.vGapMd,
               Center(
                 child: ProfileAvatarEditor(
                   localPath: _localAvatarPath,
@@ -1024,7 +1158,7 @@ class _FounderProfileLivePageState extends State<FounderProfileLivePage> {
         style: const TextStyle(
           fontSize: 16,
           fontWeight: FontWeight.bold,
-          color: Colors.white70,
+          color: Colors.black,
         ),
       ),
     );

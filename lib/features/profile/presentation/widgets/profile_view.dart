@@ -23,6 +23,7 @@ class ProfileViewData {
     required this.headline,
     required this.location,
     this.avatarUrl,
+    this.coverImageUrl,
     this.isVerified = true,
     this.about = '',
     this.rating,
@@ -60,6 +61,7 @@ class ProfileViewData {
   final String headline;
   final String location;
   final String? avatarUrl;
+  final String? coverImageUrl;
   final bool isVerified;
   final String about;
   final double? rating;
@@ -99,6 +101,7 @@ class ProfileViewData {
     String? headline,
     String? location,
     String? avatarUrl,
+    String? coverImageUrl,
     bool? isVerified,
     String? about,
     double? rating,
@@ -136,6 +139,7 @@ class ProfileViewData {
       headline: headline ?? this.headline,
       location: location ?? this.location,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       isVerified: isVerified ?? this.isVerified,
       about: about ?? this.about,
       rating: rating ?? this.rating,
@@ -539,6 +543,7 @@ class ProfileView extends StatelessWidget {
                     ),
                   ),
                 ],
+  
                 () {
                   // Portfolio & Links: only for freelancer profiles
                   if (data.type == PublicProfileType.company ||
@@ -1134,15 +1139,29 @@ class ProfileView extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    Image.asset(
-                      'assets/images/profile_cover.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => Container(
-                        decoration: const BoxDecoration(
-                          gradient: AppColors.darkGradient,
-                        ),
-                      ),
-                    ),
+                    data.coverImageUrl != null && data.coverImageUrl!.trim().isNotEmpty
+                        ? Image.network(
+                            data.coverImageUrl!.trim(),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Image.asset(
+                              'assets/images/profile_cover.png',
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) => Container(
+                                decoration: const BoxDecoration(
+                                  gradient: AppColors.darkGradient,
+                                ),
+                              ),
+                            ),
+                          )
+                        : Image.asset(
+                            'assets/images/profile_cover.png',
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => Container(
+                              decoration: const BoxDecoration(
+                                gradient: AppColors.darkGradient,
+                              ),
+                            ),
+                          ),
                     const DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -1717,15 +1736,20 @@ class ProfileView extends StatelessWidget {
         ),
       );
 
-  Widget _banner(BuildContext context) => Container(
-    height: 150,
-    decoration: BoxDecoration(
-      gradient: AppColors.primaryGradient,
-      image: const DecorationImage(
-        image: AssetImage('assets/images/profile_cover.png'),
-        fit: BoxFit.cover,
+  Widget _banner(BuildContext context) {
+    final hasCover = data.coverImageUrl != null && data.coverImageUrl!.trim().isNotEmpty;
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        gradient: AppColors.primaryGradient,
+        image: DecorationImage(
+          image: hasCover
+              ? NetworkImage(data.coverImageUrl!.trim()) as ImageProvider
+              : const AssetImage('assets/images/profile_cover.png'),
+          fit: BoxFit.cover,
+          onError: (_, __) {},
+        ),
       ),
-    ),
     child: Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1758,6 +1782,7 @@ class ProfileView extends StatelessWidget {
       ),
     ),
   );
+  }
 
   Widget _actions(BuildContext context) {
     final showBookmarkAction = data.type != PublicProfileType.company;

@@ -12,6 +12,7 @@ class ApiEndpoints {
   static const me = '/auth/me';
   static const updateMe = '/auth/me';
   static const updateMeAvatar = '/auth/me/avatar';
+  static const updateMeCoverImage = '/auth/me/cover-image';
   static const forgotPassword = '/auth/forgot-password';
   static const resetPassword = '/auth/reset-password';
   static const changePassword = '/auth/change-password';

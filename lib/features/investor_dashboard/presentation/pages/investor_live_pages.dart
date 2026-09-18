@@ -1,7 +1,9 @@
 import 'package:file_picker/file_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../../core/validators/validators.dart';
 
 import '../../../../app/constants/app_colors.dart';
@@ -71,6 +73,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
 
   String? _avatarUrl;
   String? _localAvatarPath;
+  String? _coverUrl;
+  bool _uploadingCover = false;
   bool _loading = true;
   bool _saving = false;
   bool _verified = false;
@@ -159,6 +163,8 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
           userMap['verified'] as bool? ??
           false;
       _avatarUrl = userMap['avatarUrl']?.toString();
+      final covVal = userMap['coverImageUrl']?.toString() ?? userMap['coverImage']?.toString();
+      if (covVal != null && covVal.isNotEmpty) _coverUrl = covVal;
 
       final emailVal = userMap['email']?.toString();
       if (emailVal != null && emailVal.isNotEmpty) _email.text = emailVal;
@@ -670,6 +676,42 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
     }
   }
 
+  Future<void> _pickAndUploadCover() async {
+    try {
+      final picker = ImagePicker();
+      final picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() => _uploadingCover = true);
+      final bytes = await picked.readAsBytes();
+
+      final repo = sl<AuthRepository>();
+      final result = await repo.uploadCoverImageBytes(bytes);
+
+      if (!mounted) return;
+      setState(() => _uploadingCover = false);
+
+      result.fold(
+        (failure) => context.showSnack(failure.message, isError: true),
+        (updatedUser) {
+          setState(() {
+            _coverUrl = updatedUser.coverImageUrl;
+          });
+          context.read<AuthBloc>().add(AuthUserUpdated(updatedUser));
+          context.showSnack('Cover photo updated successfully!');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingCover = false);
+        context.showSnack('Error selecting image: $e', isError: true);
+      }
+    }
+  }
+
   Future<void> _uploadAvatar(String path) async {
     setState(() => _localAvatarPath = path);
     final result = await sl<FileUploadHelper>().uploadUrl(
@@ -743,7 +785,70 @@ class _InvestorProfilePageState extends State<InvestorProfilePage> {
                 ProfileCompletionCard(
                   percent: context.watch<AuthBloc>().state.user?.profileCompletion ?? 0,
                 ),
-                AppSizes.vGapXl,
+                AppSizes.vGapMd,
+                Stack(
+                  children: [
+                    Container(
+                      height: 130,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                        gradient: AppColors.primaryGradient,
+                        image: DecorationImage(
+                          image: (_coverUrl != null && _coverUrl!.trim().isNotEmpty)
+                              ? NetworkImage(_coverUrl!.trim()) as ImageProvider
+                              : (context.watch<AuthBloc>().state.user?.coverImageUrl != null &&
+                                      context.watch<AuthBloc>().state.user!.coverImageUrl!.trim().isNotEmpty)
+                                  ? NetworkImage(context.watch<AuthBloc>().state.user!.coverImageUrl!.trim())
+                                  : const AssetImage('assets/images/profile_cover.png'),
+                          fit: BoxFit.cover,
+                          onError: (_, __) {},
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: Material(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(20),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20),
+                          onTap: _pickAndUploadCover,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_uploadingCover)
+                                  const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                else
+                                  const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _uploadingCover ? 'Uploading...' : 'Edit Cover',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                AppSizes.vGapMd,
                 ProfileAvatarEditor(
                   localPath: _localAvatarPath,
                   networkUrl: _avatarUrl,

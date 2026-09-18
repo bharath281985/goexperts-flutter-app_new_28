@@ -254,6 +254,16 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
     final avatarUrl = rawAvatarUrl == null || rawAvatarUrl.isEmpty
         ? null
         : normalizeImageUrl(rawAvatarUrl);
+    final rawCoverImageUrl =
+        raw['coverImageUrl']?.toString() ??
+        raw['cover_image_url']?.toString() ??
+        raw['coverImage']?.toString() ??
+        raw['cover_image']?.toString() ??
+        reg['coverImageUrl']?.toString() ??
+        reg['coverUrl']?.toString();
+    final coverImageUrl = rawCoverImageUrl == null || rawCoverImageUrl.isEmpty
+        ? null
+        : normalizeImageUrl(rawCoverImageUrl);
     final rawCity = _cleanCityString(
       raw['city']?.toString() ?? reg['city']?.toString() ?? '',
     );
@@ -458,6 +468,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             headline: headline,
             location: location,
             avatarUrl: avatarUrl,
+            coverImageUrl: coverImageUrl,
             isVerified: isVerified,
             about: bio,
             skills: skills,
@@ -654,6 +665,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             headline: industryLabel.isNotEmpty ? industryLabel : 'Client',
             location: location,
             avatarUrl: avatarUrl,
+            coverImageUrl: coverImageUrl,
             isVerified: isVerified,
             about: bio,
             isFollowing: apiIsFollowing,
@@ -739,6 +751,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
                 ? raw['location'].toString()
                 : location,
             avatarUrl: avatarUrl,
+            coverImageUrl: coverImageUrl,
             isVerified: isVerified,
             about: bio,
             skills: focus,
@@ -965,6 +978,7 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             headline: headlineParts.join(' · '),
             location: founderLocation,
             avatarUrl: startupAvatar,
+            coverImageUrl: coverImageUrl,
             isVerified: isVerified,
             about: founderBio,
             skills: skills,

@@ -22,6 +22,8 @@ import '../../../../core/widgets/icon_widget.dart';
 import '../../../../core/utils/string_extensions.dart';
 import '../../../../core/widgets/profile_completion_card.dart';
 import '../../../../core/widgets/profile_avatar_editor.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../master_data/domain/entities/master_option.dart';
 import '../../../master_data/domain/entities/skill_category.dart';
@@ -70,9 +72,9 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   final List<String> _educationLevels = [
     'High School',
     'Diploma',
-    'Bachelors',
-    'Masters',
-    'Doctorate (Ph.D.)',
+    "Bachelor's Degree",
+    "Master's Degree",
+    "Doctorate / PhD",
     'Other',
   ];
 
@@ -95,11 +97,74 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
   bool _loading = true;
   bool _saving = false;
   bool _uploadingAvatar = false;
+  bool _uploadingCover = false;
   bool _loadingCategories = false;
   bool _loadingSkills = false;
 
   String? _localAvatarPath;
   String? _currentAvatarUrl;
+  String? _currentCoverUrl;
+
+  Future<void> _pickAndUploadCover() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Take photo'),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+
+    final picker = ImagePicker();
+    try {
+      final picked = await picker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+
+      setState(() => _uploadingCover = true);
+      final bytes = await picked.readAsBytes();
+
+      final repo = sl<AuthRepository>();
+      final result = await repo.uploadCoverImageBytes(bytes);
+
+      if (!mounted) return;
+      setState(() => _uploadingCover = false);
+
+      result.fold(
+        (failure) => context.showSnack(failure.message, isError: true),
+        (updatedUser) {
+          setState(() {
+            _currentCoverUrl = updatedUser.coverImageUrl;
+          });
+          context.read<AuthBloc>().add(AuthUserUpdated(updatedUser));
+          context.showSnack('Cover photo updated successfully!');
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() => _uploadingCover = false);
+        context.showSnack('Error selecting image: $e', isError: true);
+      }
+    }
+  }
 
   @override
   void initState() {
@@ -992,6 +1057,64 @@ class _FreelancerEditProfilePageState extends State<FreelancerEditProfilePage> {
                                 .user
                                 ?.profileCompletion ??
                             0,
+                      ),
+                      // Cover Photo Banner
+                      const _SectionLabel('Cover Banner'),
+                      AppSizes.vGapSm,
+                      Stack(
+                        children: [
+                          Container(
+                            height: 130,
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(AppSizes.radiusLg),
+                              gradient: AppColors.primaryGradient,
+                              image: DecorationImage(
+                                image: (_currentCoverUrl != null && _currentCoverUrl!.trim().isNotEmpty)
+                                    ? NetworkImage(_currentCoverUrl!.trim()) as ImageProvider
+                                    : (context.watch<AuthBloc>().state.user?.coverImageUrl != null &&
+                                            context.watch<AuthBloc>().state.user!.coverImageUrl!.trim().isNotEmpty)
+                                        ? NetworkImage(context.watch<AuthBloc>().state.user!.coverImageUrl!.trim())
+                                        : const AssetImage('assets/images/profile_cover.png'),
+                                fit: BoxFit.cover,
+                                onError: (_, __) {},
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: Material(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(20),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20),
+                                onTap: _pickAndUploadCover,
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (_uploadingCover)
+                                        const SizedBox(
+                                          width: 14,
+                                          height: 14,
+                                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                        )
+                                      else
+                                        const Icon(Icons.camera_alt_outlined, color: Colors.white, size: 16),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        _uploadingCover ? 'Uploading...' : 'Edit Cover',
+                                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                       AppSizes.vGapLg,
 

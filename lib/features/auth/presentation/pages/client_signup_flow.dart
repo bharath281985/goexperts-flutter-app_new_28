@@ -73,7 +73,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
 
   // Dynamic API Master lists (100% Sourced from Backend APIs)
   List<String> _industries = [];
-  List<String> _companySizes = [];
+  List<String> _teamSizes = [];
   List<String> _hiringGoals = [];
   List<MasterOption> _budgetRanges = [];
   List<String> _countries = [];
@@ -253,8 +253,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       'socialLinks': {
         'companySite': _companySiteController.text.trim(),
       },
-      'companySize': _selectedCompanySize??_selectedTeamSize,
-      'companySizeId': _selectedCompanySize??_selectedTeamSize,
+      'companySize': _selectedTeamSize,
+      'companySizeId': _selectedTeamSize,
       'currentTeam': _selectedTeamSize,
       'currentTeamId': _selectedTeamSize,
       'projectHireBudget': _selectedBudgetRange?.name,
@@ -349,7 +349,7 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
   Future<void> _loadMasterData() async {
     final repo = sl<MasterDataRepository>();
     final indRes = await repo.getIndustries();
-    final csRes = await repo.getCompanySizes();
+    final tsRes = await repo.getTeamSizeOptions();
     final hgRes = await repo.getHiringGoals();
     final budgetRes = await repo.getHiringBudgetOptions();
     final cRes = await repo.getCountries();
@@ -360,8 +360,8 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
       if (indRes.isSuccess && indRes.valueOrNull!.isNotEmpty) {
         _industries = indRes.valueOrNull!.map((e) => e.name).toList();
       }
-      if (csRes.isSuccess && csRes.valueOrNull!.isNotEmpty) {
-        _companySizes = csRes.valueOrNull!;
+      if (tsRes.isSuccess && tsRes.valueOrNull!.isNotEmpty) {
+        _teamSizes = tsRes.valueOrNull!.map((e) => e.name).toList();
       }
       if (desigRes.isSuccess && desigRes.valueOrNull!.isNotEmpty) {
         _designations = desigRes.valueOrNull!.toSet().toList();
@@ -794,8 +794,13 @@ class _ClientSignupFlowState extends State<ClientSignupFlow> {
               label: 'Current Team Size *',
               hint: 'Select Current Team Size',
               value: _selectedTeamSize,
-              items: _companySizes,
+              items: _teamSizes,
               itemLabel: (value) => value,
+              onTap: () {
+                if (_teamSizes.isEmpty) {
+                  _loadMasterData();
+                }
+              },
               onChanged: (val) {
                 setState(() => _selectedTeamSize = val);
                 _persistCurrentProgress();

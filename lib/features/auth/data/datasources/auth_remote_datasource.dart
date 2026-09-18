@@ -195,6 +195,42 @@ class AuthRemoteDatasource {
     return result.fold((f) => throw Exception(f.message), (user) => user);
   }
 
+  Future<AppUser> uploadCoverImageBytes(
+    List<int> bytes, {
+    String fileField = 'file',
+  }) async {
+    final result = await _api.uploadBytesEnvelope<AppUser>(
+      ApiEndpoints.updateMeCoverImage,
+      bytes: bytes,
+      filename: 'cover.jpg',
+      fileField: fileField,
+      fields: {'isCover': 'true'},
+      method: 'put',
+      parser: (envelope) {
+        final raw = envelope.data;
+        if (raw is Map && raw['user'] is Map) {
+          return AppUser.fromApiJson(
+            Map<String, dynamic>.from(raw['user'] as Map),
+          );
+        }
+        if (raw is Map<String, dynamic>) {
+          final coverUrl =
+              raw['coverImageUrl']?.toString() ?? raw['coverUrl']?.toString() ?? raw['url']?.toString();
+          if (coverUrl != null) {
+            return AppUser(
+              id: '',
+              fullName: '',
+              email: '',
+              coverImageUrl: coverUrl,
+            );
+          }
+        }
+        throw Exception('Cover image upload response missing user data');
+      },
+    );
+    return result.fold((f) => throw Exception(f.message), (user) => user);
+  }
+
   Future<bool> sendOtp({
     required String phone,
     required String countryCode,

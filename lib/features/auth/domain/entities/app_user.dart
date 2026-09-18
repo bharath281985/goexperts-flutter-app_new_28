@@ -12,6 +12,7 @@ class AppUser extends Equatable {
     this.countryCode,
     this.role,
     this.avatarUrl,
+    this.coverImageUrl,
     this.isVerified = false,
     this.isProfileComplete = false,
     this.onboardingStatus,
@@ -43,6 +44,7 @@ class AppUser extends Equatable {
   final String? countryCode;
   final UserRole? role;
   final String? avatarUrl;
+  final String? coverImageUrl;
   final bool isVerified;
   final bool isProfileComplete;
   final String? onboardingStatus;
@@ -74,6 +76,7 @@ class AppUser extends Equatable {
     String? fullName,
     UserRole? role,
     String? avatarUrl,
+    String? coverImageUrl,
     bool? isVerified,
     bool? isProfileComplete,
     String? onboardingStatus,
@@ -105,6 +108,7 @@ class AppUser extends Equatable {
       countryCode: countryCode ?? this.countryCode,
       role: role ?? this.role,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      coverImageUrl: coverImageUrl ?? this.coverImageUrl,
       isVerified: isVerified ?? this.isVerified,
       isProfileComplete: isProfileComplete ?? this.isProfileComplete,
       onboardingStatus: onboardingStatus ?? this.onboardingStatus,
@@ -237,6 +241,16 @@ class AppUser extends Equatable {
                 ?.toString()
             : null);
 
+    final cover = str('coverImageUrl', 'cover_image_url') ??
+        str('coverUrl', 'cover_url') ??
+        str('coverImage', 'cover_image') ??
+        (json['profile'] is Map
+            ? (json['profile']['coverImageUrl'] ??
+                    json['profile']['coverUrl'] ??
+                    json['profile']['coverImage'])
+                ?.toString()
+            : null);
+
     return AppUser(
       id: str('id', 'id') ?? '',
       fullName: (str('fullName', 'full_name') ??
@@ -253,6 +267,7 @@ class AppUser extends Equatable {
       countryCode: str('countryCode', 'country_code'),
       role: roleRaw != null ? UserRole.fromString(roleRaw) : null,
       avatarUrl: avatar,
+      coverImageUrl: cover,
       isVerified: flag('isVerified', 'is_verified'),
       isProfileComplete:
           flag('isProfileComplete', 'is_profile_complete') ||
@@ -293,6 +308,7 @@ class AppUser extends Equatable {
     'country_code': countryCode,
     'role': role?.apiValue,
     'avatar_url': avatarUrl,
+    'cover_image_url': coverImageUrl,
     'is_verified': isVerified,
     'is_profile_complete': isProfileComplete,
     'onboarding_status': onboardingStatus,
@@ -324,6 +340,8 @@ class AppUser extends Equatable {
     phone,
     countryCode,
     role,
+    avatarUrl,
+    coverImageUrl,
     isVerified,
     isProfileComplete,
     onboardingStatus,

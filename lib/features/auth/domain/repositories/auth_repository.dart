@@ -60,6 +60,7 @@ abstract class AuthRepository {
 
   Future<Result<bool>> deleteAccount();
 
+  Future<Result<AppUser>> uploadCoverImageBytes(List<int> bytes);
   Future<Result<AppUser>> currentUser();
   Future<void> updateCachedUser(AppUser user);
   Future<void> logout({bool remote = true});
